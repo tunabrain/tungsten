@@ -1,0 +1,48 @@
+#ifndef MESHINPUTOUTPUT_HPP_
+#define MESHINPUTOUTPUT_HPP_
+
+#include <fstream>
+#include <string>
+#include <vector>
+
+#include "FileUtils.hpp"
+
+#include "IntTypes.hpp"
+
+#include "primitives/Triangle.hpp"
+#include "primitives/Vertex.hpp"
+
+#include "math/Vec.hpp"
+
+namespace Tungsten
+{
+
+class MeshInputOutput
+{
+public:
+    static void load(const std::string &path, std::vector<Vertex> &verts, std::vector<TriangleI> &tris)
+    {
+        std::ifstream stream(path, std::ios_base::in | std::ios_base::binary);
+
+        if (!stream.good())
+            return;
+
+        FileUtils::streamRead(stream, verts);
+        FileUtils::streamRead(stream, tris);
+    }
+
+    static void save(const std::string &path, const std::vector<Vertex> &verts, const std::vector<TriangleI> &tris)
+    {
+        std::ofstream stream(path, std::ios_base::out | std::ios_base::binary);
+
+        if (!stream.good())
+            return;
+
+        FileUtils::streamWrite(stream, verts);
+        FileUtils::streamWrite(stream, tris);
+    }
+};
+
+}
+
+#endif /* MESHINPUTOUTPUT_HPP_ */

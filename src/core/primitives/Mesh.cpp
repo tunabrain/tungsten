@@ -1,0 +1,91 @@
+#include "Mesh.hpp"
+
+#include "io/MeshInputOutput.hpp"
+#include "io/JsonUtils.hpp"
+#include "io/Scene.hpp"
+
+#include <unordered_map>
+
+namespace Tungsten
+{
+
+TriangleMesh::TriangleMesh(const rapidjson::Value &v, const Scene &scene)
+: Entity(v),
+  _dirty(false)
+{
+    _path = JsonUtils::fromJsonMember<std::string>(v, "file");
+    _smoothed = JsonUtils::fromJsonMember<bool>(v, "smooth");
+
+    MeshInputOutput::load(_path, _verts, _tris);
+
+    _material = scene.fetchMaterial(JsonUtils::fetchMandatoryMember(v, "material"));
+}
+
+rapidjson::Value TriangleMesh::toJson(Allocator &allocator) const
+{
+    rapidjson::Value v = Entity::toJson(allocator);
+    v.AddMember("type", "mesh", allocator);
+    v.AddMember("file", _path.c_str(), allocator);
+    v.AddMember("smooth", _smoothed, allocator);
+    JsonUtils::addObjectMember(v, "material", *_material, allocator);
+    return std::move(v);
+}
+
+void TriangleMesh::saveData() const
+{
+    if (_dirty)
+        MeshInputOutput::save(_path, _verts, _tris);
+}
+
+void TriangleMesh::calcSmoothVertexNormals()
+{
+    static constexpr float SplitLimit = std::cos(PI*0.25f);
+
+    std::vector<Vec3f> geometricN(_verts.size(), Vec3f(0.0f));
+    std::unordered_multimap<Vec3f, uint32> posToVert;
+
+    for (uint32 i = 0; i < _verts.size(); ++i) {
+        _verts[i].normal() = Vec3f(0.0f);
+        posToVert.insert(std::make_pair(_verts[i].pos(), i));
+    }
+
+    for (TriangleI &t : _tris) {
+        const Vec3f &p0 = _verts[t.v0].pos();
+        const Vec3f &p1 = _verts[t.v1].pos();
+        const Vec3f &p2 = _verts[t.v2].pos();
+        Vec3f normal = (p1 - p0).cross(p2 - p0).normalized();
+
+        for (int i = 0; i < 3; ++i) {
+            Vec3f &n = geometricN[t.vs[i]];
+            if (n == 0.0f) {
+                n = normal;
+            } else if (n.dot(normal) < SplitLimit) {
+                _verts.push_back(_verts[t.vs[i]]);
+                geometricN.push_back(normal);
+                t.vs[i] = _verts.size() - 1;
+            }
+        }
+    }
+
+    for (TriangleI &t : _tris) {
+        const Vec3f &p0 = _verts[t.v0].pos();
+        const Vec3f &p1 = _verts[t.v1].pos();
+        const Vec3f &p2 = _verts[t.v2].pos();
+        Vec3f normal = (p1 - p0).cross(p2 - p0);
+        Vec3f nN = normal.normalized();
+
+        for (int i = 0; i < 3; ++i) {
+            auto iters = posToVert.equal_range(_verts[t.vs[i]].pos());
+
+            for (auto t = iters.first; t != iters.second; ++t)
+                if (geometricN[t->second].dot(nN) >= SplitLimit)
+                    _verts[t->second].normal() += normal;
+        }
+    }
+
+    for (Vertex &v : _verts)
+        v.normal().normalize();
+}
+
+
+}

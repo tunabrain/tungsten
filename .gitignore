@@ -1,0 +1,9 @@
+*.png
+models
+build
+.cproject
+.project
+.settings
+MayaLicense.txt
+*.dat
+*.exe

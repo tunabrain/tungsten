@@ -1,0 +1,63 @@
+cmake_minimum_required(VERSION 2.8)
+project(Tungsten)
+
+set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
+
+# Enable C++11
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag("-std=c++11" COMPILER_SUPPORTS_CXX11)
+check_cxx_compiler_flag("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
+if(COMPILER_SUPPORTS_CXX11)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+elseif (COMPILER_SUPPORTS_CXX0X)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+else()
+    message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
+endif()
+check_cxx_compiler_flag("-mavx2 -mfma" COMPILER_SUPPORTS_FMA)
+check_cxx_compiler_flag("-msse4.2" COMPILER_SUPPORTS_SSE4)
+check_cxx_compiler_flag("-msse3" COMPILER_SUPPORTS_SSE3)
+set(__AVX__ 0)
+if (COMPILER_SUPPORTS_FMA)
+    set(__AVX__ 1)
+    set(SIMD_FLAGS "-mavx2 -mfma")
+elseif (COMPILER_SUPPORTS_SSE4)
+    set(SIMD_FLAGS "-msse4.2")
+elseif (COMPILER_SUPPORTS_SSE3)
+    set(SIMD_FLAGS " -msse3")
+else()
+    message(FATAL_ERROR "The target machine does not support SSE3. At least SSE3 is required")
+endif()
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SIMD_FLAGS}")
+
+add_subdirectory(src/extern/embree)
+add_library(extern STATIC src/extern/lodepng/lodepng.cpp src/extern/sobol/sobol.cpp src/extern/stbi/stb_image.c)
+
+set(CXX_WARNINGS "-Wall -Wextra -Wpointer-arith -Wcast-align -fstrict-aliasing -Wno-unused-local-typedefs")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_WARNINGS}")
+set(core_libs core extern embree tbb)
+
+include_directories(src/core src/extern src/extern/embree src)
+
+file(GLOB_RECURSE Core_SOURCES "src/core/*.cpp")
+add_library(core STATIC ${Core_SOURCES})
+
+add_executable(obj2json src/obj2json/obj2json.cpp)
+target_link_libraries(obj2json ${core_libs})
+
+find_package(Qt4)
+if (QT4_FOUND)
+    set(QT_USE_QTOPENGL TRUE)
+    include(${QT_USE_FILE})
+    add_definitions(${QT_DEFINITIONS})
+    
+    file(GLOB_RECURSE Editor_SOURCES "src/editor/*.cpp")
+    file(GLOB_RECURSE Editor_SHADERS "src/editor/shaders/*")
+    file(COPY ${Editor_SHADERS} DESTINATION "src/editor/shaders")
+    add_executable(editor ${Editor_SOURCES} src/editor/resources/Tungsten.rc)
+    set_target_properties(editor PROPERTIES AUTOMOC TRUE)
+    target_link_libraries(editor ${core_libs} glew32 glu32 opengl32 ${QT_LIBRARIES})
+else()
+    message("Qt4 not found. Editor will not be built")
+endif()
