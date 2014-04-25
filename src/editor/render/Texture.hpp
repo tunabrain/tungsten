@@ -6,6 +6,9 @@
 namespace Tungsten
 {
 
+namespace GL
+{
+
 class BufferObject;
 
 enum TexelType
@@ -135,6 +138,8 @@ public:
         return _memoryUsage;
     }
 };
+
+}
 
 }
 

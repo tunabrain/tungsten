@@ -9,15 +9,13 @@
 
 #include "JsonSerializable.hpp"
 
-#include "primitives/PackedGeometry.hpp"
-#include "primitives/Mesh.hpp"
+#include "materials/BitmapTexture.hpp"
 
-#include "materials/Material.hpp"
-
-#include "lights/Light.hpp"
+#include "primitives/Primitive.hpp"
 
 #include "bsdfs/Bsdf.hpp"
 
+#include "TraceableScene.hpp"
 #include "Camera.hpp"
 
 namespace Tungsten
@@ -26,22 +24,22 @@ namespace Tungsten
 class Scene : public JsonSerializable
 {
     std::string _srcDir;
-
-    std::vector<std::shared_ptr<TriangleMesh>> _primitives;
-    std::vector<std::shared_ptr<Material>> _materials;
-    std::vector<Entity *> _entities;
-    std::vector<std::shared_ptr<Light>> _lights;
-    std::vector<std::shared_ptr<Bsdf>> _bsdfs;
-    mutable std::map<std::string, std::shared_ptr<TextureRgba>> _colorMaps;
-    mutable std::map<std::string, std::shared_ptr<TextureA>> _scalarMaps;
-    std::shared_ptr<Camera> _camera;
-
     std::string _path;
 
-    std::shared_ptr<Material>     instantiateMaterial (std::string type, const rapidjson::Value &value) const;
-    std::shared_ptr<Light>        instantiateLight    (std::string type, const rapidjson::Value &value) const;
-    std::shared_ptr<Bsdf>         instantiateBsdf     (std::string type, const rapidjson::Value &value) const;
-    std::shared_ptr<TriangleMesh> instantiatePrimitive(std::string type, const rapidjson::Value &value) const;
+    std::vector<std::shared_ptr<Primitive>> _primitives;
+    std::vector<std::shared_ptr<Bsdf>> _bsdfs;
+    mutable std::map<std::string, std::shared_ptr<BitmapTextureRgb>> _colorMaps;
+    mutable std::map<std::string, std::shared_ptr<BitmapTextureA>> _scalarMaps;
+    std::shared_ptr<Camera> _camera;
+
+    std::shared_ptr<Bsdf>      instantiateBsdf     (std::string type, const rapidjson::Value &value) const;
+    std::shared_ptr<Primitive> instantiatePrimitive(std::string type, const rapidjson::Value &value) const;
+    template<int Dimension>
+    std::shared_ptr<Texture<true, Dimension>>
+        instantiateScalarTexture(std::string type, const rapidjson::Value &value) const;
+    template<int Dimension>
+    std::shared_ptr<Texture<false, Dimension>>
+        instantiateColorTexture(std::string type, const rapidjson::Value &value) const;
 
     template<typename Instantiator, typename Element>
     void loadObjectList(const rapidjson::Value &container, Instantiator instantiator, std::vector<std::shared_ptr<Element>> &result);
@@ -55,49 +53,48 @@ class Scene : public JsonSerializable
     template<typename T>
     bool addUnique(const std::shared_ptr<T> &o, std::vector<std::shared_ptr<T>> &list);
 
-    template<typename T>
-    void addTexture(std::shared_ptr<T> &t, std::map<std::string, std::shared_ptr<T>> &maps);
+    template<typename T1, typename T2>
+    void addTexture(std::shared_ptr<T1> &t, std::map<std::string, std::shared_ptr<T2>> &maps);
 
 public:
     Scene() = default;
 
-    Scene(const std::string &srcDir, const rapidjson::Value &v);
+    Scene(const std::string &srcDir);
 
     Scene(const std::string &srcDir,
-          std::vector<std::shared_ptr<TriangleMesh>> primitives,
-          std::vector<std::shared_ptr<Material>> materials,
-          std::vector<std::shared_ptr<Light>> lights,
+          std::vector<std::shared_ptr<Primitive>> primitives,
           std::vector<std::shared_ptr<Bsdf>> bsdfs,
           std::shared_ptr<Camera> camera);
 
+    virtual void fromJson(const rapidjson::Value &v, const Scene &scene);
     virtual rapidjson::Value toJson(Allocator &allocator) const;
     void saveData(const std::string &dst) const;
 
     std::shared_ptr<Bsdf> fetchBsdf(const rapidjson::Value &v) const;
-    std::shared_ptr<Material> fetchMaterial(const rapidjson::Value &v) const;
-    std::shared_ptr<TextureRgba> fetchColorMap(const std::string &path) const;
+    template<int Dimension>
+    std::shared_ptr<Texture<true, Dimension>> fetchScalarTexture(const rapidjson::Value &v) const;
+    template<int Dimension>
+    std::shared_ptr<Texture<false, Dimension>> fetchColorTexture(const rapidjson::Value &v) const;
+    std::shared_ptr<TextureRgb> fetchColorMap(const std::string &path) const;
     std::shared_ptr<TextureA> fetchScalarMap(const std::string &path) const;
 
-    void addMesh(const std::shared_ptr<TriangleMesh> &mesh);
-    void addMaterial(const std::shared_ptr<Material> &material);
+    void deletePrimitives(const std::unordered_set<Primitive *> &primitives);
+
+    void addPrimitive(const std::shared_ptr<Primitive> &mesh);
     void addBsdf(const std::shared_ptr<Bsdf> &bsdf);
-    void addLight(const std::shared_ptr<Light> &light);
+
     void merge(Scene scene);
 
-    void deleteEntities(const std::unordered_set<Entity *> &entities);
+    TraceableScene *makeTraceable();
 
-    PackedGeometry flatten() const;
-
-    std::vector<Entity *> &entities();
-
-    std::vector<std::shared_ptr<TriangleMesh>> &primitives()
+    std::vector<std::shared_ptr<Primitive>> &primitives()
     {
         return _primitives;
     }
 
-    std::vector<std::shared_ptr<Light>> &lights()
+    void setCamera(Camera *cam)
     {
-        return _lights;
+        _camera.reset(cam);
     }
 
     std::shared_ptr<Camera> camera()
@@ -113,11 +110,6 @@ public:
     const std::string path() const
     {
         return _path;
-    }
-
-    void setCamera(Camera *cam)
-    {
-        _camera.reset(cam);
     }
 
     static Scene *load(const std::string &path);

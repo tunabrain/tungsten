@@ -7,12 +7,16 @@
 #include "FileUtils.hpp"
 #include "Scene.hpp"
 
+#include "primitives/Sphere.hpp"
+#include "primitives/Quad.hpp"
 #include "primitives/Mesh.hpp"
 
 #include "bsdfs/DielectricBsdf.hpp"
 #include "bsdfs/LambertBsdf.hpp"
+#include "bsdfs/MirrorBsdf.hpp"
 #include "bsdfs/PhongBsdf.hpp"
 #include "bsdfs/MixedBsdf.hpp"
+#include "bsdfs/ErrorBsdf.hpp"
 
 #include "Camera.hpp"
 
@@ -69,6 +73,8 @@ int32 ObjLoader::addVertex(int32 pos, int32 normal, int32 uv)
             n = _normal[normal - 1];
         if (uv)
             u = _uv[uv - 1];
+
+        _bounds.grow(p);
 
         uint32 index = _verts.size();
         _verts.emplace_back(p, n, u);
@@ -147,13 +153,13 @@ void ObjLoader::loadMaterialLibrary(const char *path)
                 std::string name = extractString(line + 7);
                 _materialToIndex[name] = matIndex;
                 _materials.push_back(ObjMaterial(name));
-                std::cout << "Loaded material " << name << std::endl;
+                DBG("Loaded material %s", name);
             } else if (hasPrefix(line, "Kd")) {
                 _materials[matIndex].diffuse = loadVector<3>(line + 3);
-                std::cout << "Diffuse: " << _materials[matIndex].diffuse << std::endl;
+                //std::cout << "Diffuse: " << _materials[matIndex].diffuse << std::endl;
             } else if (hasPrefix(line, "Ks")) {
                 _materials[matIndex].specular = loadVector<3>(line + 3);
-                std::cout << "Specular: " << _materials[matIndex].specular << std::endl;
+                //std::cout << "Specular: " << _materials[matIndex].specular << std::endl;
             } else if (hasPrefix(line, "Ke")) {
                 _materials[matIndex].emission = loadVector<3>(line + 3);
             } else if (hasPrefix(line, "Tf")) {
@@ -208,7 +214,7 @@ void ObjLoader::loadLine(const char *line)
         if (_materialToIndex.count(mtlName))
             _currentMaterial = _materialToIndex[mtlName];
         else {
-            std::cout << "Could not load material " << mtlName << std::endl;
+            DBG("Could not load material %s", mtlName);
             _currentMaterial = -1;
         }
     } else if (hasPrefix(line, "g") || hasPrefix(line, "o")) {
@@ -223,7 +229,7 @@ void ObjLoader::loadLine(const char *line)
     }
 }
 
-std::shared_ptr<TextureRgba> ObjLoader::fetchColorMap(const std::string &path)
+std::shared_ptr<TextureRgb> ObjLoader::fetchColorMap(const std::string &path)
 {
     if (path.empty())
         return nullptr;
@@ -231,7 +237,7 @@ std::shared_ptr<TextureRgba> ObjLoader::fetchColorMap(const std::string &path)
     if (_colorMaps.count(path))
         return _colorMaps[path];
 
-    std::shared_ptr<TextureRgba> tex(new TextureRgba(path));
+    std::shared_ptr<BitmapTextureRgb> tex(std::make_shared<BitmapTextureRgb>(path));
     _colorMaps[path] = tex;
     return tex;
 }
@@ -244,34 +250,48 @@ std::shared_ptr<TextureA> ObjLoader::fetchScalarMap(const std::string &path)
     if (_scalarMaps.count(path))
         return _scalarMaps[path];
 
-    std::shared_ptr<TextureA> tex(new TextureA(path));
+    std::shared_ptr<BitmapTextureA> tex(std::make_shared<BitmapTextureA>(path));
     _scalarMaps[path] = tex;
     return tex;
 }
 
-Material *ObjLoader::convertObjMaterial(const ObjMaterial &mat)
+std::shared_ptr<Bsdf> ObjLoader::convertObjMaterial(const ObjMaterial &mat)
 {
-    std::shared_ptr<Bsdf> bsdf = nullptr;
+    std::shared_ptr<Bsdf> result = nullptr;
 
     if (!mat.isTransmissive()) {
         if (!mat.isSpecular()) {
-            bsdf = std::shared_ptr<Bsdf>(new LambertBsdf(mat.hasDiffuseMap() ? Vec3f(1.0f) : mat.diffuse));
+            result = std::make_shared<LambertBsdf>();
+            result->setColor(std::make_shared<ConstantTextureRgb>(mat.diffuse));
+        } else if (mat.hardness > 500.0f) {
+            result = std::make_shared<MirrorBsdf>();
+            result->setColor(std::make_shared<ConstantTextureRgb>(mat.specular));
         } else {
-            bsdf = std::shared_ptr<Bsdf>(new MixedBsdf(
-                std::shared_ptr<Bsdf>(new LambertBsdf(mat.hasDiffuseMap() ? Vec3f(1.0f) : mat.diffuse)),
-                std::shared_ptr<Bsdf>(new PhongBsdf(mat.hasDiffuseMap() ? Vec3f(1.0f) : mat.specular, int(mat.hardness))),
-                mat.diffuse.max()*(mat.hardness + 1.0f)/(mat.specular.max()*2.0f + mat.diffuse.max()*(mat.hardness + 1.0f))
-            ));
+            std::shared_ptr<Bsdf> lambert = std::make_shared<LambertBsdf>();
+            std::shared_ptr<Bsdf> phong = std::make_shared<PhongBsdf>(int(mat.hardness));
+            lambert->setColor(std::make_shared<ConstantTextureRgb>(mat.diffuse));
+            phong->setColor(std::make_shared<ConstantTextureRgb>(mat.specular));
+            float ratio = mat.diffuse.max()/(mat.specular.max() + mat.diffuse.max());
+            result = std::make_shared<MixedBsdf>(lambert, phong, ratio);
         }
     } else {
-        bsdf = std::shared_ptr<Bsdf>(new DielectricBsdf(mat.ior, mat.hasDiffuseMap() ? Vec3f(1.0f) : mat.diffuse, 1));
+        result = std::make_shared<DielectricBsdf>(mat.ior);
     }
 
-    if (bsdf)
-        return new Material(bsdf, mat.emission, mat.name, fetchColorMap(mat.diffuseMap),
-                fetchScalarMap(mat.alphaMap), fetchScalarMap(mat.bumpMap));
+    result->setEmission(mat.emission);
+    if (mat.hasAlphaMap())
+        result->setAlpha(fetchScalarMap(mat.alphaMap));
+    if (mat.hasBumpMap())
+        result->setBump(fetchScalarMap(mat.bumpMap));
+    if (mat.hasDiffuseMap())
+        result->setColor(fetchColorMap(mat.diffuseMap));
+
+    result->setName(mat.name);
+
+    if (result)
+        return result;
     else
-        return new Material(*_errorMaterial);
+        return _errorMaterial;
 }
 
 std::string ObjLoader::generateDummyName() const
@@ -290,21 +310,48 @@ void ObjLoader::clearPerMeshData()
     _verts.clear();
 }
 
-TriangleMesh *ObjLoader::finalizeMesh()
+std::shared_ptr<Primitive> ObjLoader::finalizeMesh()
 {
+    std::shared_ptr<Bsdf> bsdf(_currentMaterial == -1 ? _errorMaterial : _convertedMaterials[_currentMaterial]);
+
     std::string name = _meshName.empty() ? generateDummyName() : _meshName;
 
-    return new TriangleMesh(
-        std::move(_verts),
-        std::move(_tris),
-        _currentMaterial == -1 ? _errorMaterial : _convertedMaterials[_currentMaterial],
-        name,
-        _meshSmoothed
-    );
+    if (name.find("AnalyticSphere") != std::string::npos) {
+        Vec3f center(0.0f);
+        for (const Vertex &v : _verts)
+            center += v.pos()/_verts.size();
+        float r = 0.0f;
+        for (const Vertex &v : _verts)
+            r = max(r, (center - v.pos()).length());
+        return std::make_shared<Sphere>(center, r, name, bsdf);
+    } else if (name.find("AnalyticQuad") != std::string::npos) {
+        if (_tris.size() == 2) {
+            TriangleI &t = _tris[0];
+            Vec3f p0 = _verts[t.v0].pos();
+            Vec3f p1 = _verts[t.v1].pos();
+            Vec3f p2 = _verts[t.v2].pos();
+            float absDot0 = std::abs((p1 - p0).dot(p2 - p0));
+            float absDot1 = std::abs((p2 - p1).dot(p0 - p1));
+            float absDot2 = std::abs((p0 - p2).dot(p1 - p2));
+            Vec3f base, edge0, edge1;
+            if (absDot0 < absDot1 && absDot0 < absDot2)
+                base = p0, edge0 = p1 - base, edge1 = p2 - base;
+            else if (absDot1 < absDot2)
+                base = p1, edge0 = p2 - base, edge1 = p0 - base;
+            else
+                base = p2, edge0 = p0 - base, edge1 = p1 - base;
+
+            return std::make_shared<Quad>(base, edge0, edge1, name, bsdf);
+        } else {
+            DBG("AnalyticQuad must have exactly 2 triangles. Mesh '%s' has %d instead", _meshName.c_str(), _tris.size());
+        }
+    }
+
+    return std::make_shared<TriangleMesh>(std::move(_verts), std::move(_tris), bsdf, name, _meshSmoothed);
 }
 
 ObjLoader::ObjLoader(std::ifstream &in, const char *path)
-: _errorMaterial(new Material(std::shared_ptr<Bsdf>(new LambertBsdf(Vec3f(0.0f))), Vec3f(1.0f, 0.0f, 0.0f), "Undefined")),
+: _errorMaterial(std::make_shared<ErrorBsdf>()),
   _currentMaterial(-1),
   _meshSmoothed(false)
 {
@@ -338,13 +385,15 @@ Scene *ObjLoader::load(const char *path)
     if (file.good()) {
         ObjLoader loader(file, path);
 
+        std::shared_ptr<Camera> cam(std::make_shared<Camera>());
+        cam->setLookAt(loader._bounds.center());
+        cam->setPos(loader._bounds.center() - Vec3f(0.0f, 0.0f, loader._bounds.diagonal().z()));
+
         return new Scene(
             FileUtils::extractDir(path),
             std::move(loader._meshes),
-            std::move(loader._convertedMaterials),
-            std::vector<std::shared_ptr<Light>>(),
             std::vector<std::shared_ptr<Bsdf>>(),
-            std::shared_ptr<Camera>(new Camera(Mat4f::translate(Vec3f(0.0f)), Vec2u(800u, 600u), 60.0f, 32))
+            cam
         );
     } else {
         return nullptr;

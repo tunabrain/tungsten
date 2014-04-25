@@ -7,6 +7,9 @@
 namespace Tungsten
 {
 
+namespace GL
+{
+
 static int stringHash(const char *str) {
     int hash = 5381;
 
@@ -303,6 +306,8 @@ void Shader::uniformF(const char *name, const Vec4f &v)
 void Shader::uniformMat(const char *name, const Mat4f &m, bool transpose)
 {
     glUniformMatrix4fv(_uniformLocation[uniformIndex(name)], 1, transpose, m.data());
+}
+
 }
 
 }

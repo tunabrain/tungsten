@@ -8,6 +8,9 @@
 namespace Tungsten
 {
 
+namespace GL
+{
+
 std::stack<Mat4f> MatrixStack::_stacks[3] = {
         std::stack<Mat4f>(std::deque<Mat4f>(1, Mat4f())),
         std::stack<Mat4f>(std::deque<Mat4f>(1, Mat4f())),
@@ -93,6 +96,8 @@ void MatrixStack::setShaderMatrices(Shader &s, int flags) {
             s.uniformMat(uniformNames[i], m, true);
         }
     }
+}
+
 }
 
 }

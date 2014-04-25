@@ -431,14 +431,14 @@ public:
         std::cout << _leafCount << " leaves" << std::endl;
     }
 
-    std::shared_ptr<TriangleMesh> buildMesh(const std::shared_ptr<Material> &material, const std::string &name) const
+    std::shared_ptr<TriangleMesh> buildMesh(const std::string &name) const
     {
         std::unordered_map<uint64, uint32> vertCache;
         std::vector<Vertex> verts;
         std::vector<TriangleI> tris;
         buildMeshRecursive(_root, vertCache, verts, tris);
 
-        return std::shared_ptr<TriangleMesh>(new TriangleMesh(std::move(verts), std::move(tris), material, name, true));
+        return std::shared_ptr<TriangleMesh>(new TriangleMesh(std::move(verts), std::move(tris), name, true));
     }
 };
 

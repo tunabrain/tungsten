@@ -5,8 +5,14 @@
 #include <QPixmap>
 #include <memory>
 
+#define EXPORT_RAYS 0
+
+#if EXPORT_RAYS
 #include "integrators/RayStreamIntegrator.hpp"
+#else
 #include "integrators/PathTraceIntegrator.hpp"
+#endif
+#include "TraceableScene.hpp"
 #include "Renderer.hpp"
 
 class QStatusBar;
@@ -15,7 +21,6 @@ class QLabel;
 namespace Tungsten
 {
 
-#define EXPORT_RAYS 0
 
 #if EXPORT_RAYS
 typedef RayStreamIntegrator RenderIntegrator;
@@ -36,7 +41,7 @@ class RenderWindow : public QWidget
     std::unique_ptr<uint32[]> _weights;
     std::unique_ptr<QImage> _image;
     std::unique_ptr<Renderer<RenderIntegrator>> _renderer;
-    std::unique_ptr<PackedGeometry> _flattenedScene;
+    std::unique_ptr<TraceableScene> _flattenedScene;
 
     QLabel *_sppLabel, *_statusLabel;
 

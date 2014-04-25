@@ -8,11 +8,18 @@
 namespace Tungsten
 {
 
-struct TangentSpace
+struct TangentFrame
 {
     Vec3f normal, tangent, bitangent;
 
-    TangentSpace(const Vec3f &n)
+    TangentFrame() = default;
+
+    TangentFrame(const Vec3f &n, const Vec3f &t, const Vec3f &b)
+    : normal(n), tangent(t), bitangent(b)
+    {
+    }
+
+    TangentFrame(const Vec3f &n)
     : normal(n)
     {
         if (std::abs(normal.x()) > std::abs(normal.y()))

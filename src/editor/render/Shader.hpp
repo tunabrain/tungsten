@@ -10,6 +10,9 @@
 namespace Tungsten
 {
 
+namespace GL
+{
+
 #define MAX_SHADERS 8
 #define MAX_OUTPUTS 8
 #define MAX_VARYINGS 8
@@ -92,6 +95,8 @@ public:
         return _program;
     }
 };
+
+}
 
 }
 

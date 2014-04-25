@@ -60,6 +60,8 @@ public:
 
     Vec3f transformVector(const Vec3f &b) const;
 
+    Mat4f toNormalMatrix() const;
+
     Mat4f extractRotation() const;
     Mat4f extractTranslation() const;
     Mat4f extractScale() const;

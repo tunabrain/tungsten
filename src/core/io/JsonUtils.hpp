@@ -17,62 +17,62 @@ namespace Tungsten
 class JsonUtils
 {
 public:
-    template<typename T>
-    static inline T fromJson(const rapidjson::Value &v);
-
-    template<typename ElementType, unsigned Size>
-    static Vec<ElementType, Size> fromJson(const rapidjson::Value &v)
-    {
-        SOFT_ASSERT(v.IsArray(), "Cannot convert Json value to vector: Value is not an array");
-        SOFT_ASSERT(v.Size() == 1 || v.Size() == Size,
-            "Cannot convert Json Array to vector: Invalid size");
-
-        if (v.Size() == 1) {
-            return Vec<ElementType, Size>(fromJson<ElementType>(v[0u]));
-        } else {
-            Vec<ElementType, Size> result;
-            for (unsigned i = 0; i < Size; ++i)
-                result[i] = fromJson<ElementType>(v[i]);
-            return result;
-        }
-    }
-
-    template<typename ElementType, unsigned Size>
-    static Vec<ElementType, Size> fromJson(const rapidjson::Value &v, const Vec<ElementType, Size> &defaultValue)
-    {
-        if (v.IsNull())
-            return defaultValue;
-        else
-            return fromJson<ElementType, Size>(v);
-    }
-
-    template<typename Type>
-    static Type fromJson(const rapidjson::Value &v, const Type &defaultValue)
-    {
-        if (v.IsNull())
-            return defaultValue;
-        else
-            return fromJson<Type>(v);
-    }
-
-    static inline const rapidjson::Value &fetchMandatoryMember(const rapidjson::Value &v, const char *name)
+    static inline const rapidjson::Value &fetchMember(const rapidjson::Value &v, const char *name)
     {
         const rapidjson::Value::Member *member = v.FindMember(name);
         SOFT_ASSERT(member, "Json value is missing mandatory member '%s'", name);
-
         return member->value;
     }
 
-    template<typename Type>
-    static inline Type fromJsonMember(const rapidjson::Value &v, const char *name)
+    template<typename T>
+    static inline bool fromJson(const rapidjson::Value &v, T &dst);
+
+    template<typename T>
+    static inline T as(const rapidjson::Value &v)
     {
-        return fromJson<Type>(fetchMandatoryMember(v, name));
+        T result;
+        if (!fromJson(v, result)) {
+            SOFT_FAIL("Conversion from JSON datatype failed");
+            return T();
+        }
+        return result;
+    }
+
+    template<typename T>
+    static inline T as(const rapidjson::Value &v, const char *name)
+    {
+        return as<T>(fetchMember(v, name));
     }
 
     template<typename ElementType, unsigned Size>
-    static Vec<ElementType, Size> fromJsonMember(const rapidjson::Value &v, const char *name)
+    static bool fromJson(const rapidjson::Value &v, Vec<ElementType, Size> &dst)
     {
-        return fromJson<ElementType, Size>(fetchMandatoryMember(v, name));
+        if (!v.IsArray())
+            return false;
+        SOFT_ASSERT(v.Size() == 1 || v.Size() == Size,
+            "Cannot convert Json Array to vector: Invalid size. Expected 1 or %d, received %d", Size, v.Size());
+
+        if (v.Size() == 1)
+            dst = Vec<ElementType, Size>(as<ElementType>(v[0u]));
+        else
+            for (unsigned i = 0; i < Size; ++i)
+                dst[i] = as<ElementType>(v[i]);
+        return true;
+    }
+
+    template<typename T>
+    static inline bool fromJson(const rapidjson::Value &v, const char *field, T &dst)
+    {
+        const rapidjson::Value::Member *member = v.FindMember(field);
+        if (!member)
+            return false;
+
+        return fromJson(member->value, dst);
+    }
+
+    static rapidjson::Value toJsonValue(float value, rapidjson::Document::AllocatorType &/*allocator*/)
+    {
+        return std::move(rapidjson::Value(double(value)));
     }
 
     template<typename ElementType, unsigned Size>
@@ -94,7 +94,7 @@ public:
         return std::move(a);
     }
 
-    static inline void addObjectMember(rapidjson::Value &v, const char *name, JsonSerializable &o, rapidjson::Document::AllocatorType &allocator)
+    static inline void addObjectMember(rapidjson::Value &v, const char *name, const JsonSerializable &o, rapidjson::Document::AllocatorType &allocator)
     {
         if (o.unnamed())
             v.AddMember(name, o.toJson(allocator), allocator);
@@ -103,15 +103,15 @@ public:
     }
 };
 
-template<> bool        JsonUtils::fromJson<bool>       (const rapidjson::Value &v);
-template<> float       JsonUtils::fromJson<float>      (const rapidjson::Value &v);
-template<> double      JsonUtils::fromJson<double>     (const rapidjson::Value &v);
-template<> uint32      JsonUtils::fromJson<uint32>     (const rapidjson::Value &v);
-template<> int32       JsonUtils::fromJson<int32>      (const rapidjson::Value &v);
-template<> uint64      JsonUtils::fromJson<uint64>     (const rapidjson::Value &v);
-template<> int64       JsonUtils::fromJson<int64>      (const rapidjson::Value &v);
-template<> std::string JsonUtils::fromJson<std::string>(const rapidjson::Value &v);
-template<> Mat4f       JsonUtils::fromJson<Mat4f>      (const rapidjson::Value &v);
+template<> bool JsonUtils::fromJson<bool>       (const rapidjson::Value &v, bool &dst);
+template<> bool JsonUtils::fromJson<float>      (const rapidjson::Value &v, float &dst);
+template<> bool JsonUtils::fromJson<double>     (const rapidjson::Value &v, double &dst);
+template<> bool JsonUtils::fromJson<uint32>     (const rapidjson::Value &v, uint32 &dst);
+template<> bool JsonUtils::fromJson<int32>      (const rapidjson::Value &v, int32 &dst);
+template<> bool JsonUtils::fromJson<uint64>     (const rapidjson::Value &v, uint64 &dst);
+template<> bool JsonUtils::fromJson<int64>      (const rapidjson::Value &v, int64 &dst);
+template<> bool JsonUtils::fromJson<std::string>(const rapidjson::Value &v, std::string &dst);
+template<> bool JsonUtils::fromJson<Mat4f>      (const rapidjson::Value &v, Mat4f &dst);
 
 }
 

@@ -9,25 +9,23 @@
 namespace Tungsten
 {
 
-TriangleMesh::TriangleMesh(const rapidjson::Value &v, const Scene &scene)
-: Entity(v),
-  _dirty(false)
+void TriangleMesh::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
-    _path = JsonUtils::fromJsonMember<std::string>(v, "file");
-    _smoothed = JsonUtils::fromJsonMember<bool>(v, "smooth");
+    Primitive::fromJson(v, scene);
+
+    _dirty = false;
+    _path = JsonUtils::as<std::string>(v, "file");
+    JsonUtils::fromJson(v, "smooth", _smoothed);
 
     MeshInputOutput::load(_path, _verts, _tris);
-
-    _material = scene.fetchMaterial(JsonUtils::fetchMandatoryMember(v, "material"));
 }
 
 rapidjson::Value TriangleMesh::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Entity::toJson(allocator);
+    rapidjson::Value v = Primitive::toJson(allocator);
     v.AddMember("type", "mesh", allocator);
     v.AddMember("file", _path.c_str(), allocator);
     v.AddMember("smooth", _smoothed, allocator);
-    JsonUtils::addObjectMember(v, "material", *_material, allocator);
     return std::move(v);
 }
 
@@ -85,6 +83,14 @@ void TriangleMesh::calcSmoothVertexNormals()
 
     for (Vertex &v : _verts)
         v.normal().normalize();
+}
+
+void TriangleMesh::computeBounds()
+{
+    Box3f box;
+    for (Vertex &v : _verts)
+        box.grow(_transform*v.pos());
+    _bounds = box;
 }
 
 

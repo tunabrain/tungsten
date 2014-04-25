@@ -13,8 +13,12 @@
 
 #include "math/MathUtil.hpp"
 
+#include "TraceableScene.hpp"
 #include "IntTypes.hpp"
 #include "Config.hpp"
+#include "Camera.hpp"
+
+#include "extern/lodepng/lodepng.h"
 
 namespace Tungsten
 {
@@ -24,16 +28,61 @@ class Renderer
 {
     static constexpr uint32 TileSize = 16;
 
+    struct SampleRecord
+    {
+        uint32 sampleCount, nextSampleCount;
+        float adaptiveWeight;
+        float mean, runningVariance;
+
+        SampleRecord()
+        : sampleCount(0), mean(0.0f), runningVariance(0.0f)
+        {
+        }
+
+        inline void addSample(float x)
+        {
+            sampleCount++;
+            float delta = x - mean;
+            mean += delta/sampleCount;
+            runningVariance += delta*(x - mean);
+        }
+
+        inline void addSample(const Vec3f &x)
+        {
+            addSample(x.luminance());
+        }
+
+        inline float variance() const
+        {
+            return runningVariance/(sampleCount - 1);
+        }
+
+        inline float relativeVariance() const
+        {
+            return runningVariance/(mean*(sampleCount - 1));
+        }
+    };
+
     struct ImageTile
     {
         uint32 x, y, w, h;
-        uint32 seed;
         uint32 sppFrom, sppTo;
+        std::unique_ptr<SampleGenerator> sampler;
+        std::unique_ptr<UniformSampler> supplementalSampler;
+
+        ImageTile(uint32 x_, uint32 y_, uint32 w_, uint32 h_,
+                std::unique_ptr<SampleGenerator> sampler_,
+                std::unique_ptr<UniformSampler> supplementalSampler_)
+        :   x(x_), y(y_), w(w_), h(h_),
+            sppFrom(0), sppTo(0),
+            sampler(std::move(sampler_)),
+            supplementalSampler(std::move(supplementalSampler_))
+        {
+        }
     };
 
-    const Camera &_cam;
-    const PackedGeometry &_mesh;
-    const std::vector<std::shared_ptr<Light>> &_lights;
+    UniformSampler _sampler;
+    const TraceableScene &_scene;
     uint32 _w;
     uint32 _h;
 
@@ -41,54 +90,114 @@ class Renderer
 
     std::atomic<int> _workerCount;
     std::vector<std::thread> _workerThreads;
-    tbb::concurrent_queue<ImageTile> _tiles;
+    std::vector<SampleRecord> _samples;
+    std::vector<ImageTile> _tiles;
+    tbb::concurrent_queue<ImageTile *> _tileQueue;
 
-    void diceTiles(uint32 sppFrom, uint32 sppTo)
+    void diceTiles()
     {
-        UniformSampler sampler(0xBA5EBA11, 0);
-
         for (uint32 y = 0; y < _h; y += TileSize) {
             for (uint32 x = 0; x < _w; x += TileSize) {
-                _tiles.push(ImageTile{
+                _tiles.emplace_back(
                     x,
                     y,
                     min(TileSize, _w - x),
                     min(TileSize, _h - y),
-                    MathUtil::hash32(sampler.iSample(0)),
-                    sppFrom,
-                    sppTo
-                });
+#if USE_SOBOL
+                    std::unique_ptr<SampleGenerator>(new SobolSampler()),
+#else
+                    std::unique_ptr<SampleGenerator>(new UniformSampler(MathUtil::hash32(_sampler.nextI()))),
+#endif
+                    std::unique_ptr<UniformSampler>(new UniformSampler(MathUtil::hash32(_sampler.nextI())))
+                );
             }
         }
+    }
+
+    void generateWork(uint32 sppFrom, uint32 sppTo)
+    {
+        if (sppFrom < 16) {
+            for (SampleRecord &record : _samples)
+                record.nextSampleCount = sppTo - sppFrom;
+        } else {
+            double sum = 0.0f;
+            for (SampleRecord &record : _samples) {
+                record.adaptiveWeight = min(record.relativeVariance(), 256.0f);
+                sum += record.adaptiveWeight;
+            }
+            float sampleFactor = double((sppTo - sppFrom - 1)*_w*_h)/sum;
+            float pixelPdf = 0.0f;
+            for (SampleRecord &record : _samples) {
+                float fractionalSamples = record.adaptiveWeight*sampleFactor;
+                int adaptiveSamples = int(fractionalSamples);
+                pixelPdf += fractionalSamples - float(adaptiveSamples);
+                if (_sampler.next1D() < pixelPdf) {
+                    adaptiveSamples++;
+                    pixelPdf -= 1.0f;
+                }
+                record.nextSampleCount = adaptiveSamples + 1;
+            }
+        }
+
+        for (ImageTile &tile : _tiles)
+            _tileQueue.push(&tile);
     }
 
     template<typename PixelCallback, typename FinishCallback>
     void renderTiles(PixelCallback pixelCallback, FinishCallback finishCallback)
     {
-        Integrator integrator(_mesh, _lights);
+        Integrator integrator(_scene);
 
         _workerCount++;
 
-        ImageTile tile;
-        while (_tiles.try_pop(tile) && !_abortRender) {
-            UniformSampler perPixelGenerator(tile.seed, 0);
+        ImageTile *tile;
+        std::vector<float> sampleDist(TileSize*TileSize);
+        while (_tileQueue.try_pop(tile) && !_abortRender) {
+            int spp = tile->sppTo - tile->sppFrom;
+            int sampleCount = (spp - 1)*tile->w*tile->h;
+            float sum = 0.0f;
+            for (uint32 y = 0; y < tile->h; ++y) {
+                for (uint32 x = 0; x < tile->w; ++x) {
+                    if (tile->sppFrom < 16)
+                        sampleDist[x + y*TileSize] = 1.0f;
+                    else
+                        sampleDist[x + y*TileSize] = min(_samples[tile->x + x + (tile->y + y)*_w].relativeVariance(), 256.0f);
+                    sum += sampleDist[x + y*TileSize];
+                }
+            }
 
-            for (uint32 y = 0; y < tile.h; ++y) {
-                for (uint32 x = 0; x < tile.w; ++x) {
-                    Vec3f c;
+            tile->variance = sum*(1.0f/(TileSize*TileSize));
 
-                    uint32 pixelSeed = perPixelGenerator.iSample(0);
+            if (sum == 0.0f)
+                continue;
 
-                    for (uint32 i = tile.sppFrom; i < tile.sppTo; ++i) {
-#if USE_SOBOL
-                        SampleGenerator sampler(pixelSeed, i);
-#else
-                        SampleGenerator &sampler = perPixelGenerator;
-#endif
-                        c += integrator.traceSample(_cam, Vec2u(tile.x + x, tile.y + y), sampler);
+            float pixelPdf = 0.0f;
+            for (uint32 y = 0; y < tile->h; ++y) {
+                for (uint32 x = 0; x < tile->w; ++x) {
+                    Vec2u pixel(tile->x + x, tile->y + y);
+                    uint32 pixelIndex = pixel.x() + pixel.y()*_w;
+
+                    float fractionalSamples = (sampleDist[x + y*TileSize]/sum)*sampleCount;
+                    int pixelSamples = int(fractionalSamples);
+                    pixelPdf += fractionalSamples - float(pixelSamples);
+                    if (tile->supplementalSampler->next1D() < pixelPdf) {
+                        pixelSamples++;
+                        pixelPdf -= 1.0f;
+                    }
+                    pixelSamples++;
+
+                    pixelSamples = spp;
+
+                    Vec3f c(0.0f);
+                    for (uint32 i = 0; i < pixelSamples; ++i) {
+                        tile->sampler->setup(pixelIndex, _samples[pixelIndex].sampleCount);
+                        Vec3f s(integrator.traceSample(pixel, *tile->sampler, *tile->supplementalSampler));
+
+                        _samples[pixelIndex].addSample(s);
+                        c += s;
                     }
 
-                    pixelCallback(x + tile.x, y + tile.y, c, tile.sppTo - tile.sppFrom);
+                    pixelCallback(x + tile->x, y + tile->y, c, pixelSamples);
                 }
             }
         }
@@ -98,22 +207,26 @@ class Renderer
     }
 
 public:
-    Renderer(const Camera &cam,
-             const PackedGeometry &mesh,
-             const std::vector<std::shared_ptr<Light>> &lights)
-    : _cam(cam), _mesh(mesh), _lights(lights), _w(cam.resolution().x()), _h(cam.resolution().y()), _abortRender(false)
+    Renderer(const TraceableScene &scene)
+    : _sampler(0xBA5EBA11), _scene(scene), _abortRender(false)
     {
+        _w = scene.cam().resolution().x();
+        _h = scene.cam().resolution().y();
+        diceTiles();
+        _samples.resize(_w*_h);
+    }
+
+    ~Renderer()
+    {
+        abortRender();
     }
 
     template<typename PixelCallback, typename FinishCallback>
     void startRender(PixelCallback pixelCallback, FinishCallback finishCallback, uint32 sppFrom, uint32 sppTo, uint32 threadCount)
     {
-        for (const std::shared_ptr<Light> &l : _lights)
-            l->prepareForRender();
-
         _workerCount = 0;
         _abortRender = false;
-        diceTiles(sppFrom, sppTo);
+        generateWork(sppFrom, sppTo);
 
         for (uint32 i = 0; i < threadCount; ++i)
             _workerThreads.emplace_back(&Renderer::renderTiles<PixelCallback, FinishCallback>, this, pixelCallback, finishCallback);
@@ -129,9 +242,19 @@ public:
     void abortRender()
     {
         _abortRender = true;
-        ImageTile tile;
-        while (_tiles.try_pop(tile));
+        ImageTile *tile;
+        while (_tileQueue.try_pop(tile));
         waitForCompletion();
+    }
+
+    void saveVariance(const std::string &path) const
+    {
+        std::vector<uint8> image(_w*_h*3);
+        for (size_t i = 0; i < _samples.size(); ++i)
+            image[i*3] = image[i*3 + 1] = image[i*3 + 2] =
+                min(int(_samples[i].relativeVariance()*256.0f), 255);
+
+        lodepng_encode24_file(path.c_str(), &image[0], _w, _h);
     }
 };
 

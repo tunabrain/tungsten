@@ -7,6 +7,9 @@
 namespace Tungsten
 {
 
+namespace GL
+{
+
 class Texture;
 
 enum RtAttachment {
@@ -97,6 +100,8 @@ public:
         return _viewportH;
     }
 };
+
+}
 
 }
 

@@ -9,6 +9,8 @@
 
 namespace Tungsten {
 
+using namespace GL;
+
 VertexBuffer *ShapePainter::_vbo = nullptr;
 Shader *ShapePainter::_defaultShader = nullptr;
 bool ShapePainter::_initialized = false;

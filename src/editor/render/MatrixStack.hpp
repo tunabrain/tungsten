@@ -8,6 +8,9 @@
 namespace Tungsten
 {
 
+namespace GL
+{
+
 enum StackName {
     PROJECTION_STACK,
     MODEL_STACK,
@@ -53,6 +56,8 @@ public:
 
     static void setShaderMatrices(Shader &s, int flags);
 };
+
+}
 
 }
 

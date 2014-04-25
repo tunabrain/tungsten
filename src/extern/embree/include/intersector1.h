@@ -34,11 +34,11 @@ namespace embree
     static const char* const name;
 
     /*! Intersect function pointer type. */
-    typedef void (*intersectFunc)(const Intersector1* This,  /*!< pointer to this intersector */
+    typedef void (*intersectFunc)(const void* data,    /*!< pointer to user data */
                                   Ray& ray             /*!< Ray to shoot. */);
     
     /*! Occluded function pointer type. */
-    typedef bool (*occludedFunc) (const Intersector1* This, /*!< pointer to this intersector */ 
+    typedef bool (*occludedFunc) (const void* data,   /*!< pointer to user data */
                                   Ray& ray            /*!< Ray to test occlusion for. */);
 
   public:
@@ -56,10 +56,16 @@ namespace embree
     __forceinline void intersect(Ray& ray) const {
       intersectPtr(this,ray);
     }
+    __forceinline void intersect(const void *data, Ray& ray) const {
+      intersectPtr(data,ray);
+    }
 
     /*! Tests the ray for occlusion with the scene. */
     __forceinline bool occluded (Ray& ray) const {
       return occludedPtr(this,ray);
+    }
+    __forceinline bool occluded (const void *data, Ray& ray) const {
+      return occludedPtr(data,ray);
     }
 
   public:

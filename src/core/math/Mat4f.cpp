@@ -60,6 +60,11 @@ Vec3f Mat4f::transformVector(const Vec3f &b) const
     );
 }
 
+Mat4f Mat4f::toNormalMatrix() const
+{
+    return scale(1.0f/Vec3f(right().lengthSq(), up().lengthSq(), fwd().lengthSq()))**this;
+}
+
 Mat4f Mat4f::extractRotation() const
 {
     return Mat4f(

@@ -59,7 +59,7 @@ namespace embree
     virtual void pack(char* This, atomic_set<PrimRefBlock>::block_iterator_unsafe& prims, const RTCGeometry* geom) const = 0;
 
     /*! Computes the bounds of timestep t0 and t1 of a moving triangle. */
-    virtual std::pair<BBox3f,BBox3f> bounds(char* This, const RTCGeometry* geom) const { return std::pair<BBox3f,BBox3f>(empty,empty); }
+    virtual std::pair<BBox3f,BBox3f> bounds(char* /*This*/, const RTCGeometry* /*geom*/) const { return std::pair<BBox3f,BBox3f>(empty,empty); }
 
     std::string name;       //!< name of this triangle type
     size_t bytes;           //!< number of bytes of the triangle data

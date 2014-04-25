@@ -7,21 +7,17 @@
 #include "FileUtils.hpp"
 #include "Scene.hpp"
 
+#include "primitives/Sphere.hpp"
+#include "primitives/Quad.hpp"
 #include "primitives/Mesh.hpp"
 
-#include "materials/Material.hpp"
-
-#include "lights/DirectionalLight.hpp"
-#include "lights/EnvironmentLight.hpp"
-#include "lights/SphereLight.hpp"
-#include "lights/PointLight.hpp"
-#include "lights/QuadLight.hpp"
-#include "lights/ConeLight.hpp"
-
+#include "bsdfs/RoughDielectricBsdf.hpp"
+#include "bsdfs/RoughConductorBsdf.hpp"
 #include "bsdfs/DielectricBsdf.hpp"
 #include "bsdfs/LambertBsdf.hpp"
 #include "bsdfs/PhongBsdf.hpp"
 #include "bsdfs/MixedBsdf.hpp"
+#include "bsdfs/MirrorBsdf.hpp"
 #include "bsdfs/Bsdf.hpp"
 
 #include "Debug.hpp"
@@ -29,60 +25,85 @@
 namespace Tungsten
 {
 
-std::shared_ptr<Material> Scene::instantiateMaterial(std::string type, const rapidjson::Value &value) const
-{
-    if (type == "constant") {
-        return std::shared_ptr<Material>(new Material(value, *this));
-    } else {
-        FAIL("Unkown material type: '%s'", type.c_str());
-        return nullptr;
-    }
-}
-
-std::shared_ptr<Light> Scene::instantiateLight(std::string type, const rapidjson::Value &value) const
-{
-    if (type == "quad") {
-        return std::shared_ptr<Light>(new QuadLight(value, *this));
-    } else if (type == "point") {
-        return std::shared_ptr<Light>(new PointLight(value, *this));
-    } else if (type == "directional") {
-        return std::shared_ptr<Light>(new DirectionalLight(value, *this));
-    } else if (type == "environment") {
-        return std::shared_ptr<Light>(new EnvironmentLight(value, *this));
-    } else if (type == "cone") {
-        return std::shared_ptr<Light>(new ConeLight(value, *this));
-    } else if (type == "sphere") {
-        return std::shared_ptr<Light>(new SphereLight(value, *this));
-    } else {
-        FAIL("Unkown light type: '%s'", type.c_str());
-        return nullptr;
-    }
-}
-
 std::shared_ptr<Bsdf> Scene::instantiateBsdf(std::string type, const rapidjson::Value &value) const
 {
-    if (type == "lambert") {
-        return std::shared_ptr<Bsdf>(new LambertBsdf(value, *this));
-    } else if (type == "phong") {
-        return std::shared_ptr<Bsdf>(new PhongBsdf(value, *this));
-    } else if (type == "mixed") {
-        return std::shared_ptr<Bsdf>(new MixedBsdf(value, *this));
-    } else if (type == "dielectric") {
-        return std::shared_ptr<Bsdf>(new DielectricBsdf(value, *this));
-    } else {
+    std::shared_ptr<Bsdf> result;
+    if (type == "lambert")
+        result = std::make_shared<LambertBsdf>();
+    else if (type == "phong")
+        result = std::make_shared<PhongBsdf>();
+    else if (type == "mixed")
+        result = std::make_shared<MixedBsdf>();
+    else if (type == "dielectric")
+        result = std::make_shared<DielectricBsdf>();
+    else if (type == "mirror")
+        result = std::make_shared<MirrorBsdf>();
+    else if (type == "rough_conductor")
+        result = std::make_shared<RoughConductorBsdf>();
+    else if (type == "rough_dielectric")
+        result = std::make_shared<RoughDielectricBsdf>();
+    else
         FAIL("Unkown bsdf type: '%s'", type.c_str());
-        return nullptr;
-    }
+    result->fromJson(value, *this);
+    return result;
 }
 
-std::shared_ptr<TriangleMesh> Scene::instantiatePrimitive(std::string type, const rapidjson::Value &value) const
+std::shared_ptr<Primitive> Scene::instantiatePrimitive(std::string type, const rapidjson::Value &value) const
 {
-    if (type == "mesh") {
-        return std::shared_ptr<TriangleMesh>(new TriangleMesh(value, *this));
-    } else {
+    std::shared_ptr<Primitive> result;
+    if (type == "mesh")
+        result = std::make_shared<TriangleMesh>();
+    else if (type == "sphere")
+        result = std::make_shared<Sphere>();
+    else if (type == "quad")
+        result = std::make_shared<Quad>();
+    else
         FAIL("Unknown primitive type: '%s'", type.c_str());
-        return nullptr;
+
+    result->fromJson(value, *this);
+    return result;
+}
+
+template<int Dimension>
+std::shared_ptr<Texture<true, Dimension>>
+    Scene::instantiateScalarTexture(std::string type, const rapidjson::Value &value) const
+{
+    std::shared_ptr<Texture<true, Dimension>> result;
+    if (type == "bitmap") {
+        // Ugly special casing, but whatever
+        std::string path(JsonUtils::as<std::string>(value, "path"));
+        if (Dimension == 2)
+            return fetchScalarMap(path);
+        return std::make_shared<BitmapTexture<true, Dimension>>(path);
+    } else if (type == "constant") {
+        result = std::make_shared<ConstantTexture<true, Dimension>>();
+    } else {
+        FAIL("Unkown texture type: '%s'", type.c_str());
     }
+
+    result->fromJson(value, *this);
+    return result;
+}
+
+template<int Dimension>
+std::shared_ptr<Texture<false, Dimension>>
+    Scene::instantiateColorTexture(std::string type, const rapidjson::Value &value) const
+{
+    std::shared_ptr<Texture<false, Dimension>> result;
+    if (type == "bitmap") {
+        // Ugly special casing, but whatever
+        std::string path(JsonUtils::as<std::string>(value, "path"));
+        if (Dimension == 2)
+            return fetchColorMap(path);
+        return std::make_shared<BitmapTexture<false, Dimension>>(path);
+    } else if (type == "constant") {
+        result = std::make_shared<ConstantTexture<false, Dimension>>();
+    } else {
+        FAIL("Unkown texture type: '%s'", type.c_str());
+    }
+
+    result->fromJson(value, *this);
+    return result;
 }
 
 template<typename Instantiator, typename Element>
@@ -90,7 +111,7 @@ void Scene::loadObjectList(const rapidjson::Value &container, Instantiator insta
 {
     for (unsigned i = 0; i < container.Size(); ++i) {
         if (container[i].IsObject())
-            result.push_back(instantiator(JsonUtils::fromJsonMember<std::string>(container[i], "type"), container[i]));
+            result.push_back(instantiator(JsonUtils::as<std::string>(container[i], "type"), container[i]));
         else
             LOG("Scene", WARN, "Don't know what to do with non-object");
     }
@@ -102,6 +123,7 @@ std::shared_ptr<T> Scene::findObject(const std::vector<std::shared_ptr<T>> &list
     for (const std::shared_ptr<T> &t : list)
         if (t->name() == name)
             return t;
+    FAIL("Unable to find object '%s'", name.c_str());
     return nullptr;
 }
 
@@ -111,8 +133,9 @@ std::shared_ptr<T> Scene::fetchObject(const std::vector<std::shared_ptr<T>> &lis
     if (v.IsString()) {
         return findObject(list, v.GetString());
     } else if (v.IsObject()) {
-        return instantiator(JsonUtils::fromJsonMember<std::string>(v, "type"), v);
+        return instantiator(JsonUtils::as<std::string>(v, "type"), v);
     } else {
+        FAIL("Unkown value type");
         return nullptr;
     }
 }
@@ -123,18 +146,55 @@ std::shared_ptr<Bsdf> Scene::fetchBsdf(const rapidjson::Value &v) const
     return fetchObject(_bsdfs, v, std::bind(&Scene::instantiateBsdf, this, _1, _2));
 }
 
-std::shared_ptr<Material> Scene::fetchMaterial(const rapidjson::Value &v) const
+template<int Dimension>
+std::shared_ptr<Texture<true, Dimension>> Scene::fetchScalarTexture(const rapidjson::Value &v) const
 {
-    using namespace std::placeholders;
-    return fetchObject(_materials, v, std::bind(&Scene::instantiateMaterial, this, _1, _2));
+    if (v.IsString()) {
+        if (Dimension == 2)
+            return fetchScalarMap(v.GetString());
+        else
+            FAIL("Cannot instantiate bitmap texture of dimension %d", Dimension);
+    } else if (v.IsNumber()) {
+        return std::make_shared<ConstantTextureA>(JsonUtils::as<float>(v));
+    } else if (v.IsArray()) {
+        FAIL("Cannot instantiate scalar value from vector valued argument");
+    } else if (v.IsObject()) {
+        return instantiateScalarTexture<Dimension>(JsonUtils::as<std::string>(v, "type"), v);
+    } else {
+        FAIL("Cannot instantiate texture from unknown value type");
+    }
+    return nullptr;
 }
 
-std::shared_ptr<TextureRgba> Scene::fetchColorMap(const std::string &path) const
+template<int Dimension>
+std::shared_ptr<Texture<false, Dimension>> Scene::fetchColorTexture(const rapidjson::Value &v) const
+{
+    if (v.IsString()) {
+        if (Dimension == 2)
+            return fetchColorMap(v.GetString());
+        else
+            FAIL("Cannot instantiate bitmap texture of dimension %d", Dimension);
+    } else if (v.IsNumber()) {
+        return std::make_shared<ConstantTextureRgb>(Vec3f(JsonUtils::as<float>(v)));
+    } else if (v.IsArray()) {
+        return std::make_shared<ConstantTextureRgb>(JsonUtils::as<Vec3f>(v));
+    } else if (v.IsObject()) {
+        return instantiateColorTexture<Dimension>(JsonUtils::as<std::string>(v, "type"), v);
+    } else {
+        FAIL("Cannot instantiate texture from unknown value type");
+    }
+    return nullptr;
+}
+
+template std::shared_ptr<Texture<true, 2>> Scene::fetchScalarTexture(const rapidjson::Value &) const;
+template std::shared_ptr<Texture<false, 2>> Scene::fetchColorTexture(const rapidjson::Value &) const;
+
+std::shared_ptr<TextureRgb> Scene::fetchColorMap(const std::string &path) const
 {
     if (_colorMaps.count(path))
         return _colorMaps[path];
 
-    std::shared_ptr<TextureRgba> tex(new TextureRgba(path));
+    std::shared_ptr<BitmapTextureRgb> tex(std::make_shared<BitmapTextureRgb>(path));
     _colorMaps[path] = tex;
     return tex;
 }
@@ -144,7 +204,7 @@ std::shared_ptr<TextureA> Scene::fetchScalarMap(const std::string &path) const
     if (_scalarMaps.count(path))
         return _scalarMaps[path];
 
-    std::shared_ptr<TextureA> tex(new TextureA(path));
+    std::shared_ptr<BitmapTextureA> tex(std::make_shared<BitmapTextureA>(path));
     _scalarMaps[path] = tex;
     return tex;
 }
@@ -155,6 +215,8 @@ bool Scene::addUnique(const std::shared_ptr<T> &o, std::vector<std::shared_ptr<T
     bool retry = false;
     int dupeCount = 0;
     std::string baseName = o->name();
+    if (baseName.empty())
+        return true;
     for (int i = 1; !baseName.empty() && isdigit(baseName.back()); i *= 10, baseName.pop_back())
         dupeCount += i*(baseName.back() - '0');
     std::string newName = o->name();
@@ -177,109 +239,83 @@ bool Scene::addUnique(const std::shared_ptr<T> &o, std::vector<std::shared_ptr<T
     return true;
 }
 
-template<typename T>
-void Scene::addTexture(std::shared_ptr<T> &t, std::map<std::string, std::shared_ptr<T>> &maps)
+template<typename T1, typename T2>
+void Scene::addTexture(std::shared_ptr<T1> &t, std::map<std::string, std::shared_ptr<T2>> &maps)
 {
-    if (!t)
+    std::shared_ptr<T2> downCast = std::dynamic_pointer_cast<T2>(t);
+    if (!downCast)
         return;
-    if (!maps.count(t->path()))
-        return;
-
-    if (maps[t->path()]->fullPath() == t->fullPath()) {
-        t = maps[t->path()];
-    } else {
-        int i = 1;
-        std::string newPath = t->path();
-        while (maps.count(newPath))
-            newPath = tfm::format("%s%d.%s", FileUtils::stripExt(t->path()), i++, FileUtils::extractExt(t->path()));
-        t->setPath(newPath);
+    if (maps.count(downCast->path())) {
+        if (maps[downCast->path()]->fullPath() == downCast->fullPath()) {
+            t = maps[downCast->path()];
+        } else {
+            int i = 1;
+            std::string newPath = downCast->path();
+            while (maps.count(newPath))
+                newPath = tfm::format("%s%d.%s", FileUtils::stripExt(downCast->path()), i++, FileUtils::extractExt(downCast->path()));
+            downCast->setPath(newPath);
+        }
     }
+
+    maps.insert(std::make_pair(downCast->path(), downCast));
 }
 
-void Scene::addMesh(const std::shared_ptr<TriangleMesh> &mesh)
+void Scene::addPrimitive(const std::shared_ptr<Primitive> &mesh)
 {
     if (addUnique(mesh, _primitives))
-        addMaterial(mesh->material());
-    _entities.clear();
-}
-
-void Scene::addMaterial(const std::shared_ptr<Material> &material)
-{
-    if (addUnique(material, _materials)) {
-        addBsdf(material->bsdf());
-        addTexture(material->alpha(), _scalarMaps);
-        addTexture(material->bump(), _scalarMaps);
-        addTexture(material->color(), _colorMaps);
-    }
+        addBsdf(mesh->bsdf());
 }
 
 void Scene::addBsdf(const std::shared_ptr<Bsdf> &bsdf)
 {
-    addUnique(bsdf, _bsdfs);
-}
-
-void Scene::addLight(const std::shared_ptr<Light> &light)
-{
-    addUnique(light, _lights);
-    _entities.clear();
+    if (addUnique(bsdf, _bsdfs)) {
+        addTexture(bsdf->alpha(), _scalarMaps);
+        addTexture(bsdf->bump(), _scalarMaps);
+        addTexture(bsdf->color(), _colorMaps);
+    }
 }
 
 void Scene::merge(Scene scene)
 {
-    for (std::shared_ptr<TriangleMesh> &m : scene._primitives)
-        addMesh(m);
-    for (std::shared_ptr<Light> &l : scene._lights)
-        addLight(l);
+    for (std::shared_ptr<Primitive> &m : scene._primitives)
+        addPrimitive(m);
 }
 
-Scene::Scene(const std::string &srcDir, const rapidjson::Value &v)
-: JsonSerializable(v), _srcDir(srcDir)
+Scene::Scene(const std::string &srcDir)
+: _srcDir(srcDir)
 {
+}
+
+void Scene::fromJson(const rapidjson::Value &v, const Scene &scene)
+{
+    JsonSerializable::fromJson(v, scene);
+
     using namespace std::placeholders;
 
     const rapidjson::Value::Member *primitives = v.FindMember("primitives");
-    const rapidjson::Value::Member *materials  = v.FindMember("materials");
-    const rapidjson::Value::Member *lights     = v.FindMember("lights");
     const rapidjson::Value::Member *bsdfs      = v.FindMember("bsdfs");
     const rapidjson::Value::Member *camera     = v.FindMember("camera");
 
     SOFT_ASSERT(primitives != nullptr, "Scene file must contain 'primitives' array");
-    SOFT_ASSERT(materials  != nullptr, "Scene file must contain 'materials' array");
+    SOFT_ASSERT(bsdfs      != nullptr, "Scene file must contain 'bsdfs' array");
     SOFT_ASSERT(camera     != nullptr, "Scene file must contain 'camera' object");
 
-    if (bsdfs)
-        loadObjectList(bsdfs->value, std::bind(&Scene::instantiateBsdf, this, _1, _2), _bsdfs);
-
-    loadObjectList(materials ->value, std::bind(&Scene::instantiateMaterial,  this, _1, _2),  _materials);
+    loadObjectList(     bsdfs->value, std::bind(&Scene::instantiateBsdf,      this, _1, _2), _bsdfs);
     loadObjectList(primitives->value, std::bind(&Scene::instantiatePrimitive, this, _1, _2), _primitives);
 
-    if (lights)
-        loadObjectList(lights->value, std::bind(&Scene::instantiateLight, this, _1, _2), _lights);
-
-    _camera = std::shared_ptr<Camera>(new Camera(camera->value, *this));
+    _camera = std::make_shared<Camera>();
+    _camera->fromJson(camera->value, *this);
 }
 
 Scene::Scene(const std::string &srcDir,
-      std::vector<std::shared_ptr<TriangleMesh>> primitives,
-      std::vector<std::shared_ptr<Material>> materials,
-      std::vector<std::shared_ptr<Light>> lights,
+      std::vector<std::shared_ptr<Primitive>> primitives,
       std::vector<std::shared_ptr<Bsdf>> bsdfs,
       std::shared_ptr<Camera> camera)
 : _srcDir(srcDir),
   _primitives(std::move(primitives)),
-  _materials(std::move(materials)),
-  _lights(std::move(lights)),
   _bsdfs(std::move(bsdfs)),
   _camera(camera)
 {
-    for (const std::shared_ptr<Material> &m : _materials) {
-        if (m->color())
-            _colorMaps.insert(std::make_pair(m->color()->path(), m->color()));
-        if (m->alpha())
-            _scalarMaps.insert(std::make_pair(m->alpha()->path(), m->alpha()));
-        if (m->bump())
-            _scalarMaps.insert(std::make_pair(m->bump()->path(), m->bump()));
-    }
 }
 
 rapidjson::Value Scene::toJson(Allocator &allocator) const
@@ -287,24 +323,14 @@ rapidjson::Value Scene::toJson(Allocator &allocator) const
     rapidjson::Value v = JsonSerializable::toJson(allocator);
 
     rapidjson::Value primitives(rapidjson::kArrayType);
-    for (const std::shared_ptr<TriangleMesh> &t : _primitives)
+    for (const std::shared_ptr<Primitive> &t : _primitives)
         primitives.PushBack(t->toJson(allocator), allocator);
-
-    rapidjson::Value materials(rapidjson::kArrayType);
-    for (const std::shared_ptr<Material> &m : _materials)
-        materials.PushBack(m->toJson(allocator), allocator);
-
-    rapidjson::Value lights(rapidjson::kArrayType);
-    for (const std::shared_ptr<Light> &e : _lights)
-        lights.PushBack(e->toJson(allocator), allocator);
 
     rapidjson::Value bsdfs(rapidjson::kArrayType);
     for (const std::shared_ptr<Bsdf> &b : _bsdfs)
         bsdfs.PushBack(b->toJson(allocator), allocator);
 
     v.AddMember("bsdfs", bsdfs, allocator);
-    v.AddMember("materials", materials, allocator);
-    v.AddMember("lights", lights, allocator);
     v.AddMember("primitives", primitives, allocator);
     v.AddMember("camera", _camera->toJson(allocator), allocator);
 
@@ -316,7 +342,7 @@ void Scene::saveData(const std::string &dst) const
     std::string previousDir = FileUtils::getCurrentDir();
     FileUtils::changeCurrentDir(dst);
 
-    for (const std::shared_ptr<TriangleMesh> &m : _primitives)
+    for (const std::shared_ptr<Primitive> &m : _primitives)
         m->saveData();
 
     for (const auto &p : _colorMaps)
@@ -327,40 +353,21 @@ void Scene::saveData(const std::string &dst) const
     FileUtils::changeCurrentDir(previousDir);
 }
 
-void Scene::deleteEntities(const std::unordered_set<Entity *> &entities)
+void Scene::deletePrimitives(const std::unordered_set<Primitive *> &primitives)
 {
-    std::vector<std::shared_ptr<TriangleMesh>> newPrims;
-    std::vector<std::shared_ptr<Light>> newLights;
+    std::vector<std::shared_ptr<Primitive>> newPrims;
     newPrims.reserve(_primitives.size());
-    newLights.reserve(_lights.size());
 
-    for (std::shared_ptr<TriangleMesh> &m : _primitives)
-        if (!entities.count(m.get()))
+    for (std::shared_ptr<Primitive> &m : _primitives)
+        if (!primitives.count(m.get()))
             newPrims.push_back(m);
-    for (std::shared_ptr<Light> &l : _lights)
-        if (!entities.count(l.get()))
-            newLights.push_back(l);
 
-    _lights = std::move(newLights);
     _primitives = std::move(newPrims);
-    _entities.clear();
 }
 
-PackedGeometry Scene::flatten() const
+TraceableScene *Scene::makeTraceable()
 {
-    return std::move(PackedGeometry(_primitives));
-}
-
-std::vector<Entity *> &Scene::entities()
-{
-    if (_entities.empty() && (!_primitives.empty() || !_lights.empty())) {
-        for (const std::shared_ptr<TriangleMesh> &m : _primitives)
-            _entities.emplace_back(m.get());
-        for (const std::shared_ptr<Light> &l : _lights)
-            _entities.emplace_back(l.get());
-    }
-
-    return _entities;
+    return new TraceableScene(*_camera, _primitives);
 }
 
 Scene *Scene::load(const std::string &path)
@@ -377,7 +384,8 @@ Scene *Scene::load(const std::string &path)
     std::string previousDir = FileUtils::getCurrentDir();
     FileUtils::changeCurrentDir(FileUtils::extractDir(std::string(path)));
 
-    Scene *scene = new Scene(FileUtils::extractDir(path), document);
+    Scene *scene = new Scene(FileUtils::extractDir(path));
+    scene->fromJson(document, *scene);
 
     FileUtils::changeCurrentDir(previousDir);
 

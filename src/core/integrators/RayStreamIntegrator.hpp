@@ -8,16 +8,11 @@
 
 #include "integrators/Integrator.hpp"
 
-#include "primitives/PackedGeometry.hpp"
-
 #include "sampling/SampleGenerator.hpp"
 #include "sampling/ScatterEvent.hpp"
 #include "sampling/LightSample.hpp"
 
-#include "lights/EnvironmentLight.hpp"
-#include "lights/Light.hpp"
-
-#include "math/TangentSpace.hpp"
+#include "math/TangentFrame.hpp"
 #include "math/MathUtil.hpp"
 #include "math/Angle.hpp"
 
@@ -80,7 +75,7 @@ class RayStreamIntegrator : public Integrator
         return (pdf0*pdf0)/(pdf0*pdf0 + pdf1*pdf1);
     }
 
-    Vec3f lightSample(const TangentSpace &frame,
+    Vec3f lightSample(const TangentFrame &frame,
                       const Light &light,
                       const Bsdf &bsdf,
                       const Vec3f &p,
@@ -114,15 +109,15 @@ class RayStreamIntegrator : public Integrator
         return lightF;
     }
 
-    Vec3f bsdfSample(const TangentSpace &frame,
+    Vec3f bsdfSample(const TangentFrame &frame,
                      const Light &light,
                      const Bsdf &bsdf,
-                     const ScatterEvent &event,
+                     const SurfaceScatterEvent &event,
                      const Vec3f &p,
                      const Vec3f &Ns,
                      const Vec3f &xi)
     {
-        ScatterEvent sample(event);
+        SurfaceScatterEvent sample(event);
         sample.xi = xi;
 
         if (!bsdf.sample(sample))
@@ -150,10 +145,10 @@ class RayStreamIntegrator : public Integrator
         return bsdfF;
     }
 
-    Vec3f sampleDirect(const TangentSpace &frame,
+    Vec3f sampleDirect(const TangentFrame &frame,
                        const Light &light,
                        const Bsdf &bsdf,
-                       const ScatterEvent &event,
+                       const SurfaceScatterEvent &event,
                        const Vec3f &p,
                        const Vec3f &Ns,
                        const Vec3f &bsdfXi,
@@ -172,9 +167,9 @@ class RayStreamIntegrator : public Integrator
         return result;
     }
 
-    Vec3f estimateDirect(const TangentSpace &frame,
+    Vec3f estimateDirect(const TangentFrame &frame,
                          const Bsdf &bsdf,
-                         const ScatterEvent &event,
+                         const SurfaceScatterEvent &event,
                          const Vec3f &p,
                          const Vec3f &Ns,
                          const Vec3f &bsdfXi,
@@ -225,7 +220,7 @@ public:
         embree::Ray ray(toE(cam.pos()), toE(dir));
         intersect(isector, ray, 0);
 
-        ScatterEvent event;
+        SurfaceScatterEvent event;
         Vec3f throughput(1.0f);
         Vec3f emission;
 
@@ -261,7 +256,7 @@ public:
             if (Ns.dot(w) < 0.0f)
                 Ns = -Ns;
 
-            TangentSpace frame(Ns);
+            TangentFrame frame(Ns);
 
             emission += material.emission()*throughput;
 

@@ -11,60 +11,91 @@
 namespace Tungsten
 {
 
-class SobolSampler
+class SampleGenerator
 {
-    uint32 _seed;
-    uint64 _index;
-
 public:
-    SobolSampler(uint32 seed, uint32 sample)
-    : _seed(MathUtil::hash32(seed)), _index(sample)
+    virtual ~SampleGenerator() {}
+
+    virtual void setup(uint32 pixel, int sample) = 0;
+
+    virtual uint32 nextI() = 0;
+
+    virtual float next1D()
     {
+        return BitManip::normalizedUint(nextI());
     }
 
-    uint32 iSample(unsigned dim)
+    virtual Vec2f next2D()
     {
-        return sobol::sample(_index + _seed, dim, _seed) + _seed;
+        return Vec2f(next1D(), next1D());
     }
 
-    float fSample(unsigned dim)
+    virtual Vec3f next3D()
     {
-        return BitManip::normalizedUint(iSample(dim));
+        return Vec3f(next1D(), next1D(), next1D());
+    }
+
+    virtual Vec4f next4D()
+    {
+        return Vec4f(next1D(), next1D(), next1D(), next1D());
     }
 };
 
-class UniformSampler
+class SobolSampler : public SampleGenerator
+{
+    uint32 _scramble;
+    uint32 _index;
+    int _dimension;
+
+public:
+    SobolSampler()
+    : _scramble(0), _index(0), _dimension(0)
+    {
+    }
+
+    void setup(uint32 pixel, int sample) override final
+    {
+        _scramble = MathUtil::hash32(pixel);
+        _index = sample;
+        _dimension = 0;
+    }
+
+    uint32 nextI() override final
+    {
+        return sobol::sample(_index, _dimension++, _scramble) + _scramble;
+    }
+};
+
+class UniformSampler : public SampleGenerator
 {
     uint32 _seed;
 
 public:
-    UniformSampler(uint32 seed, uint32 /*sample*/)
+    UniformSampler()
+    : _seed(0xBA5EBA11)
+    {
+    }
+
+    UniformSampler(uint32 seed)
     : _seed(seed)
     {
     }
 
-    uint32 iSample(unsigned /*dim*/)
+    void setup(uint32 /*pixel*/, int /*sample*/) override final
+    {
+    }
+
+    uint32 nextI() override final
     {
         _seed = (_seed*1103515245u + 12345u) & 0x7FFFFFFF;
         return _seed;
     }
 
-    float fSample(unsigned dim)
+    virtual float next1D()
     {
-        return BitManip::normalizedUint(iSample(dim) << 1);
-    }
-
-    uint32 seed() const
-    {
-        return _seed;
+        return BitManip::normalizedUint(nextI() << 1);
     }
 };
-
-#if USE_SOBOL
-typedef SobolSampler SampleGenerator;
-#else
-typedef UniformSampler SampleGenerator;
-#endif
 
 }
 

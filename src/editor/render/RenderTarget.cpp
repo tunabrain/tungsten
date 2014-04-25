@@ -8,6 +8,9 @@
 namespace Tungsten
 {
 
+namespace GL
+{
+
 /* Future proof as hell */
 static const GLenum targets[] = {
     GL_COLOR_ATTACHMENT0,  GL_COLOR_ATTACHMENT1,  GL_COLOR_ATTACHMENT2,
@@ -83,7 +86,7 @@ void RenderTarget::selectAttachmentList(int num, ...)
     selectAttachments(num, selected);
 }
 
-void RenderTarget::selectAttachments(int num, const RtAttachment bufs[])
+void RenderTarget::selectAttachments(int num, const RtAttachment *bufs)
 {
     if (attachmentSwapRequired(num, bufs)) {
         _attachmentCount = num;
@@ -94,9 +97,8 @@ void RenderTarget::selectAttachments(int num, const RtAttachment bufs[])
         } else {
             GLenum selected[MaxAttachments];
 
-            num--;
-            for (int i = 0; i < num + 1; i++) {
-                selected[i] = targets[bufs[i]];
+            for (int i = num - 1; i >= 0; i--) {
+                selected[i] = targets[int(bufs[i])];
                 _selectedAttachments[i] = bufs[i];
             }
 
@@ -239,6 +241,8 @@ void RenderTarget::popViewport()
     Viewport top = _viewports.top();
     _viewports.pop();
     setViewport(top.x, top.y, top.w, top.h);
+}
+
 }
 
 }

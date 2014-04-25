@@ -6,13 +6,14 @@
 namespace Tungsten
 {
 
-MixedBsdf::MixedBsdf(const rapidjson::Value &v, const Scene &scene)
-: Bsdf(v),
-  _bsdf0(scene.fetchBsdf(JsonUtils::fetchMandatoryMember(v, "bsdf0"))),
-  _bsdf1(scene.fetchBsdf(JsonUtils::fetchMandatoryMember(v, "bsdf1"))),
-  _ratio(JsonUtils::fromJsonMember<float>(v, "ratio"))
+void MixedBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
-    _flags = BsdfFlags(_bsdf0->flags(), _bsdf1->flags());
+    Bsdf::fromJson(v, scene);
+
+    _bsdf0 = scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf0"));
+    _bsdf1 = scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf1"));
+    JsonUtils::fromJson(v, "ratio", _ratio);
+    _lobes = BsdfLobes(_bsdf0->flags(), _bsdf1->flags());
 }
 
 rapidjson::Value MixedBsdf::toJson(Allocator &allocator) const

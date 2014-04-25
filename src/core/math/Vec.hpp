@@ -175,6 +175,12 @@ public:
         );
     }
 
+    ElementType luminance() const
+    {
+        static_assert(Size == 3, "Luminance only supported in three dimensions!");
+        return x()*ElementType(0.2126) + y()*ElementType(0.7152) + z()*ElementType(0.0722);
+    }
+
     ElementType &operator[](unsigned i)
     {
         return _v[i];
@@ -403,7 +409,7 @@ Vec<ElementType, Size> operator/(ElementType a, const Vec<ElementType, Size> &b)
 {
     Vec<ElementType, Size> result;
     for (unsigned i = 0; i < Size; ++i)
-        result._v[i] = a/b._v[i];
+        result[i] = a/b[i];
     return result;
 }
 

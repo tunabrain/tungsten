@@ -38,7 +38,7 @@ namespace embree
 
       /*! fast path for identity transformation */
       if (likely(obj.hasTransform == false)) {
-        obj.intersector1->intersect(ray);
+        obj.intersector1->intersect(obj.userData, ray);
         if (obj.id0 != 0x7FFFFFFF && ray.id0 == 0x7FFFFFFF) 
           ray.id0 = obj.id0; 
         return;
@@ -48,7 +48,7 @@ namespace embree
       const Vector3f org = ray.org, dir = ray.dir;
       ray.org = xfmPoint (obj.world2local,org);
       ray.dir = xfmVector(obj.world2local,dir);
-      obj.intersector1->intersect(ray);
+      obj.intersector1->intersect(obj.userData, ray);
       ray.org = org;
       ray.dir = dir;
 
@@ -71,13 +71,13 @@ namespace embree
 
       /*! fast path for identity transformation */
       if (likely(obj.hasTransform == false))
-        return obj.intersector1->occluded(ray);
+        return obj.intersector1->occluded(obj.userData, ray);
 
       /*! slow path with full transformation */
       const Vector3f org = ray.org, dir = ray.dir;
       ray.org = xfmPoint (obj.world2local,org);
       ray.dir = xfmVector(obj.world2local,dir);
-      bool ret = obj.intersector1->occluded(ray);
+      bool ret = obj.intersector1->occluded(obj.userData, ray);
       ray.org = org;
       ray.dir = dir;
       return ret;

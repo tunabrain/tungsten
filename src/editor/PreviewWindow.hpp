@@ -22,9 +22,9 @@ class QStatusBar;
 namespace Tungsten
 {
 
-class TriangleMesh;
 class MainWindow;
-class Entity;
+class TriangleMesh;
+class Primitive;
 class Scene;
 
 class GlMesh
@@ -42,13 +42,13 @@ class GlMesh
         uint32 v2;
     };
 
-    VertexBuffer _vertexBuffer;
-    BufferObject _indexBuffer;
+    GL::VertexBuffer _vertexBuffer;
+    GL::BufferObject _indexBuffer;
 
 public:
     GlMesh(const TriangleMesh &src);
 
-    void draw(Shader &shader);
+    void draw(GL::Shader &shader);
 };
 
 class PreviewWindow : public QGLWidget
@@ -88,14 +88,14 @@ class PreviewWindow : public QGLWidget
 
     Scene *_scene;
 
-    std::unique_ptr<RenderTarget> _fbo;
-    std::unique_ptr<Texture> _screenBuffer, _depthBuffer;
+    std::unique_ptr<GL::RenderTarget> _fbo;
+    std::unique_ptr<GL::Texture> _screenBuffer, _depthBuffer;
 
-    std::unordered_map<Entity *, std::shared_ptr<GlMesh>> _meshes;
-    std::unique_ptr<Shader> _shader, _wireframeShader, _solidShader;
+    std::unordered_map<Primitive *, std::shared_ptr<GlMesh>> _meshes;
+    std::unique_ptr<GL::Shader> _shader, _wireframeShader, _solidShader;
 
     SelectionState _selectionState;
-    std::unordered_set<Entity *> _selection;
+    std::unordered_set<Primitive *> _selection;
 
     std::array<MouseConsumers, 3> _mousePriorities;
 
@@ -111,7 +111,7 @@ class PreviewWindow : public QGLWidget
     void updateFixedTransform();
 
     template<typename Predicate>
-    void renderMeshes(Shader &shader, Predicate predicate);
+    void renderMeshes(GL::Shader &shader, Predicate predicate);
 
     void pickPrimitive();
     bool handleSelection(QMouseEvent *event);

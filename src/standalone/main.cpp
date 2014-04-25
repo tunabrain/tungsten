@@ -20,7 +20,7 @@
 
 #include "bsdfs/LambertBsdf.hpp"
 
-#include "math/TangentSpace.hpp"
+#include "math/TangentFrame.hpp"
 #include "math/MathUtil.hpp"
 #include "math/Angle.hpp"
 

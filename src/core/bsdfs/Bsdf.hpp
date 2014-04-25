@@ -1,73 +1,42 @@
 #ifndef BSDF_HPP_
 #define BSDF_HPP_
 
-#include <rapidjson/document.h>
+#include "BsdfLobes.hpp"
+
+#include "primitives/Primitive.hpp"
+
+#include "materials/Texture.hpp"
 
 #include "sampling/ScatterEvent.hpp"
 
+#include "math/TangentFrame.hpp"
 #include "math/Vec.hpp"
 
 #include "io/JsonSerializable.hpp"
+#include "io/JsonUtils.hpp"
+
+#include <rapidjson/document.h>
+#include <memory>
 
 namespace Tungsten
 {
 
-class BsdfFlags
-{
-    uint32 _flags;
-
-public:
-    enum
-    {
-        GlossyFlag       = (1 << 0),
-        DiffuseFlag      = (1 << 1),
-        SpecularFlag     = (1 << 2),
-        TransmissiveFlag = (1 << 3),
-    };
-
-    BsdfFlags(uint32 flags)
-    : _flags(flags)
-    {
-    }
-
-    BsdfFlags(const BsdfFlags &a, const BsdfFlags &b)
-    : _flags(0)
-    {
-        if (a.isGlossy() || b.isGlossy())
-            _flags |= GlossyFlag;
-        if (a.isDiffuse() || b.isDiffuse())
-            _flags |= DiffuseFlag;
-        if (a.isSpecular() && b.isSpecular())
-            _flags |= SpecularFlag;
-        if (a.isTransmissive() || b.isTransmissive())
-            _flags |= TransmissiveFlag;
-    }
-
-    bool isGlossy() const
-    {
-        return (_flags & GlossyFlag) != 0;
-    }
-
-    bool isDiffuse() const
-    {
-        return (_flags & DiffuseFlag) != 0;
-    }
-
-    bool isSpecular() const
-    {
-        return (_flags & SpecularFlag) != 0;
-    }
-
-    bool isTransmissive() const
-    {
-        return (_flags & TransmissiveFlag) != 0;
-    }
-};
-
 class Bsdf : public JsonSerializable
 {
 protected:
-    BsdfFlags _flags;
+    BsdfLobes _lobes;
+
+    Vec3f _emission;
+
+    std::shared_ptr<TextureRgb> _base;
+    std::shared_ptr<TextureA> _alpha;
+    std::shared_ptr<TextureA> _bump;
+    float _bumpStrength;
+
+    Vec3f base(const IntersectionInfo &info) const
+    {
+        return (*_base)[info.uv];
+    }
 
 public:
     virtual ~Bsdf()
@@ -75,32 +44,140 @@ public:
     }
 
     Bsdf()
-    : _flags(0)
+    : _emission(0.0f),
+      _base(std::make_shared<ConstantTextureRgb>(Vec3f(1.0f))),
+      _alpha(std::make_shared<ConstantTextureA>(1.0f)),
+      _bump(std::make_shared<ConstantTextureA>(0.0f)),
+      _bumpStrength(10.0f)
     {
     }
 
-    Bsdf(const rapidjson::Value &v)
-    : JsonSerializable(v),
-      _flags(0)
+    virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
+
+    virtual rapidjson::Value toJson(Allocator &allocator) const override
     {
+        rapidjson::Value v(JsonSerializable::toJson(allocator));
+
+        v.AddMember("emission", JsonUtils::toJsonValue(_emission, allocator), allocator);
+        v.AddMember("bumpStrength", JsonUtils::toJsonValue(_bumpStrength, allocator), allocator);
+        JsonUtils::addObjectMember(v, "color", *_base,  allocator);
+        JsonUtils::addObjectMember(v, "alpha", *_alpha, allocator);
+        JsonUtils::addObjectMember(v,  "bump", *_bump,  allocator);
+
+        return std::move(v);
     }
 
-    rapidjson::Value toJson(Allocator &allocator) const
+    void setupTangentFrame(const Primitive &primitive, const Primitive::IntersectionTemporary &data,
+            const IntersectionInfo &info, TangentFrame &dst) const
     {
-        return std::move(JsonSerializable::toJson(allocator));
+        if (_bump->isConstant() && !_lobes.isAnisotropic()) {
+            dst = TangentFrame(info.Ns);
+            return;
+        }
+        Vec3f T, B, N(info.Ns);
+        if (!primitive.tangentSpace(data, info, T, B)) {
+            dst = TangentFrame(info.Ns);
+            return;
+        }
+        if (!_bump->isConstant()) {
+            Vec2f dudv;
+            _bump->derivatives(info.uv, dudv);
+
+            T += info.Ns*dudv.x()*_bumpStrength;
+            B += info.Ns*dudv.y()*_bumpStrength;
+            N = T.cross(B);
+            if (N.dot(info.Ns) < 0.0f)
+                N = -N;
+            N.normalize();
+        }
+        T = (T - N.dot(T)*N).normalized();
+        B = (B - N.dot(B)*N - T.dot(B)*T).normalized();
+
+        dst = TangentFrame(N, T, B);
     }
 
-    virtual bool sample         (ScatterEvent &event) const = 0;
-    virtual bool sampleFromLight(ScatterEvent &event) const = 0;
-
-    virtual Vec3f eval(const Vec3f &wo, const Vec3f &wi) const = 0;
-
-    virtual float pdf         (const Vec3f &wo, const Vec3f &wi) const = 0;
-    virtual float pdfFromLight(const Vec3f &wo, const Vec3f &wi) const = 0;
-
-    const BsdfFlags &flags() const
+    virtual float alpha(const IntersectionInfo &info) const
     {
-        return _flags;
+        return (*_alpha)[info.uv];
+    }
+
+    void setupScatter(SurfaceScatterEvent &event) const
+    {
+        event.throughput = (*_base)[event.info.uv];
+    }
+
+    virtual bool sample(SurfaceScatterEvent &event) const = 0;
+    virtual Vec3f eval(const SurfaceScatterEvent &event) const = 0;
+    virtual float pdf(const SurfaceScatterEvent &event) const = 0;
+
+    const BsdfLobes &flags() const
+    {
+        return _lobes;
+    }
+
+    void setEmission(const Vec3f &e)
+    {
+        _emission = e;
+    }
+
+    const Vec3f &emission() const
+    {
+        return _emission;
+    }
+
+    float power() const
+    {
+        return _emission.max();
+    }
+
+    bool isEmissive() const
+    {
+        return _emission.max() > 0.0f;
+    }
+
+    void setColor(const std::shared_ptr<TextureRgb> &c)
+    {
+        _base = c;
+    }
+
+    void setAlpha(const std::shared_ptr<TextureA> &a)
+    {
+        _alpha = a;
+    }
+
+    void setBump(const std::shared_ptr<TextureA> &b)
+    {
+        _bump = b;
+    }
+
+    std::shared_ptr<TextureRgb> &color()
+    {
+        return _base;
+    }
+
+    std::shared_ptr<TextureA> &alpha()
+    {
+        return _alpha;
+    }
+
+    std::shared_ptr<TextureA> &bump()
+    {
+        return _bump;
+    }
+
+    const std::shared_ptr<TextureRgb> &color() const
+    {
+        return _base;
+    }
+
+    const std::shared_ptr<TextureA> &alpha() const
+    {
+        return _alpha;
+    }
+
+    const std::shared_ptr<TextureA> &bump() const
+    {
+        return _bump;
     }
 };
 

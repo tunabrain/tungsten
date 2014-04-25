@@ -18,7 +18,7 @@ void main() {
     vec3 eye = normalize(camPos - gWorldPos);
     vec3 normal = normalize(gNormal);
     
-    float L = abs(dot(normal, eye));
+    float L = max(dot(normal, eye), 0.1);
     L = L*L*0.5 + L*0.5;
     
     float ratio;

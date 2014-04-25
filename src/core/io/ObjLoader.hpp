@@ -9,30 +9,31 @@
 
 #include "ObjMaterial.hpp"
 
-#include "primitives/PackedGeometry.hpp"
 #include "primitives/Triangle.hpp"
 #include "primitives/Vertex.hpp"
 
-#include "materials/Material.hpp"
+#include "materials/BitmapTexture.hpp"
+
+#include "bsdfs/Bsdf.hpp"
 
 #include "math/Vec.hpp"
+#include "math/Box.hpp"
 
 namespace Tungsten
 {
 
-class TriangleMesh;
-class Material;
+class Primitive;
 
 class ObjLoader
 {
     std::string _folder;
 
-    std::shared_ptr<Material> _errorMaterial;
+    std::shared_ptr<Bsdf> _errorMaterial;
     std::vector<ObjMaterial> _materials;
     std::map<std::string, uint32> _materialToIndex;
-    std::vector<std::shared_ptr<Material>> _convertedMaterials;
-    std::map<std::string, std::shared_ptr<TextureRgba>> _colorMaps;
-    std::map<std::string, std::shared_ptr<TextureA>> _scalarMaps;
+    std::vector<std::shared_ptr<Bsdf>> _convertedMaterials;
+    std::map<std::string, std::shared_ptr<BitmapTextureRgb>> _colorMaps;
+    std::map<std::string, std::shared_ptr<BitmapTextureA>> _scalarMaps;
     int32 _currentMaterial;
 
     std::vector<Vec3f> _pos;
@@ -44,8 +45,9 @@ class ObjLoader
     std::map<uint64, uint32> _indices;
     std::vector<TriangleI> _tris;
     std::vector<Vertex> _verts;
+    Box3f _bounds;
 
-    std::vector<std::shared_ptr<TriangleMesh>> _meshes;
+    std::vector<std::shared_ptr<Primitive>> _meshes;
 
     void skipWhitespace(const char *&s);
     bool hasPrefix(const char *s, const char *pre);
@@ -61,14 +63,14 @@ class ObjLoader
     void loadMaterialLibrary(const char *path);
     void loadLine(const char *line);
 
-    std::shared_ptr<TextureRgba> fetchColorMap(const std::string &path);
+    std::shared_ptr<TextureRgb> fetchColorMap(const std::string &path);
     std::shared_ptr<TextureA> fetchScalarMap(const std::string &path);
 
-    Material *convertObjMaterial(const ObjMaterial &mat);
+    std::shared_ptr<Bsdf> convertObjMaterial(const ObjMaterial &mat);
 
     std::string generateDummyName() const;
     void clearPerMeshData();
-    TriangleMesh *finalizeMesh();
+    std::shared_ptr<Primitive> finalizeMesh();
 
     ObjLoader(std::ifstream &in, const char *path);
 

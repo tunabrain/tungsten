@@ -13,6 +13,9 @@
 namespace Tungsten
 {
 
+namespace GL
+{
+
 static int fsize(FILE *fp) {
     int prev = ftell(fp);
     fseek(fp, 0, SEEK_END);
@@ -155,6 +158,8 @@ void ShaderObject::check()
     } else if (length > 1) {
         LOG("shader", WARN, "%s\n", log);
     }
+}
+
 }
 
 }

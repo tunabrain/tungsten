@@ -6,6 +6,9 @@
 namespace Tungsten
 {
 
+namespace GL
+{
+
 enum BufferType
 {
     ARRAY_BUFFER,
@@ -86,6 +89,8 @@ public:
         return _data;
     }
 };
+
+}
 
 }
 

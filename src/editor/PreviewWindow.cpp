@@ -13,17 +13,12 @@
 #include "render/MatrixStack.hpp"
 #include "render/GLDebug.hpp"
 
-#include "lights/ConeLight.hpp"
-#include "lights/DirectionalLight.hpp"
-#include "lights/EnvironmentLight.hpp"
-#include "lights/PointLight.hpp"
-#include "lights/QuadLight.hpp"
-#include "lights/SphereLight.hpp"
-
 #include "io/ObjLoader.hpp"
 
 namespace Tungsten
 {
+
+using namespace GL;
 
 static void GLAPIENTRY errorCallback(GLenum source, GLenum type, GLuint /*id*/, GLenum severity,
         GLsizei /*length*/, const char *message, void */*userParam*/) {
@@ -155,19 +150,19 @@ void PreviewWindow::addStatusWidgets(QStatusBar *statusBar)
 
 void PreviewWindow::rebuildMeshMap()
 {
-    std::unordered_map<Entity *, std::shared_ptr<GlMesh>> tmpMap = std::move(_meshes);
+    std::unordered_map<Primitive *, std::shared_ptr<GlMesh>> tmpMap = std::move(_meshes);
     _meshes.clear();
 
     if (!_scene)
         return;
 
-    for (Entity *e : _scene->entities()) {
-        auto iter = tmpMap.find(e);
+    for (const std::shared_ptr<Primitive> &e : _scene->primitives()) {
+        auto iter = tmpMap.find(e.get());
 
         if (iter == tmpMap.end())
-            _meshes.insert(std::make_pair(e, std::make_shared<GlMesh>(e->asTriangleMesh())));
+            _meshes.insert(std::make_pair(e.get(), std::make_shared<GlMesh>(e->asTriangleMesh())));
         else
-            _meshes.insert(std::make_pair(e, iter->second));
+            _meshes.insert(std::make_pair(e.get(), iter->second));
     }
 }
 
@@ -188,7 +183,7 @@ void PreviewWindow::updateFixedTransform()
         _gizmo.setFixedTransform((*_selection.begin())->transform());
     } else if (!_selection.empty()) {
         Vec3f center(0.0f);
-        for (Entity *e : _selection)
+        for (Primitive *e : _selection)
             center += e->transform()*Vec3f(0.0f);
         center /= _selection.size();
 
@@ -199,24 +194,29 @@ void PreviewWindow::updateFixedTransform()
 template<typename Predicate>
 void PreviewWindow::renderMeshes(Shader &shader, Predicate predicate)
 {
-    const std::vector<Entity *> &entities = _scene->entities();
-    for (size_t i = 0; i < entities.size(); ++i) {
+    const std::vector<std::shared_ptr<Primitive>> &primitives = _scene->primitives();
+    for (size_t i = 0; i < primitives.size(); ++i) {
         if (!predicate(i))
             continue;
-        MatrixStack::set(MODEL_STACK, entities[i]->transform());
-        if (_selection.count(entities[i]) && _gizmo.transforming())
+        MatrixStack::set(MODEL_STACK, primitives[i]->transform());
+        if (_selection.count(primitives[i].get()) && _gizmo.transforming())
             MatrixStack::mulL(MODEL_STACK, _gizmo.deltaTransform());
 
         MatrixStack::setShaderMatrices(shader, MODELVIEWPROJECTION_FLAG | MODEL_FLAG | VIEW_FLAG);
-        shader.uniformI("Smooth", entities[i]->asTriangleMesh().smoothed());
-        shader.uniformI("NoShading", dynamic_cast<Light *>(entities[i]) != nullptr);
-        _meshes[entities[i]]->draw(shader);
+        shader.uniformI("Smooth", primitives[i]->asTriangleMesh().smoothed());
+        shader.uniformI("NoShading", primitives[i]->bsdf()->isEmissive());
+        _meshes[primitives[i].get()]->draw(shader);
     }
 }
 
 void PreviewWindow::pickPrimitive()
 {
-    const std::vector<Entity *> &prims = _scene->entities();
+    const std::vector<std::shared_ptr<Primitive>> &prims = _scene->primitives();
+
+    std::shared_ptr<Camera> cam = _scene->camera();
+
+    MatrixStack::set(VIEW_STACK, cam->transform());
+    MatrixStack::set(PROJECTION_STACK, projection());
 
     _fbo->bind();
     _fbo->attachDepthBuffer(*_depthBuffer);
@@ -263,19 +263,19 @@ void PreviewWindow::pickPrimitive()
 
     if (_selectionState.shiftDown) {
         if (w == 0 && h == 0 && !uniquePixels.empty()) {
-            Entity *prim = prims[*uniquePixels.begin()];
+            Primitive *prim = prims[*uniquePixels.begin()].get();
             if (_selection.count(prim))
                 _selection.erase(prim);
             else
                 _selection.insert(prim);
         } else {
             for (uint32 id : uniquePixels)
-                _selection.insert(prims[id]);
+                _selection.insert(prims[id].get());
         }
     } else {
         _selection.clear();
         for (uint32 id : uniquePixels)
-            _selection.insert(prims[id]);
+            _selection.insert(prims[id].get());
     }
 
     _selectionState = SelectionState();
@@ -339,8 +339,8 @@ void PreviewWindow::toggleSelectAll()
     if (_selection.size()) {
         _selection.clear();
     } else {
-        for (Entity *e : _scene->entities())
-            _selection.insert(e);
+        for (const std::shared_ptr<Primitive> &e : _scene->primitives())
+            _selection.insert(e.get());
     }
 
     updateFixedTransform();
@@ -357,7 +357,7 @@ void PreviewWindow::grabGizmo()
 
 void PreviewWindow::transformFinished(Mat4f delta)
 {
-    for (Entity *e : _selection)
+    for (Primitive *e : _selection)
         e->setTransform(delta*e->transform());
     updateFixedTransform();
     updateGL();
@@ -365,7 +365,7 @@ void PreviewWindow::transformFinished(Mat4f delta)
 
 void PreviewWindow::recomputeCentroids()
 {
-    for (Entity *e : _selection) {
+    for (Primitive *e : _selection) {
         if (TriangleMesh *m = dynamic_cast<TriangleMesh *>(e)) {
             Vec3f centroid(0.0f);
             for (const Vertex &v : m->verts())
@@ -387,7 +387,7 @@ void PreviewWindow::recomputeCentroids()
 
 void PreviewWindow::computeHardNormals()
 {
-    for (Entity *e : _selection)
+    for (Primitive *e : _selection)
         if (TriangleMesh *m = dynamic_cast<TriangleMesh *>(e))
             m->setSmoothed(false);
     updateGL();
@@ -395,7 +395,7 @@ void PreviewWindow::computeHardNormals()
 
 void PreviewWindow::computeSmoothNormals()
 {
-    for (Entity *e : _selection) {
+    for (Primitive *e : _selection) {
         if (TriangleMesh *m = dynamic_cast<TriangleMesh *>(e)) {
             m->calcSmoothVertexNormals();
             m->setSmoothed(true);
@@ -410,7 +410,7 @@ void PreviewWindow::computeSmoothNormals()
 
 void PreviewWindow::freezeTransforms()
 {
-    for (Entity *e : _selection) {
+    for (Primitive *e : _selection) {
         if (TriangleMesh *m = dynamic_cast<TriangleMesh *>(e)) {
             Mat4f tform = m->transform().stripTranslation();
             for (Vertex &v : m->verts())
@@ -432,21 +432,14 @@ void PreviewWindow::duplicateSelection()
     if (!_scene)
         return;
 
-    size_t  primTail = _scene->primitives().size();
-    size_t lightTail = _scene->lights().size();
-
-    for (Entity *e : _selection) {
-        if (TriangleMesh *m = dynamic_cast<TriangleMesh *>(e))
-            _scene->addMesh(std::make_shared<TriangleMesh>(*m));
-        else if (Light *l = dynamic_cast<Light *>(e))
-            _scene->addLight(l->clone());
+    std::unordered_set<Primitive *> newSelection;
+    for (Primitive *e : _selection) {
+        Primitive *newE = e->clone();
+        newSelection.insert(newE);
+        _scene->addPrimitive(std::shared_ptr<Primitive>(newE));
     }
 
-    _selection.clear();
-    for (size_t i = primTail; i < _scene->primitives().size(); ++i)
-        _selection.insert(_scene->primitives()[i].get());
-    for (size_t i = lightTail; i < _scene->lights().size(); ++i)
-        _selection.insert(_scene->lights()[i].get());
+    _selection = std::move(newSelection);
 
     rebuildMeshMap();
     updateFixedTransform();
@@ -457,7 +450,7 @@ void PreviewWindow::deleteSelection()
 {
     if (!_scene)
         return;
-    _scene->deleteEntities(_selection);
+    _scene->deletePrimitives(_selection);
     _selection.clear();
     _gizmo.abortTransform();
     rebuildMeshMap();
@@ -489,22 +482,16 @@ void PreviewWindow::addModel()
             return;
 
         size_t  primTail = _scene->primitives().size();
-        size_t lightTail = _scene->lights().size();
 
         Mat4f tform = Mat4f::translate(_scene->camera()->lookAt() - scene->camera()->lookAt());
 
         _scene->merge(std::move(*scene));
         delete scene;
 
-
         _selection.clear();
         for (size_t i = primTail; i < _scene->primitives().size(); ++i) {
             _scene->primitives()[i]->setTransform(tform*_scene->primitives()[i]->transform());
             _selection.insert(_scene->primitives()[i].get());
-        }
-        for (size_t i = lightTail; i < _scene->lights().size(); ++i) {
-            _scene->lights()[i]->setTransform(tform*_scene->lights()[i]->transform());
-            _selection.insert(_scene->lights()[i].get());
         }
 
         rebuildMeshMap();
@@ -555,10 +542,10 @@ void PreviewWindow::paintGL()
     RenderTarget::resetViewport();
 
     if (!_screenBuffer && width() > 0 && height() > 0) {
-        _screenBuffer.reset(new Texture(TEXTURE_2D, width(), height()));
+        _screenBuffer.reset(new GL::Texture(TEXTURE_2D, width(), height()));
         _screenBuffer->setFormat(TEXEL_FLOAT, 4, 1);
         _screenBuffer->init();
-        _depthBuffer.reset(new Texture(TEXTURE_2D, width(), height()));
+        _depthBuffer.reset(new GL::Texture(TEXTURE_2D, width(), height()));
         _depthBuffer->setFormat(TEXEL_DEPTH, 1, 3);
         _depthBuffer->init();
     }
@@ -577,13 +564,13 @@ void PreviewWindow::paintGL()
     MatrixStack::set(VIEW_STACK, cam->transform());
     MatrixStack::set(PROJECTION_STACK, projection());
 
-    const std::vector<Entity *> &entities = _scene->entities();
+    const std::vector<std::shared_ptr<Primitive>> &prims = _scene->primitives();
 
     _shader->bind();
-    renderMeshes(*_shader, [&](size_t i) { return _selection.count(entities[i]) == 0; });
+    renderMeshes(*_shader, [&](size_t i) { return _selection.count(prims[i].get()) == 0; });
     _wireframeShader->bind();
     _wireframeShader->uniformF("Resolution", width(), height());
-    renderMeshes(*_wireframeShader, [&](size_t i) { return _selection.count(entities[i]) == 1; });
+    renderMeshes(*_wireframeShader, [&](size_t i) { return _selection.count(prims[i].get()) == 1; });
 
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
@@ -663,6 +650,7 @@ void PreviewWindow::showContextMenu()
     if (!_scene)
         return;
 
+/*
     std::array<QAction *, 6> actions;
     QMenu menu;
     actions[0] = menu.addAction("Add Cone light");
@@ -696,7 +684,7 @@ void PreviewWindow::showContextMenu()
             return;
         }
     }
-
+*/
 }
 
 void PreviewWindow::sceneChanged()

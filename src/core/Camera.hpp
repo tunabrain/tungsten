@@ -44,16 +44,9 @@ class Camera : public JsonSerializable
     }
 
 public:
-    Camera(const rapidjson::Value &v, const Scene &/*scene*/)
-    : _outputFile(JsonUtils::fromJsonMember<std::string>(v, "file")),
-      _pos   (JsonUtils::fromJsonMember<float, 3>(v, "position")),
-      _lookAt(JsonUtils::fromJsonMember<float, 3>(v, "lookAt")),
-      _up    (JsonUtils::fromJsonMember<float, 3>(v, "up")),
-      _res   (JsonUtils::fromJsonMember<uint32, 2>(v, "resolution")),
-      _fov   (Angle::degToRad(JsonUtils::fromJsonMember<float>(v, "fov"))),
-      _spp   (JsonUtils::fromJsonMember<uint32>(v, "spp"))
+    Camera()
+    : Camera(Mat4f(), Vec2u(800u, 600u), 60.0f, 1024)
     {
-        precompute();
     }
 
     Camera(const Mat4f &transform, const Vec2u &res, float fov, uint32 spp)
@@ -63,14 +56,28 @@ public:
       _fov(Angle::degToRad(fov)),
       _spp(spp)
     {
-        _pos    = _transform*Vec3f(0.0f, 0.0f, 0.0f);
-        _lookAt = _transform*Vec3f(0.0f, 0.0f, 1.0f);
+        _pos    = _transform*Vec3f(0.0f, 0.0f, 2.0f);
+        _lookAt = _transform*Vec3f(0.0f, 0.0f, -1.0f);
         _up     = _transform*Vec3f(0.0f, 1.0f, 0.0f);
 
         precompute();
     }
 
-    virtual rapidjson::Value toJson(Allocator &allocator) const
+    void fromJson(const rapidjson::Value &v, const Scene &/*scene*/) override
+    {
+        JsonUtils::fromJson(v, "file", _outputFile);
+        JsonUtils::fromJson(v, "position", _pos);
+        JsonUtils::fromJson(v, "lookAt", _lookAt);
+        JsonUtils::fromJson(v, "up", _up);
+        JsonUtils::fromJson(v, "resolution", _res);
+        if (JsonUtils::fromJson(v, "fov", _fov))
+            _fov = Angle::degToRad(_fov);
+        JsonUtils::fromJson(v, "spp", _spp);
+
+        precompute();
+    }
+
+    virtual rapidjson::Value toJson(Allocator &allocator) const override
     {
         rapidjson::Value v = JsonSerializable::toJson(allocator);
         v.AddMember("type", "perspective", allocator);

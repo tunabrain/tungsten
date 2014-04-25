@@ -9,14 +9,16 @@
 namespace Tungsten
 {
 
+namespace GL {
 class VertexBuffer;
 class Shader;
+}
 
 class ShapePainter: public AbstractPainter
 {
     static constexpr uint32 MaxVertices = 1 << 16;
-    static VertexBuffer *_vbo;
-    static Shader *_defaultShader;
+    static GL::VertexBuffer *_vbo;
+    static GL::Shader *_defaultShader;
     static bool _initialized;
     static void initialize();
 

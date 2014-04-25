@@ -85,6 +85,8 @@ namespace embree
       AffineSpace3f world2local;  //!< transforms from world space to local space
 
     public:
+      const void *userData;
+
       const Intersector1* intersector1;
 #if defined(__SSE__)
       const Intersector4* intersector4;

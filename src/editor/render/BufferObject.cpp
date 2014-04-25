@@ -5,6 +5,9 @@
 namespace Tungsten
 {
 
+namespace GL
+{
+
 static GLenum bufferTypes[] = {
     GL_ARRAY_BUFFER,
     GL_ELEMENT_ARRAY_BUFFER,
@@ -117,6 +120,8 @@ void BufferObject::bindIndexedRange(int index, GLintptr offset, GLsizeiptr size)
 void BufferObject::unbindIndexed(int index)
 {
     glBindBufferBase(_glType, index, 0);
+}
+
 }
 
 }

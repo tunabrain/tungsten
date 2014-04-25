@@ -4,7 +4,9 @@
 #include <rapidjson/document.h>
 
 #include "Bsdf.hpp"
+#include "Fresnel.hpp"
 
+#include "sampling/SampleGenerator.hpp"
 #include "sampling/ScatterEvent.hpp"
 #include "sampling/Sample.hpp"
 
@@ -22,82 +24,68 @@ class Scene;
 class DielectricBsdf : public Bsdf
 {
     float _ior;
-    Vec3f _color;
-    uint16 _space;
-
-    float fresnelReflectance(float ior, float cosThetaI, float &cosThetaT) const
-    {
-        float sinThetaI = std::sqrt(max(1.0f - cosThetaI*cosThetaI, 0.0f));
-        float sinThetaT = ior*sinThetaI;
-        if (sinThetaT > 1.0f)
-            return 1.0f;
-        cosThetaT = std::sqrt(max(1.0f - sinThetaT*sinThetaT, 0.0f));
-
-        float Rs = (ior*cosThetaI - cosThetaT)/(ior*cosThetaI + cosThetaT);
-        float Rp = (ior*cosThetaT - cosThetaI)/(ior*cosThetaT + cosThetaI);
-
-        return (Rs*Rs + Rp*Rp)*0.5f;
-    }
 
 public:
-    DielectricBsdf(const rapidjson::Value &v, const Scene &/*scene*/)
-    : Bsdf(v),
-      _ior  (JsonUtils::fromJsonMember<float>(v, "ior")),
-      _color(JsonUtils::fromJson(v["color"], Vec3f(1.0f))),
-      _space(JsonUtils::fromJsonMember<float>(v, "space"))
+    DielectricBsdf()
+    : _ior(1.5f)
     {
-        _flags = BsdfFlags(BsdfFlags::SpecularFlag | BsdfFlags::TransmissiveFlag);
+        _lobes = BsdfLobes(BsdfLobes::SpecularReflectionLobe | BsdfLobes::SpecularTransmissionLobe);
     }
 
-    DielectricBsdf(float ior, const Vec3f &color, uint16 space)
-    : _ior(ior), _color(color), _space(space)
+    DielectricBsdf(float ior)
+    : _ior(ior)
     {
-        _flags = BsdfFlags(BsdfFlags::SpecularFlag | BsdfFlags::TransmissiveFlag);
+        _lobes = BsdfLobes(BsdfLobes::SpecularReflectionLobe | BsdfLobes::SpecularTransmissionLobe);
     }
 
-    virtual rapidjson::Value toJson(Allocator &allocator) const
+    virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override
+    {
+        Bsdf::fromJson(v, scene);
+        JsonUtils::fromJson(v, "ior", _ior);
+    }
+
+    virtual rapidjson::Value toJson(Allocator &allocator) const override
     {
         rapidjson::Value v = Bsdf::toJson(allocator);
         v.AddMember("type", "dielectric", allocator);
         v.AddMember("ior", _ior, allocator);
-        v.AddMember("space", _space, allocator);
-        if (_color != Vec3f(1.0f))
-            v.AddMember("color", JsonUtils::toJsonValue<float, 3>(_color, allocator), allocator);
         return std::move(v);
     }
 
-    bool sample(ScatterEvent &event) const override final
+    bool sample(SurfaceScatterEvent &event) const override final
     {
-        float ior = event.space == _space ? 1.0f/_ior : _ior;
+        bool sampleR = event.requestedLobe.test(BsdfLobes::SpecularReflectionLobe);
+        bool sampleT = event.requestedLobe.test(BsdfLobes::SpecularTransmissionLobe);
+
+        float eta = event.wi.z() < 0.0f ? _ior : 1.0f/_ior;
+
         float cosThetaT = 0.0f;
-        if (event.xi.x() <= fresnelReflectance(ior, event.wo.z(), cosThetaT)) {
-            event.switchHemisphere = false;
-            event.wi = Vec3f(-event.wo.x(), -event.wo.y(), event.wo.z());
+        float F = Fresnel::dielectricReflectance(eta, std::abs(event.wi.z()), cosThetaT);
+        if (sampleR && !sampleT)
+            F = 1.0f;
+        else if (sampleT && !sampleR && F < 1.0f)
+            F = 0.0f;
+        else if (!sampleT && !sampleR)
+            return false;
+        if (event.supplementalSampler.next1D() < F) {
+            event.wo = Vec3f(-event.wi.x(), -event.wi.y(), event.wi.z());
+            event.pdf = F;
+            event.sampledLobe = BsdfLobes::SpecularReflectionLobe;
         } else {
-            event.switchHemisphere = true;
-            event.wi = Vec3f(-event.wo.x()*ior, -event.wo.y()*ior, -cosThetaT);
+            event.wo = Vec3f(-event.wi.x()*eta, -event.wi.y()*eta, -std::copysign(cosThetaT, event.wi.z()));
+            event.pdf = 1.0f - F;
+            event.sampledLobe = BsdfLobes::SpecularTransmissionLobe;
         }
-        event.pdf = 1.0f;
-        event.throughput = _color/std::abs(event.wi.z());
+        event.throughput = base(event.info);
         return true;
     }
 
-    bool sampleFromLight(ScatterEvent &event) const override final
-    {
-        return sample(event);
-    }
-
-    Vec3f eval(const Vec3f &/*wo*/, const Vec3f &/*wi*/) const override final
+    Vec3f eval(const SurfaceScatterEvent &/*event*/) const override final
     {
         return Vec3f(0.0f);
     }
 
-    float pdf(const Vec3f &/*wo*/, const Vec3f &/*wi*/) const override final
-    {
-        return 0.0f;
-    }
-
-    float pdfFromLight(const Vec3f &/*wo*/, const Vec3f &/*wi*/) const override final
+    float pdf(const SurfaceScatterEvent &/*event*/) const override final
     {
         return 0.0f;
     }

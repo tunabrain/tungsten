@@ -9,6 +9,9 @@
 namespace Tungsten
 {
 
+namespace GL
+{
+
 #define MAX_SOURCES 16
 
 enum ShaderType
@@ -68,6 +71,8 @@ public:
         return _sources[i];
     }
 };
+
+}
 
 }
 

@@ -4,71 +4,88 @@ namespace Tungsten
 {
 
 template<>
-bool JsonUtils::fromJson<bool>(const rapidjson::Value &v)
+bool JsonUtils::fromJson<bool>(const rapidjson::Value &v, bool &dst)
 {
-    SOFT_ASSERT(v.IsBool(), "Cannot convert JSON value to boolean");
-    return v.GetBool();
+    if (v.IsBool()) {
+        dst = v.GetBool();
+        return true;
+    }
+    return false;
+}
+
+template<typename T>
+bool getJsonNumber(const rapidjson::Value &v, T &dst) {
+    if (v.IsDouble())
+        dst = T(v.GetDouble());
+    else if (v.IsInt())
+        dst = T(v.GetInt());
+    else if (v.IsUint())
+        dst = T(v.GetUint());
+    else if (v.IsInt64())
+        dst = T(v.GetInt64());
+    else if (v.IsUint64())
+        dst = T(v.GetUint64());
+    else
+        return false;
+    return true;
 }
 
 template<>
-float JsonUtils::fromJson<float>(const rapidjson::Value &v)
+bool JsonUtils::fromJson<float>(const rapidjson::Value &v, float &dst)
 {
-    SOFT_ASSERT(v.IsNumber(), "Cannot convert JSON value to float");
-    return float(v.GetDouble());
+    return getJsonNumber(v, dst);
 }
 
 template<>
-double JsonUtils::fromJson<double>(const rapidjson::Value &v)
+bool JsonUtils::fromJson<double>(const rapidjson::Value &v, double &dst)
 {
-    SOFT_ASSERT(v.IsNumber(), "Cannot convert JSON value to double");
-    return v.GetDouble();
+    return getJsonNumber(v, dst);
 }
 
 template<>
-uint32 JsonUtils::fromJson<uint32>(const rapidjson::Value &v)
+bool JsonUtils::fromJson<uint32>(const rapidjson::Value &v, uint32 &dst)
 {
-    SOFT_ASSERT(v.IsNumber(), "Cannot convert JSON value to int");
-    return v.GetUint();
+    return getJsonNumber(v, dst);
 }
 
 template<>
-int32 JsonUtils::fromJson<int32>(const rapidjson::Value &v)
+bool JsonUtils::fromJson<int32>(const rapidjson::Value &v, int32 &dst)
 {
-    SOFT_ASSERT(v.IsNumber(), "Cannot convert JSON value to int");
-    return v.GetInt();
+    return getJsonNumber(v, dst);
 }
 
 template<>
-uint64 JsonUtils::fromJson<uint64>(const rapidjson::Value &v)
+bool JsonUtils::fromJson<uint64>(const rapidjson::Value &v, uint64 &dst)
 {
-    SOFT_ASSERT(v.IsNumber(), "Cannot convert JSON value to int");
-    return v.GetUint64();
+    return getJsonNumber(v, dst);
 }
 
 template<>
-int64 JsonUtils::fromJson<int64>(const rapidjson::Value &v)
+bool JsonUtils::fromJson<int64>(const rapidjson::Value &v, int64 &dst)
 {
-    SOFT_ASSERT(v.IsNumber(), "Cannot convert JSON value to int");
-    return v.GetInt64();
+    return getJsonNumber(v, dst);
 }
 
 template<>
-std::string JsonUtils::fromJson<std::string>(const rapidjson::Value &v)
+bool JsonUtils::fromJson<std::string>(const rapidjson::Value &v, std::string &dst)
 {
-    SOFT_ASSERT(v.IsString(), "Cannot convert JSON value to string");
-    return std::move(std::string(v.GetString()));
+    if (v.IsString()) {
+        dst = std::move(std::string(v.GetString()));
+        return true;
+    }
+    return false;
 }
 
 template<>
-Mat4f JsonUtils::fromJson<Mat4f>(const rapidjson::Value &v)
+bool JsonUtils::fromJson<Mat4f>(const rapidjson::Value &v, Mat4f &dst)
 {
-    SOFT_ASSERT(v.IsArray(), "Cannot convert Json value to matrix: Value is not an array");
-    SOFT_ASSERT(v.Size() == 16, "Cannot convert Json Array to vector: Invalid size");
+    if (!v.IsArray())
+        return false;
+    SOFT_ASSERT(v.Size() == 16, "Cannot convert Json Array to 4x4 Matrix: Invalid size");
 
-    Mat4f result;
     for (unsigned i = 0; i < 16; ++i)
-        result[i] = fromJson<float>(v[i]);
-    return result;
+        dst[i] = as<float>(v[i]);
+    return true;
 }
 
 

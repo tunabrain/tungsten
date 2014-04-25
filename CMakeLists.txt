@@ -35,7 +35,7 @@ add_subdirectory(src/extern/embree)
 add_library(extern STATIC src/extern/lodepng/lodepng.cpp src/extern/sobol/sobol.cpp src/extern/stbi/stb_image.c)
 
 set(CXX_WARNINGS "-Wall -Wextra -Wpointer-arith -Wcast-align -fstrict-aliasing -Wno-unused-local-typedefs")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_WARNINGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_WARNINGS} -fvisibility-inlines-hidden")
 set(core_libs core extern embree tbb)
 
 include_directories(src/core src/extern src/extern/embree src)

@@ -55,6 +55,8 @@ MainWindow::MainWindow()
     menuBar->addMenu(fileMenu);
 
     setMenuBar(menuBar);
+
+    newScene();
 }
 
 void MainWindow::togglePreview()
@@ -71,7 +73,7 @@ void MainWindow::showPreview(bool v)
 void MainWindow::newScene()
 {
     _scene.reset(new Scene());
-    _scene->setCamera(new Camera(Mat4f(), Vec2u(800u, 600u), 60.0f, 128));
+    _scene->setCamera(new Camera());
     emit sceneChanged();
 }
 

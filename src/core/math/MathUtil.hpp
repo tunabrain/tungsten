@@ -75,6 +75,10 @@ template <typename T> int sgn(T val) {
     return (T(0) < val) - (val < T(0));
 }
 
+template <typename T> T sgnE(T val) {
+    return val < T(0) ? T(-1) : T(1);
+}
+
 class MathUtil
 {
 public:
@@ -109,6 +113,11 @@ public:
             return Vec2f(0.0f);
         else
             return Vec2f(b*e - c*d, a*e - b*d)/denom;
+    }
+
+    static float triangleArea(const Vec3f &a, const Vec3f &b, const Vec3f &c)
+    {
+        return (b - a).cross(c - a).length()*0.5f;
     }
 };
 

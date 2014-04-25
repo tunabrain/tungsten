@@ -137,7 +137,7 @@ void RenderWindow::startRender()
         return;
 
     if (!_flattenedScene)
-        _flattenedScene.reset(new PackedGeometry(_scene->flatten()));
+        _flattenedScene.reset(_scene->makeTraceable());
 
     auto pixelCallback = [&](uint32_t x, uint32_t y, const Vec3f& c, uint32 spp) {
         uint32 idx = x + y*_scene->camera()->resolution().x();
@@ -158,7 +158,7 @@ void RenderWindow::startRender()
 
     if (!_renderer) {
         _currentSpp = 0;
-        _renderer.reset(new Renderer<RenderIntegrator>(*_scene->camera(), *_flattenedScene, _scene->lights()));
+        _renderer.reset(new Renderer<RenderIntegrator>(*_flattenedScene));
 
         _image->fill(Qt::black);
         std::memset( _buffer.get(), 0, sizeof( Vec3f)*_scene->camera()->resolution().product());
@@ -201,6 +201,7 @@ void RenderWindow::finishRender()
             std::string dst = FileUtils::addSlash(FileUtils::extractDir(_scene->path())) + _scene->camera()->outputFile();
             _image->save(QString::fromStdString(dst), "PNG", 100);
         }
+        _renderer->saveVariance("Variance.png");
         _renderer.reset();
         _flattenedScene.reset();
 

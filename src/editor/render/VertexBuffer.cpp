@@ -10,6 +10,8 @@
 namespace Tungsten
 {
 
+namespace GL {
+
 static int glTypeSize(GLenum type) {
     switch (type) {
     case GL_BYTE:
@@ -122,6 +124,8 @@ void VertexBuffer::drawIndexed(BufferObject &ibo, Shader &shader, GLenum mode, i
     disableVertexAttributes();
     ibo.unbind();
     unbind();
+}
+
 }
 
 }

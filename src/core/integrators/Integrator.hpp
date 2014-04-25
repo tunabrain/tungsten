@@ -18,7 +18,7 @@ protected:
     }
 
 public:
-    virtual Vec3f traceSample(const Camera &cam, Vec2u pixel, SampleGenerator &sampler) = 0;
+    virtual Vec3f traceSample(Vec2u pixel, SampleGenerator &sampler, UniformSampler &supplementalSampler) = 0;
 };
 
 }

@@ -8,6 +8,9 @@
 namespace Tungsten
 {
 
+namespace GL
+{
+
 enum VboAttributes
 {
     VBO_ATT_POSITION  = (1 << 0),
@@ -76,6 +79,8 @@ public:
         return _attributeCount;
     }
 };
+
+}
 
 }
 

@@ -9,6 +9,7 @@
 namespace Tungsten
 {
 
+class Scene;
 
 class JsonSerializable
 {
@@ -31,11 +32,14 @@ public:
     {
     }
 
-    JsonSerializable(const rapidjson::Value &v)
+    virtual void fromJson(const rapidjson::Value &v, const Scene &scene);
+
+    virtual rapidjson::Value toJson(Allocator &allocator) const
     {
-        const rapidjson::Value::Member *nameValue = v.FindMember("name");
-        if (nameValue && nameValue->value.IsString())
-            _name = nameValue->value.GetString();
+        rapidjson::Value v(rapidjson::kObjectType);
+        if (!unnamed())
+            v.AddMember("name", _name.c_str(), allocator);
+        return std::move(v);
     }
 
     void setName(const std::string &name)
@@ -51,14 +55,6 @@ public:
     bool unnamed() const
     {
         return _name.empty();
-    }
-
-    virtual rapidjson::Value toJson(Allocator &allocator) const
-    {
-        rapidjson::Value v(rapidjson::kObjectType);
-        if (!unnamed())
-            v.AddMember("name", _name.c_str(), allocator);
-        return std::move(v);
     }
 };
 

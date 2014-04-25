@@ -39,6 +39,7 @@ namespace embree
   public:
     Vec3fa org;        //!< Ray origin
     Vec3fa dir;        //!< Ray direction
+    void *userData;    //!< Ugh
     float tnear;       //!< Start of ray segment
     float tfar;        //!< End of ray segment
     float u;           //!< Barycentric u coordinate of hit

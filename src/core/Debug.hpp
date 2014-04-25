@@ -9,6 +9,7 @@ namespace Tungsten
 {
 
 #define DEBUG_LEVEL DEBUG
+#undef NDEBUG
 
 enum DebugLevel {
     WARN,
@@ -32,20 +33,23 @@ public:
 #define DEBUG_END }
 #endif
 
-# define FAIL(...) DebugUtils::debugFail(__FILE__, __LINE__, __VA_ARGS__)
-# define SOFT_FAIL(...) FAIL(EXP, __VA_ARGS__)
+//# define FAIL(...) DebugUtils::debugFail(__FILE__, __LINE__, __VA_ARGS__)
+# define FAIL(...) throw std::runtime_error(tfm::format("PROGRAM FAILURE in %s:%d: " FIRST(__VA_ARGS__), __FILE__, __LINE__ REST(__VA_ARGS__)))
+# define SOFT_FAIL(...) FAIL(__VA_ARGS__)
 # define LOG(MODULE, LEVEL, ...) do { DEBUG_BEGIN if (LEVEL <= DEBUG_LEVEL) DebugUtils::debugLog(MODULE, LEVEL, __VA_ARGS__); DEBUG_END } while(false)
 # define DBG(...) do { DEBUG_BEGIN DebugUtils::debug(tfm::format("%s:%d: " FIRST(__VA_ARGS__), __FILE__, __LINE__ REST(__VA_ARGS__))); DEBUG_END } while(false)
-/*# define ASSERT(EXP, ...) do { \
+# define ASSERT(EXP, ...) do { \
+    DEBUG_BEGIN \
     if (!bool(EXP)) \
         throw std::runtime_error(tfm::format("ASSERTION FAILURE in %s:%d (" #EXP "): " FIRST(__VA_ARGS__), __FILE__, __LINE__ REST(__VA_ARGS__))); \
-    } while(false);*/
-# define ASSERT(EXP, ...) do { \
+    DEBUG_END \
+    } while(false);
+/*# define ASSERT(EXP, ...) do { \
     DEBUG_BEGIN \
     if (!bool(EXP)) \
         DebugUtils::fail(tfm::format("ASSERTION FAILURE in %s:%d (" #EXP "): " FIRST(__VA_ARGS__), __FILE__, __LINE__ REST(__VA_ARGS__))); \
     DEBUG_END \
-    } while(false);
+    } while(false);*/
 
 # define SOFT_ASSERT(EXP, ...) ASSERT(EXP, __VA_ARGS__)
 

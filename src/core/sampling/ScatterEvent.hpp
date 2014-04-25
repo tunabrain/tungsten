@@ -1,29 +1,42 @@
 #ifndef SCATTEREVENT_HPP_
 #define SCATTEREVENT_HPP_
 
+#include "bsdfs/BsdfLobes.hpp"
+
 #include "math/Vec.hpp"
 
 namespace Tungsten
 {
 
-struct ScatterEvent
+class IntersectionInfo;
+class SampleGenerator;
+class UniformSampler;
+
+struct SurfaceScatterEvent
 {
-    Vec3f Ng;
+    const IntersectionInfo &info;
+    SampleGenerator &sampler;
+    UniformSampler &supplementalSampler;
     Vec3f wi, wo;
     Vec3f throughput;
-    Vec3f xi;
     float pdf;
-    bool switchHemisphere;
-    uint16 space;
+    BsdfLobes requestedLobe;
+    BsdfLobes sampledLobe;
 
-    ScatterEvent()
-    : pdf(1.0f), switchHemisphere(false), space(0)
+    SurfaceScatterEvent(const IntersectionInfo &info_,
+                 SampleGenerator &sampler_,
+                 UniformSampler &supplementalSampler_,
+                 const Vec3f &wi_,
+                 BsdfLobes requestedLobe_)
+    : info(info_),
+      sampler(sampler_),
+      supplementalSampler(supplementalSampler_),
+      wi(wi_),
+      wo(0.0f),
+      throughput(1.0f),
+      pdf(1.0f),
+      requestedLobe(requestedLobe_)
     {
-    }
-
-    bool isConsistent() const
-    {
-        return (wi.dot(Ng) < 0.0f) == switchHemisphere;
     }
 };
 
