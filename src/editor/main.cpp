@@ -10,7 +10,10 @@
 using namespace Tungsten;
 
 #include "bsdfs/RoughDielectricBsdf.hpp"
+#include "bsdfs/RoughConductorBsdf.hpp"
+#include "bsdfs/SmoothCoatBsdf.hpp"
 #include "bsdfs/Microfacet.hpp"
+#include "bsdfs/LambertBsdf.hpp"
 void microfacetTest()
 {
     std::ofstream Dout("D.txt");
@@ -69,7 +72,8 @@ void bsdfTest()
 
 void samplingTest()
 {
-    RoughDielectricBsdf bsdf;
+    //RoughDielectricBsdf bsdf;
+    SmoothCoatBsdf bsdf;
     UniformSampler sampler1(0xBA5EBA11);
     UniformSampler sampler2(123456);
 
@@ -79,9 +83,10 @@ void samplingTest()
     double wAvg = 0.0f, wMax = 0.0f;
     const int Samples = 10000000;
     for (int i = 0; i < Samples; ++i) {
-        const float angle = sampler1.next1D()*TWO_PI;//1.0f*(PI/180.0f);
+        //const float angle = sampler1.next1D()*TWO_PI;//1.0f*(PI/180.0f);
+        const float angle = Angle::degToRad(45.0f);
         Vec3f wi(std::sin(angle), 0.0f, std::cos(angle));
-        SurfaceScatterEvent event(IntersectionInfo(), sampler1, sampler2, wi, BsdfLobes::AllLobes);
+        SurfaceScatterEvent event(IntersectionInfo(), sampler1, sampler2, wi, BsdfLobes::AllButSpecular);
 
         if (!bsdf.sample(event))
             continue;
@@ -113,6 +118,45 @@ void samplingTest()
     std::cout << "Bsdf:    Avg " << fAvg/successes << " Max " << fMax << std::endl;
     std::cout << "Weights: Avg " << wAvg/successes << " Max " << wMax << std::endl;
     std::cout << "Successes: " << successes << std::endl;
+}
+
+#include "mitsuba/Diffuse.hpp"
+#include "mitsuba/RoughDielectric.hpp"
+#include "mitsuba/RoughConductor.hpp"
+#include "mitsuba/Coating.hpp"
+void mitsubaVerify()
+{
+    SmoothCoatBsdf *bsdfTungsten = new SmoothCoatBsdf();
+    //RoughConductorBsdf *bsdfTungsten = new RoughConductorBsdf();
+    Mitsuba::RoughConductor *roughMetal = new Mitsuba::RoughConductor(Vec3d(0.214000f, 0.950375f, 1.177500f), Vec3d(3.670000f, 2.576500f, 2.160063f), 0.1f);
+    Mitsuba::SmoothCoating *bsdfMitsuba = new Mitsuba::SmoothCoating(1.3f, 1.0f, roughMetal);
+    //Mitsuba::SmoothCoating *bsdfMitsuba = new Mitsuba::SmoothCoating(1.3f, 1.0f, new Mitsuba::SmoothDiffuse(Mitsuba::Spectrum(1.0f)));
+
+    const float angle = 45.0f*(PI/180.0f);
+    std::ofstream Fout("Verify-F.txt");
+    std::ofstream Pout("Verify-P.txt");
+    Vec3f wi(std::sin(angle), 0.0f, std::cos(angle));
+
+    UniformSampler sampler1(0xBA5EBA11);
+    UniformSampler sampler2(123456);
+
+    const int Samples = 360;
+    for (int i = 0; i < Samples; ++i) {
+        float a = (i*TWO_PI)/Samples - PI;
+        Vec3f wo(std::sin(a), 0.0f, std::cos(a));
+
+        Mitsuba::BSDFSamplingRecord bRec;
+        bRec.wi = Vec3d(wi);
+        bRec.wo = Vec3d(wo);
+        SurfaceScatterEvent event(IntersectionInfo(), sampler1, sampler2, wi, BsdfLobes::AllButSpecular);
+        event.wo = wo;
+
+        Pout << Angle::radToDeg(a) << " " << bsdfTungsten->pdf(event) << " " << bsdfMitsuba->pdf(bRec) << std::endl;
+        Fout << Angle::radToDeg(a) << " " << bsdfTungsten->eval(event).x() << " " << bsdfMitsuba->eval(bRec).x() << std::endl;
+    }
+
+    Pout.close();
+    Fout.close();
 }
 
 int main(int argc, char **argv)

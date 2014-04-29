@@ -35,6 +35,21 @@ void TriangleMesh::saveData() const
         MeshInputOutput::save(_path, _verts, _tris);
 }
 
+void TriangleMesh::saveAsObj(std::ostream &out) const
+{
+    for (const Vertex &v : _verts)
+        out << tfm::format("v %f %f %f\n", v.pos().x(), v.pos().y(), v.pos().z());
+    for (const Vertex &v : _verts)
+        out << tfm::format("vn %f %f %f\n", v.normal().x(), v.normal().y(), v.normal().z());
+    for (const Vertex &v : _verts)
+        out << tfm::format("vt %f %f\n", v.uv().x(), v.uv().y());
+    for (const TriangleI &t : _tris)
+        out << tfm::format("f %d/%d/%d %d/%d/%d %d/%d/%d\n",
+                t.v0 + 1, t.v0 + 1, t.v0 + 1,
+                t.v1 + 1, t.v1 + 1, t.v1 + 1,
+                t.v2 + 1, t.v2 + 1, t.v2 + 1);
+}
+
 void TriangleMesh::calcSmoothVertexNormals()
 {
     static constexpr float SplitLimit = std::cos(PI*0.25f);

@@ -51,7 +51,8 @@ public:
         if (event.wi.z() <= 0.0f)
             return false;
 
-        float sampleRoughness = (1.2f - 0.2f*std::sqrt(std::abs(event.wi.z())))*_roughness;
+        //float sampleRoughness = (1.2f - 0.2f*std::sqrt(std::abs(event.wi.z())))*_roughness;
+        float sampleRoughness = _roughness;
         float alpha = Microfacet::roughnessToAlpha(distribution, _roughness);
         float sampleAlpha = Microfacet::roughnessToAlpha(distribution, sampleRoughness);
 
@@ -99,11 +100,24 @@ public:
         if (event.wi.z() <= 0.0f || event.wo.z() <= 0.0f)
             return 0.0f;
 
-        float sampleRoughness = (1.2f - 0.2f*std::sqrt(event.wi.z()))*_roughness;
+        //float sampleRoughness = (1.2f - 0.2f*std::sqrt(event.wi.z()))*_roughness;
+        float sampleRoughness = _roughness;
         float sampleAlpha = Microfacet::roughnessToAlpha(distribution, sampleRoughness);
 
         Vec3f hr = (event.wi + event.wo).normalized();
         return Microfacet::pdf(distribution, sampleAlpha, hr)*0.25f/event.wi.dot(hr);
+    }
+
+    const Vec3f& eta() const {
+        return _eta;
+    }
+
+    const Vec3f& k() const {
+        return _k;
+    }
+
+    float roughness() const {
+        return _roughness;
     }
 };
 

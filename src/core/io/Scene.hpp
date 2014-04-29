@@ -13,10 +13,13 @@
 
 #include "primitives/Primitive.hpp"
 
+#include "cameras/Camera.hpp"
+
+#include "volume/Medium.hpp"
+
 #include "bsdfs/Bsdf.hpp"
 
 #include "TraceableScene.hpp"
-#include "Camera.hpp"
 
 namespace Tungsten
 {
@@ -27,13 +30,16 @@ class Scene : public JsonSerializable
     std::string _path;
 
     std::vector<std::shared_ptr<Primitive>> _primitives;
+    std::vector<std::shared_ptr<Medium>> _media;
     std::vector<std::shared_ptr<Bsdf>> _bsdfs;
     mutable std::map<std::string, std::shared_ptr<BitmapTextureRgb>> _colorMaps;
     mutable std::map<std::string, std::shared_ptr<BitmapTextureA>> _scalarMaps;
     std::shared_ptr<Camera> _camera;
 
+    std::shared_ptr<Medium>    instantiateMedium   (std::string type, const rapidjson::Value &value) const;
     std::shared_ptr<Bsdf>      instantiateBsdf     (std::string type, const rapidjson::Value &value) const;
     std::shared_ptr<Primitive> instantiatePrimitive(std::string type, const rapidjson::Value &value) const;
+    std::shared_ptr<Camera>    instantiateCamera   (std::string type, const rapidjson::Value &value) const;
     template<int Dimension>
     std::shared_ptr<Texture<true, Dimension>>
         instantiateScalarTexture(std::string type, const rapidjson::Value &value) const;
@@ -70,6 +76,7 @@ public:
     virtual rapidjson::Value toJson(Allocator &allocator) const;
     void saveData(const std::string &dst) const;
 
+    std::shared_ptr<Medium> fetchMedium(const rapidjson::Value &v) const;
     std::shared_ptr<Bsdf> fetchBsdf(const rapidjson::Value &v) const;
     template<int Dimension>
     std::shared_ptr<Texture<true, Dimension>> fetchScalarTexture(const rapidjson::Value &v) const;
@@ -87,6 +94,16 @@ public:
 
     TraceableScene *makeTraceable();
 
+    std::vector<std::shared_ptr<Medium>> &media()
+    {
+        return _media;
+    }
+
+    std::vector<std::shared_ptr<Bsdf>> &bsdfs()
+    {
+        return _bsdfs;
+    }
+
     std::vector<std::shared_ptr<Primitive>> &primitives()
     {
         return _primitives;
@@ -98,6 +115,11 @@ public:
     }
 
     std::shared_ptr<Camera> camera()
+    {
+        return _camera;
+    }
+
+    const std::shared_ptr<Camera> camera() const
     {
         return _camera;
     }

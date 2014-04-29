@@ -139,7 +139,7 @@ class RayStreamIntegrator : public Integrator
 
         Vec3f bsdfF = light.eval(-wi)*std::abs(sample.wi.z())*sample.throughput/sample.pdf;
 
-        if (!bsdf.flags().isSpecular())
+        if (!bsdf.flags().hasSpecular())
             bsdfF *= powerHeuristic(sample.pdf, light.pdf(p, Ns, wi));
 
         return bsdfF;
@@ -156,10 +156,10 @@ class RayStreamIntegrator : public Integrator
     {
         Vec3f result;
 
-        if (bsdf.flags().isSpecular())
+        if (bsdf.flags().hasSpecular())
             return Vec3f(0.0f);
 
-        if (!bsdf.flags().isSpecular())
+        if (!bsdf.flags().hasSpecular())
             result += lightSample(frame, light, bsdf, p, Ns, event.wo, lightXi);
         if (!light.isDelta())
             result += bsdfSample(frame, light, bsdf, event, p, Ns, bsdfXi);

@@ -29,6 +29,7 @@ public:
         ReflectiveLobe   = GlossyReflectionLobe   | DiffuseReflectionLobe   | SpecularReflectionLobe,
 
         AllLobes = TransmissiveLobe | ReflectiveLobe,
+        AllButSpecular = ~SpecularLobe,
 
         InvalidLobe = 0
     };
@@ -36,6 +37,12 @@ public:
     BsdfLobes()
     : _lobes(InvalidLobe)
     {
+    }
+
+    BsdfLobes(const BsdfLobes &a, const BsdfLobes &b)
+    : _lobes(a._lobes | b._lobes)
+    {
+
     }
 
     BsdfLobes(Lobe lobes)
@@ -48,37 +55,39 @@ public:
     {
     }
 
-    BsdfLobes(const BsdfLobes &a, const BsdfLobes &b)
-    : _lobes(0)
-    {
-        if (a.isGlossy() || b.isGlossy())
-            _lobes |= GlossyLobe;
-        if (a.isDiffuse() || b.isDiffuse())
-            _lobes |= DiffuseLobe;
-        if (a.isSpecular() && b.isSpecular())
-            _lobes |= SpecularLobe;
-        if (a.isTransmissive() || b.isTransmissive())
-            _lobes |= TransmissiveLobe;
-    }
-
     bool test(BsdfLobes lobe) const
     {
         return (_lobes & lobe._lobes) != 0;
     }
 
-    bool isGlossy() const
+    bool hasGlossy() const
     {
         return (_lobes & GlossyLobe) != 0;
     }
 
-    bool isDiffuse() const
+    bool hasDiffuse() const
     {
         return (_lobes & DiffuseLobe) != 0;
     }
 
-    bool isSpecular() const
+    bool hasSpecular() const
     {
         return (_lobes & SpecularLobe) != 0;
+    }
+
+    bool isPureGlossy() const
+    {
+        return (_lobes & ~GlossyLobe) == 0;
+    }
+
+    bool isPureSpecular() const
+    {
+        return (_lobes & ~SpecularLobe) == 0;
+    }
+
+    bool isPureDiffuse() const
+    {
+        return (_lobes & ~DiffuseLobe) == 0;
     }
 
     bool isTransmissive() const

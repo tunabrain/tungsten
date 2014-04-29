@@ -133,6 +133,11 @@ public:
         return result;
     }
 
+    ElementType avg() const
+    {
+        return sum()*(ElementType(1)/ElementType(Size));
+    }
+
     ElementType product() const
     {
         ElementType result(_v[0]);
@@ -412,6 +417,10 @@ Vec<ElementType, Size> operator/(ElementType a, const Vec<ElementType, Size> &b)
         result[i] = a/b[i];
     return result;
 }
+
+typedef Vec<double, 4> Vec4d;
+typedef Vec<double, 3> Vec3d;
+typedef Vec<double, 2> Vec2d;
 
 typedef Vec<float, 4> Vec4f;
 typedef Vec<float, 3> Vec3f;

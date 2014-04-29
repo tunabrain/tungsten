@@ -39,7 +39,9 @@ std::string FileUtils::getCurrentDir()
 bool FileUtils::fileExists(const std::string &path)
 {
     struct stat s;
-    return stat(path.c_str(), &s) == 0;
+    if (stat(path.c_str(), &s))
+        return false;
+    return S_ISDIR(s.st_mode) || S_ISREG(s.st_mode);
 }
 
 bool FileUtils::createDirectory(const std::string &path)
@@ -51,7 +53,7 @@ bool FileUtils::createDirectory(const std::string &path)
     } else {
         std::string parent = extractDir(p);
         if (parent.empty() || createDirectory(parent))
-            return mkdir(extractFile(p).c_str()) == 0;
+            return mkdir(p.c_str()) == 0;
         return false;
     }
 }
@@ -94,10 +96,7 @@ std::string FileUtils::stripSlash(std::string s)
 
 std::string FileUtils::stripExt(std::string s)
 {
-    size_t slashPos = s.find_last_of('/');
-    if (slashPos == std::string::npos)
-        slashPos = 0;
-    size_t dotPos = s.find_last_of('.', slashPos);
+    size_t dotPos = s.find_last_of('.');
 
     if (dotPos != std::string::npos)
         s.erase(dotPos);

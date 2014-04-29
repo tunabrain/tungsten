@@ -1,12 +1,6 @@
 #ifndef MESH_HPP_
 #define MESH_HPP_
 
-#include <embree/include/embree.h>
-#include <rapidjson/document.h>
-#include <memory>
-#include <vector>
-#include <string>
-
 #include "Triangle.hpp"
 #include "Vertex.hpp"
 
@@ -22,6 +16,13 @@
 
 #include "EmbreeUtil.hpp"
 #include "Primitive.hpp"
+
+#include <embree/include/embree.h>
+#include <rapidjson/document.h>
+#include <iostream>
+#include <memory>
+#include <vector>
+#include <string>
 
 namespace Tungsten
 {
@@ -63,7 +64,7 @@ class TriangleMesh : public Primitive
         Vec3f n0 = _tfVerts[t.v0].normal();
         Vec3f n1 = _tfVerts[t.v1].normal();
         Vec3f n2 = _tfVerts[t.v2].normal();
-        return (1.0f - u - v)*n0 + u*n1 + v*n2;
+        return ((1.0f - u - v)*n0 + u*n1 + v*n2).normalized();
     }
 
     Vec2f uvAt(int triangle, float u, float v) const
@@ -109,6 +110,7 @@ public:
     rapidjson::Value toJson(Allocator &allocator) const override;
 
     void saveData() const override;
+    void saveAsObj(std::ostream &out) const;
     void calcSmoothVertexNormals();
     void computeBounds();
 
@@ -217,6 +219,14 @@ public:
             vs[i] = embree::RTCVertex(p.x(), p.y(), p.z());
         }
 
+        _totalArea = 0.0f;
+        for (size_t i = 0; i < _tris.size(); ++i) {
+            Vec3f p0 = _tfVerts[_tris[i].v0].pos();
+            Vec3f p1 = _tfVerts[_tris[i].v1].pos();
+            Vec3f p2 = _tfVerts[_tris[i].v2].pos();
+            _totalArea += MathUtil::triangleArea(p0, p1, p2);
+        }
+
         embree::rtcUnmapPositionBuffer(_geom);
         embree::rtcUnmapTriangleBuffer(_geom);
 
@@ -231,6 +241,11 @@ public:
         _geom = nullptr;
         _intersector = nullptr;
         _tfVerts.clear();
+    }
+
+    float area() const override
+    {
+        return _totalArea;
     }
 
     bool isSamplable() const override final
@@ -358,6 +373,11 @@ public:
     void markDirty()
     {
         _dirty = true;
+    }
+
+    const std::string& path() const
+    {
+        return _path;
     }
 };
 

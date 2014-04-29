@@ -7,6 +7,8 @@
 
 #include "io/FileUtils.hpp"
 
+#include "cameras/PinholeCamera.hpp"
+
 namespace Tungsten
 {
 
@@ -73,7 +75,7 @@ void MainWindow::showPreview(bool v)
 void MainWindow::newScene()
 {
     _scene.reset(new Scene());
-    _scene->setCamera(new Camera());
+    _scene->setCamera(new PinholeCamera());
     emit sceneChanged();
 }
 

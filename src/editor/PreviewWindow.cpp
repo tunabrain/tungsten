@@ -6,9 +6,10 @@
 #include "PreviewWindow.hpp"
 #include "ShapePainter.hpp"
 #include "MainWindow.hpp"
-#include "Camera.hpp"
 
 #include "primitives/Mesh.hpp"
+
+#include "cameras/Camera.hpp"
 
 #include "render/MatrixStack.hpp"
 #include "render/GLDebug.hpp"
@@ -171,7 +172,7 @@ bool PreviewWindow::updateViewTransform(QMouseEvent *event)
     if (!_scene)
         return false;
 
-    bool result = _controls.update(event, width(), height(), _scene->camera()->fov());
+    bool result = _controls.update(event, width(), height(), _scene->camera()->approximateFov());
     _scene->camera()->setTransform(_controls.globalPos(), _controls.lookAt(), _controls.up());
     _gizmo.setView(_scene->camera()->transform());
     return result;

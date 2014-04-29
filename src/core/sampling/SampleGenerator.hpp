@@ -2,6 +2,7 @@
 #define SAMPLEGENERATOR_HPP_
 
 #include "extern/sobol/sobol.h"
+#include "extern/SFMT/SFMT.h"
 
 #include "math/BitManip.hpp"
 #include "math/MathUtil.hpp"
@@ -47,6 +48,20 @@ class SobolSampler : public SampleGenerator
     uint32 _index;
     int _dimension;
 
+    inline uint32 invert4Bit(uint32 x) const
+    {
+        return
+            ((x & 1) << 3) |
+            ((x & 2) << 1) |
+            ((x & 4) >> 1) |
+            ((x & 8) >> 3);
+    }
+
+    inline uint32 permutedIndex() const
+    {
+        return (_index & ~0xFF) | ((_index + _scramble) & 0xFF);
+    }
+
 public:
     SobolSampler()
     : _scramble(0), _index(0), _dimension(0)
@@ -62,10 +77,11 @@ public:
 
     uint32 nextI() override final
     {
-        return sobol::sample(_index, _dimension++, _scramble) + _scramble;
+        return sobol::sample(permutedIndex(), _dimension++, _scramble);// + _scramble;
     }
 };
 
+#if 0
 class UniformSampler : public SampleGenerator
 {
     uint32 _seed;
@@ -96,6 +112,37 @@ public:
         return BitManip::normalizedUint(nextI() << 1);
     }
 };
+#else
+class UniformSampler : public SampleGenerator
+{
+    SFMT_T _state;
+
+public:
+    UniformSampler()
+    : UniformSampler(0xBA5EBA11)
+    {
+    }
+
+    UniformSampler(uint32 seed)
+    {
+        sfmt_init_gen_rand(&_state, seed);
+    }
+
+    void setup(uint32 /*pixel*/, int /*sample*/) override final
+    {
+    }
+
+    uint32 nextI() override final
+    {
+        return sfmt_genrand_uint32(&_state);
+    }
+
+    virtual float next1D()
+    {
+        return BitManip::normalizedUint(nextI());
+    }
+};
+#endif
 
 }
 

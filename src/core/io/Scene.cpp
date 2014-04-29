@@ -14,11 +14,15 @@
 #include "bsdfs/RoughDielectricBsdf.hpp"
 #include "bsdfs/RoughConductorBsdf.hpp"
 #include "bsdfs/DielectricBsdf.hpp"
+#include "bsdfs/SmoothCoatBsdf.hpp"
 #include "bsdfs/LambertBsdf.hpp"
 #include "bsdfs/PhongBsdf.hpp"
 #include "bsdfs/MixedBsdf.hpp"
 #include "bsdfs/MirrorBsdf.hpp"
 #include "bsdfs/Bsdf.hpp"
+
+#include "cameras/ThinlensCamera.hpp"
+#include "cameras/PinholeCamera.hpp"
 
 #include "Debug.hpp"
 
@@ -42,6 +46,8 @@ std::shared_ptr<Bsdf> Scene::instantiateBsdf(std::string type, const rapidjson::
         result = std::make_shared<RoughConductorBsdf>();
     else if (type == "rough_dielectric")
         result = std::make_shared<RoughDielectricBsdf>();
+    else if (type == "smooth_coat")
+        result = std::make_shared<SmoothCoatBsdf>();
     else
         FAIL("Unkown bsdf type: '%s'", type.c_str());
     result->fromJson(value, *this);
@@ -59,6 +65,20 @@ std::shared_ptr<Primitive> Scene::instantiatePrimitive(std::string type, const r
         result = std::make_shared<Quad>();
     else
         FAIL("Unknown primitive type: '%s'", type.c_str());
+
+    result->fromJson(value, *this);
+    return result;
+}
+
+std::shared_ptr<Camera> Scene::instantiateCamera(std::string type, const rapidjson::Value &value) const
+{
+    std::shared_ptr<Camera> result;
+    if (type == "pinhole")
+        result = std::make_shared<PinholeCamera>();
+    else if (type == "thinlens")
+        result = std::make_shared<ThinlensCamera>();
+    else
+        FAIL("Unknown camera type: '%s'", type.c_str());
 
     result->fromJson(value, *this);
     return result;
@@ -298,13 +318,12 @@ void Scene::fromJson(const rapidjson::Value &v, const Scene &scene)
 
     SOFT_ASSERT(primitives != nullptr, "Scene file must contain 'primitives' array");
     SOFT_ASSERT(bsdfs      != nullptr, "Scene file must contain 'bsdfs' array");
-    SOFT_ASSERT(camera     != nullptr, "Scene file must contain 'camera' object");
+    SOFT_ASSERT(camera     != nullptr && camera->value.IsObject(), "Scene file must contain 'camera' object");
 
     loadObjectList(     bsdfs->value, std::bind(&Scene::instantiateBsdf,      this, _1, _2), _bsdfs);
     loadObjectList(primitives->value, std::bind(&Scene::instantiatePrimitive, this, _1, _2), _primitives);
 
-    _camera = std::make_shared<Camera>();
-    _camera->fromJson(camera->value, *this);
+    _camera = instantiateCamera(JsonUtils::as<std::string>(camera->value, "type"), camera->value);
 }
 
 Scene::Scene(const std::string &srcDir,

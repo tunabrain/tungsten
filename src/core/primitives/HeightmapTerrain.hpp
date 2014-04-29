@@ -8,11 +8,12 @@
 #include "primitives/Vertex.hpp"
 #include "primitives/Mesh.hpp"
 
+#include "cameras/Camera.hpp"
+
 #include "math/MathUtil.hpp"
 #include "math/Mat4f.hpp"
 #include "math/Vec.hpp"
 
-#include "Camera.hpp"
 
 namespace Tungsten
 {

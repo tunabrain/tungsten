@@ -20,8 +20,9 @@
 #include "bsdfs/Bsdf.hpp"
 
 #include "TraceableScene.hpp"
-#include "Camera.hpp"
+#include "cameras/Camera.hpp"
 
+#define ENABLE_LIGHT_SAMPLING 1
 
 namespace Tungsten
 {
@@ -49,6 +50,7 @@ class PathTraceIntegrator : public Integrator
         if ((sample.d.dot(event.info.Ng) < 0.0f) != (event.wo.z() < 0.0f))
             return Vec3f(0.0f);
 
+        event.requestedLobe = BsdfLobes::AllButSpecular;
         Vec3f f = bsdf.eval(event);
         if (f == 0.0f)
             return Vec3f(0.0f);
@@ -69,6 +71,7 @@ class PathTraceIntegrator : public Integrator
                      const Bsdf &bsdf,
                      SurfaceScatterEvent &event)
     {
+        event.requestedLobe = BsdfLobes::AllButSpecular;
         if (!bsdf.sample(event))
             return Vec3f(0.0f);
         if (event.throughput == 0.0f)
@@ -89,8 +92,7 @@ class PathTraceIntegrator : public Integrator
 
         Vec3f bsdfF = light.bsdf()->emission()*event.throughput;
 
-        if (!bsdf.flags().isSpecular())
-            bsdfF *= Sample::powerHeuristic(event.pdf, light.inboundPdf(data, event.info.p, wo));
+        bsdfF *= Sample::powerHeuristic(event.pdf, light.inboundPdf(data, event.info.p, wo));
 
         return bsdfF;
     }
@@ -102,11 +104,10 @@ class PathTraceIntegrator : public Integrator
     {
         Vec3f result(0.0f);
 
-        if (bsdf.flags().isSpecular())
+        if (bsdf.flags().isPureSpecular())
             return Vec3f(0.0f);
 
-        if (!bsdf.flags().isSpecular())
-            result += lightSample(frame, light, bsdf, event);
+        result += lightSample(frame, light, bsdf, event);
         if (!light.isDelta())
             result += bsdfSample(frame, light, bsdf, event);
 
@@ -148,9 +149,7 @@ public:
 
     Vec3f traceSample(Vec2u pixel, SampleGenerator &sampler, UniformSampler &supplementalSampler) final override
     {
-        Vec3f dir(_scene.cam().generateSample(pixel, sampler.next2D()));
-
-        Ray ray(_scene.cam().pos(), dir, Epsilon);
+        Ray ray(_scene.cam().generateSample(pixel, sampler));
 
         Primitive::IntersectionTemporary data;
         IntersectionInfo info;
@@ -177,16 +176,18 @@ public:
 
             SurfaceScatterEvent event(info, sampler, supplementalSampler, frame.toLocal(w), BsdfLobes::AllLobes);
 
-#if 1
+#if ENABLE_LIGHT_SAMPLING
             if (event.wi.z() >= 0.0f && (bounce == 0 || wasSpecular))
                 emission += bsdf.emission()*throughput;
 
-            emission += estimateDirect(frame, bsdf, event)*throughput;
+            if (bounce < MaxBounces - 1)
+                emission += estimateDirect(frame, bsdf, event)*throughput;
 #else
             if (event.wi.z() >= 0.0f)
                 emission += bsdf.emission()*throughput;
 #endif
 
+            event.requestedLobe = BsdfLobes::AllLobes;
             if (!bsdf.sample(event))
                 break;
 
@@ -208,7 +209,7 @@ public:
                     break;
             }
 
-            wasSpecular = bsdf.flags().isSpecular();
+            wasSpecular = event.sampledLobe.hasSpecular();
 
             bounce++;
             if (bounce < MaxBounces) {
@@ -216,8 +217,8 @@ public:
                 didHit = _scene.intersect(ray, data, info);
             }
         }
-        if (!didHit)
-            emission += throughput;
+        //if (!didHit)
+        //  emission += throughput;
         return emission;
     }
 };

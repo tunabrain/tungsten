@@ -67,16 +67,17 @@ public:
             F = 0.0f;
         else if (!sampleT && !sampleR)
             return false;
-        if (event.supplementalSampler.next1D() < F) {
+        if (event.sampler.next1D() < F) {
             event.wo = Vec3f(-event.wi.x(), -event.wi.y(), event.wi.z());
             event.pdf = F;
             event.sampledLobe = BsdfLobes::SpecularReflectionLobe;
+            event.throughput = Vec3f(1.0f);
         } else {
             event.wo = Vec3f(-event.wi.x()*eta, -event.wi.y()*eta, -std::copysign(cosThetaT, event.wi.z()));
             event.pdf = 1.0f - F;
             event.sampledLobe = BsdfLobes::SpecularTransmissionLobe;
+            event.throughput = base(event.info);
         }
-        event.throughput = base(event.info);
         return true;
     }
 
@@ -88,6 +89,11 @@ public:
     float pdf(const SurfaceScatterEvent &/*event*/) const override final
     {
         return 0.0f;
+    }
+
+    float ior() const
+    {
+        return _ior;
     }
 };
 

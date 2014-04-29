@@ -87,11 +87,6 @@ public:
         float cosThetaPowN = std::pow(cosTheta, _exponent);
         event.pdf = cosThetaPowN*_pdfFactor;
         event.throughput = base(event.info)*(event.wo.z()*(_brdfFactor/_pdfFactor));
-//      Vec3f f = eval(event);
-//      Vec3f diff = event.throughput*event.pdf - f;
-//      if (std::abs(diff.max()) > 1e-5f) {
-//          std::cout << diff << " " << name() << std::endl;
-//      }
         return true;
     }
 
@@ -114,6 +109,11 @@ public:
         if (event.wi.z() <= 0.0f || event.wo.z() <= 0.0f)
             return 0.0f;
         return std::pow(Vec3f(-event.wi.x(), -event.wi.y(), event.wi.z()).dot(event.wo), _exponent)*_pdfFactor;
+    }
+
+    int hardness() const
+    {
+        return _hardness;
     }
 };
 

@@ -227,9 +227,24 @@ public:
     {
     }
 
+    float area() const override
+    {
+        return _radius*_radius*FOUR_PI;
+    }
+
     virtual Primitive *clone()
     {
         return new Sphere(*this);
+    }
+
+    const Vec3f &pos() const
+    {
+        return _pos;
+    }
+
+    float radius() const
+    {
+        return _radius;
     }
 };
 

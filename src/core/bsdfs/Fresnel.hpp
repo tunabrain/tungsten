@@ -19,8 +19,10 @@ static inline float dielectricReflectance(float eta, float cosThetaI, float &cos
     }
     float sinThetaI = std::sqrt(max(1.0f - cosThetaI*cosThetaI, 0.0f));
     float sinThetaT = eta*sinThetaI;
-    if (sinThetaT > 1.0f)
+    if (sinThetaT > 1.0f) {
+        cosThetaT = 0.0f;
         return 1.0f;
+    }
     cosThetaT = std::sqrt(max(1.0f - sinThetaT*sinThetaT, 0.0f));
 
     float Rs = (eta*cosThetaI - cosThetaT)/(eta*cosThetaI + cosThetaT);
@@ -35,7 +37,27 @@ static inline float dielectricReflectance(float eta, float cosThetaI)
     return dielectricReflectance(eta, cosThetaI, cosThetaT);
 }
 
+// From "PHYSICALLY BASED LIGHTING CALCULATIONS FOR COMPUTER GRAPHICS" by Peter Shirley
+// http://www.cs.virginia.edu/~jdl/bib/globillum/shirley_thesis.pdf
 static inline float conductorReflectance(float eta, float k, float cosThetaI)
+{
+    float cosThetaISq = cosThetaI*cosThetaI;
+    float sinThetaISq = 1.0f - cosThetaISq;
+    float sinThetaIQu = sinThetaISq*sinThetaISq;
+
+    float innerTerm = eta*eta - k*k - sinThetaISq;
+    float aSqPlusBSq = std::sqrt(max(innerTerm*innerTerm + 4.0f*eta*eta*k*k, 0.0f));
+    float a = std::sqrt(max((aSqPlusBSq + innerTerm)*0.5f, 0.0f));
+
+    float Rs = ((aSqPlusBSq + cosThetaISq) - (2.0f*a*cosThetaI))/
+               ((aSqPlusBSq + cosThetaISq) + (2.0f*a*cosThetaI));
+    float Rp = ((cosThetaISq*aSqPlusBSq + sinThetaIQu) - (2.0f*a*cosThetaI*sinThetaISq))/
+               ((cosThetaISq*aSqPlusBSq + sinThetaIQu) + (2.0f*a*cosThetaI*sinThetaISq));
+
+    return 0.5f*(Rs + Rs*Rp);
+}
+
+static inline float conductorReflectanceApprox(float eta, float k, float cosThetaI)
 {
     float cosThetaISq = cosThetaI*cosThetaI;
     float ekSq = eta*eta* + k*k;

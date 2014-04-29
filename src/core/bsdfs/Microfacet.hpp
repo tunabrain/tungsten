@@ -1,6 +1,10 @@
 #ifndef MICROFACET_HPP_
 #define MICROFACET_HPP_
 
+#include "math/MathUtil.hpp"
+#include "math/Angle.hpp"
+#include "math/Vec.hpp"
+
 namespace Tungsten {
 
 class Microfacet

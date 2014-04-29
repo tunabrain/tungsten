@@ -42,11 +42,11 @@ static inline float cosineHemispherePdf(const Vec3f &p)
     return p.z()*INV_PI;
 }
 
-static inline Vec2f uniformDisk(const Vec2f &uv)
+static inline Vec3f uniformDisk(const Vec2f &uv)
 {
     float phi = uv.x()*TWO_PI;
     float r = std::sqrt(uv.y());
-    return Vec2f(std::cos(phi)*r, std::sin(phi)*r);
+    return Vec3f(std::cos(phi)*r, std::sin(phi)*r, 0.0f);
 }
 
 static inline float uniformDiskPdf()

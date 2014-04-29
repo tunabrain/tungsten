@@ -173,6 +173,14 @@ public:
         else
             return (1.0f - F)*pm*std::abs(woDotM)/sqr(eta*wiDotM + woDotM);
     }
+
+    float ior() const {
+        return _ior;
+    }
+
+    float roughness() const {
+        return _roughness;
+    }
 };
 
 }

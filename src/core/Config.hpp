@@ -4,7 +4,7 @@
 namespace Tungsten
 {
 
-#define USE_SOBOL 0
+#define USE_SOBOL 1
 
 }
 

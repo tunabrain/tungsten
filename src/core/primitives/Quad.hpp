@@ -223,6 +223,11 @@ public:
     {
     }
 
+    float area() const override
+    {
+        return _area;
+    }
+
     virtual Primitive *clone()
     {
         return new Quad(*this);

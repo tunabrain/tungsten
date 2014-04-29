@@ -21,12 +21,16 @@
 namespace Tungsten
 {
 
+class Medium;
+
 class Bsdf : public JsonSerializable
 {
 protected:
     BsdfLobes _lobes;
 
     Vec3f _emission;
+
+    std::shared_ptr<Medium> _intMedium, _extMedium;
 
     std::shared_ptr<TextureRgb> _base;
     std::shared_ptr<TextureA> _alpha;
@@ -53,19 +57,7 @@ public:
     }
 
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
-
-    virtual rapidjson::Value toJson(Allocator &allocator) const override
-    {
-        rapidjson::Value v(JsonSerializable::toJson(allocator));
-
-        v.AddMember("emission", JsonUtils::toJsonValue(_emission, allocator), allocator);
-        v.AddMember("bumpStrength", JsonUtils::toJsonValue(_bumpStrength, allocator), allocator);
-        JsonUtils::addObjectMember(v, "color", *_base,  allocator);
-        JsonUtils::addObjectMember(v, "alpha", *_alpha, allocator);
-        JsonUtils::addObjectMember(v,  "bump", *_bump,  allocator);
-
-        return std::move(v);
-    }
+    virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
     void setupTangentFrame(const Primitive &primitive, const Primitive::IntersectionTemporary &data,
             const IntersectionInfo &info, TangentFrame &dst) const

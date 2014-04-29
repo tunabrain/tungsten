@@ -199,6 +199,12 @@ void RenderWindow::finishRender()
     else {
         if (_scene) {
             std::string dst = FileUtils::addSlash(FileUtils::extractDir(_scene->path())) + _scene->camera()->outputFile();
+            std::string basename = FileUtils::stripExt(dst);
+            std::string extension = FileUtils::extractExt(dst);
+            int index = 0;
+            while (FileUtils::fileExists(dst))
+                dst = tfm::format("%s%05d.%s", basename, ++index, extension);
+
             _image->save(QString::fromStdString(dst), "PNG", 100);
         }
         _renderer->saveVariance("Variance.png");

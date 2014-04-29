@@ -32,7 +32,11 @@ endif()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SIMD_FLAGS}")
 
 add_subdirectory(src/extern/embree)
-add_library(extern STATIC src/extern/lodepng/lodepng.cpp src/extern/sobol/sobol.cpp src/extern/stbi/stb_image.c)
+add_library(extern STATIC
+		src/extern/lodepng/lodepng.cpp
+		src/extern/sobol/sobol.cpp
+		src/extern/stbi/stb_image.c
+		src/extern/SFMT/SFMT.c)
 
 set(CXX_WARNINGS "-Wall -Wextra -Wpointer-arith -Wcast-align -fstrict-aliasing -Wno-unused-local-typedefs")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_WARNINGS} -fvisibility-inlines-hidden")
@@ -45,6 +49,9 @@ add_library(core STATIC ${Core_SOURCES})
 
 add_executable(obj2json src/obj2json/obj2json.cpp)
 target_link_libraries(obj2json ${core_libs})
+
+add_executable(json2xml src/json2xml/json2xml.cpp)
+target_link_libraries(json2xml ${core_libs})
 
 find_package(Qt4)
 if (QT4_FOUND)

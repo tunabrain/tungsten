@@ -20,6 +20,7 @@ class Camera : public JsonSerializable
 {
     std::string _outputFile;
 
+protected:
     Mat4f _transform;
     Mat4f _invTransform;
     Vec3f _pos;
@@ -27,33 +28,30 @@ class Camera : public JsonSerializable
     Vec3f _up;
 
     Vec2u _res;
-    float _fov;
-    float _planeDist;
     float _ratio;
-    Vec2f _pixelScale;
+    Vec2f _pixelSize;
 
     uint32 _spp;
 
+private:
     void precompute()
     {
         _ratio = _res.y()/float(_res.x());
-        _pixelScale = Vec2f(2.0f/_res.x(), 2.0f/_res.x());
-        _planeDist = 1.0f/std::tan(_fov*0.5f);
+        _pixelSize = Vec2f(2.0f/_res.x(), 2.0f/_res.x());
         _transform = Mat4f::lookAt(_pos, _lookAt - _pos, _up);
         _invTransform = _transform.pseudoInvert();
     }
 
 public:
     Camera()
-    : Camera(Mat4f(), Vec2u(800u, 600u), 60.0f, 1024)
+    : Camera(Mat4f(), Vec2u(800u, 600u), 256)
     {
     }
 
-    Camera(const Mat4f &transform, const Vec2u &res, float fov, uint32 spp)
+    Camera(const Mat4f &transform, const Vec2u &res, uint32 spp)
     : _outputFile("Frame.png"),
       _transform(transform),
       _res(res),
-      _fov(Angle::degToRad(fov)),
       _spp(spp)
     {
         _pos    = _transform*Vec3f(0.0f, 0.0f, 2.0f);
@@ -70,8 +68,6 @@ public:
         JsonUtils::fromJson(v, "lookAt", _lookAt);
         JsonUtils::fromJson(v, "up", _up);
         JsonUtils::fromJson(v, "resolution", _res);
-        if (JsonUtils::fromJson(v, "fov", _fov))
-            _fov = Angle::degToRad(_fov);
         JsonUtils::fromJson(v, "spp", _spp);
 
         precompute();
@@ -80,35 +76,18 @@ public:
     virtual rapidjson::Value toJson(Allocator &allocator) const override
     {
         rapidjson::Value v = JsonSerializable::toJson(allocator);
-        v.AddMember("type", "perspective", allocator);
         v.AddMember("file", _outputFile.c_str(), allocator);
         v.AddMember("position", JsonUtils::toJsonValue<float, 3>(_pos,    allocator), allocator);
         v.AddMember("lookAt",   JsonUtils::toJsonValue<float, 3>(_lookAt, allocator), allocator);
         v.AddMember("up",       JsonUtils::toJsonValue<float, 3>(_up,     allocator), allocator);
         v.AddMember("resolution", JsonUtils::toJsonValue<uint32, 2>(_res, allocator), allocator);
-        v.AddMember("fov", Angle::radToDeg(_fov), allocator);
         v.AddMember("spp", _spp, allocator);
         return std::move(v);
     }
 
-    Vec3f generateSample(Vec2u pixel, Vec2f uv) const
-    {
-        return _transform.transformVector(Vec3f(
-            -1.0f  + (float(pixel.x()) + uv.x())*_pixelScale.x(),
-            _ratio - (float(pixel.y()) + uv.y())*_pixelScale.y(),
-            _planeDist
-        )).normalized();
-    }
-
-    Mat4f approximateProjectionMatrix(int width, int height) const
-    {
-        return Mat4f::perspective(Angle::radToDeg(_fov), float(width)/float(height), 1e-2f, 100.0f);
-    }
-
-    float fov() const
-    {
-        return _fov;
-    }
+    virtual Ray generateSample(Vec2u pixel, SampleGenerator &sampler) const = 0;
+    virtual Mat4f approximateProjectionMatrix(int width, int height) const = 0;
+    virtual float approximateFov() const = 0;
 
     const Mat4f &transform() const
     {

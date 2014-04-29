@@ -107,6 +107,21 @@ public:
             return 0.0f;
         return _bsdf0->pdf(event)*ratio + _bsdf1->pdf(event)*(1.0f - ratio);
     }
+
+    const std::shared_ptr<Bsdf> &bsdf0() const
+    {
+        return _bsdf0;
+    }
+
+    const std::shared_ptr<Bsdf> &bsdf1() const
+    {
+        return _bsdf1;
+    }
+
+    float ratio() const
+    {
+        return _ratio;
+    }
 };
 
 }

@@ -95,6 +95,8 @@ public:
     virtual void prepareForRender() = 0;
     virtual void cleanupAfterRender() = 0;
 
+    virtual float area() const = 0;
+
     virtual Primitive *clone() = 0;
 
     virtual void saveData() const {} /* TODO */

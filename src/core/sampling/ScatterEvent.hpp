@@ -38,6 +38,21 @@ struct SurfaceScatterEvent
       requestedLobe(requestedLobe_)
     {
     }
+
+    SurfaceScatterEvent(const SurfaceScatterEvent &o,
+                        const Vec3f &wi_,
+                        const Vec3f &wo_)
+    : info(o.info),
+      sampler(o.sampler),
+      supplementalSampler(o.supplementalSampler),
+      wi(wi_),
+      wo(wo_),
+      throughput(1.0f),
+      pdf(1.0f),
+      requestedLobe(o.requestedLobe),
+      sampledLobe(o.sampledLobe)
+    {
+    }
 };
 
 }

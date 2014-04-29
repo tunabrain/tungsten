@@ -11,14 +11,14 @@
 #include "primitives/Quad.hpp"
 #include "primitives/Mesh.hpp"
 
+#include "cameras/PinholeCamera.hpp"
+
 #include "bsdfs/DielectricBsdf.hpp"
 #include "bsdfs/LambertBsdf.hpp"
 #include "bsdfs/MirrorBsdf.hpp"
 #include "bsdfs/PhongBsdf.hpp"
 #include "bsdfs/MixedBsdf.hpp"
 #include "bsdfs/ErrorBsdf.hpp"
-
-#include "Camera.hpp"
 
 namespace Tungsten
 {
@@ -385,7 +385,7 @@ Scene *ObjLoader::load(const char *path)
     if (file.good()) {
         ObjLoader loader(file, path);
 
-        std::shared_ptr<Camera> cam(std::make_shared<Camera>());
+        std::shared_ptr<Camera> cam(std::make_shared<PinholeCamera>());
         cam->setLookAt(loader._bounds.center());
         cam->setPos(loader._bounds.center() - Vec3f(0.0f, 0.0f, loader._bounds.diagonal().z()));
 
