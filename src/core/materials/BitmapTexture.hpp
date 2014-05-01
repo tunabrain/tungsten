@@ -102,6 +102,29 @@ public:
         return std::move(rapidjson::Value(_path.c_str(), allocator));
     }
 
+
+    void derivativesBad(const Vec2f &uv, Vec<Value, 2> &derivs) const
+    {
+        float u = uv.x()*_w;
+        float v = (1.0f - uv.y())*_h;
+        int iu = int(u);
+        int iv = int(v);
+        u -= iu;
+        v -= iv;
+        iu = ((iu % _w) + _w) % _w;
+        iv = ((iv % _h) + _h) % _h;
+        iu = clamp(iu, 0, _w - 2);
+        iv = clamp(iv, 0, _h - 2);
+
+        Value p00 = get(iu, iv);
+        Value p10 = get(iu + 1, iv);
+        Value p01 = get(iu, iv + 1);
+        Value p11 =  get(iu + 1, iv + 1);
+        Value tmp = p01 + p10 - p11;
+        derivs.x() = (p10 + p00*(v - 1.0) - tmp*v)*float(_w);
+        derivs.x() = (p01 + p00*(u - 1.0) - tmp*u)*float(_h);
+    }
+
     void derivatives(const Vec2f &uv, Vec<Value, 2> &derivs) const override final
     {
         derivs = Vec<Value, 2>(Value(0.0f));
@@ -126,8 +149,8 @@ public:
         Value du11 = a12 - a10, du12 = a13 - a11, du21 = a22 - a20, du22 = a23 - a21;
         Value dv11 = a21 - a01, dv21 = a31 - a11, dv12 = a22 - a02, dv22 = a32 - a12;
 
-        derivs.x() = lerp(du11, du12, du21, du22, u, v);//*float(_w);
-        derivs.y() = lerp(dv11, dv12, dv21, dv22, u, v);//*float(_h);
+        derivs.x() = lerp(du11, du12, du21, du22, u, v)*float(_w);
+        derivs.y() = lerp(dv11, dv12, dv21, dv22, u, v)*float(_h);
     }
 
     Value operator[](const Vec2f &uv) const override final

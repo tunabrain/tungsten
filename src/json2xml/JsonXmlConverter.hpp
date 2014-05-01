@@ -331,18 +331,23 @@ class SceneXmlWriter
     {
         bool hasBump = !bsdf->bump()->isConstant();
         bool hasAlpha = !bsdf->alpha()->isConstant() || bsdf->alpha()->average() != 1.0f;
+        std::string nameTmp = bsdf->name();
         if (hasBump) {
-            begin("bumpmap");
+            begin("bsdf");
+            assign("type", "bumpmap");
             if (!bsdf->unnamed())
                 assign("id", bsdf->name());
             bsdf->setName("");
+            beginPost();
             convert("map", bsdf->bump().get());
         }
         if (hasAlpha) {
-            begin("mask");
+            begin("bsdf");
+            assign("type", "mask");
             if (!bsdf->unnamed())
                 assign("id", bsdf->name());
             bsdf->setName("");
+            beginPost();
             convert("opacity", bsdf->alpha().get());
         }
         if (LambertBsdf *bsdf2 = dynamic_cast<LambertBsdf *>(bsdf))
@@ -370,6 +375,7 @@ class SceneXmlWriter
             end();
         if (hasAlpha)
             end();
+        bsdf->setName(nameTmp);
     }
 
     void convert(PinholeCamera *cam)

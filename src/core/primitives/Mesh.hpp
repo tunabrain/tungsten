@@ -208,8 +208,8 @@ public:
         float s1 = uv1.x() - uv0.x(), t1 = uv1.y() - uv0.y();
         float s2 = uv2.x() - uv0.x(), t2 = uv2.y() - uv0.y();
         float invDet = s1*t2 - s2*t1;
-        if (std::abs(invDet) < 1e-4)
-            return false;
+        //if (std::abs(invDet) < 1e-4)
+        //  return false;
         float det = 1.0f/invDet;
         T = det*(q1*t2 - t1*q2);
         B = det*(q2*s1 - s2*q1);

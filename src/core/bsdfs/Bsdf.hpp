@@ -49,7 +49,7 @@ public:
     : _base(std::make_shared<ConstantTextureRgb>(Vec3f(1.0f))),
       _alpha(std::make_shared<ConstantTextureA>(1.0f)),
       _bump(std::make_shared<ConstantTextureA>(0.0f)),
-      _bumpStrength(10.0f)
+      _bumpStrength(1.0f)
     {
     }
 
@@ -72,15 +72,15 @@ public:
             Vec2f dudv;
             _bump->derivatives(info.uv, dudv);
 
-            T += info.Ns*dudv.x()*_bumpStrength;
-            B += info.Ns*dudv.y()*_bumpStrength;
+            T += info.Ns*(-dudv.x()*_bumpStrength - info.Ns.dot(T));
+            B += info.Ns*(-dudv.y()*_bumpStrength - info.Ns.dot(B));
             N = T.cross(B);
-            if (N.dot(info.Ns) < 0.0f)
-                N = -N;
+            //if (N.dot(info.Ns) < 0.0f)
+            //  N = -N;
             N.normalize();
         }
         T = (T - N.dot(T)*N).normalized();
-        B = (B - N.dot(B)*N - T.dot(B)*T).normalized();
+        B = N.cross(T);
 
         dst = TangentFrame(N, T, B);
     }
