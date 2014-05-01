@@ -31,12 +31,12 @@ public:
 
     bool sample(SurfaceScatterEvent &event) const override final
     {
-        if (!event.requestedLobe.test(BsdfLobes::SpecularTransmissionLobe))
+        if (!event.requestedLobe.test(BsdfLobes::ForwardLobe))
             return false;
         event.wo = -event.wi;
         event.throughput = Vec3f(1.0f);
         event.pdf = 1.0f;
-        event.sampledLobe = BsdfLobes::SpecularTransmissionLobe;
+        event.sampledLobe = BsdfLobes::ForwardLobe;
         return true;
     }
 

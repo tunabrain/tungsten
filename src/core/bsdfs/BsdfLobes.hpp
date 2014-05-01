@@ -29,7 +29,7 @@ public:
         TransmissiveLobe = GlossyTransmissionLobe | DiffuseTransmissionLobe | SpecularTransmissionLobe,
         ReflectiveLobe   = GlossyReflectionLobe   | DiffuseReflectionLobe   | SpecularReflectionLobe,
 
-        AllLobes = TransmissiveLobe | ReflectiveLobe,
+        AllLobes = TransmissiveLobe | ReflectiveLobe | AnisotropicLobe | ForwardLobe,
         AllButSpecular = ~SpecularLobe,
 
         InvalidLobe = 0

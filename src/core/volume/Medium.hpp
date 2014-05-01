@@ -60,9 +60,35 @@ public:
     virtual Vec3f maxSigmaS() const = 0;
 
     virtual bool sampleDistance(VolumeScatterEvent &event) const = 0;
+    virtual bool absorb(VolumeScatterEvent &event) const = 0;
     virtual bool scatter(VolumeScatterEvent &event) const = 0;
     virtual Vec3f transmittance(const VolumeScatterEvent &event) const = 0;
     virtual Vec3f emission(const VolumeScatterEvent &event) const = 0;
+
+    virtual Vec3f eval(const VolumeScatterEvent &event) const = 0;
+    float pdf(const VolumeScatterEvent &event) const
+    {
+        return PhaseFunction::eval(_phaseFunction, event.wi.dot(event.wo), _phaseG);
+    }
+
+    bool suggestMis() const
+    {
+        if (_phaseFunction == PhaseFunction::Isotropic)
+            return false;
+        if (_phaseFunction == PhaseFunction::HenyeyGreenstein && std::abs(_phaseG) < 0.1f)
+            return false;
+        return true;
+    }
+
+    PhaseFunction::Type phaseFunctionType() const
+    {
+        return _phaseFunction;
+    }
+
+    float phaseG() const
+    {
+        return _phaseG;
+    }
 };
 
 }

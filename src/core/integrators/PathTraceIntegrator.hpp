@@ -26,6 +26,7 @@
 #include "cameras/Camera.hpp"
 
 #define ENABLE_LIGHT_SAMPLING 1
+#define ENABLE_VOLUME_LIGHT_SAMPLING 1
 
 namespace Tungsten
 {
@@ -66,7 +67,8 @@ class PathTraceIntegrator : public Integrator
                 medium = info.primitive->bsdf()->extMedium().get();
             else
                 medium = info.primitive->bsdf()->intMedium().get();
-            ray.setNearT(ray.farT() + Epsilon);
+            ray.setPos(ray.hitpoint());
+            initialFarT -= ray.farT();
             ray.setFarT(initialFarT);
         } while(true);
         return Vec3f(0.0f);
@@ -80,12 +82,8 @@ class PathTraceIntegrator : public Integrator
     {
         constexpr float fudgeFactor = 1.0f + 1e-3f;
 
-        float farT = expectedDist*fudgeFactor;
-        if (expectedDist < 0.0f)
-            farT = 1e30f;
-
         IntersectionInfo info;
-        Ray ray(p, d, Epsilon, farT);
+        Ray ray(p, d, Epsilon);
         if (!light.intersect(ray, data) || ray.farT()*fudgeFactor < expectedDist)
             return Vec3f(0.0f);
         light.intersectionInfo(data, info);
@@ -159,6 +157,51 @@ class PathTraceIntegrator : public Integrator
         return bsdfF;
     }
 
+    Vec3f volumeLightSample(VolumeScatterEvent &event, const Primitive &light, const Medium *medium, bool performMis)
+    {
+        LightSample sample(event.sampler, event.p);
+
+        if (!light.sampleInboundDirection(sample))
+            return Vec3f(0.0f);
+        event.wo = sample.d;
+
+        Vec3f f = medium->eval(event);
+        if (f == 0.0f)
+            return Vec3f(0.0f);
+
+        Primitive::IntersectionTemporary data;
+        Vec3f e = attenuatedEmission(light, medium, sample.p, sample.d, sample.dist, data);
+        if (e == 0.0f)
+            return Vec3f(0.0f);
+
+        Vec3f lightF = f*e/sample.pdf;
+
+        if (!light.isDelta() && performMis)
+            lightF *= Sample::powerHeuristic(sample.pdf, medium->pdf(event));
+
+        return lightF;
+    }
+
+    Vec3f volumePhaseSample(const Primitive &light, VolumeScatterEvent &event, const Medium *medium)
+    {
+        if (!medium->scatter(event))
+            return Vec3f(0.0f);
+        if (event.throughput == 0.0f)
+            return Vec3f(0.0f);
+
+        Primitive::IntersectionTemporary data;
+        Vec3f e = attenuatedEmission(light, medium, event.p, event.wo, -1.0f, data);
+
+        if (e == Vec3f(0.0f))
+            return Vec3f(0.0f);
+
+        Vec3f phaseF = e*event.throughput;
+
+        phaseF *= Sample::powerHeuristic(event.pdf, light.inboundPdf(data, event.p, event.wo));
+
+        return phaseF;
+    }
+
     Vec3f sampleDirect(const TangentFrame &frame,
                        const Primitive &light,
                        const Bsdf &bsdf,
@@ -175,6 +218,25 @@ class PathTraceIntegrator : public Integrator
             result += bsdfSample(frame, light, bsdf, event, medium);
 
         return result;
+    }
+
+    Vec3f volumeSampleDirect(const Primitive &light, VolumeScatterEvent &event, const Medium *medium)
+    {
+        //bool mis = medium->suggestMis();
+        bool mis = false;
+
+        Vec3f result = volumeLightSample(event, light, medium, mis);
+        //if (!light.isDelta() && mis)
+        //  result += volumePhaseSample(light, event, medium);
+
+        return result;
+    }
+
+    Vec3f volumeEstimateDirect(VolumeScatterEvent &event, const Medium *medium)
+    {
+        if (_scene.lights().empty())
+            return Vec3f(0.0f);
+        return volumeSampleDirect(*_scene.lights()[0], event, medium);
     }
 
     Vec3f estimateDirect(const TangentFrame &frame,
@@ -218,11 +280,20 @@ public:
         VolumeScatterEvent event(&sampler, &supplementalSampler, ray.pos(), ray.dir(), ray.farT());
         if (!medium->sampleDistance(event))
             return false;
+        throughput *= event.throughput;
+        event.throughput = Vec3f(1.0f);
 
         emission += throughput*medium->emission(event);
 
         if (event.t < event.maxT) {
             event.p += event.t*event.wi;
+
+#if ENABLE_VOLUME_LIGHT_SAMPLING
+            emission += throughput*volumeEstimateDirect(event, medium);
+#endif
+
+            if (medium->absorb(event))
+                return false;
             if (!medium->scatter(event))
                 return false;
             ray = Ray(event.p, event.wo, 0.0f);
@@ -231,8 +302,12 @@ public:
             hitSurface = true;
         }
 
-        throughput *= event.throughput;
+#if ENABLE_VOLUME_LIGHT_SAMPLING
+        wasSpecular = false;
+#else
         wasSpecular = true;
+#endif
+        throughput *= event.throughput;
 
         return true;
     }
@@ -250,7 +325,7 @@ public:
         SurfaceScatterEvent event(&info, &sampler, &supplementalSampler, frame.toLocal(-ray.dir()), BsdfLobes::AllLobes);
 
 #if ENABLE_LIGHT_SAMPLING
-        if (event.wi.z() >= 0.0f && (bounce == 0 || wasSpecular || !info.primitive->isSamplable()))
+        if (bounce == 0 || wasSpecular || !info.primitive->isSamplable())
             emission += info.primitive->emission(data, info)*throughput;
 
         if (bounce < MaxBounces - 1)
@@ -266,10 +341,11 @@ public:
 
         Vec3f wo = frame.toGlobal(event.wo);
 
-        if ((wo.dot(info.Ng) < 0.0f) != (event.wo.z() < 0.0f))
+        float geometricBackside = (wo.dot(info.Ng) < 0.0f);
+        if (geometricBackside != (event.wo.z() < 0.0f))
             return false;
 
-        if (event.wo.z() < 0.0f)
+        if (geometricBackside)
             medium = bsdf.intMedium().get();
         else
             medium = bsdf.extMedium().get();

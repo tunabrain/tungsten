@@ -13,14 +13,14 @@ class HomogeneousMedium : public Medium
     Vec3f _sigmaT;
     Vec3f _albedo;
     float _avgAlbedo;
-    Vec3f _scatterWeight;
+    float _absorptionWeight;
 
     void init()
     {
         _sigmaT = _sigmaA + _sigmaS;
         _albedo = _sigmaS/_sigmaT;
         _avgAlbedo = _albedo.avg();
-        _scatterWeight = _albedo/_avgAlbedo;
+        _absorptionWeight = 1.0f/_avgAlbedo;
     }
 
 public:
@@ -75,13 +75,21 @@ public:
         return true;
     }
 
-    bool scatter(VolumeScatterEvent &event) const
+    bool absorb(VolumeScatterEvent &event) const
     {
         if (event.sampler->next1D() >= _avgAlbedo)
-            return false;
+            return true;
+        event.throughput *= _absorptionWeight;
+        return false;
+    }
+
+    bool scatter(VolumeScatterEvent &event) const
+    {
+        event.wo = PhaseFunction::sample(_phaseFunction, _phaseG, event.sampler->next2D());
+        event.pdf = PhaseFunction::eval(_phaseFunction, event.wo.z(), _phaseG);
+        event.throughput *= _albedo;
         TangentFrame frame(event.wi);
-        event.wo = frame.toGlobal(PhaseFunction::sample(_phaseFunction, _phaseG, event.sampler->next2D()));
-        event.throughput *= _scatterWeight;
+        event.wo = frame.toGlobal(event.wo);
         return true;
     }
 
@@ -93,6 +101,11 @@ public:
     Vec3f emission(const VolumeScatterEvent &/*event*/) const
     {
         return Vec3f(0.0f);
+    }
+
+    Vec3f eval(const VolumeScatterEvent &event) const
+    {
+        return _albedo*PhaseFunction::eval(_phaseFunction, event.wi.dot(event.wo), _phaseG);
     }
 };
 

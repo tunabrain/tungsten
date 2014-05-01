@@ -8,15 +8,21 @@
 #include "cameras/ThinlensCamera.hpp"
 #include "cameras/PinholeCamera.hpp"
 
+#include "volume/HeterogeneousMedium.hpp"
+#include "volume/HomogeneousMedium.hpp"
+#include "volume/Medium.hpp"
+
 #include "bsdfs/RoughDielectricBsdf.hpp"
 #include "bsdfs/RoughConductorBsdf.hpp"
 #include "bsdfs/DielectricBsdf.hpp"
 #include "bsdfs/SmoothCoatBsdf.hpp"
 #include "bsdfs/ConductorBsdf.hpp"
 #include "bsdfs/LambertBsdf.hpp"
+#include "bsdfs/ForwardBsdf.hpp"
+#include "bsdfs/MirrorBsdf.hpp"
+#include "bsdfs/NullBsdf.hpp"
 #include "bsdfs/PhongBsdf.hpp"
 #include "bsdfs/MixedBsdf.hpp"
-#include "bsdfs/MirrorBsdf.hpp"
 #include "bsdfs/Bsdf.hpp"
 
 #include "io/Scene.hpp"
@@ -190,6 +196,48 @@ class SceneXmlWriter
             FAIL("Unknown texture type!");
     }
 
+    template<typename T>
+    void convertOrRef(T *x);
+
+    void convert(HomogeneousMedium *med)
+    {
+        begin("medium");
+        assign("type", "homogeneous");
+        if (!med->unnamed())
+            assign("name", med->name());
+        beginPost();
+        convertSpectrum("sigmaS", med->minSigmaS());
+        convertSpectrum("sigmaA", med->minSigmaA());
+    }
+
+    void convert(Medium *med)
+    {
+        if (HomogeneousMedium *med2 = dynamic_cast<HomogeneousMedium *>(med))
+            convert(med2);
+        else if (HeterogeneousMedium *med2 = dynamic_cast<HeterogeneousMedium *>(med))
+            convert(med2);
+        else
+            FAIL("Unknown medium type!");
+
+        switch(med->phaseFunctionType()) {
+        case PhaseFunction::Isotropic:
+            break;
+        case PhaseFunction::HenyeyGreenstein:
+            begin("phase");
+            assign("type", "hg");
+            beginPost();
+            convert("g", med->phaseG());
+            end();
+            break;
+        case PhaseFunction::Rayleigh:
+            begin("phase");
+            assign("type", "rayleigh");
+            endInline();
+        }
+
+        end();
+    }
+
     void convert(LambertBsdf *bsdf)
     {
         begin("bsdf");
@@ -222,20 +270,8 @@ class SceneXmlWriter
             assign("id", bsdf->name());
         beginPost();
         convert("weight", bsdf->ratio().get());
-        if (bsdf->bsdf0()->unnamed())
-            convert(bsdf->bsdf0().get());
-        else {
-            begin("ref");
-            assign("id", bsdf->bsdf0()->name());
-            endInline();
-        }
-        if (bsdf->bsdf1()->unnamed())
-            convert(bsdf->bsdf1().get());
-        else {
-            begin("ref");
-            assign("id", bsdf->bsdf1()->name());
-            endInline();
-        }
+        convertOrRef(bsdf->bsdf0().get());
+        convertOrRef(bsdf->bsdf1().get());
         end();
     }
 
@@ -317,13 +353,18 @@ class SceneXmlWriter
         convert("extIOR", 1.0f);
         convert("thickness", bsdf->thickness());
         convertSpectrum("sigmaA", bsdf->sigmaA());
-        if (bsdf->substrate()->unnamed())
-            convert(bsdf->substrate().get());
-        else {
-            begin("ref");
-            assign("id", bsdf->substrate()->name());
-            endInline();
-        }
+        convertOrRef(bsdf->substrate().get());
+        end();
+    }
+
+    void convert(NullBsdf *bsdf)
+    {
+        begin("bsdf");
+        assign("type", "diffuse");
+        if (!bsdf->unnamed())
+            assign("id", bsdf->name());
+        beginPost();
+        convertSpectrum("reflectance", Vec3f(0.0f));
         end();
     }
 
@@ -368,7 +409,10 @@ class SceneXmlWriter
             convert(bsdf2);
         else if (SmoothCoatBsdf *bsdf2 = dynamic_cast<SmoothCoatBsdf *>(bsdf))
             convert(bsdf2);
-        else
+        else if (NullBsdf *bsdf2 = dynamic_cast<NullBsdf *>(bsdf))
+            convert(bsdf2);
+        else if (dynamic_cast<ForwardBsdf *>(bsdf)) {
+        } else
             FAIL("Unknown bsdf type!");
 
         if (hasBump)
@@ -486,12 +530,15 @@ class SceneXmlWriter
         else
             FAIL("Unknown primitive type!");
 
-        if (prim->bsdf()->unnamed()) {
-            convert(prim->bsdf().get());
-        } else {
-            begin("ref");
-            assign("id", prim->bsdf()->name());
-            endInline();
+        if (!dynamic_cast<ForwardBsdf *>(prim->bsdf().get()))
+            convertOrRef(prim->bsdf().get());
+        if (prim->bsdf()->intMedium()) {
+            prim->bsdf()->intMedium()->setName("interior");
+            convert(prim->bsdf()->intMedium().get());
+        }
+        if (prim->bsdf()->extMedium()) {
+            prim->bsdf()->extMedium()->setName("exterior");
+            convert(prim->bsdf()->extMedium().get());
         }
         if (prim->isEmissive()) {
             begin("emitter");
@@ -510,7 +557,10 @@ class SceneXmlWriter
         beginPost();
 
         begin("integrator");
-        assign("type", "path");
+        if (scene->media().empty())
+            assign("type", "path");
+        else
+            assign("type", "volpath");
         endInline();
 
         convert(scene->camera().get());
@@ -534,6 +584,18 @@ public:
         convert (&scene);
     }
 };
+
+template<typename T>
+void SceneXmlWriter::convertOrRef(T *x)
+{
+    if (x->unnamed())
+        convert(x);
+    else {
+        begin("ref");
+        assign("id", x->name());
+        endInline();
+    }
+}
 
 }
 

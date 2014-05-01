@@ -58,13 +58,13 @@ class TriangleMesh : public Primitive
     embree::RTCGeometry *_geom = nullptr;
     embree::RTCIntersector1 *_intersector = nullptr;
 
-    Vec3f geometricNormalAt(int triangle) const
+    Vec3f unnormalizedGeometricNormalAt(int triangle) const
     {
         const TriangleI &t = _tris[triangle];
         Vec3f p0 = _tfVerts[t.v0].pos();
         Vec3f p1 = _tfVerts[t.v1].pos();
         Vec3f p2 = _tfVerts[t.v2].pos();
-        return (p1 - p0).cross(p2 - p0).normalized();
+        return (p1 - p0).cross(p2 - p0);
     }
 
     Vec3f normalAt(int triangle, float u, float v) const
@@ -156,7 +156,7 @@ public:
 
             data.primitive = this;
             MeshIntersection *isect = data.as<MeshIntersection>();
-            isect->Ng = fromE(eRay.Ng);
+            isect->Ng = unnormalizedGeometricNormalAt(eRay.id0);
             isect->p = fromE(eRay.org + eRay.dir*eRay.tfar);
             isect->u = eRay.u;
             isect->v = eRay.v;
@@ -178,7 +178,7 @@ public:
     virtual void intersectionInfo(const IntersectionTemporary &data, IntersectionInfo &info) const override
     {
         const MeshIntersection *isect = data.as<MeshIntersection>();
-        info.Ng = geometricNormalAt(isect->id0);
+        info.Ng = isect->Ng.normalized();
         if (_smoothed)
             info.Ns = normalAt(isect->id0, isect->u, isect->v);
         else
