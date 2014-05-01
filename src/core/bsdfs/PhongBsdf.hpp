@@ -5,7 +5,7 @@
 
 #include "Bsdf.hpp"
 
-#include "sampling/ScatterEvent.hpp"
+#include "sampling/SurfaceScatterEvent.hpp"
 #include "sampling/Sample.hpp"
 
 #include "math/TangentFrame.hpp"
@@ -71,7 +71,7 @@ public:
         if (event.wi.z() <= 0.0f)
             return false;
 
-        Vec2f xi = event.sampler.next2D();
+        Vec2f xi = event.sampler->next2D();
         float phi      = xi.x()*TWO_PI;
         float cosTheta = std::pow(xi.y(), _invExponent);
         float sinTheta = std::sqrt(max(0.0f, 1.0f - cosTheta*cosTheta));

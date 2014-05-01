@@ -37,8 +37,6 @@ class RenderWindow : public QWidget
     MainWindow &_parent;
     Scene *_scene;
 
-    std::unique_ptr<Vec3f[]> _buffer;
-    std::unique_ptr<uint32[]> _weights;
     std::unique_ptr<QImage> _image;
     std::unique_ptr<Renderer<RenderIntegrator>> _renderer;
     std::unique_ptr<TraceableScene> _flattenedScene;

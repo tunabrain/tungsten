@@ -6,7 +6,6 @@
 #include "RenderWindow.hpp"
 #include "MainWindow.hpp"
 
-
 using namespace Tungsten;
 
 #include "bsdfs/RoughDielectricBsdf.hpp"
@@ -58,7 +57,8 @@ void bsdfTest()
     RoughDielectricBsdf bsdf;
     SobolSampler sampler1;
     UniformSampler sampler2(123456);
-    SurfaceScatterEvent event(IntersectionInfo(), sampler1, sampler2, wi, BsdfLobes::AllLobes);
+    IntersectionInfo info;
+    SurfaceScatterEvent event(&info, &sampler1, &sampler2, wi, BsdfLobes::AllLobes);
 
     for (int i = 0; i < 360; ++i) {
         float a = (i*TWO_PI)/Samples - PI;
@@ -86,7 +86,8 @@ void samplingTest()
         //const float angle = sampler1.next1D()*TWO_PI;//1.0f*(PI/180.0f);
         const float angle = Angle::degToRad(45.0f);
         Vec3f wi(std::sin(angle), 0.0f, std::cos(angle));
-        SurfaceScatterEvent event(IntersectionInfo(), sampler1, sampler2, wi, BsdfLobes::AllButSpecular);
+        IntersectionInfo info;
+        SurfaceScatterEvent event(&info, &sampler1, &sampler2, wi, BsdfLobes::AllButSpecular);
 
         if (!bsdf.sample(event))
             continue;
@@ -148,7 +149,8 @@ void mitsubaVerify()
         Mitsuba::BSDFSamplingRecord bRec;
         bRec.wi = Vec3d(wi);
         bRec.wo = Vec3d(wo);
-        SurfaceScatterEvent event(IntersectionInfo(), sampler1, sampler2, wi, BsdfLobes::AllButSpecular);
+        IntersectionInfo info;
+        SurfaceScatterEvent event(&info, &sampler1, &sampler2, wi, BsdfLobes::AllButSpecular);
         event.wo = wo;
 
         Pout << Angle::radToDeg(a) << " " << bsdfTungsten->pdf(event) << " " << bsdfMitsuba->pdf(bRec) << std::endl;
@@ -157,6 +159,52 @@ void mitsubaVerify()
 
     Pout.close();
     Fout.close();
+}
+
+void loadPfm(const char *filename)
+{
+    std::ifstream in(filename, std::ios_base::in | std::ios_base::binary);
+    if (!in.good())
+        return;
+
+    std::string ident;
+    in >> ident;
+    int channels;
+    if (ident == "Pf")
+        channels = 1;
+    else if (ident == "PF")
+        channels = 3;
+    else
+        return;
+
+    int w, h;
+    in >> w >> h;
+    double s;
+    in >> s;
+    std::string tmp;
+    std::getline(in, tmp);
+
+    float *img = new float[w*h*channels];
+    in.read(reinterpret_cast<char *>(img), w*h*channels*sizeof(float));
+    in.close();
+
+    uint8 *ldr = new uint8[w*h*3];
+    for (int i = 0; i < w*h; ++i) {
+        int idx = i*channels;
+        float r, g, b;
+        if (channels == 1) {
+            r = g = b = img[idx];
+        } else {
+            r = img[idx + 0];
+            g = img[idx + 1];
+            b = img[idx + 2];
+        }
+        ldr[i*3 + 0] = uint8(min(int(255.0f*r), 255));
+        ldr[i*3 + 1] = uint8(min(int(255.0f*g), 255));
+        ldr[i*3 + 2] = uint8(min(int(255.0f*b), 255));
+    }
+
+    lodepng_encode24_file("Test.png", ldr, w, h);
 }
 
 int main(int argc, char **argv)
@@ -177,7 +225,7 @@ int main(int argc, char **argv)
     mainWindow.show();
 
     embree::rtcInit();
-    embree::rtcSetVerbose(1);
+    //embree::rtcSetVerbose(1);
     embree::rtcStartThreads(8);
 
     try {

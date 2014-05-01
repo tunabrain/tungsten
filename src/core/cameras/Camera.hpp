@@ -1,24 +1,33 @@
 #ifndef CAMERA_HPP_
 #define CAMERA_HPP_
 
-#include <rapidjson/document.h>
-#include <cmath>
+#include "Tonemap.hpp"
 
 #include "math/Angle.hpp"
 #include "math/Vec.hpp"
+#include "math/Ray.hpp"
 
 #include "io/JsonSerializable.hpp"
 #include "io/JsonUtils.hpp"
 
+#include <rapidjson/document.h>
+#include <vector>
+#include <memory>
+#include <cmath>
 
 namespace Tungsten
 {
 
 class Scene;
+class Medium;
+class SampleGenerator;
 
 class Camera : public JsonSerializable
 {
     std::string _outputFile;
+    std::string _tonemapString;
+
+    Tonemap::Type _tonemapOp;
 
 protected:
     Mat4f _transform;
@@ -33,9 +42,15 @@ protected:
 
     uint32 _spp;
 
+    std::shared_ptr<Medium> _medium;
+
+    std::vector<Vec3d> _pixels;
+    std::vector<uint32> _weights;
+
 private:
     void precompute()
     {
+        _tonemapOp = Tonemap::stringToType(_tonemapString);
         _ratio = _res.y()/float(_res.x());
         _pixelSize = Vec2f(2.0f/_res.x(), 2.0f/_res.x());
         _transform = Mat4f::lookAt(_pos, _lookAt - _pos, _up);
@@ -50,6 +65,7 @@ public:
 
     Camera(const Mat4f &transform, const Vec2u &res, uint32 spp)
     : _outputFile("Frame.png"),
+      _tonemapString("gamma"),
       _transform(transform),
       _res(res),
       _spp(spp)
@@ -61,33 +77,44 @@ public:
         precompute();
     }
 
-    void fromJson(const rapidjson::Value &v, const Scene &/*scene*/) override
-    {
-        JsonUtils::fromJson(v, "file", _outputFile);
-        JsonUtils::fromJson(v, "position", _pos);
-        JsonUtils::fromJson(v, "lookAt", _lookAt);
-        JsonUtils::fromJson(v, "up", _up);
-        JsonUtils::fromJson(v, "resolution", _res);
-        JsonUtils::fromJson(v, "spp", _spp);
-
-        precompute();
-    }
-
-    virtual rapidjson::Value toJson(Allocator &allocator) const override
-    {
-        rapidjson::Value v = JsonSerializable::toJson(allocator);
-        v.AddMember("file", _outputFile.c_str(), allocator);
-        v.AddMember("position", JsonUtils::toJsonValue<float, 3>(_pos,    allocator), allocator);
-        v.AddMember("lookAt",   JsonUtils::toJsonValue<float, 3>(_lookAt, allocator), allocator);
-        v.AddMember("up",       JsonUtils::toJsonValue<float, 3>(_up,     allocator), allocator);
-        v.AddMember("resolution", JsonUtils::toJsonValue<uint32, 2>(_res, allocator), allocator);
-        v.AddMember("spp", _spp, allocator);
-        return std::move(v);
-    }
+    void fromJson(const rapidjson::Value &v, const Scene &scene) override;
+    virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
     virtual Ray generateSample(Vec2u pixel, SampleGenerator &sampler) const = 0;
     virtual Mat4f approximateProjectionMatrix(int width, int height) const = 0;
     virtual float approximateFov() const = 0;
+
+    void prepareForRender()
+    {
+        _pixels.resize(_res.x()*_res.y(), Vec3d(0.0));
+        _weights.resize(_res.x()*_res.y(), 0.0);
+    }
+
+    void teardownAfterRender()
+    {
+        _pixels.clear();
+        _weights.clear();
+        _pixels.shrink_to_fit();
+        _weights.shrink_to_fit();
+    }
+
+    void addSamples(int x, int y, const Vec3f &c, uint32 weight)
+    {
+        int idx = x + y*_res.x();
+        _pixels[idx] += Vec3d(c);
+        _weights[idx] += weight;
+    }
+
+    Vec3f tonemap(const Vec3f &c) const
+    {
+        return Tonemap::tonemap(_tonemapOp, c);
+    }
+
+    Vec3f get(int x, int y) const
+    {
+        int idx = x + y*_res.x();
+        return tonemap(Vec3f(_pixels[idx]/_weights[idx]));
+    }
 
     const Mat4f &transform() const
     {
@@ -148,6 +175,16 @@ public:
     {
         _up = up;
         precompute();
+    }
+
+    const std::shared_ptr<Medium> &medium() const
+    {
+        return _medium;
+    }
+
+    Tonemap::Type tonemapOp() const
+    {
+        return _tonemapOp;
     }
 };
 

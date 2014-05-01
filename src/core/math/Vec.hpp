@@ -2,6 +2,7 @@
 #define VEC_HPP_
 
 #include <rapidjson/document.h>
+#include <type_traits>
 #include <ostream>
 #include <cmath>
 
@@ -22,8 +23,9 @@ public:
     static const unsigned size = Size;
     typedef ElementType elementType;
 
+    //Vec() = default;
     Vec()
-    : _v{ElementType(0)}
+    : Vec(ElementType(0))
     {
     }
 
@@ -34,8 +36,8 @@ public:
     }
 
     template<typename... Ts>
-    explicit Vec(Ts... ts)
-    : _v{ts...}
+    explicit Vec(ElementType a, ElementType b, Ts... ts)
+    : _v{a, b, ts...}
     {
     }
 
@@ -437,6 +439,26 @@ typedef Vec<int32, 2> Vec2i;
 typedef Vec<uint8, 4> Vec4c;
 typedef Vec<uint8, 3> Vec3c;
 typedef Vec<uint8, 2> Vec2c;
+
+//static_assert(std::is_pod<Vec4d>::value, "Vec4d is not a pod!");
+//static_assert(std::is_pod<Vec3d>::value, "Vec3d is not a pod!");
+//static_assert(std::is_pod<Vec2d>::value, "Vec2d is not a pod!");
+//
+//static_assert(std::is_pod<Vec4f>::value, "Vec4f is not a pod!");
+//static_assert(std::is_pod<Vec3f>::value, "Vec3f is not a pod!");
+//static_assert(std::is_pod<Vec2f>::value, "Vec2f is not a pod!");
+//
+//static_assert(std::is_pod<Vec4u>::value, "Vec4u is not a pod!");
+//static_assert(std::is_pod<Vec3u>::value, "Vec3u is not a pod!");
+//static_assert(std::is_pod<Vec2u>::value, "Vec2u is not a pod!");
+//
+//static_assert(std::is_pod<Vec4i>::value, "Vec4i is not a pod!");
+//static_assert(std::is_pod<Vec3i>::value, "Vec3i is not a pod!");
+//static_assert(std::is_pod<Vec2i>::value, "Vec2i is not a pod!");
+//
+//static_assert(std::is_pod<Vec4c>::value, "Vec4c is not a pod!");
+//static_assert(std::is_pod<Vec3c>::value, "Vec3c is not a pod!");
+//static_assert(std::is_pod<Vec2c>::value, "Vec2c is not a pod!");
 
 }
 

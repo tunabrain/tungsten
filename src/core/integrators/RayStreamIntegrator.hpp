@@ -9,7 +9,7 @@
 #include "integrators/Integrator.hpp"
 
 #include "sampling/SampleGenerator.hpp"
-#include "sampling/ScatterEvent.hpp"
+#include "sampling/SurfaceScatterEvent.hpp"
 #include "sampling/LightSample.hpp"
 
 #include "math/TangentFrame.hpp"

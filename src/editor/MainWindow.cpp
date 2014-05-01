@@ -45,6 +45,7 @@ MainWindow::MainWindow()
     QMenu *fileMenu = new QMenu("&File");
     fileMenu->addAction("New",          this, SLOT(newScene()),  QKeySequence("Ctrl+N"));
     fileMenu->addAction("Open File...", this, SLOT(openScene()), QKeySequence("Ctrl+O"));
+    fileMenu->addAction("Reload File...", this, SLOT(reloadScene()), QKeySequence("Shift+R"));
     fileMenu->addSeparator();
     fileMenu->addAction("Close", this, SLOT(closeScene()), QKeySequence("Ctrl+W"));
     fileMenu->addSeparator();
@@ -91,6 +92,12 @@ void MainWindow::openScene()
     if (!file.isEmpty()) {
         openScene(file);
     }
+}
+
+void MainWindow::reloadScene()
+{
+    if (_scene)
+        openScene(QString::fromStdString(_scene->path()));
 }
 
 void MainWindow::openScene(const QString &path)

@@ -93,17 +93,15 @@ void RenderWindow::sceneChanged()
 
     if (_scene) {
         Vec2u resolution = _scene->camera()->resolution();
-         _buffer.reset(new  Vec3f[resolution.product()]);
-        _weights.reset(new uint32[resolution.product()]);
-        std::memset(_buffer.get(), 0, sizeof(Vec3f)*resolution.product());
         _image.reset(new QImage(QSize(resolution.x(), resolution.y()), QImage::Format_ARGB32));
         _image->fill(Qt::black);
+        repaint();
     }
 }
 
 QRgb RenderWindow::tonemap(const Vec3f &c) const
 {
-    Vec3i pixel(min(std::pow(c*_pow2Exposure, 1.0f/_gamma)*255.0f, Vec3f(255.0f)));
+    Vec3i pixel(min(c*_pow2Exposure*255.0f, Vec3f(255.0f)));
 
     return qRgb(pixel.x(), pixel.y(), pixel.z());
 }
@@ -139,12 +137,6 @@ void RenderWindow::startRender()
     if (!_flattenedScene)
         _flattenedScene.reset(_scene->makeTraceable());
 
-    auto pixelCallback = [&](uint32_t x, uint32_t y, const Vec3f& c, uint32 spp) {
-        uint32 idx = x + y*_scene->camera()->resolution().x();
-        _buffer[idx] += c;
-        _weights[idx] += spp;
-    };
-
     auto finishCallback = [&]() {
         emit rendererFinished();
     };
@@ -161,13 +153,12 @@ void RenderWindow::startRender()
         _renderer.reset(new Renderer<RenderIntegrator>(*_flattenedScene));
 
         _image->fill(Qt::black);
-        std::memset( _buffer.get(), 0, sizeof( Vec3f)*_scene->camera()->resolution().product());
-        std::memset(_weights.get(), 0, sizeof(uint32)*_scene->camera()->resolution().product());
+        repaint();
     }
     _nextSpp = _currentSpp + sampleStep(_currentSpp, _scene->camera()->spp());
     if (_nextSpp == _currentSpp)
         return;
-    _renderer->startRender(pixelCallback, finishCallback, _currentSpp, _nextSpp, threadCount);
+    _renderer->startRender(finishCallback, _currentSpp, _nextSpp, threadCount);
 
     _rendering = true;
     updateStatus();
@@ -178,11 +169,12 @@ void RenderWindow::abortRender()
     _rendering = false;
     if (_renderer) {
         _renderer->abortRender();
-        _renderer.reset();
-        _flattenedScene.reset();
 
         refresh();
         updateStatus();
+
+        _renderer.reset();
+        _flattenedScene.reset();
     }
 }
 
@@ -225,7 +217,7 @@ void RenderWindow::refresh()
 
     for (uint32 y = 0, idx = 0; y < h; ++y)
         for (uint32 x = 0; x < w; ++x, ++idx)
-            pixels[idx] = tonemap(_buffer[idx]/_weights[idx]);
+            pixels[idx] = tonemap(_scene->camera()->get(x, y));
 
     update();
 }

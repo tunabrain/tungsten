@@ -237,7 +237,7 @@ std::shared_ptr<TextureRgb> ObjLoader::fetchColorMap(const std::string &path)
     if (_colorMaps.count(path))
         return _colorMaps[path];
 
-    std::shared_ptr<BitmapTextureRgb> tex(std::make_shared<BitmapTextureRgb>(path));
+    std::shared_ptr<BitmapTextureRgb> tex(BitmapTextureUtils::loadColorTexture(path));
     _colorMaps[path] = tex;
     return tex;
 }
@@ -250,7 +250,7 @@ std::shared_ptr<TextureA> ObjLoader::fetchScalarMap(const std::string &path)
     if (_scalarMaps.count(path))
         return _scalarMaps[path];
 
-    std::shared_ptr<BitmapTextureA> tex(std::make_shared<BitmapTextureA>(path));
+    std::shared_ptr<BitmapTextureA> tex(BitmapTextureUtils::loadScalarTexture(path));
     _scalarMaps[path] = tex;
     return tex;
 }
@@ -278,7 +278,6 @@ std::shared_ptr<Bsdf> ObjLoader::convertObjMaterial(const ObjMaterial &mat)
         result = std::make_shared<DielectricBsdf>(mat.ior);
     }
 
-    result->setEmission(mat.emission);
     if (mat.hasAlphaMap())
         result->setAlpha(fetchScalarMap(mat.alphaMap));
     if (mat.hasBumpMap())
@@ -312,10 +311,19 @@ void ObjLoader::clearPerMeshData()
 
 std::shared_ptr<Primitive> ObjLoader::finalizeMesh()
 {
-    std::shared_ptr<Bsdf> bsdf(_currentMaterial == -1 ? _errorMaterial : _convertedMaterials[_currentMaterial]);
+    std::shared_ptr<TextureRgb> emission;
+    std::shared_ptr<Bsdf> bsdf;
+    if (_currentMaterial == -1) {
+        bsdf = _errorMaterial;
+    } else {
+        bsdf = _convertedMaterials[_currentMaterial];
+        if (_materials[_currentMaterial].isEmissive())
+            emission = std::make_shared<ConstantTextureRgb>(_materials[_currentMaterial].emission);
+    }
 
     std::string name = _meshName.empty() ? generateDummyName() : _meshName;
 
+    std::shared_ptr<Primitive> prim;
     if (name.find("AnalyticSphere") != std::string::npos) {
         Vec3f center(0.0f);
         for (const Vertex &v : _verts)
@@ -323,7 +331,7 @@ std::shared_ptr<Primitive> ObjLoader::finalizeMesh()
         float r = 0.0f;
         for (const Vertex &v : _verts)
             r = max(r, (center - v.pos()).length());
-        return std::make_shared<Sphere>(center, r, name, bsdf);
+        prim = std::make_shared<Sphere>(center, r, name, bsdf);
     } else if (name.find("AnalyticQuad") != std::string::npos) {
         if (_tris.size() == 2) {
             TriangleI &t = _tris[0];
@@ -341,13 +349,18 @@ std::shared_ptr<Primitive> ObjLoader::finalizeMesh()
             else
                 base = p2, edge0 = p0 - base, edge1 = p1 - base;
 
-            return std::make_shared<Quad>(base, edge0, edge1, name, bsdf);
+            prim = std::make_shared<Quad>(base, edge0, edge1, name, bsdf);
         } else {
             DBG("AnalyticQuad must have exactly 2 triangles. Mesh '%s' has %d instead", _meshName.c_str(), _tris.size());
         }
     }
 
-    return std::make_shared<TriangleMesh>(std::move(_verts), std::move(_tris), bsdf, name, _meshSmoothed);
+    if (!prim)
+        prim = std::make_shared<TriangleMesh>(std::move(_verts), std::move(_tris), bsdf, name, _meshSmoothed);
+
+    prim->setEmission(emission);
+
+    return prim;
 }
 
 ObjLoader::ObjLoader(std::ifstream &in, const char *path)

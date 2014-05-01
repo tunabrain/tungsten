@@ -10,14 +10,14 @@ namespace Tungsten
 
 struct LightSample
 {
-    SampleGenerator &sampler;
+    SampleGenerator *sampler;
     Vec3f p;
 
     Vec3f d;
     float dist;
     float pdf;
 
-    LightSample(SampleGenerator &sampler_, const Vec3f &p_)
+    LightSample(SampleGenerator *sampler_, const Vec3f &p_)
     : sampler(sampler_), p(p_)
     {
     }

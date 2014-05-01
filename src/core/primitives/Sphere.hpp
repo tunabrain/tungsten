@@ -138,7 +138,7 @@ public:
         float d = L.length();
         L.normalize();
         float cosTheta = std::sqrt(max(d*d - _radius*_radius, 0.0f))/d;
-        sample.d = Sample::uniformSphericalCap(sample.sampler.next2D(), cosTheta);
+        sample.d = Sample::uniformSphericalCap(sample.sampler->next2D(), cosTheta);
 
         TangentFrame frame(L);
         sample.dist = d;
@@ -150,8 +150,8 @@ public:
 
     virtual bool sampleOutboundDirection(LightSample &sample) const
     {
-        sample.p = Sample::uniformSphere(sample.sampler.next2D());
-        sample.d = Sample::cosineHemisphere(sample.sampler.next2D());
+        sample.p = Sample::uniformSphere(sample.sampler->next2D());
+        sample.d = Sample::cosineHemisphere(sample.sampler->next2D());
         sample.pdf = Sample::cosineHemispherePdf(sample.d)/(FOUR_PI*_radius*_radius);
         TangentFrame frame(sample.p);
         sample.d = frame.toGlobal(sample.d);
@@ -174,6 +174,11 @@ public:
         return false;
     }
 
+    virtual bool isInfinite() const
+    {
+        return false;
+    }
+
     virtual Box3f bounds() const
     {
         return Box3f(_pos - _radius, _pos + _radius);
@@ -181,31 +186,8 @@ public:
 
     void buildProxy()
     {
-        std::vector<Vertex> verts;
-        std::vector<TriangleI> tris;
-
-        constexpr int SubDiv = 10;
-        constexpr int Skip = SubDiv*2 + 1;
-        for (int f = 0, idx = 0; f < 3; ++f) {
-            for (int s = -1; s <= 1; s += 2) {
-                for (int u = -SubDiv; u <= SubDiv; ++u) {
-                    for (int v = -SubDiv; v <= SubDiv; ++v, ++idx) {
-                        Vec3f p(0.0f);
-                        p[f] = s;
-                        p[(f + 1) % 3] = u*(1.0f/SubDiv)*s;
-                        p[(f + 2) % 3] = v*(1.0f/SubDiv);
-                        verts.emplace_back(p.normalized());
-
-                        if (v > -SubDiv && u > -SubDiv) {
-                            tris.emplace_back(idx - Skip - 1, idx, idx - Skip);
-                            tris.emplace_back(idx - Skip - 1, idx - 1, idx);
-                        }
-                    }
-                }
-            }
-        }
-
-        _proxy = std::make_shared<TriangleMesh>(std::move(verts), std::move(tris), _bsdf, "Sphere", false);
+        _proxy = std::make_shared<TriangleMesh>(std::vector<Vertex>(), std::vector<TriangleI>(), _bsdf, "Sphere", false);
+        _proxy->makeSphere(1.0f);
     }
 
     virtual const TriangleMesh &asTriangleMesh()

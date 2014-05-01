@@ -1,82 +1,68 @@
 #ifndef MEDIUM_HPP_
 #define MEDIUM_HPP_
 
+#include "sampling/VolumeScatterEvent.hpp"
+
+#include "io/JsonSerializable.hpp"
+#include "io/JsonUtils.hpp"
+
 #include "PhaseFunction.hpp"
 
 namespace Tungsten {
 
-class SampleGenerator;
-class UniformSampler;
-
-class VolumeScatterEvent
-{
-    SampleGenerator &sampler;
-    UniformSampler &supplementalSampler;
-    Vec3f p;
-    Vec3f wi;
-    float maxT;
-
-    Vec3f wo;
-    float t;
-    Vec3f throughput;
-};
+class Scene;
 
 class Medium : public JsonSerializable
 {
+protected:
     std::string _phaseFunctionName;
     float _phaseG;
-    Vec3f _sigmaA, _sigmaS;
 
     PhaseFunction::Type _phaseFunction;
-    bool _absorptionOnly;
+
+    void init()
+    {
+        _phaseFunction = PhaseFunction::stringToType(_phaseFunctionName);
+    }
 
 public:
-    bool isHomogeneous() const
+    Medium()
+    : _phaseFunctionName("isotropic"),
+      _phaseG(0.0f)
     {
-        return true;
+        init();
     }
 
-    const Vec3f &sigmaA() const
+    virtual void fromJson(const rapidjson::Value &v, const Scene &scene)
     {
-        return _sigmaA;
+        JsonSerializable::fromJson(v, scene);
+        JsonUtils::fromJson(v, "phase_function", _phaseFunctionName);
+        JsonUtils::fromJson(v, "phase_g", _phaseG);
+        init();
     }
 
-    const Vec3f &sigmaS() const
+    virtual rapidjson::Value toJson(Allocator &allocator) const
     {
-        return _sigmaS;
+        rapidjson::Value v(JsonSerializable::toJson(allocator));
+        v.AddMember("phase_function", _phaseFunctionName.c_str(), allocator);
+        v.AddMember("phase_g", _phaseG, allocator);
+
+        return std::move(v);
     }
 
-    bool sampleDistance(VolumeScatterEvent &event) const
-    {
-        int component = event.supplementalSampler.nextI() % 3;
-        Vec3f sigmaT = sigmaA + sigmaS;
-        float sigmaAc = _sigmaA[component];
-        float sigmaSc = _sigmaS[component];
-        float sigmaTc = sigmaA + sigmaS;
+    virtual bool isHomogeneous() const = 0;
 
-        float t = -std::log(1.0f - event.sampler.next1D())/sigmaTc;
-        if (t > event.maxT) {
-            event.t = event.maxT;
-            event.throughput = sigmaTc*std::exp(-event.maxT*(sigmaT - sigmaTc));
-        } else {
-            event.t = t;
-            event.throughput = std::exp(-event.t*(sigmaT - sigmaTc));
-        }
+    virtual Vec3f avgSigmaA() const = 0;
+    virtual Vec3f avgSigmaS() const = 0;
+    virtual Vec3f minSigmaA() const = 0;
+    virtual Vec3f minSigmaS() const = 0;
+    virtual Vec3f maxSigmaA() const = 0;
+    virtual Vec3f maxSigmaS() const = 0;
 
-        return true;
-    }
-
-    bool scatter(VolumeScatterEvent &event) const
-    {
-        TangentFrame frame(event.wi);
-        event.wo = frame.toGlobal(PhaseFunction::sample(_phaseFunction, _phaseG, event.sampler.next2D()));
-        return true;
-    }
-
-    Vec3f transmittance(const VolumeScatterEvent &event) const
-    {
-        return std::exp(-(_sigmaA + _sigmaS)*event.t);
-    }
+    virtual bool sampleDistance(VolumeScatterEvent &event) const = 0;
+    virtual bool scatter(VolumeScatterEvent &event) const = 0;
+    virtual Vec3f transmittance(const VolumeScatterEvent &event) const = 0;
+    virtual Vec3f emission(const VolumeScatterEvent &event) const = 0;
 };
 
 }

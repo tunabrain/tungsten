@@ -7,7 +7,7 @@
 #include "Fresnel.hpp"
 
 #include "sampling/SampleGenerator.hpp"
-#include "sampling/ScatterEvent.hpp"
+#include "sampling/SurfaceScatterEvent.hpp"
 #include "sampling/Sample.hpp"
 
 #include "math/MathUtil.hpp"
@@ -67,7 +67,7 @@ public:
             F = 0.0f;
         else if (!sampleT && !sampleR)
             return false;
-        if (event.sampler.next1D() < F) {
+        if (event.sampler->next1D() < F) {
             event.wo = Vec3f(-event.wi.x(), -event.wi.y(), event.wi.z());
             event.pdf = F;
             event.sampledLobe = BsdfLobes::SpecularReflectionLobe;

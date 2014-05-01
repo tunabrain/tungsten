@@ -6,7 +6,7 @@
 #include "Bsdf.hpp"
 
 #include "sampling/SampleGenerator.hpp"
-#include "sampling/ScatterEvent.hpp"
+#include "sampling/SurfaceScatterEvent.hpp"
 #include "sampling/Sample.hpp"
 
 #include "math/MathUtil.hpp"

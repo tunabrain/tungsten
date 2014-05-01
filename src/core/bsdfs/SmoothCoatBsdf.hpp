@@ -67,7 +67,7 @@ public:
         float specularWeight = Fi;
         float specularProbability = specularWeight/(specularWeight + substrateWeight);
 
-        if (sampleR && (event.sampler.next1D() < specularProbability || !sampleT)) {
+        if (sampleR && (event.sampler->next1D() < specularProbability || !sampleT)) {
             event.wo = Vec3f(-wi.x(), -wi.y(), wi.z());
             event.pdf = sampleT ? specularProbability : 1.0f;
             event.throughput = Vec3f(Fi/specularProbability);

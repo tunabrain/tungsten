@@ -4,6 +4,8 @@
 #include "primitives/EmbreeUtil.hpp"
 #include "primitives/Primitive.hpp"
 
+#include "cameras/Camera.hpp"
+
 #include <embree/include/intersector1.h>
 #include <embree/geometry/virtual_scene.h>
 #include <embree/common/ray.h>
@@ -11,8 +13,6 @@
 #include <memory>
 
 namespace Tungsten {
-
-class Camera;
 
 class TraceableScene
 {
@@ -36,9 +36,10 @@ class TraceableScene
         return primitive->occluded(fromERay(eRay));
     }
 
-    const Camera &_cam;
+    Camera &_cam;
     std::vector<std::shared_ptr<Primitive>> &_primitives;
     std::vector<std::shared_ptr<Primitive>> _lights;
+    std::vector<std::shared_ptr<Primitive>> _infinites;
 
     embree::VirtualScene *_scene = nullptr;
     embree::Intersector1 *_intersector = nullptr;
@@ -47,17 +48,37 @@ class TraceableScene
 public:
     TraceableScene(TraceableScene &&o) = default;
 
-    TraceableScene(const Camera &cam, std::vector<std::shared_ptr<Primitive>> &primitives)
+    TraceableScene(Camera &cam, std::vector<std::shared_ptr<Primitive>> &primitives)
     : _cam(cam),
       _primitives(primitives)
     {
         _virtualIntersector.intersectPtr = &intersect;
         _virtualIntersector.occludedPtr = &occluded;
 
-        _scene = new embree::VirtualScene(_primitives.size(), "bvh2");
-        embree::VirtualScene::Object *objects = _scene->objects;
+        _cam.prepareForRender();
+
+        int finiteCount = 0;
         for (std::shared_ptr<Primitive> &m : _primitives) {
             m->prepareForRender();
+
+            if (m->isInfinite()) {
+                _infinites.push_back(m);
+            } else if (!m->isDelta()) {
+                finiteCount++;
+            }
+
+            if (m->isEmissive()) {
+                m->makeSamplable();
+                if (m->isSamplable())
+                    _lights.push_back(m);
+            }
+        }
+
+        _scene = new embree::VirtualScene(finiteCount, "bvh2");
+        embree::VirtualScene::Object *objects = _scene->objects;
+        for (std::shared_ptr<Primitive> &m : _primitives) {
+            if (m->isInfinite() || m->isDelta())
+                continue;
 
             /* TODO: Transforms */
             objects->hasTransform = false;
@@ -65,12 +86,6 @@ public:
             objects->userData = m.get();
             objects->intersector1 = &_virtualIntersector;
             objects++;
-
-            if (m->bsdf()->isEmissive()) {
-                m->makeSamplable();
-                if (m->isSamplable())
-                    _lights.push_back(m);
-            }
         }
 
         embree::rtcBuildAccel(_scene, "objectsplit");
@@ -79,6 +94,8 @@ public:
 
     ~TraceableScene()
     {
+        _cam.teardownAfterRender();
+
         for (std::shared_ptr<Primitive> &m : _primitives)
             m->cleanupAfterRender();
 
@@ -89,6 +106,7 @@ public:
 
     bool intersect(Ray &ray, Primitive::IntersectionTemporary &data, IntersectionInfo &info) const
     {
+        info.primitive = nullptr;
         data.primitive = nullptr;
 
         PerRayData rayData{data, ray};
@@ -106,13 +124,30 @@ public:
         }
     }
 
+    bool intersectInfinites(Ray &ray, Primitive::IntersectionTemporary &data, IntersectionInfo &info) const
+    {
+        info.primitive = nullptr;
+        data.primitive = nullptr;
+
+        for (const std::shared_ptr<Primitive> &p : _infinites)
+            p->intersect(ray, data);
+
+        if (data.primitive) {
+            info.p = ray.pos() + ray.dir()*ray.farT();
+            data.primitive->intersectionInfo(data, info);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     bool occluded(const Ray &ray) const
     {
         embree::Ray eRay(toERay(ray));
         return _intersector->occluded(eRay);
     }
 
-    const Camera &cam() const
+    Camera &cam() const
     {
         return _cam;
     }

@@ -58,6 +58,15 @@ class TriangleMesh : public Primitive
     embree::RTCGeometry *_geom = nullptr;
     embree::RTCIntersector1 *_intersector = nullptr;
 
+    Vec3f geometricNormalAt(int triangle) const
+    {
+        const TriangleI &t = _tris[triangle];
+        Vec3f p0 = _tfVerts[t.v0].pos();
+        Vec3f p1 = _tfVerts[t.v1].pos();
+        Vec3f p2 = _tfVerts[t.v2].pos();
+        return (p1 - p0).cross(p2 - p0).normalized();
+    }
+
     Vec3f normalAt(int triangle, float u, float v) const
     {
         const TriangleI &t = _tris[triangle];
@@ -114,6 +123,30 @@ public:
     void calcSmoothVertexNormals();
     void computeBounds();
 
+    void makeSphere(float radius)
+    {
+        constexpr int SubDiv = 10;
+        constexpr int Skip = SubDiv*2 + 1;
+        for (int f = 0, idx = _verts.size(); f < 3; ++f) {
+            for (int s = -1; s <= 1; s += 2) {
+                for (int u = -SubDiv; u <= SubDiv; ++u) {
+                    for (int v = -SubDiv; v <= SubDiv; ++v, ++idx) {
+                        Vec3f p(0.0f);
+                        p[f] = s;
+                        p[(f + 1) % 3] = u*(1.0f/SubDiv)*s;
+                        p[(f + 2) % 3] = v*(1.0f/SubDiv);
+                        _verts.emplace_back(p.normalized()*radius);
+
+                        if (v > -SubDiv && u > -SubDiv) {
+                            _tris.emplace_back(idx - Skip - 1, idx, idx - Skip);
+                            _tris.emplace_back(idx - Skip - 1, idx - 1, idx);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     virtual bool intersect(Ray &ray, IntersectionTemporary &data) const override
     {
         embree::Ray eRay(toERay(ray));
@@ -145,7 +178,7 @@ public:
     virtual void intersectionInfo(const IntersectionTemporary &data, IntersectionInfo &info) const override
     {
         const MeshIntersection *isect = data.as<MeshIntersection>();
-        info.Ng = -isect->Ng.normalized();
+        info.Ng = geometricNormalAt(isect->id0);
         if (_smoothed)
             info.Ns = normalAt(isect->id0, isect->u, isect->v);
         else
@@ -276,7 +309,7 @@ public:
 
     bool sampleInboundDirection(LightSample &sample) const override final
     {
-        float u = sample.sampler.next1D();
+        float u = sample.sampler->next1D();
         int idx;
         _triSampler->warp(u, idx);
 
@@ -285,7 +318,7 @@ public:
         Vec3f p2 = _tfVerts[_tris[idx].v2].pos();
         Vec3f normal = (p1 - p0).cross(p2 - p0).normalized();
 
-        Vec3f p = Sample::uniformTriangle(sample.sampler.next2D(), p0, p1, p2);
+        Vec3f p = Sample::uniformTriangle(sample.sampler->next2D(), p0, p1, p2);
         Vec3f L = p - sample.p;
 
         float rSq = L.lengthSq();
@@ -301,7 +334,7 @@ public:
 
     bool sampleOutboundDirection(LightSample &sample) const override final
     {
-        float u = sample.sampler.next1D();
+        float u = sample.sampler->next1D();
         int idx;
         _triSampler->warp(u, idx);
 
@@ -311,8 +344,8 @@ public:
         Vec3f normal = (p1 - p0).cross(p2 - p0).normalized();
         TangentFrame frame(normal);
 
-        sample.p = Sample::uniformTriangle(sample.sampler.next2D(), p0, p1, p2);
-        sample.d = Sample::cosineHemisphere(sample.sampler.next2D());
+        sample.p = Sample::uniformTriangle(sample.sampler->next2D(), p0, p1, p2);
+        sample.d = Sample::cosineHemisphere(sample.sampler->next2D());
         sample.pdf = Sample::cosineHemispherePdf(sample.d)/_totalArea;
         sample.d = frame.toGlobal(sample.d);
 
@@ -325,6 +358,11 @@ public:
     }
 
     virtual bool isDelta() const
+    {
+        return false;
+    }
+
+    virtual bool isInfinite() const
     {
         return false;
     }

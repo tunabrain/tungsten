@@ -12,37 +12,22 @@ class RoughConductorBsdf : public Bsdf
 {
     static constexpr Microfacet::Distribution distribution = Microfacet::GGX;
 
-    float _roughness;
+    std::shared_ptr<TextureA> _roughness;
     Vec3f _eta;
     Vec3f _k;
 
 public:
 
     RoughConductorBsdf()
-    : _roughness(0.1f),
+    : _roughness(std::make_shared<ConstantTextureA>(0.1f)),
       _eta(0.214000f, 0.950375f, 1.177500f),
       _k(3.670000f, 2.576500f, 2.160063f)
     {
         _lobes = BsdfLobes::GlossyReflectionLobe;
     }
 
-    virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override
-    {
-        Bsdf::fromJson(v, scene);
-        JsonUtils::fromJson(v, "roughness", _roughness);
-        JsonUtils::fromJson(v, "eta", _eta);
-        JsonUtils::fromJson(v, "k", _k);
-    }
-
-    virtual rapidjson::Value toJson(Allocator &allocator) const
-    {
-        rapidjson::Value v = Bsdf::toJson(allocator);
-        v.AddMember("type", "rough_conductor", allocator);
-        v.AddMember("roughness", _roughness, allocator);
-        v.AddMember("eta", JsonUtils::toJsonValue(_eta, allocator), allocator);
-        v.AddMember("k", JsonUtils::toJsonValue(_k, allocator), allocator);
-        return std::move(v);
-    }
+    virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
+    virtual rapidjson::Value toJson(Allocator &allocator) const;
 
     bool sample(SurfaceScatterEvent &event) const override final
     {
@@ -52,11 +37,12 @@ public:
             return false;
 
         //float sampleRoughness = (1.2f - 0.2f*std::sqrt(std::abs(event.wi.z())))*_roughness;
-        float sampleRoughness = _roughness;
-        float alpha = Microfacet::roughnessToAlpha(distribution, _roughness);
+        float roughness = (*_roughness)[event.info->uv];
+        float sampleRoughness = roughness;
+        float alpha = Microfacet::roughnessToAlpha(distribution, roughness);
         float sampleAlpha = Microfacet::roughnessToAlpha(distribution, sampleRoughness);
 
-        Vec3f m = Microfacet::sample(distribution, sampleAlpha, event.sampler.next2D());
+        Vec3f m = Microfacet::sample(distribution, sampleAlpha, event.sampler->next2D());
         float wiDotM = event.wi.dot(m);
         event.wo = 2.0f*wiDotM*m - event.wi;
         if (wiDotM <= 0.0f || event.wo.z() <= 0.0f)
@@ -81,7 +67,8 @@ public:
         if (event.wi.z() <= 0.0f || event.wo.z() <= 0.0f)
             return Vec3f(0.0f);
 
-        float alpha = Microfacet::roughnessToAlpha(distribution, _roughness);
+        float roughness = (*_roughness)[event.info->uv];
+        float alpha = Microfacet::roughnessToAlpha(distribution, roughness);
 
         Vec3f hr = (event.wi + event.wo).normalized();
         float cosThetaM = event.wi.dot(hr);
@@ -101,7 +88,8 @@ public:
             return 0.0f;
 
         //float sampleRoughness = (1.2f - 0.2f*std::sqrt(event.wi.z()))*_roughness;
-        float sampleRoughness = _roughness;
+        float roughness = (*_roughness)[event.info->uv];
+        float sampleRoughness = roughness;
         float sampleAlpha = Microfacet::roughnessToAlpha(distribution, sampleRoughness);
 
         Vec3f hr = (event.wi + event.wo).normalized();
@@ -116,7 +104,7 @@ public:
         return _k;
     }
 
-    float roughness() const {
+    const std::shared_ptr<TextureA> &roughness() const {
         return _roughness;
     }
 };

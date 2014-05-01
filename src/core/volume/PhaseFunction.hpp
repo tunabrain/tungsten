@@ -52,7 +52,7 @@ public:
     static Vec3f sample(Type type, float g, const Vec2f &sample)
     {
         float phi = sample.x()*TWO_PI;
-        float cosTheta;
+        float cosTheta = 0.0f;
         if (g == 0.0f)
             type = Isotropic;
         switch (type) {

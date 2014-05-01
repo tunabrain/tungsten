@@ -1,6 +1,8 @@
 #ifndef ANGLE_HPP_
 #define ANGLE_HPP_
 
+#include <cmath>
+
 namespace Tungsten
 {
 

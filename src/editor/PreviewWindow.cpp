@@ -205,7 +205,7 @@ void PreviewWindow::renderMeshes(Shader &shader, Predicate predicate)
 
         MatrixStack::setShaderMatrices(shader, MODELVIEWPROJECTION_FLAG | MODEL_FLAG | VIEW_FLAG);
         shader.uniformI("Smooth", primitives[i]->asTriangleMesh().smoothed());
-        shader.uniformI("NoShading", primitives[i]->bsdf()->isEmissive());
+        shader.uniformI("NoShading", primitives[i]->isEmissive());
         _meshes[primitives[i].get()]->draw(shader);
     }
 }

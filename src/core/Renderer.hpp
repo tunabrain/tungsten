@@ -205,10 +205,11 @@ class Renderer
             _tileQueue.push(&tile);
     }
 
-    template<typename PixelCallback, typename FinishCallback>
-    void renderTiles(PixelCallback pixelCallback, FinishCallback finishCallback)
+    template<typename FinishCallback>
+    void renderTiles(FinishCallback finishCallback)
     {
         Integrator integrator(_scene);
+        Camera &cam = _scene.cam();
 
         _workerCount++;
 
@@ -232,7 +233,7 @@ class Renderer
                         c += s;
                     }
 
-                    pixelCallback(x + tile->x, y + tile->y, c, spp);
+                    cam.addSamples(x + tile->x, y + tile->y, c, spp);
                 }
             }
         }
@@ -259,15 +260,15 @@ public:
         abortRender();
     }
 
-    template<typename PixelCallback, typename FinishCallback>
-    void startRender(PixelCallback pixelCallback, FinishCallback finishCallback, uint32 sppFrom, uint32 sppTo, uint32 threadCount)
+    template<typename FinishCallback>
+    void startRender(FinishCallback finishCallback, uint32 sppFrom, uint32 sppTo, uint32 threadCount)
     {
         _workerCount = 0;
         _abortRender = false;
         generateWork(sppFrom, sppTo);
 
         for (uint32 i = 0; i < threadCount; ++i)
-            _workerThreads.emplace_back(&Renderer::renderTiles<PixelCallback, FinishCallback>, this, pixelCallback, finishCallback);
+            _workerThreads.emplace_back(&Renderer::renderTiles<FinishCallback>, this, finishCallback);
     }
 
     void waitForCompletion()

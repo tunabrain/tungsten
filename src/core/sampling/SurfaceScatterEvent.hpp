@@ -14,18 +14,18 @@ class UniformSampler;
 
 struct SurfaceScatterEvent
 {
-    const IntersectionInfo &info;
-    SampleGenerator &sampler;
-    UniformSampler &supplementalSampler;
+    const IntersectionInfo *info;
+    SampleGenerator *sampler;
+    UniformSampler *supplementalSampler;
     Vec3f wi, wo;
     Vec3f throughput;
     float pdf;
     BsdfLobes requestedLobe;
     BsdfLobes sampledLobe;
 
-    SurfaceScatterEvent(const IntersectionInfo &info_,
-                 SampleGenerator &sampler_,
-                 UniformSampler &supplementalSampler_,
+    SurfaceScatterEvent(const IntersectionInfo *info_,
+                 SampleGenerator *sampler_,
+                 UniformSampler *supplementalSampler_,
                  const Vec3f &wi_,
                  BsdfLobes requestedLobe_)
     : info(info_),

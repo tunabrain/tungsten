@@ -10,7 +10,6 @@ void Bsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     JsonSerializable::fromJson(v, scene);
 
-    JsonUtils::fromJson(v, "emission", _emission);
     JsonUtils::fromJson(v, "bumpStrength", _bumpStrength);
 
     const rapidjson::Value::Member *intMedium = v.FindMember("intMedium");
@@ -32,14 +31,15 @@ void Bsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
         _bump = scene.fetchScalarTexture<2>(bump->value);
 }
 
-virtual rapidjson::Value Bsdf::toJson(Allocator &allocator) const
+rapidjson::Value Bsdf::toJson(Allocator &allocator) const
 {
     rapidjson::Value v(JsonSerializable::toJson(allocator));
 
-    v.AddMember("emission", JsonUtils::toJsonValue(_emission, allocator), allocator);
     v.AddMember("bumpStrength", JsonUtils::toJsonValue(_bumpStrength, allocator), allocator);
-    JsonUtils::addObjectMember(v, "intMedium", *_intMedium,  allocator);
-    JsonUtils::addObjectMember(v, "extMedium", *_extMedium, allocator);
+    if (_intMedium)
+        JsonUtils::addObjectMember(v, "intMedium", *_intMedium,  allocator);
+    if (_extMedium)
+        JsonUtils::addObjectMember(v, "extMedium", *_extMedium, allocator);
     JsonUtils::addObjectMember(v, "color", *_base,  allocator);
     JsonUtils::addObjectMember(v, "alpha", *_alpha, allocator);
     JsonUtils::addObjectMember(v,  "bump", *_bump,  allocator);

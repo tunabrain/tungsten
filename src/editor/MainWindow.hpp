@@ -32,6 +32,7 @@ private slots:
 
     void newScene();
     void openScene();
+    void reloadScene();
     void openScene(const QString &path);
     void closeScene();
     void saveScene();

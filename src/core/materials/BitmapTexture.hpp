@@ -65,39 +65,16 @@ class BitmapTexture : public Texture<Scalar, Dimension>
 template<bool Scalar>
 class BitmapTexture<Scalar, 2> : public Texture<Scalar, 2>
 {
+protected:
     typedef JsonSerializable::Allocator Allocator;
     typedef typename Texture<Scalar, 2>::Value Value;
-    typedef typename std::conditional<Scalar, uint8, Rgba>::type Texel;
 
     std::string _srcDir;
     std::string _path;
-    Texel *_texels;
+
     Value _min, _max, _avg;
     int _w;
     int _h;
-    int _channels;
-    bool _invalid;
-
-    Vec3f normalize(Rgba x) const
-    {
-        return Vec3f(
-            x.c[0]*(1.0f/256.0f),
-            x.c[1]*(1.0f/256.0f),
-            x.c[2]*(1.0f/256.0f)
-        );
-    }
-
-    Vec3f lerp(Rgba x00, Rgba x01, Rgba x10, Rgba x11, float u, float v) const
-    {
-        return (normalize(x00)*(1.0f - u) + normalize(x01)*u)*(1.0f - v) +
-               (normalize(x10)*(1.0f - u) + normalize(x11)*u)*v;
-    }
-
-    float lerp(uint8 x00, uint8 x01, uint8 x10, uint8 x11, float u, float v) const
-    {
-        return ((x00*(1.0f/256.0f))*(1.0f - u) + (x01*(1.0f/256.0f))*u)*(1.0f - v) +
-               ((x10*(1.0f/256.0f))*(1.0f - u) + (x11*(1.0f/256.0f))*u)*v;
-    }
 
     float lerp(float x00, float x01, float x10, float x11, float u, float v) const
     {
@@ -111,80 +88,16 @@ class BitmapTexture<Scalar, 2> : public Texture<Scalar, 2>
                (x10*(1.0f - u) + x11*u)*v;
     }
 
-    float convert(uint8 c) const
-    {
-        return c*1.0f/256.0f;
-    }
-
-    Vec3f convert(Rgba x) const
-    {
-        return normalize(x);
-    }
-
-    inline Value get(int x, int y) const
-    {
-        return convert(_texels[x + y*_w]);
-    }
+    virtual Value get(int x, int y) const = 0;
 
 public:
-    explicit BitmapTexture(const std::string &path)
-    : _srcDir( FileUtils::getCurrentDir()),
-      _path(path),
-      _invalid(true)
-    {
-        if (Scalar) {
-            uint8 *tmp = stbi_load(path.c_str(), &_w, &_h, &_channels, 0);
+    virtual ~BitmapTexture() {}
 
-            if (_channels == 4) {
-                _texels = reinterpret_cast<Texel *>(tmp);
-                for (size_t i = 0; i < _w*_h; ++i)
-                    _texels[i] = Texel(tmp[i*4 + 3]);
-            } else {
-                stbi_image_free(tmp);
-                _texels = reinterpret_cast<Texel *>(stbi_load(path.c_str(), &_w, &_h, &_channels, 1));
-            }
-        } else
-            _texels = reinterpret_cast<Texel *>(stbi_load(path.c_str(), &_w, &_h, &_channels, 4));
-
-        if (!_texels) {
-            DBG("Unable to load texture at '%s' (current dir '%s')", path, FileUtils::getCurrentDir());
-            _invalid = true;
-            _texels = new Texel[2*2];
-            _w = 2;
-            _h = 2;
-            _channels = Scalar ? 1 : 3;
-            _texels[0] = _texels[3] = Texel(255);
-            _texels[1] = _texels[2] = Texel(0);
-        } else {
-            Texel minT(_texels[0]);
-            Texel maxT(_texels[0]);
-            Value avgT(convert(_texels[0]));
-
-            for (size_t i = 1; i < _w*_h; ++i) {
-                minT = min(minT, _texels[i]);
-                maxT = max(maxT, _texels[i]);
-                avgT += convert(_texels[i]);
-            }
-
-            _min = convert(minT);
-            _max = convert(maxT);
-            _avg = avgT/Value(float(_w*_h));
-        }
-    }
-
-    ~BitmapTexture()
-    {
-        if (_invalid)
-            delete[] _texels;
-        else
-            stbi_image_free(_texels);
-    }
-
-    virtual void fromJson(const rapidjson::Value &/*v*/, const Scene &/*scene*/) override
+    virtual void fromJson(const rapidjson::Value &/*v*/, const Scene &/*scene*/) override final
     {
     }
 
-    virtual rapidjson::Value toJson(Allocator &allocator) const override
+    virtual rapidjson::Value toJson(Allocator &allocator) const override final
     {
         return std::move(rapidjson::Value(_path.c_str(), allocator));
     }
@@ -230,13 +143,11 @@ public:
         iu = clamp(iu, 0, _w - 2);
         iv = clamp(iv, 0, _h - 2);
 
-        int idx = iu + iv*_w;
-
         return Value(lerp(
-            _texels[idx],
-            _texels[idx + 1],
-            _texels[idx + _w],
-            _texels[idx + _w + 1],
+            get(iu, iv),
+            get(iu + 1, iv),
+            get(iu, iv + 1),
+            get(iu + 1, iv + 1),
             u,
             v
         ));
@@ -283,6 +194,226 @@ public:
         return _max;
     }
 };
+
+template<bool Scalar, typename Texel>
+class HdrBitmapTexture : public BitmapTexture<Scalar, 2>
+{
+    typedef typename Texture<Scalar, 2>::Value Value;
+
+    using BitmapTexture<Scalar, 2>::_srcDir;
+    using BitmapTexture<Scalar, 2>::_path;
+    using BitmapTexture<Scalar, 2>::_w;
+    using BitmapTexture<Scalar, 2>::_h;
+    using BitmapTexture<Scalar, 2>::_min;
+    using BitmapTexture<Scalar, 2>::_max;
+    using BitmapTexture<Scalar, 2>::_avg;
+
+    std::unique_ptr<Texel[]> _texels;
+
+    bool loadPfm(const std::string &filename)
+    {
+        std::ifstream in(filename, std::ios_base::in | std::ios_base::binary);
+        if (!in.good())
+            return false;
+
+        std::string ident;
+        in >> ident;
+        int channels;
+        if (ident == "Pf")
+            channels = 1;
+        else if (ident == "PF")
+            channels = 3;
+        else
+            return false;
+
+        in >> _w >> _h;
+        double s;
+        in >> s;
+        std::string tmp;
+        std::getline(in, tmp);
+
+        std::unique_ptr<float[]> img(new float[_w*_h*channels]);
+        in.read(reinterpret_cast<char *>(img.get()), _w*_h*channels*sizeof(float));
+        in.close();
+
+        _texels.reset(new Value[_w*_h]);
+        if ((channels == 1) == Scalar) {
+            std::memcpy(_texels.get(), img.get(), _w*_h*sizeof(Value));
+        } else {
+
+            if (Scalar)
+                for (int i = 0, idx = 0; i < _w*_h; ++i, idx += 3)
+                    _texels[i] = Value((img[idx] + img[idx + 1] + img[idx + 2])*(1.0f/3.0f));
+            else
+                for (int i = 0; i < _w*_h; ++i)
+                    _texels[i] = Value(img[i]);
+        }
+
+        Value minV(1e30f), maxV(-1e30f), avgV(0.0f);
+        for (int i = 0; i < _w*_h; ++i) {
+            minV = min(minV, _texels[i]);
+            maxV = max(maxV, _texels[i]);
+            avgV += _texels[i]/float(_w*_h);
+        }
+        _min = minV;
+        _max = maxV;
+        _avg = avgV;
+
+        return true;
+    }
+
+protected:
+    inline Value get(int x, int y) const override final
+    {
+        return _texels[x + y*_w];
+    }
+
+public:
+    HdrBitmapTexture(const std::string &path)
+    {
+        _srcDir = FileUtils::getCurrentDir();
+        _path = path;
+
+        if (!loadPfm(path)) {
+            _texels.reset(new Value[4]);
+            _texels[0] = _texels[3] = Value(1.0f);
+            _texels[1] = _texels[2] = Value(0.0f);
+        }
+    }
+};
+
+template<bool Scalar, typename Texel>
+class LdrBitmapTexture : public BitmapTexture<Scalar, 2>
+{
+    typedef typename Texture<Scalar, 2>::Value Value;
+
+    using BitmapTexture<Scalar, 2>::_srcDir;
+    using BitmapTexture<Scalar, 2>::_path;
+    using BitmapTexture<Scalar, 2>::_w;
+    using BitmapTexture<Scalar, 2>::_h;
+    using BitmapTexture<Scalar, 2>::_min;
+    using BitmapTexture<Scalar, 2>::_max;
+    using BitmapTexture<Scalar, 2>::_avg;
+
+    Texel *_texels;
+    int _channels;
+    bool _invalid;
+
+    Vec3f normalize(Rgba x) const
+    {
+        return Vec3f(
+            x.c[0]*(1.0f/256.0f),
+            x.c[1]*(1.0f/256.0f),
+            x.c[2]*(1.0f/256.0f)
+        );
+    }
+
+    Vec3f lerp(Rgba x00, Rgba x01, Rgba x10, Rgba x11, float u, float v) const
+    {
+        return (normalize(x00)*(1.0f - u) + normalize(x01)*u)*(1.0f - v) +
+               (normalize(x10)*(1.0f - u) + normalize(x11)*u)*v;
+    }
+
+    float lerp(uint8 x00, uint8 x01, uint8 x10, uint8 x11, float u, float v) const
+    {
+        return ((x00*(1.0f/256.0f))*(1.0f - u) + (x01*(1.0f/256.0f))*u)*(1.0f - v) +
+               ((x10*(1.0f/256.0f))*(1.0f - u) + (x11*(1.0f/256.0f))*u)*v;
+    }
+
+    float convert(uint8 c) const
+    {
+        return c*1.0f/256.0f;
+    }
+
+    Vec3f convert(Rgba x) const
+    {
+        return normalize(x);
+    }
+
+protected:
+    inline Value get(int x, int y) const override final
+    {
+        return convert(_texels[x + y*_w]);
+    }
+
+public:
+    explicit LdrBitmapTexture(const std::string &path)
+    : _invalid(true)
+    {
+        _srcDir = FileUtils::getCurrentDir();
+        _path = path;
+
+        if (Scalar) {
+            uint8 *tmp = stbi_load(path.c_str(), &_w, &_h, &_channels, 0);
+
+            if (_channels == 4) {
+                _texels = reinterpret_cast<Texel *>(tmp);
+                for (size_t i = 0; i < _w*_h; ++i)
+                    _texels[i] = Texel(tmp[i*4 + 3]);
+            } else {
+                stbi_image_free(tmp);
+                _texels = reinterpret_cast<Texel *>(stbi_load(path.c_str(), &_w, &_h, &_channels, 1));
+            }
+        } else
+            _texels = reinterpret_cast<Texel *>(stbi_load(path.c_str(), &_w, &_h, &_channels, 4));
+
+        if (!_texels) {
+            DBG("Unable to load texture at '%s' (current dir '%s')", path, FileUtils::getCurrentDir());
+            _invalid = true;
+            _texels = new Texel[2*2];
+            _w = 2;
+            _h = 2;
+            _channels = Scalar ? 1 : 3;
+            _texels[0] = _texels[3] = Texel(255);
+            _texels[1] = _texels[2] = Texel(0);
+        } else {
+            Texel minT(_texels[0]);
+            Texel maxT(_texels[0]);
+            Value avgT(convert(_texels[0]));
+
+            for (size_t i = 1; i < _w*_h; ++i) {
+                minT = min(minT, _texels[i]);
+                maxT = max(maxT, _texels[i]);
+                avgT += convert(_texels[i]);
+            }
+
+            _min = convert(minT);
+            _max = convert(maxT);
+            _avg = avgT/Value(float(_w*_h));
+        }
+    }
+
+    ~LdrBitmapTexture()
+    {
+        if (_invalid)
+            delete[] _texels;
+        else
+            stbi_image_free(_texels);
+    }
+};
+
+namespace BitmapTextureUtils
+{
+
+inline std::shared_ptr<BitmapTexture<false, 2>> loadColorTexture(const std::string &path)
+{
+    std::string extension = FileUtils::extractExt(path);
+    if (extension == "pfm")
+        return std::make_shared<HdrBitmapTexture<false, Vec3f>>(path);
+    else
+        return std::make_shared<LdrBitmapTexture<false, Rgba>>(path);
+}
+
+inline std::shared_ptr<BitmapTexture<true, 2>> loadScalarTexture(const std::string &path)
+{
+    std::string extension = FileUtils::extractExt(path);
+    if (extension == "pfm")
+        return std::make_shared<HdrBitmapTexture<true, float>>(path);
+    else
+        return std::make_shared<LdrBitmapTexture<true, uint8>>(path);
+}
+
+}
 
 typedef BitmapTexture<true, 2> BitmapTextureA;
 typedef BitmapTexture<false, 2> BitmapTextureRgb;

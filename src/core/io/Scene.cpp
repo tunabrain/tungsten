@@ -7,18 +7,27 @@
 #include "FileUtils.hpp"
 #include "Scene.hpp"
 
+#include "primitives/InfiniteSphere.hpp"
 #include "primitives/Sphere.hpp"
 #include "primitives/Quad.hpp"
 #include "primitives/Mesh.hpp"
 
+#include "materials/CheckerTexture.hpp"
+
+#include "volume/HeterogeneousMedium.hpp"
+#include "volume/HomogeneousMedium.hpp"
+
 #include "bsdfs/RoughDielectricBsdf.hpp"
 #include "bsdfs/RoughConductorBsdf.hpp"
 #include "bsdfs/DielectricBsdf.hpp"
+#include "bsdfs/ConductorBsdf.hpp"
 #include "bsdfs/SmoothCoatBsdf.hpp"
 #include "bsdfs/LambertBsdf.hpp"
 #include "bsdfs/PhongBsdf.hpp"
-#include "bsdfs/MixedBsdf.hpp"
+#include "bsdfs/ForwardBsdf.hpp"
 #include "bsdfs/MirrorBsdf.hpp"
+#include "bsdfs/MixedBsdf.hpp"
+#include "bsdfs/NullBsdf.hpp"
 #include "bsdfs/Bsdf.hpp"
 
 #include "cameras/ThinlensCamera.hpp"
@@ -28,6 +37,19 @@
 
 namespace Tungsten
 {
+
+std::shared_ptr<Medium> Scene::instantiateMedium(std::string type, const rapidjson::Value &value) const
+{
+    std::shared_ptr<Medium> result;
+    if (type == "homogeneous")
+        result = std::make_shared<HomogeneousMedium>();
+    else if (type == "heterogeneous")
+        result = std::make_shared<HeterogeneousMedium>();
+    else
+        FAIL("Unkown medium type: '%s'", type.c_str());
+    result->fromJson(value, *this);
+    return result;
+}
 
 std::shared_ptr<Bsdf> Scene::instantiateBsdf(std::string type, const rapidjson::Value &value) const
 {
@@ -40,6 +62,8 @@ std::shared_ptr<Bsdf> Scene::instantiateBsdf(std::string type, const rapidjson::
         result = std::make_shared<MixedBsdf>();
     else if (type == "dielectric")
         result = std::make_shared<DielectricBsdf>();
+    else if (type == "conductor")
+        result = std::make_shared<ConductorBsdf>();
     else if (type == "mirror")
         result = std::make_shared<MirrorBsdf>();
     else if (type == "rough_conductor")
@@ -48,6 +72,10 @@ std::shared_ptr<Bsdf> Scene::instantiateBsdf(std::string type, const rapidjson::
         result = std::make_shared<RoughDielectricBsdf>();
     else if (type == "smooth_coat")
         result = std::make_shared<SmoothCoatBsdf>();
+    else if (type == "null")
+        result = std::make_shared<NullBsdf>();
+    else if (type == "forward")
+        result = std::make_shared<ForwardBsdf>();
     else
         FAIL("Unkown bsdf type: '%s'", type.c_str());
     result->fromJson(value, *this);
@@ -63,6 +91,8 @@ std::shared_ptr<Primitive> Scene::instantiatePrimitive(std::string type, const r
         result = std::make_shared<Sphere>();
     else if (type == "quad")
         result = std::make_shared<Quad>();
+    else if (type == "infinite_sphere")
+        result = std::make_shared<InfiniteSphere>();
     else
         FAIL("Unknown primitive type: '%s'", type.c_str());
 
@@ -94,9 +124,12 @@ std::shared_ptr<Texture<true, Dimension>>
         std::string path(JsonUtils::as<std::string>(value, "path"));
         if (Dimension == 2)
             return fetchScalarMap(path);
-        return std::make_shared<BitmapTexture<true, Dimension>>(path);
+        //return std::make_shared<BitmapTexture<true, Dimension>>(path);
+        return nullptr;
     } else if (type == "constant") {
         result = std::make_shared<ConstantTexture<true, Dimension>>();
+    } else if (type == "checker") {
+        result = std::make_shared<CheckerTexture<true>>();
     } else {
         FAIL("Unkown texture type: '%s'", type.c_str());
     }
@@ -115,9 +148,12 @@ std::shared_ptr<Texture<false, Dimension>>
         std::string path(JsonUtils::as<std::string>(value, "path"));
         if (Dimension == 2)
             return fetchColorMap(path);
-        return std::make_shared<BitmapTexture<false, Dimension>>(path);
+        //return std::make_shared<BitmapTexture<false, Dimension>>(path);
+        return nullptr;
     } else if (type == "constant") {
         result = std::make_shared<ConstantTexture<false, Dimension>>();
+    } else if (type == "checker") {
+        result = std::make_shared<CheckerTexture<false>>();
     } else {
         FAIL("Unkown texture type: '%s'", type.c_str());
     }
@@ -158,6 +194,12 @@ std::shared_ptr<T> Scene::fetchObject(const std::vector<std::shared_ptr<T>> &lis
         FAIL("Unkown value type");
         return nullptr;
     }
+}
+
+std::shared_ptr<Medium> Scene::fetchMedium(const rapidjson::Value &v) const
+{
+    using namespace std::placeholders;
+    return fetchObject(_media, v, std::bind(&Scene::instantiateMedium, this, _1, _2));
 }
 
 std::shared_ptr<Bsdf> Scene::fetchBsdf(const rapidjson::Value &v) const
@@ -214,7 +256,7 @@ std::shared_ptr<TextureRgb> Scene::fetchColorMap(const std::string &path) const
     if (_colorMaps.count(path))
         return _colorMaps[path];
 
-    std::shared_ptr<BitmapTextureRgb> tex(std::make_shared<BitmapTextureRgb>(path));
+    std::shared_ptr<BitmapTextureRgb> tex(BitmapTextureUtils::loadColorTexture(path));
     _colorMaps[path] = tex;
     return tex;
 }
@@ -224,7 +266,7 @@ std::shared_ptr<TextureA> Scene::fetchScalarMap(const std::string &path) const
     if (_scalarMaps.count(path))
         return _scalarMaps[path];
 
-    std::shared_ptr<BitmapTextureA> tex(std::make_shared<BitmapTextureA>(path));
+    std::shared_ptr<BitmapTextureA> tex(BitmapTextureUtils::loadScalarTexture(path));
     _scalarMaps[path] = tex;
     return tex;
 }
@@ -289,6 +331,10 @@ void Scene::addPrimitive(const std::shared_ptr<Primitive> &mesh)
 void Scene::addBsdf(const std::shared_ptr<Bsdf> &bsdf)
 {
     if (addUnique(bsdf, _bsdfs)) {
+        if (bsdf->intMedium())
+            addUnique(bsdf->intMedium(), _media);
+        if (bsdf->extMedium())
+            addUnique(bsdf->extMedium(), _media);
         addTexture(bsdf->alpha(), _scalarMaps);
         addTexture(bsdf->bump(), _scalarMaps);
         addTexture(bsdf->color(), _colorMaps);
@@ -313,6 +359,7 @@ void Scene::fromJson(const rapidjson::Value &v, const Scene &scene)
     using namespace std::placeholders;
 
     const rapidjson::Value::Member *primitives = v.FindMember("primitives");
+    const rapidjson::Value::Member *media      = v.FindMember("media");
     const rapidjson::Value::Member *bsdfs      = v.FindMember("bsdfs");
     const rapidjson::Value::Member *camera     = v.FindMember("camera");
 
@@ -320,6 +367,8 @@ void Scene::fromJson(const rapidjson::Value &v, const Scene &scene)
     SOFT_ASSERT(bsdfs      != nullptr, "Scene file must contain 'bsdfs' array");
     SOFT_ASSERT(camera     != nullptr && camera->value.IsObject(), "Scene file must contain 'camera' object");
 
+    if (media)
+        loadObjectList( media->value, std::bind(&Scene::instantiateMedium,    this, _1, _2), _media);
     loadObjectList(     bsdfs->value, std::bind(&Scene::instantiateBsdf,      this, _1, _2), _bsdfs);
     loadObjectList(primitives->value, std::bind(&Scene::instantiatePrimitive, this, _1, _2), _primitives);
 
@@ -345,10 +394,15 @@ rapidjson::Value Scene::toJson(Allocator &allocator) const
     for (const std::shared_ptr<Primitive> &t : _primitives)
         primitives.PushBack(t->toJson(allocator), allocator);
 
+    rapidjson::Value media(rapidjson::kArrayType);
+    for (const std::shared_ptr<Medium> &b : _media)
+        media.PushBack(b->toJson(allocator), allocator);
+
     rapidjson::Value bsdfs(rapidjson::kArrayType);
     for (const std::shared_ptr<Bsdf> &b : _bsdfs)
         bsdfs.PushBack(b->toJson(allocator), allocator);
 
+    v.AddMember("media", media, allocator);
     v.AddMember("bsdfs", bsdfs, allocator);
     v.AddMember("primitives", primitives, allocator);
     v.AddMember("camera", _camera->toJson(allocator), allocator);

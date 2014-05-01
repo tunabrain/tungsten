@@ -6,7 +6,7 @@
 #include "Bsdf.hpp"
 
 #include "sampling/SampleGenerator.hpp"
-#include "sampling/ScatterEvent.hpp"
+#include "sampling/SurfaceScatterEvent.hpp"
 #include "sampling/Sample.hpp"
 
 #include "math/Angle.hpp"
@@ -40,7 +40,7 @@ public:
             return false;
         if (event.wi.z() <= 0.0f)
             return false;
-        event.wo  = Sample::cosineHemisphere(event.sampler.next2D());
+        event.wo  = Sample::cosineHemisphere(event.sampler->next2D());
         event.pdf = Sample::cosineHemispherePdf(event.wo);
         event.throughput = base(event.info);
         event.sampledLobe = BsdfLobes::DiffuseReflectionLobe;

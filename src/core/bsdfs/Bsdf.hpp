@@ -7,7 +7,7 @@
 
 #include "materials/Texture.hpp"
 
-#include "sampling/ScatterEvent.hpp"
+#include "sampling/SurfaceScatterEvent.hpp"
 
 #include "math/TangentFrame.hpp"
 #include "math/Vec.hpp"
@@ -28,8 +28,6 @@ class Bsdf : public JsonSerializable
 protected:
     BsdfLobes _lobes;
 
-    Vec3f _emission;
-
     std::shared_ptr<Medium> _intMedium, _extMedium;
 
     std::shared_ptr<TextureRgb> _base;
@@ -37,9 +35,9 @@ protected:
     std::shared_ptr<TextureA> _bump;
     float _bumpStrength;
 
-    Vec3f base(const IntersectionInfo &info) const
+    Vec3f base(const IntersectionInfo *info) const
     {
-        return (*_base)[info.uv];
+        return (*_base)[info->uv];
     }
 
 public:
@@ -48,8 +46,7 @@ public:
     }
 
     Bsdf()
-    : _emission(0.0f),
-      _base(std::make_shared<ConstantTextureRgb>(Vec3f(1.0f))),
+    : _base(std::make_shared<ConstantTextureRgb>(Vec3f(1.0f))),
       _alpha(std::make_shared<ConstantTextureA>(1.0f)),
       _bump(std::make_shared<ConstantTextureA>(0.0f)),
       _bumpStrength(10.0f)
@@ -88,14 +85,9 @@ public:
         dst = TangentFrame(N, T, B);
     }
 
-    virtual float alpha(const IntersectionInfo &info) const
+    virtual float alpha(const IntersectionInfo *info) const
     {
-        return (*_alpha)[info.uv];
-    }
-
-    void setupScatter(SurfaceScatterEvent &event) const
-    {
-        event.throughput = (*_base)[event.info.uv];
+        return (*_alpha)[info->uv];
     }
 
     virtual bool sample(SurfaceScatterEvent &event) const = 0;
@@ -105,26 +97,6 @@ public:
     const BsdfLobes &flags() const
     {
         return _lobes;
-    }
-
-    void setEmission(const Vec3f &e)
-    {
-        _emission = e;
-    }
-
-    const Vec3f &emission() const
-    {
-        return _emission;
-    }
-
-    float power() const
-    {
-        return _emission.max();
-    }
-
-    bool isEmissive() const
-    {
-        return _emission.max() > 0.0f;
     }
 
     void setColor(const std::shared_ptr<TextureRgb> &c)
@@ -170,6 +142,16 @@ public:
     const std::shared_ptr<TextureA> &bump() const
     {
         return _bump;
+    }
+
+    const std::shared_ptr<Medium> &extMedium() const
+    {
+        return _extMedium;
+    }
+
+    const std::shared_ptr<Medium> &intMedium() const
+    {
+        return _intMedium;
     }
 };
 

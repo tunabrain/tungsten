@@ -10,33 +10,20 @@ namespace Tungsten {
 class RoughDielectricBsdf : public Bsdf
 {
     static constexpr Microfacet::Distribution distribution = Microfacet::Beckmann;
-    float _roughness;
+    std::shared_ptr<TextureA> _roughness;
     float _ior;
 
 public:
 
     RoughDielectricBsdf()
-    : _roughness(0.1f),
+    : _roughness(std::make_shared<ConstantTextureA>(0.1f)),
       _ior(1.5f)
     {
         _lobes = BsdfLobes(BsdfLobes::GlossyReflectionLobe | BsdfLobes::GlossyTransmissionLobe);
     }
 
-    virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override
-    {
-        Bsdf::fromJson(v, scene);
-        JsonUtils::fromJson(v, "roughness", _roughness);
-        JsonUtils::fromJson(v, "ior", _ior);
-    }
-
-    virtual rapidjson::Value toJson(Allocator &allocator) const
-    {
-        rapidjson::Value v = Bsdf::toJson(allocator);
-        v.AddMember("type", "rough_dielectric", allocator);
-        v.AddMember("roughness", _roughness, allocator);
-        v.AddMember("ior", _ior, allocator);
-        return std::move(v);
-    }
+    virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
+    virtual rapidjson::Value toJson(Allocator &allocator) const;
 
     bool sample(SurfaceScatterEvent &event) const override final
     {
@@ -46,11 +33,12 @@ public:
 
         float eta = wiDotN < 0.0f ? _ior : 1.0f/_ior;
 
-        float sampleRoughness = (1.2f - 0.2f*std::sqrt(std::abs(wiDotN)))*_roughness;
-        float alpha = Microfacet::roughnessToAlpha(distribution, _roughness);
+        float roughness = (*_roughness)[event.info->uv];
+        float sampleRoughness = (1.2f - 0.2f*std::sqrt(std::abs(wiDotN)))*roughness;
+        float alpha = Microfacet::roughnessToAlpha(distribution, roughness);
         float sampleAlpha = Microfacet::roughnessToAlpha(distribution, sampleRoughness);
 
-        Vec3f m = Microfacet::sample(distribution, sampleAlpha, event.sampler.next2D());
+        Vec3f m = Microfacet::sample(distribution, sampleAlpha, event.sampler->next2D());
         float pm = Microfacet::pdf(distribution, sampleAlpha, m);
 
         if (pm < 1e-10f)
@@ -63,7 +51,7 @@ public:
 
         bool reflect;
         if (sampleR && sampleT) {
-            reflect = event.supplementalSampler.next1D() < F;
+            reflect = event.supplementalSampler->next1D() < F;
         } else if (sampleT) {
             if (F == 1.0f)
                 return false;
@@ -119,7 +107,8 @@ public:
         if ((reflect && !sampleR) || (!reflect && !sampleT))
             return Vec3f(0.0f);
 
-        float alpha = Microfacet::roughnessToAlpha(distribution, _roughness);
+        float roughness = (*_roughness)[event.info->uv];
+        float alpha = Microfacet::roughnessToAlpha(distribution, roughness);
 
         float eta = wiDotN < 0.0f ? _ior : 1.0f/_ior;
         Vec3f m;
@@ -154,7 +143,8 @@ public:
         if ((reflect && !sampleR) || (!reflect && !sampleT))
             return 0.0f;
 
-        float sampleRoughness = (1.2f - 0.2f*std::sqrt(std::abs(wiDotN)))*_roughness;
+        float roughness = (*_roughness)[event.info->uv];
+        float sampleRoughness = (1.2f - 0.2f*std::sqrt(std::abs(wiDotN)))*roughness;
         float sampleAlpha = Microfacet::roughnessToAlpha(distribution, sampleRoughness);
 
         float eta = wiDotN < 0.0f ? _ior : 1.0f/_ior;
@@ -178,7 +168,7 @@ public:
         return _ior;
     }
 
-    float roughness() const {
+    const std::shared_ptr<TextureA> &roughness() const {
         return _roughness;
     }
 };

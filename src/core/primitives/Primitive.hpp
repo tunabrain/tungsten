@@ -1,6 +1,8 @@
 #ifndef PRIMITIVE_HPP_
 #define PRIMITIVE_HPP_
 
+#include "materials/Texture.hpp"
+
 #include "sampling/LightSample.hpp"
 
 #include "math/Mat4f.hpp"
@@ -32,6 +34,7 @@ class Primitive : public JsonSerializable
 {
 protected:
     std::shared_ptr<Bsdf> _bsdf;
+    std::shared_ptr<TextureRgb> _emission;
 
     Mat4f _transform;
 
@@ -86,7 +89,28 @@ public:
 
     virtual bool invertParametrization(Vec2f uv, Vec3f &pos) const = 0;
 
+
+    bool isEmissive() const
+    {
+        return _emission.operator bool();
+    }
+
+    Vec3f emission(const IntersectionTemporary &data, const IntersectionInfo &info) const
+    {
+        if (!_emission)
+            return Vec3f(0.0f);
+        if (hitBackside(data))
+            return Vec3f(0.0f);
+        return (*_emission)[info.uv];
+    }
+
+    void setEmission(const std::shared_ptr<TextureRgb> &emission)
+    {
+        _emission = emission;
+    }
+
     virtual bool isDelta() const = 0;
+    virtual bool isInfinite() const = 0;
 
     virtual Box3f bounds() const = 0;
 
@@ -119,6 +143,11 @@ public:
     const std::shared_ptr<Bsdf> &bsdf() const
     {
         return _bsdf;
+    }
+
+    const std::shared_ptr<TextureRgb> &emission() const
+    {
+        return _emission;
     }
 };
 

@@ -12,6 +12,7 @@
 #include "bsdfs/RoughConductorBsdf.hpp"
 #include "bsdfs/DielectricBsdf.hpp"
 #include "bsdfs/SmoothCoatBsdf.hpp"
+#include "bsdfs/ConductorBsdf.hpp"
 #include "bsdfs/LambertBsdf.hpp"
 #include "bsdfs/PhongBsdf.hpp"
 #include "bsdfs/MixedBsdf.hpp"
@@ -151,7 +152,7 @@ class SceneXmlWriter
 
     void convertSpectrum(const std::string &name, float v)
     {
-        convert("spectrum", name, v);
+        convert(name, v);
     }
 
     void convertSpectrum(const std::string &name, const Vec3f &v)
@@ -220,7 +221,7 @@ class SceneXmlWriter
         if (!bsdf->unnamed())
             assign("id", bsdf->name());
         beginPost();
-        convert("weight", bsdf->ratio());
+        convert("weight", bsdf->ratio().get());
         if (bsdf->bsdf0()->unnamed())
             convert(bsdf->bsdf0().get());
         else {
@@ -261,6 +262,20 @@ class SceneXmlWriter
         end();
     }
 
+    void convert(ConductorBsdf *bsdf)
+    {
+        begin("bsdf");
+        assign("type", "conductor");
+        if (!bsdf->unnamed())
+            assign("id", bsdf->name());
+        beginPost();
+        convert("extEta", 1.0f);
+        convert("specularReflectance", bsdf->color().get());
+        convertSpectrum("eta", bsdf->eta());
+        convertSpectrum("k", bsdf->k());
+        end();
+    }
+
     void convert(RoughConductorBsdf *bsdf)
     {
         begin("bsdf");
@@ -268,7 +283,7 @@ class SceneXmlWriter
         if (!bsdf->unnamed())
             assign("id", bsdf->name());
         beginPost();
-        convert("alpha", bsdf->roughness());
+        convert("alpha", bsdf->roughness().get());
         convert("distribution", "ggx");
         convert("extEta", 1.0f);
         convert("specularReflectance", bsdf->color().get());
@@ -284,7 +299,7 @@ class SceneXmlWriter
         if (!bsdf->unnamed())
             assign("id", bsdf->name());
         beginPost();
-        convert("alpha", bsdf->roughness());
+        convert("alpha", bsdf->roughness().get());
         convert("distribution", "beckmann");
         convert("intIOR", bsdf->ior());
         convert("extIOR", 1.0f);
@@ -339,6 +354,8 @@ class SceneXmlWriter
         else if (DielectricBsdf *bsdf2 = dynamic_cast<DielectricBsdf *>(bsdf))
             convert(bsdf2);
         else if (MirrorBsdf *bsdf2 = dynamic_cast<MirrorBsdf *>(bsdf))
+            convert(bsdf2);
+        else if (ConductorBsdf *bsdf2 = dynamic_cast<ConductorBsdf *>(bsdf))
             convert(bsdf2);
         else if (RoughConductorBsdf *bsdf2 = dynamic_cast<RoughConductorBsdf *>(bsdf))
             convert(bsdf2);
@@ -446,7 +463,7 @@ class SceneXmlWriter
         assign("type", "rectangle");
         beginPost();
         convert("toWorld", prim->transform()*
-                Mat4f::rotXYZ(Vec3f(-90.0f, 0.0f, 0.0f))*
+                Mat4f::rotXYZ(Vec3f(90.0f, 0.0f, 0.0f))*
                 Mat4f::scale(Vec3f(0.5f)));
     }
 
@@ -470,11 +487,11 @@ class SceneXmlWriter
             assign("id", prim->bsdf()->name());
             endInline();
         }
-        if (prim->bsdf()->isEmissive()) {
+        if (prim->isEmissive()) {
             begin("emitter");
             assign("type", "area");
             beginPost();
-            convertSpectrum("radiance", prim->bsdf()->emission());//*prim->area());
+            convert("radiance", prim->emission().get());//*prim->area());
             end();
         }
         end();

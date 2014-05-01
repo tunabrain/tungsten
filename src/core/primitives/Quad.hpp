@@ -138,7 +138,7 @@ public:
         if (_n.dot(sample.p - _base) < 0.0f)
             return false;
 
-        Vec2f xi = sample.sampler.next2D();
+        Vec2f xi = sample.sampler->next2D();
         Vec3f q = _base + xi.x()*_edge0 + xi.y()*_edge1;
         sample.d = q - sample.p;
         float rSq = sample.d.lengthSq();
@@ -151,9 +151,9 @@ public:
 
     virtual bool sampleOutboundDirection(LightSample &sample) const
     {
-        Vec2f xi = sample.sampler.next2D();
+        Vec2f xi = sample.sampler->next2D();
         sample.p = _base + xi.x()*_edge0 + xi.y()*_edge1;
-        sample.d = Sample::cosineHemisphere(sample.sampler.next2D());
+        sample.d = Sample::cosineHemisphere(sample.sampler->next2D());
         sample.pdf = Sample::cosineHemispherePdf(sample.d)/_area;
         TangentFrame frame(_n);
         sample.d = frame.toGlobal(sample.d);
@@ -167,6 +167,11 @@ public:
     }
 
     virtual bool isDelta() const
+    {
+        return false;
+    }
+
+    virtual bool isInfinite() const
     {
         return false;
     }

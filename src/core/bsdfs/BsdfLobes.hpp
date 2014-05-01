@@ -20,6 +20,7 @@ public:
         SpecularReflectionLobe   = (1 << 4),
         SpecularTransmissionLobe = (1 << 5),
         AnisotropicLobe          = (1 << 6),
+        ForwardLobe              = (1 << 7),
 
         GlossyLobe   =   GlossyReflectionLobe |   GlossyTransmissionLobe,
         DiffuseLobe  =  DiffuseReflectionLobe |  DiffuseTransmissionLobe,
@@ -98,6 +99,11 @@ public:
     bool isAnisotropic() const
     {
         return (_lobes & AnisotropicLobe) != 0;
+    }
+
+    bool isForward() const
+    {
+        return (_lobes & ForwardLobe) != 0;
     }
 };
 
