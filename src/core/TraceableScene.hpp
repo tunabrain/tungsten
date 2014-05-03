@@ -38,6 +38,7 @@ class TraceableScene
 
     Camera &_cam;
     std::vector<std::shared_ptr<Primitive>> &_primitives;
+    std::vector<std::shared_ptr<Medium>> &_media;
     std::vector<std::shared_ptr<Primitive>> _lights;
     std::vector<std::shared_ptr<Primitive>> _infinites;
 
@@ -48,14 +49,19 @@ class TraceableScene
 public:
     TraceableScene(TraceableScene &&o) = default;
 
-    TraceableScene(Camera &cam, std::vector<std::shared_ptr<Primitive>> &primitives)
+    TraceableScene(Camera &cam, std::vector<std::shared_ptr<Primitive>> &primitives,
+            std::vector<std::shared_ptr<Medium>> &media)
     : _cam(cam),
-      _primitives(primitives)
+      _primitives(primitives),
+      _media(media)
     {
         _virtualIntersector.intersectPtr = &intersect;
         _virtualIntersector.occludedPtr = &occluded;
 
         _cam.prepareForRender();
+
+        for (std::shared_ptr<Medium> &m : _media)
+            m->prepareForRender();
 
         int finiteCount = 0;
         for (std::shared_ptr<Primitive> &m : _primitives) {
@@ -96,6 +102,9 @@ public:
     {
         _cam.teardownAfterRender();
 
+        for (std::shared_ptr<Medium> &m : _media)
+            m->cleanupAfterRender();
+
         for (std::shared_ptr<Primitive> &m : _primitives)
             m->cleanupAfterRender();
 
@@ -117,6 +126,7 @@ public:
 
         if (data.primitive) {
             info.p = ray.pos() + ray.dir()*ray.farT();
+            info.w = ray.dir();
             data.primitive->intersectionInfo(data, info);
             return true;
         } else {
@@ -134,6 +144,7 @@ public:
 
         if (data.primitive) {
             info.p = ray.pos() + ray.dir()*ray.farT();
+            info.w = ray.dir();
             data.primitive->intersectionInfo(data, info);
             return true;
         } else {

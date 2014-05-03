@@ -176,6 +176,31 @@ public:
         return false;
     }
 
+    virtual float approximateRadiance(const Vec3f &p) const override final
+    {
+        if (!isEmissive())
+            return 0.0f;
+        Vec3f R0 = _base - p;
+
+        if (R0.dot(_n) >= 0.0f)
+            return 0.0f;
+
+        Vec3f R1 = R0 + _edge0;
+        Vec3f R2 = R1 + _edge1;
+        Vec3f R3 = R0 + _edge1;
+        Vec3f n0 = R0.cross(R1).normalized();
+        Vec3f n1 = R1.cross(R2).normalized();
+        Vec3f n2 = R2.cross(R3).normalized();
+        Vec3f n3 = R3.cross(R0).normalized();
+        float Q =
+              std::acos(n0.dot(n1))
+            + std::acos(n1.dot(n2))
+            + std::acos(n2.dot(n3))
+            + std::acos(n3.dot(n0));
+
+        return std::abs(Q)*_emission->average().max();
+    }
+
     virtual Box3f bounds() const
     {
         Box3f result;

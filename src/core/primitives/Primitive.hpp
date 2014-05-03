@@ -25,6 +25,7 @@ struct IntersectionInfo
     Vec3f Ng;
     Vec3f Ns;
     Vec3f p;
+    Vec3f w;
     Vec2f uv;
 
     const Primitive *primitive;
@@ -111,6 +112,8 @@ public:
 
     virtual bool isDelta() const = 0;
     virtual bool isInfinite() const = 0;
+
+    virtual float approximateRadiance(const Vec3f &p) const = 0;
 
     virtual Box3f bounds() const = 0;
 

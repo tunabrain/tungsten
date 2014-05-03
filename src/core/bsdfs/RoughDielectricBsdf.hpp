@@ -9,17 +9,27 @@ namespace Tungsten {
 
 class RoughDielectricBsdf : public Bsdf
 {
-    static constexpr Microfacet::Distribution distribution = Microfacet::Beckmann;
+    std::string _distributionName;
+
     std::shared_ptr<TextureA> _roughness;
     float _ior;
+
+    Microfacet::Distribution _distribution;
+
+    void init()
+    {
+        _distribution = Microfacet::stringToType(_distributionName);
+    }
 
 public:
 
     RoughDielectricBsdf()
-    : _roughness(std::make_shared<ConstantTextureA>(0.1f)),
+    : _distributionName("ggx"),
+      _roughness(std::make_shared<ConstantTextureA>(0.1f)),
       _ior(1.5f)
     {
         _lobes = BsdfLobes(BsdfLobes::GlossyReflectionLobe | BsdfLobes::GlossyTransmissionLobe);
+        init();
     }
 
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
@@ -35,11 +45,11 @@ public:
 
         float roughness = (*_roughness)[event.info->uv];
         float sampleRoughness = (1.2f - 0.2f*std::sqrt(std::abs(wiDotN)))*roughness;
-        float alpha = Microfacet::roughnessToAlpha(distribution, roughness);
-        float sampleAlpha = Microfacet::roughnessToAlpha(distribution, sampleRoughness);
+        float alpha = Microfacet::roughnessToAlpha(_distribution, roughness);
+        float sampleAlpha = Microfacet::roughnessToAlpha(_distribution, sampleRoughness);
 
-        Vec3f m = Microfacet::sample(distribution, sampleAlpha, event.sampler->next2D());
-        float pm = Microfacet::pdf(distribution, sampleAlpha, m);
+        Vec3f m = Microfacet::sample(_distribution, sampleAlpha, event.sampler->next2D());
+        float pm = Microfacet::pdf(_distribution, sampleAlpha, m);
 
         if (pm < 1e-10f)
             return false;
@@ -80,8 +90,8 @@ public:
             return false;
 
         float woDotM = event.wo.dot(m);
-        float G = Microfacet::G(distribution, alpha, event.wi, event.wo, m);
-        float D = Microfacet::D(distribution, alpha, m);
+        float G = Microfacet::G(_distribution, alpha, event.wi, event.wo, m);
+        float D = Microfacet::D(_distribution, alpha, m);
         event.throughput = base(event.info)*std::abs(wiDotM)*G*D/(std::abs(wiDotN)*pm);
 
         if (reflect)
@@ -108,7 +118,7 @@ public:
             return Vec3f(0.0f);
 
         float roughness = (*_roughness)[event.info->uv];
-        float alpha = Microfacet::roughnessToAlpha(distribution, roughness);
+        float alpha = Microfacet::roughnessToAlpha(_distribution, roughness);
 
         float eta = wiDotN < 0.0f ? _ior : 1.0f/_ior;
         Vec3f m;
@@ -119,8 +129,8 @@ public:
         float wiDotM = event.wi.dot(m);
         float woDotM = event.wo.dot(m);
         float F = Fresnel::dielectricReflectance(1.0f/_ior, wiDotM);
-        float G = Microfacet::G(distribution, alpha, event.wi, event.wo, m);
-        float D = Microfacet::D(distribution, alpha, m);
+        float G = Microfacet::G(_distribution, alpha, event.wi, event.wo, m);
+        float D = Microfacet::D(_distribution, alpha, m);
         Vec3f throughput = base(event.info);
 
         if (reflect) {
@@ -145,7 +155,7 @@ public:
 
         float roughness = (*_roughness)[event.info->uv];
         float sampleRoughness = (1.2f - 0.2f*std::sqrt(std::abs(wiDotN)))*roughness;
-        float sampleAlpha = Microfacet::roughnessToAlpha(distribution, sampleRoughness);
+        float sampleAlpha = Microfacet::roughnessToAlpha(_distribution, sampleRoughness);
 
         float eta = wiDotN < 0.0f ? _ior : 1.0f/_ior;
         Vec3f m;
@@ -156,7 +166,7 @@ public:
         float wiDotM = event.wi.dot(m);
         float woDotM = event.wo.dot(m);
         float F = Fresnel::dielectricReflectance(1.0f/_ior, wiDotM);
-        float pm = Microfacet::pdf(distribution, sampleAlpha, m);
+        float pm = Microfacet::pdf(_distribution, sampleAlpha, m);
 
         if (reflect)
             return F*pm*0.25f/std::abs(wiDotM);

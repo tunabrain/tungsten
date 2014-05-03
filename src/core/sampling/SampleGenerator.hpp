@@ -8,6 +8,7 @@
 #include "math/MathUtil.hpp"
 
 #include "Config.hpp"
+#include "Debug.hpp"
 
 namespace Tungsten
 {
@@ -77,6 +78,8 @@ public:
 
     uint32 nextI() override final
     {
+        if (_dimension >= 1024)
+            FAIL("Sobol sampler dimension > 1024!");
         return sobol::sample(permutedIndex(), _dimension++, _scramble);// + _scramble;
     }
 };

@@ -17,6 +17,7 @@ class Medium : public JsonSerializable
 protected:
     std::string _phaseFunctionName;
     float _phaseG;
+    int _maxBounce;
 
     PhaseFunction::Type _phaseFunction;
 
@@ -26,9 +27,30 @@ protected:
     }
 
 public:
+
+    struct MediumState
+    {
+        bool firstScatter;
+        int component;
+        int bounce;
+
+        void reset()
+        {
+            firstScatter = true;
+            bounce = 0;
+        }
+
+        void advance()
+        {
+            firstScatter = false;
+            bounce++;
+        }
+    };
+
     Medium()
     : _phaseFunctionName("isotropic"),
-      _phaseG(0.0f)
+      _phaseG(0.0f),
+      _maxBounce(1024)
     {
         init();
     }
@@ -38,6 +60,7 @@ public:
         JsonSerializable::fromJson(v, scene);
         JsonUtils::fromJson(v, "phase_function", _phaseFunctionName);
         JsonUtils::fromJson(v, "phase_g", _phaseG);
+        JsonUtils::fromJson(v, "max_bounces", _maxBounce);
         init();
     }
 
@@ -46,21 +69,25 @@ public:
         rapidjson::Value v(JsonSerializable::toJson(allocator));
         v.AddMember("phase_function", _phaseFunctionName.c_str(), allocator);
         v.AddMember("phase_g", _phaseG, allocator);
+        v.AddMember("max_bounces", _maxBounce, allocator);
 
         return std::move(v);
     }
 
     virtual bool isHomogeneous() const = 0;
 
-    virtual Vec3f avgSigmaA() const = 0;
-    virtual Vec3f avgSigmaS() const = 0;
-    virtual Vec3f minSigmaA() const = 0;
-    virtual Vec3f minSigmaS() const = 0;
-    virtual Vec3f maxSigmaA() const = 0;
-    virtual Vec3f maxSigmaS() const = 0;
+//  virtual Vec3f avgSigmaA() const = 0;
+//  virtual Vec3f avgSigmaS() const = 0;
+//  virtual Vec3f minSigmaA() const = 0;
+//  virtual Vec3f minSigmaS() const = 0;
+//  virtual Vec3f maxSigmaA() const = 0;
+//  virtual Vec3f maxSigmaS() const = 0;
 
-    virtual bool sampleDistance(VolumeScatterEvent &event) const = 0;
-    virtual bool absorb(VolumeScatterEvent &event) const = 0;
+    virtual void prepareForRender() = 0;
+    virtual void cleanupAfterRender() = 0;
+
+    virtual bool sampleDistance(VolumeScatterEvent &event, MediumState &data) const = 0;
+    virtual bool absorb(VolumeScatterEvent &event, MediumState &data) const = 0;
     virtual bool scatter(VolumeScatterEvent &event) const = 0;
     virtual Vec3f transmittance(const VolumeScatterEvent &event) const = 0;
     virtual Vec3f emission(const VolumeScatterEvent &event) const = 0;

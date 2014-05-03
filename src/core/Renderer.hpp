@@ -145,7 +145,7 @@ class Renderer
         }
     }
 
-    void generateWork(uint32 sppFrom, uint32 sppTo)
+    bool generateWork(uint32 sppFrom, uint32 sppTo)
     {
         for (SampleRecord &record : _samples)
             record.sampleIndex += record.nextSampleCount;
@@ -164,23 +164,27 @@ class Renderer
             spentSamples = sampleBudget;
             maxSamples = sppTo - sppFrom;
         } else {
-            std::vector<float> errors(_samples.size());
+            std::vector<float> errors;
+            errors.reserve(_samples.size());
             for (size_t i = 0; i < _samples.size(); ++i) {
                 _samples[i].adaptiveWeight = _samples[i].errorEstimate();
-                errors[i] = _samples[i].adaptiveWeight;
+                if (_samples[i].adaptiveWeight > 0.0f)
+                    errors.push_back(_samples[i].adaptiveWeight);
             }
+            if (errors.empty())
+                return false;
             std::sort(errors.begin(), errors.end());
             float maxError = errors[(errors.size()*95)/100];
-            double sum = 0.0;
             for (SampleRecord &record : _samples)
                 record.adaptiveWeight = min(record.adaptiveWeight, maxError);
 
             dilateAdaptiveWeights();
 
+            double sum = 0.0;
             for (SampleRecord &record : _samples)
                 sum += record.adaptiveWeight;
-            if (sum == 0.0)
-                return;
+            if (sum == 0.0f)
+                return false;
             float sampleFactor = double((sampleBudget - _w*_h)/(VarianceTileSize*VarianceTileSize))/sum;
             float pixelPdf = 0.0f;
             for (SampleRecord &record : _samples) {
@@ -203,6 +207,8 @@ class Renderer
 
         for (ImageTile &tile : _tiles)
             _tileQueue.push(&tile);
+
+        return true;
     }
 
     template<typename FinishCallback>
@@ -265,7 +271,10 @@ public:
     {
         _workerCount = 0;
         _abortRender = false;
-        generateWork(sppFrom, sppTo);
+        if (!generateWork(sppFrom, sppTo)) {
+            finishCallback();
+            return;
+        }
 
         for (uint32 i = 0; i < threadCount; ++i)
             _workerThreads.emplace_back(&Renderer::renderTiles<FinishCallback>, this, finishCallback);

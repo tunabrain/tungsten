@@ -3,6 +3,8 @@
 
 #include "Medium.hpp"
 
+#include <iostream>
+
 namespace Tungsten
 {
 
@@ -12,15 +14,17 @@ class HomogeneousMedium : public Medium
 
     Vec3f _sigmaT;
     Vec3f _albedo;
-    float _avgAlbedo;
+    float _maxAlbedo;
     float _absorptionWeight;
+    bool _absorptionOnly;
 
     void init()
     {
         _sigmaT = _sigmaA + _sigmaS;
         _albedo = _sigmaS/_sigmaT;
-        _avgAlbedo = _albedo.avg();
-        _absorptionWeight = 1.0f/_avgAlbedo;
+        _maxAlbedo = _albedo.max();
+        _absorptionWeight = 1.0f/_maxAlbedo;
+        _absorptionOnly = _maxAlbedo == 0.0f;
     }
 
 public:
@@ -55,31 +59,49 @@ public:
         return true;
     }
 
-    Vec3f avgSigmaA() const override { return _sigmaA; }
-    Vec3f avgSigmaS() const override { return _sigmaS; }
-    Vec3f minSigmaA() const override { return _sigmaA; }
-    Vec3f minSigmaS() const override { return _sigmaS; }
-    Vec3f maxSigmaA() const override { return _sigmaA; }
-    Vec3f maxSigmaS() const override { return _sigmaS; }
-
-    bool sampleDistance(VolumeScatterEvent &event) const override
+    virtual void prepareForRender() override final
     {
-        int component = event.supplementalSampler->nextI() % 3;
-        float sigmaTc = _sigmaT[component];
+    }
 
-        float t = -std::log(1.0f - event.sampler->next1D())/sigmaTc;
-        t = min(t, event.maxT);
-        event.t = t;
-        event.throughput = std::exp(-event.t*(_sigmaT - sigmaTc));
+    virtual void cleanupAfterRender() override final
+    {
+    }
+
+    Vec3f sigmaA() const { return _sigmaA; }
+    Vec3f sigmaS() const { return _sigmaS; }
+//  Vec3f avgSigmaA() const override { return _sigmaA; }
+//  Vec3f avgSigmaS() const override { return _sigmaS; }
+//  Vec3f minSigmaA() const override { return _sigmaA; }
+//  Vec3f minSigmaS() const override { return _sigmaS; }
+//  Vec3f maxSigmaA() const override { return _sigmaA; }
+//  Vec3f maxSigmaS() const override { return _sigmaS; }
+
+    bool sampleDistance(VolumeScatterEvent &event, MediumState &/*data*/) const override
+    {
+        if (_absorptionOnly) {
+            event.t = event.maxT;
+            event.throughput = std::exp(-_sigmaT*event.t);
+        } else {
+            int component = event.supplementalSampler->nextI() % 3;
+            float sigmaTc = _sigmaT[component];
+
+            float t = -std::log(1.0f - event.sampler->next1D())/sigmaTc;
+            event.t = min(t, event.maxT);
+            event.throughput = std::exp(-event.t*_sigmaT);
+            if (t < event.maxT)
+                event.throughput /= (_sigmaT*event.throughput).avg();
+            else
+                event.throughput /= event.throughput.avg();
+        }
 
         return true;
     }
 
-    bool absorb(VolumeScatterEvent &event) const
+    bool absorb(VolumeScatterEvent &event, MediumState &/*data*/) const
     {
-        if (event.sampler->next1D() >= _avgAlbedo)
+        if (event.sampler->next1D() >= _maxAlbedo)
             return true;
-        event.throughput *= _absorptionWeight;
+        event.throughput = Vec3f(_absorptionWeight);
         return false;
     }
 
@@ -87,7 +109,7 @@ public:
     {
         event.wo = PhaseFunction::sample(_phaseFunction, _phaseG, event.sampler->next2D());
         event.pdf = PhaseFunction::eval(_phaseFunction, event.wo.z(), _phaseG);
-        event.throughput *= _albedo;
+        event.throughput *= _sigmaS;
         TangentFrame frame(event.wi);
         event.wo = frame.toGlobal(event.wo);
         return true;
@@ -105,7 +127,7 @@ public:
 
     Vec3f eval(const VolumeScatterEvent &event) const
     {
-        return _albedo*PhaseFunction::eval(_phaseFunction, event.wi.dot(event.wo), _phaseG);
+        return _sigmaS*PhaseFunction::eval(_phaseFunction, event.wi.dot(event.wo), _phaseG);
     }
 };
 

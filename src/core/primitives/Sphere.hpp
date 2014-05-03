@@ -179,6 +179,22 @@ public:
         return false;
     }
 
+    float solidAngle(const Vec3f &p) const
+    {
+        Vec3f L = _pos - p;
+        float d = L.length();
+        float cosTheta = std::sqrt(max(d*d - _radius*_radius, 0.0f))/d;
+
+        return TWO_PI*(1.0f - cosTheta);
+    }
+
+    virtual float approximateRadiance(const Vec3f &p) const override final
+    {
+        if (!isEmissive())
+            return 0.0f;
+        return solidAngle(p)*_emission->average().max();
+    }
+
     virtual Box3f bounds() const
     {
         return Box3f(_pos - _radius, _pos + _radius);

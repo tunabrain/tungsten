@@ -64,14 +64,22 @@ public:
         return false;
     }
 
-    Vec3f avgSigmaA() const override { return _sigmaA; }
-    Vec3f avgSigmaS() const override { return _sigmaS; }
-    Vec3f minSigmaA() const override { return _sigmaA; }
-    Vec3f minSigmaS() const override { return _sigmaS; }
-    Vec3f maxSigmaA() const override { return _sigmaA; }
-    Vec3f maxSigmaS() const override { return _sigmaS; }
+    virtual void prepareForRender() override final
+    {
+    }
 
-    bool sampleDistance(VolumeScatterEvent &event) const override
+    virtual void cleanupAfterRender() override final
+    {
+    }
+
+//  Vec3f avgSigmaA() const override { return _sigmaA; }
+//  Vec3f avgSigmaS() const override { return _sigmaS; }
+//  Vec3f minSigmaA() const override { return _sigmaA; }
+//  Vec3f minSigmaS() const override { return _sigmaS; }
+//  Vec3f maxSigmaA() const override { return _sigmaA; }
+//  Vec3f maxSigmaS() const override { return _sigmaS; }
+
+    bool sampleDistance(VolumeScatterEvent &event, MediumState &/*data*/) const override
     {
         int component = event.supplementalSampler->nextI() % 3;
         float sigmaTc = _sigmaT[component];
@@ -107,7 +115,7 @@ public:
         return true;
     }
 
-    bool absorb(VolumeScatterEvent &event) const
+    bool absorb(VolumeScatterEvent &event, MediumState &/*data*/) const
     {
         if (event.sampler->next1D() >= _avgAlbedo)
             return true;

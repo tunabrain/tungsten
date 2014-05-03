@@ -367,6 +367,11 @@ public:
         return false;
     }
 
+    virtual float approximateRadiance(const Vec3f &/*p*/) const override final
+    {
+        return -1.0f;
+    }
+
     virtual Primitive *clone()
     {
         return new TriangleMesh(*this);

@@ -16,12 +16,14 @@
 
 #include "volume/HeterogeneousMedium.hpp"
 #include "volume/HomogeneousMedium.hpp"
+#include "volume/AtmosphericMedium.hpp"
 
 #include "bsdfs/RoughDielectricBsdf.hpp"
 #include "bsdfs/RoughConductorBsdf.hpp"
 #include "bsdfs/DielectricBsdf.hpp"
 #include "bsdfs/ConductorBsdf.hpp"
 #include "bsdfs/SmoothCoatBsdf.hpp"
+#include "bsdfs/ThinSheetBsdf.hpp"
 #include "bsdfs/LambertBsdf.hpp"
 #include "bsdfs/PhongBsdf.hpp"
 #include "bsdfs/ForwardBsdf.hpp"
@@ -45,6 +47,8 @@ std::shared_ptr<Medium> Scene::instantiateMedium(std::string type, const rapidjs
         result = std::make_shared<HomogeneousMedium>();
     else if (type == "heterogeneous")
         result = std::make_shared<HeterogeneousMedium>();
+    else if (type == "atmosphere")
+        result = std::make_shared<AtmosphericMedium>();
     else
         FAIL("Unkown medium type: '%s'", type.c_str());
     result->fromJson(value, *this);
@@ -76,6 +80,8 @@ std::shared_ptr<Bsdf> Scene::instantiateBsdf(std::string type, const rapidjson::
         result = std::make_shared<NullBsdf>();
     else if (type == "forward")
         result = std::make_shared<ForwardBsdf>();
+    else if (type == "thinsheet")
+        result = std::make_shared<ThinSheetBsdf>();
     else
         FAIL("Unkown bsdf type: '%s'", type.c_str());
     result->fromJson(value, *this);
@@ -271,6 +277,14 @@ std::shared_ptr<TextureA> Scene::fetchScalarMap(const std::string &path) const
     return tex;
 }
 
+const Primitive *Scene::findPrimitive(const std::string &name) const
+{
+    for (const std::shared_ptr<Primitive> &m : _primitives)
+        if (m->name() == name)
+            return m.get();
+    return nullptr;
+}
+
 template<typename T>
 bool Scene::addUnique(const std::shared_ptr<T> &o, std::vector<std::shared_ptr<T>> &list)
 {
@@ -440,7 +454,7 @@ void Scene::deletePrimitives(const std::unordered_set<Primitive *> &primitives)
 
 TraceableScene *Scene::makeTraceable()
 {
-    return new TraceableScene(*_camera, _primitives);
+    return new TraceableScene(*_camera, _primitives, _media);
 }
 
 Scene *Scene::load(const std::string &path)

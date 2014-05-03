@@ -127,6 +127,13 @@ public:
         return true;
     }
 
+    virtual float approximateRadiance(const Vec3f &/*p*/) const override final
+    {
+        if (!isEmissive() || !isSamplable())
+            return 0.0f;
+        return TWO_PI*_emission->average().max();
+    }
+
     virtual Box3f bounds() const
     {
         return Box3f(Vec3f(-1e30f), Vec3f(1e30f));

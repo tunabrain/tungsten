@@ -85,6 +85,8 @@ public:
     std::shared_ptr<TextureRgb> fetchColorMap(const std::string &path) const;
     std::shared_ptr<TextureA> fetchScalarMap(const std::string &path) const;
 
+    const Primitive *findPrimitive(const std::string &name) const;
+
     void deletePrimitives(const std::unordered_set<Primitive *> &primitives);
 
     void addPrimitive(const std::shared_ptr<Primitive> &mesh);

@@ -206,8 +206,8 @@ class SceneXmlWriter
         if (!med->unnamed())
             assign("name", med->name());
         beginPost();
-        convertSpectrum("sigmaS", med->minSigmaS());
-        convertSpectrum("sigmaA", med->minSigmaA());
+        convertSpectrum("sigmaS", med->sigmaS());
+        convertSpectrum("sigmaA", med->sigmaA());
     }
 
     void convert(Medium *med)
@@ -561,7 +561,9 @@ class SceneXmlWriter
             assign("type", "path");
         else
             assign("type", "volpath");
-        endInline();
+        beginPost();
+        convert("strictNormals", true);
+        end();
 
         convert(scene->camera().get());
 

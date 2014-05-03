@@ -5,6 +5,8 @@
 #include "math/Angle.hpp"
 #include "math/Vec.hpp"
 
+#include "Debug.hpp"
+
 namespace Tungsten {
 
 class Microfacet
@@ -16,6 +18,18 @@ public:
         Phong,
         GGX
     };
+
+    static Distribution stringToType(const std::string &name)
+    {
+        if (name == "beckmann")
+            return Beckmann;
+        else if (name == "phong")
+            return Phong;
+        else if (name == "ggx")
+            return GGX;
+        FAIL("Invalid microfacet distribution: '%s'", name.c_str());
+        return Beckmann;
+    }
 
     static float roughnessToAlpha(Distribution dist, float roughness)
     {
@@ -98,7 +112,7 @@ public:
     static Vec3f sample(Distribution dist, float alpha, Vec2f xi)
     {
         float phi = xi.y()*TWO_PI;
-        float cosTheta;
+        float cosTheta = 0.0f;
 
         switch (dist) {
         case Beckmann: {
