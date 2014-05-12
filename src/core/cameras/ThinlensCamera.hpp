@@ -58,7 +58,7 @@ public:
 
     Ray generateSample(Vec2u pixel, SampleGenerator &sampler) const override final
     {
-        Vec2f pixelUv = sampler.next2D()*0.0f;
+        Vec2f pixelUv = sampler.next2D();
         Vec2f lensUv = sampler.next2D();
         Vec3f planePos(
             -1.0f  + (float(pixel.x()) + pixelUv.x())*_pixelSize.x(),

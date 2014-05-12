@@ -2,6 +2,7 @@
 #define EMBREEUTIL_HPP_
 
 #include "math/Ray.hpp"
+#include "math/Box.hpp"
 
 #include <embree/common/ray.h>
 

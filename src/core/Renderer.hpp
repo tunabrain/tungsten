@@ -24,7 +24,6 @@
 namespace Tungsten
 {
 
-template<typename Integrator>
 class Renderer
 {
     static constexpr uint32 TileSize = 16;
@@ -85,6 +84,7 @@ class Renderer
 
     UniformSampler _sampler;
     const TraceableScene &_scene;
+    uint32 _threadCount;
     uint32 _w;
     uint32 _h;
     uint32 _varianceW;
@@ -95,6 +95,7 @@ class Renderer
 
     std::atomic<int> _workerCount;
     std::vector<std::thread> _workerThreads;
+    std::vector<std::unique_ptr<Integrator>> _integrators;
     std::vector<SampleRecord> _samples;
     std::vector<ImageTile> _tiles;
     tbb::concurrent_queue<ImageTile *> _tileQueue;
@@ -121,8 +122,8 @@ class Renderer
 
     void dilateAdaptiveWeights()
     {
-        for (int y = 0; y < _varianceH; ++y) {
-            for (int x = 0; x < _varianceW; ++x) {
+        for (uint32 y = 0; y < _varianceH; ++y) {
+            for (uint32 x = 0; x < _varianceW; ++x) {
                 int idx = x + y*_varianceW;
                 if (y < _varianceH - 1)
                     _samples[idx].adaptiveWeight = max(_samples[idx].adaptiveWeight,
@@ -212,9 +213,8 @@ class Renderer
     }
 
     template<typename FinishCallback>
-    void renderTiles(FinishCallback finishCallback)
+    void renderTiles(FinishCallback finishCallback, Integrator &integrator)
     {
-        Integrator integrator(_scene);
         Camera &cam = _scene.cam();
 
         _workerCount++;
@@ -249,9 +249,15 @@ class Renderer
     }
 
 public:
-    Renderer(const TraceableScene &scene)
-    : _sampler(0xBA5EBA11), _scene(scene), _abortRender(false)
+    Renderer(const TraceableScene &scene, uint32 threadCount)
+    : _sampler(0xBA5EBA11),
+      _scene(scene),
+      _threadCount(threadCount),
+      _abortRender(false)
     {
+        for (uint32 i = 0; i < threadCount; ++i)
+            _integrators.emplace_back(scene.cloneThreadSafeIntegrator(i));
+
         _w = scene.cam().resolution().x();
         _h = scene.cam().resolution().y();
         _varianceW = (_w + VarianceTileSize - 1)/VarianceTileSize;
@@ -267,7 +273,7 @@ public:
     }
 
     template<typename FinishCallback>
-    void startRender(FinishCallback finishCallback, uint32 sppFrom, uint32 sppTo, uint32 threadCount)
+    void startRender(FinishCallback finishCallback, uint32 sppFrom, uint32 sppTo)
     {
         _workerCount = 0;
         _abortRender = false;
@@ -276,8 +282,9 @@ public:
             return;
         }
 
-        for (uint32 i = 0; i < threadCount; ++i)
-            _workerThreads.emplace_back(&Renderer::renderTiles<FinishCallback>, this, finishCallback);
+        for (uint32 i = 0; i < _threadCount; ++i)
+            _workerThreads.emplace_back(&Renderer::renderTiles<FinishCallback>, this,
+                    finishCallback, std::ref(*_integrators[i]));
     }
 
     void waitForCompletion()

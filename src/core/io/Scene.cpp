@@ -7,6 +7,10 @@
 #include "FileUtils.hpp"
 #include "Scene.hpp"
 
+#include "integrators/PathTraceIntegrator.hpp"
+#include "integrators/RayStreamIntegrator.hpp"
+
+#include "primitives/InfiniteSphereCap.hpp"
 #include "primitives/InfiniteSphere.hpp"
 #include "primitives/Sphere.hpp"
 #include "primitives/Quad.hpp"
@@ -21,8 +25,9 @@
 #include "bsdfs/RoughDielectricBsdf.hpp"
 #include "bsdfs/RoughConductorBsdf.hpp"
 #include "bsdfs/DielectricBsdf.hpp"
-#include "bsdfs/ConductorBsdf.hpp"
 #include "bsdfs/SmoothCoatBsdf.hpp"
+#include "bsdfs/ConductorBsdf.hpp"
+#include "bsdfs/OrenNayarBsdf.hpp"
 #include "bsdfs/ThinSheetBsdf.hpp"
 #include "bsdfs/LambertBsdf.hpp"
 #include "bsdfs/PhongBsdf.hpp"
@@ -82,6 +87,8 @@ std::shared_ptr<Bsdf> Scene::instantiateBsdf(std::string type, const rapidjson::
         result = std::make_shared<ForwardBsdf>();
     else if (type == "thinsheet")
         result = std::make_shared<ThinSheetBsdf>();
+    else if (type == "oren_nayar")
+        result = std::make_shared<OrenNayarBsdf>();
     else
         FAIL("Unkown bsdf type: '%s'", type.c_str());
     result->fromJson(value, *this);
@@ -99,6 +106,8 @@ std::shared_ptr<Primitive> Scene::instantiatePrimitive(std::string type, const r
         result = std::make_shared<Quad>();
     else if (type == "infinite_sphere")
         result = std::make_shared<InfiniteSphere>();
+    else if (type == "infinite_sphere_cap")
+        result = std::make_shared<InfiniteSphereCap>();
     else
         FAIL("Unknown primitive type: '%s'", type.c_str());
 
@@ -115,6 +124,20 @@ std::shared_ptr<Camera> Scene::instantiateCamera(std::string type, const rapidjs
         result = std::make_shared<ThinlensCamera>();
     else
         FAIL("Unknown camera type: '%s'", type.c_str());
+
+    result->fromJson(value, *this);
+    return result;
+}
+
+std::shared_ptr<Integrator> Scene::instantiateIntegrator(std::string type, const rapidjson::Value &value) const
+{
+    std::shared_ptr<Integrator> result;
+    if (type == "path_trace")
+        result = std::make_shared<PathTraceIntegrator>();
+    else if (type == "ray_stream")
+        result = std::make_shared<RayStreamIntegrator>();
+    else
+        FAIL("Unknown integrator type: '%s'", type.c_str());
 
     result->fromJson(value, *this);
     return result;
@@ -361,8 +384,14 @@ void Scene::merge(Scene scene)
         addPrimitive(m);
 }
 
+Scene::Scene()
+: _integrator(std::make_shared<PathTraceIntegrator>())
+{
+}
+
 Scene::Scene(const std::string &srcDir)
-: _srcDir(srcDir)
+: _srcDir(srcDir),
+  _integrator(std::make_shared<PathTraceIntegrator>())
 {
 }
 
@@ -376,6 +405,7 @@ void Scene::fromJson(const rapidjson::Value &v, const Scene &scene)
     const rapidjson::Value::Member *media      = v.FindMember("media");
     const rapidjson::Value::Member *bsdfs      = v.FindMember("bsdfs");
     const rapidjson::Value::Member *camera     = v.FindMember("camera");
+    const rapidjson::Value::Member *integrator = v.FindMember("integrator");
 
     SOFT_ASSERT(primitives != nullptr, "Scene file must contain 'primitives' array");
     SOFT_ASSERT(bsdfs      != nullptr, "Scene file must contain 'bsdfs' array");
@@ -387,6 +417,9 @@ void Scene::fromJson(const rapidjson::Value &v, const Scene &scene)
     loadObjectList(primitives->value, std::bind(&Scene::instantiatePrimitive, this, _1, _2), _primitives);
 
     _camera = instantiateCamera(JsonUtils::as<std::string>(camera->value, "type"), camera->value);
+
+    if (integrator)
+        _integrator = instantiateIntegrator(JsonUtils::as<std::string>(integrator->value, "type"), integrator->value);
 }
 
 Scene::Scene(const std::string &srcDir,
@@ -396,7 +429,8 @@ Scene::Scene(const std::string &srcDir,
 : _srcDir(srcDir),
   _primitives(std::move(primitives)),
   _bsdfs(std::move(bsdfs)),
-  _camera(camera)
+  _camera(camera),
+  _integrator(std::make_shared<PathTraceIntegrator>())
 {
 }
 
@@ -420,6 +454,7 @@ rapidjson::Value Scene::toJson(Allocator &allocator) const
     v.AddMember("bsdfs", bsdfs, allocator);
     v.AddMember("primitives", primitives, allocator);
     v.AddMember("camera", _camera->toJson(allocator), allocator);
+    v.AddMember("integrator", _integrator->toJson(allocator), allocator);
 
     return std::move(v);
 }
@@ -454,7 +489,7 @@ void Scene::deletePrimitives(const std::unordered_set<Primitive *> &primitives)
 
 TraceableScene *Scene::makeTraceable()
 {
-    return new TraceableScene(*_camera, _primitives, _media);
+    return new TraceableScene(*_camera, *_integrator, _primitives, _media);
 }
 
 Scene *Scene::load(const std::string &path)

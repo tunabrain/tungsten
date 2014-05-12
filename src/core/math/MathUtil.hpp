@@ -65,6 +65,12 @@ T sqr(T val)
 }
 
 template<typename T>
+T cube(T val)
+{
+    return val*val*val;
+}
+
+template<typename T>
 T smoothStep(T edge0, T edge1, T x) {
     x = clamp((x - edge0)/(edge1 - edge0), T(0), T(1));
 

@@ -9,9 +9,11 @@
 
 #include "JsonSerializable.hpp"
 
-#include "materials/BitmapTexture.hpp"
+#include "integrators/Integrator.hpp"
 
 #include "primitives/Primitive.hpp"
+
+#include "materials/BitmapTexture.hpp"
 
 #include "cameras/Camera.hpp"
 
@@ -35,11 +37,13 @@ class Scene : public JsonSerializable
     mutable std::map<std::string, std::shared_ptr<BitmapTextureRgb>> _colorMaps;
     mutable std::map<std::string, std::shared_ptr<BitmapTextureA>> _scalarMaps;
     std::shared_ptr<Camera> _camera;
+    std::shared_ptr<Integrator> _integrator;
 
-    std::shared_ptr<Medium>    instantiateMedium   (std::string type, const rapidjson::Value &value) const;
-    std::shared_ptr<Bsdf>      instantiateBsdf     (std::string type, const rapidjson::Value &value) const;
-    std::shared_ptr<Primitive> instantiatePrimitive(std::string type, const rapidjson::Value &value) const;
-    std::shared_ptr<Camera>    instantiateCamera   (std::string type, const rapidjson::Value &value) const;
+    std::shared_ptr<Medium>     instantiateMedium    (std::string type, const rapidjson::Value &value) const;
+    std::shared_ptr<Bsdf>       instantiateBsdf      (std::string type, const rapidjson::Value &value) const;
+    std::shared_ptr<Primitive>  instantiatePrimitive (std::string type, const rapidjson::Value &value) const;
+    std::shared_ptr<Camera>     instantiateCamera    (std::string type, const rapidjson::Value &value) const;
+    std::shared_ptr<Integrator> instantiateIntegrator(std::string type, const rapidjson::Value &value) const;
     template<int Dimension>
     std::shared_ptr<Texture<true, Dimension>>
         instantiateScalarTexture(std::string type, const rapidjson::Value &value) const;
@@ -63,7 +67,7 @@ class Scene : public JsonSerializable
     void addTexture(std::shared_ptr<T1> &t, std::map<std::string, std::shared_ptr<T2>> &maps);
 
 public:
-    Scene() = default;
+    Scene();
 
     Scene(const std::string &srcDir);
 

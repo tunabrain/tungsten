@@ -25,19 +25,18 @@
 #include "TraceableScene.hpp"
 #include "cameras/Camera.hpp"
 
-#define ENABLE_LIGHT_SAMPLING 1
-#define ENABLE_VOLUME_LIGHT_SAMPLING 1
-
 namespace Tungsten
 {
 
 class PathTraceIntegrator : public Integrator
 {
     static constexpr float Epsilon = 5e-4f;
-    static constexpr int MaxBounces = 64;
 
-    const TraceableScene &_scene;
+    const TraceableScene *_scene;
 
+    bool _enableLightSampling;
+    bool _enableVolumeLightSampling;
+    int _maxBounces;
     std::vector<float> _lightPdf;
 
     Vec3f generalizedShadowRay(Ray &ray,
@@ -51,7 +50,7 @@ class PathTraceIntegrator : public Integrator
         float initialFarT = ray.farT();
         Vec3f throughput(1.0f);
         do {
-            if (_scene.intersect(ray, data, info) && info.primitive != endCap) {
+            if (_scene->intersect(ray, data, info) && info.primitive != endCap) {
                 if (!info.primitive->bsdf()->flags().isForward()) {
                     float alpha = info.primitive->bsdf()->alpha(&info);
                     if (alpha < 1.0f)
@@ -60,7 +59,7 @@ class PathTraceIntegrator : public Integrator
                         return Vec3f(0.0f);
                 }
                 bounce++;
-                if (bounce >= MaxBounces)
+                if (bounce >= _maxBounces)
                     return Vec3f(0.0f);
             }
             if (medium)
@@ -254,17 +253,17 @@ class PathTraceIntegrator : public Integrator
 
     const Primitive *chooseLight(SampleGenerator &sampler, const Vec3f &p, float &weight)
     {
-        if (_scene.lights().empty())
+        if (_scene->lights().empty())
             return nullptr;
-        if (_scene.lights().size() == 1) {
+        if (_scene->lights().size() == 1) {
             weight = 1.0f;
-            return _scene.lights()[0].get();
+            return _scene->lights()[0].get();
         }
 
         float total = 0.0f;
         unsigned numNonNegative = 0;
         for (size_t i = 0; i < _lightPdf.size(); ++i) {
-            _lightPdf[i] = _scene.lights()[i]->approximateRadiance(p);
+            _lightPdf[i] = _scene->lights()[i]->approximateRadiance(p);
             if (_lightPdf[i] >= 0.0f) {
                 total += _lightPdf[i];
                 numNonNegative++;
@@ -289,7 +288,7 @@ class PathTraceIntegrator : public Integrator
         for (size_t i = 0; i < _lightPdf.size(); ++i) {
             if (t < _lightPdf[i] || i == _lightPdf.size() - 1) {
                 weight = total/_lightPdf[i];
-                return _scene.lights()[i].get();
+                return _scene->lights()[i].get();
             } else {
                 t -= _lightPdf[i];
             }
@@ -319,10 +318,18 @@ class PathTraceIntegrator : public Integrator
     }
 
 public:
-    PathTraceIntegrator(const TraceableScene &scene)
-    : _scene(scene),
-      _lightPdf(scene.lights().size())
+    PathTraceIntegrator()
+    : _scene(nullptr),
+      _enableLightSampling(true),
+      _enableVolumeLightSampling(true),
+      _maxBounces(64)
     {
+    }
+
+    void setScene(const TraceableScene *scene)
+    {
+        _scene = scene;
+        _lightPdf.resize(scene->lights().size());
     }
 
     bool handleVolume(SampleGenerator &sampler, UniformSampler &supplementalSampler,
@@ -338,17 +345,16 @@ public:
 
         emission += throughput*medium->emission(event);
 
-#if !ENABLE_VOLUME_LIGHT_SAMPLING
-        wasSpecular = !hitSurface;
-#endif
+        if (!_enableVolumeLightSampling)
+            wasSpecular = !hitSurface;
 
         if (event.t < event.maxT) {
             event.p += event.t*event.wi;
 
-#if ENABLE_VOLUME_LIGHT_SAMPLING
-            wasSpecular = false;
-            emission += throughput*volumeEstimateDirect(event, medium, bounce + 1);
-#endif
+            if (_enableVolumeLightSampling) {
+                wasSpecular = false;
+                emission += throughput*volumeEstimateDirect(event, medium, bounce + 1);
+            }
 
             if (medium->absorb(event, state))
                 return false;
@@ -379,17 +385,24 @@ public:
             TangentFrame frame;
             bsdf.setupTangentFrame(*info.primitive, data, info, frame);
 
+            if (frame.normal.dot(ray.dir()) > 0.0f && !bsdf.flags().isTransmissive()) {
+                info.Ng = -info.Ng;
+                info.Ns = -info.Ns;
+                frame.normal = -frame.normal;
+                frame.tangent = -frame.tangent;
+            }
+
             SurfaceScatterEvent event(&info, &sampler, &supplementalSampler, frame.toLocal(-ray.dir()), BsdfLobes::AllLobes);
 
-#if ENABLE_LIGHT_SAMPLING
-            if (wasSpecular || !info.primitive->isSamplable())
-                emission += info.primitive->emission(data, info)*throughput;
+            if (_enableLightSampling) {
+                if (wasSpecular || !info.primitive->isSamplable())
+                    emission += info.primitive->emission(data, info)*throughput;
 
-            if (bounce < MaxBounces - 1)
-                emission += estimateDirect(frame, bsdf, event, bounce + 1)*throughput;
-#else
-            emission += info.primitive->emission(data, info)*throughput;
-#endif
+                if (bounce < _maxBounces - 1)
+                    emission += estimateDirect(frame, bsdf, event, bounce + 1)*throughput;
+            } else {
+                emission += info.primitive->emission(data, info)*throughput;
+            }
 
             event.requestedLobe = BsdfLobes::AllLobes;
             if (!bsdf.sample(event))
@@ -420,20 +433,20 @@ public:
 
     Vec3f traceSample(Vec2u pixel, SampleGenerator &sampler, UniformSampler &supplementalSampler) final override
     {
-        Ray ray(_scene.cam().generateSample(pixel, sampler));
+        Ray ray(_scene->cam().generateSample(pixel, sampler));
 
         Primitive::IntersectionTemporary data;
         Medium::MediumState state;
         IntersectionInfo info;
         Vec3f throughput(1.0f);
         Vec3f emission(0.0f);
-        const Medium *medium = _scene.cam().medium().get();
+        const Medium *medium = _scene->cam().medium().get();
 
         int bounce = 0;
-        bool didHit = _scene.intersect(ray, data, info);
+        bool didHit = _scene->intersect(ray, data, info);
         bool wasSpecular = true;
         bool hitSurface = true;
-        while (didHit && bounce < MaxBounces) {
+        while (didHit && bounce < _maxBounces) {
             if (medium && !handleVolume(sampler, supplementalSampler, medium, bounce, ray, throughput, emission, wasSpecular, hitSurface, state))
                 break;
 
@@ -452,20 +465,49 @@ public:
             }
 
             bounce++;
-            if (bounce < MaxBounces)
-                didHit = _scene.intersect(ray, data, info);
+            if (bounce < _maxBounces)
+                didHit = _scene->intersect(ray, data, info);
         }
         if (!didHit && !medium) {
-            if (_scene.intersectInfinites(ray, data, info)) {
-#if ENABLE_LIGHT_SAMPLING
-                if (bounce == 0 || wasSpecular || !info.primitive->isSamplable())
+            if (_scene->intersectInfinites(ray, data, info)) {
+                if (_enableLightSampling) {
+                    if (bounce == 0 || wasSpecular || !info.primitive->isSamplable())
+                        emission += throughput*info.primitive->emission(data, info);
+                } else {
                     emission += throughput*info.primitive->emission(data, info);
-#else
-                emission += throughput*info.primitive->emission(data, info);
-#endif
+                }
             }
         }
         return emission;
+    }
+
+    virtual Integrator *cloneThreadSafe(uint32 /*threadId*/, const TraceableScene *scene) const
+    {
+        PathTraceIntegrator *integrator = new PathTraceIntegrator(*this);
+        integrator->setScene(scene);
+        return integrator;
+    }
+
+    virtual Integrator *clone() const
+    {
+        return new PathTraceIntegrator(*this);
+    }
+
+    virtual void fromJson(const rapidjson::Value &v, const Scene &/*scene*/)
+    {
+        JsonUtils::fromJson(v, "max_bounces", _maxBounces);
+        JsonUtils::fromJson(v, "enable_light_sampling", _enableLightSampling);
+        JsonUtils::fromJson(v, "enable_volume_light_sampling", _enableVolumeLightSampling);
+    }
+
+    virtual rapidjson::Value toJson(Allocator &allocator) const
+    {
+        rapidjson::Value v(JsonSerializable::toJson(allocator));
+        v.AddMember("type", "path_trace", allocator);
+        v.AddMember("max_bounces", _maxBounces, allocator);
+        v.AddMember("enable_light_sampling", _enableLightSampling, allocator);
+        v.AddMember("enable_volume_light_sampling", _enableVolumeLightSampling, allocator);
+        return std::move(v);
     }
 };
 

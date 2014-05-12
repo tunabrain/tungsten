@@ -10,44 +10,37 @@
 
 #include "sampling/SampleGenerator.hpp"
 #include "sampling/SurfaceScatterEvent.hpp"
+#include "sampling/VolumeScatterEvent.hpp"
 #include "sampling/LightSample.hpp"
+#include "sampling/Sample.hpp"
+
+#include "volume/Medium.hpp"
 
 #include "math/TangentFrame.hpp"
 #include "math/MathUtil.hpp"
 #include "math/Angle.hpp"
 
-#include "Camera.hpp"
+#include "bsdfs/Bsdf.hpp"
 
-#include <fstream>
-
+#include "TraceableScene.hpp"
+#include "cameras/Camera.hpp"
 
 namespace Tungsten
 {
 
 class RayStreamIntegrator : public Integrator
 {
-    static constexpr int SensorDimensions = 2;
-    static constexpr int DimensionsPerBounce = 10;
+    static constexpr float Epsilon = 5e-4f;
 
-    static constexpr float Epsilon = 5e-3f;
-    static constexpr int MaxBounces = 4;
+    const TraceableScene *_scene;
 
-    const PackedGeometry &_mesh;
-    const std::vector<std::shared_ptr<Light>> &_lights;
-    std::shared_ptr<Light> _environmentLight;
-    std::vector<float> _lightPdfs;
+    bool _enableLightSampling;
+    bool _enableVolumeLightSampling;
+    int _maxBounces;
+    int _threadId;
+    std::vector<float> _lightPdf;
 
-    embree::Vec3fa toE(const Vec3f &v) const
-    {
-        return embree::Vec3fa(v.x(), v.y(), v.z());
-    }
-
-    Vec3f fromE(const embree::Vec3fa v) const
-    {
-        return Vec3f(v.x, v.y, v.z);
-    }
-
-    struct Ray {
+    struct IoRay {
         Vec3f o;
         Vec3f d;
         float tMin;
@@ -55,257 +48,494 @@ class RayStreamIntegrator : public Integrator
         float u, v;
         uint32 hit;
     };
+    std::vector<IoRay> _primaryRays, _indirectRays;
 
-
-    std::vector<Ray> _primaryRays, _indirectRays;
-
-    void intersect(const embree::RTCIntersector1 *isector, embree::Ray &ray, int bounce)
+    void addRay(int bounce, const Ray &ray)
     {
-        isector->intersect(ray);
-        Ray r{fromE(ray.org), fromE(ray.dir), ray.tnear, ray.tfar, ray.u, ray.v, uint32(ray.id0)};
+        if (_threadId != 0)
+            return;
+        IoRay r{ray.pos(), ray.dir(), ray.nearT(), ray.farT(), 0.0f, 0.0f, 0};
         if (bounce == 0)
             _primaryRays.push_back(r);
         else
             _indirectRays.push_back(r);
     }
 
-
-    float powerHeuristic(float pdf0, float pdf1) const
+    Vec3f generalizedShadowRay(Ray &ray,
+                               const Medium *medium,
+                               const Primitive *endCap,
+                               int bounce)
     {
-        return (pdf0*pdf0)/(pdf0*pdf0 + pdf1*pdf1);
+        Primitive::IntersectionTemporary data;
+        IntersectionInfo info;
+
+        float initialFarT = ray.farT();
+        Vec3f throughput(1.0f);
+        do {
+            if (_scene->intersect(ray, data, info) && info.primitive != endCap) {
+                addRay(bounce, ray);
+                if (!info.primitive->bsdf()->flags().isForward()) {
+                    float alpha = info.primitive->bsdf()->alpha(&info);
+                    if (alpha < 1.0f)
+                        throughput *= 1.0f - alpha;
+                    else
+                        return Vec3f(0.0f);
+                }
+                bounce++;
+                if (bounce >= _maxBounces)
+                    return Vec3f(0.0f);
+            } else {
+                addRay(bounce, ray);
+            }
+            if (medium)
+                throughput *= medium->transmittance(VolumeScatterEvent(ray.pos(), ray.dir(), ray.farT()));
+            if (info.primitive == nullptr || info.primitive == endCap)
+                return throughput;
+            if (info.primitive->hitBackside(data))
+                medium = info.primitive->bsdf()->extMedium().get();
+            else
+                medium = info.primitive->bsdf()->intMedium().get();
+            ray.setPos(ray.hitpoint());
+            initialFarT -= ray.farT();
+            ray.setNearT(Epsilon);
+            ray.setFarT(initialFarT);
+        } while(true);
+        return Vec3f(0.0f);
+    }
+
+    Vec3f attenuatedEmission(const Primitive &light,
+                             const Medium *medium,
+                             const Vec3f &p, const Vec3f &d,
+                             float expectedDist,
+                             Primitive::IntersectionTemporary &data,
+                             int bounce,
+                             float tMin)
+    {
+        constexpr float fudgeFactor = 1.0f + 1e-3f;
+
+        IntersectionInfo info;
+        Ray ray(p, d, tMin);
+        if (!light.intersect(ray, data) || ray.farT()*fudgeFactor < expectedDist)
+            return Vec3f(0.0f);
+        light.intersectionInfo(data, info);
+
+        Vec3f transmittance = generalizedShadowRay(ray, medium, &light, bounce);
+        if (transmittance == 0.0f)
+            return Vec3f(0.0f);
+
+        return transmittance*light.emission(data, info);
     }
 
     Vec3f lightSample(const TangentFrame &frame,
-                      const Light &light,
+                      const Primitive &light,
                       const Bsdf &bsdf,
-                      const Vec3f &p,
-                      const Vec3f &n,
-                      const Vec3f &wo,
-                      const Vec2f &xi)
+                      SurfaceScatterEvent &event,
+                      int bounce)
     {
-        LightSample sample;
-        sample.n = n;
-        sample.p = p;
-        sample.xi = xi;
+        LightSample sample(event.sampler, event.info->p);
 
-        if (!light.sample(sample))
+        if (!light.sampleInboundDirection(sample))
             return Vec3f(0.0f);
 
-        Vec3f wi = frame.toLocal(sample.w);
+        event.wo = frame.toLocal(sample.d);
+        float geometricBackside = (sample.d.dot(event.info->Ng) < 0.0f);
+        if (geometricBackside != (event.wo.z() < 0.0f))
+            return Vec3f(0.0f);
 
-        Vec3f f = bsdf.eval(wo, wi);
+        Medium *medium;
+        if (geometricBackside)
+            medium = bsdf.intMedium().get();
+        else
+            medium = bsdf.extMedium().get();
+
+        event.requestedLobe = BsdfLobes::AllButSpecular;
+        Vec3f f = bsdf.eval(event);
         if (f == 0.0f)
             return Vec3f(0.0f);
 
-        embree::Ray ray(toE(sample.p), toE(sample.w), Epsilon, sample.r);
-        if (_mesh.intersector()->occluded(ray))
+        Primitive::IntersectionTemporary data;
+        Vec3f e = attenuatedEmission(light, medium, sample.p, sample.d, sample.dist, data, bounce, Epsilon);
+        if (e == 0.0f)
             return Vec3f(0.0f);
 
-        Vec3f lightF = f*std::abs(wi.z())*sample.L/sample.pdf;
+        Vec3f lightF = f*e/sample.pdf;
 
         if (!light.isDelta())
-            lightF *= powerHeuristic(sample.pdf, bsdf.pdf(wo, wi));
+            lightF *= Sample::powerHeuristic(sample.pdf, bsdf.pdf(event));
 
         return lightF;
     }
 
     Vec3f bsdfSample(const TangentFrame &frame,
-                     const Light &light,
+                     const Primitive &light,
                      const Bsdf &bsdf,
-                     const SurfaceScatterEvent &event,
-                     const Vec3f &p,
-                     const Vec3f &Ns,
-                     const Vec3f &xi)
+                     SurfaceScatterEvent &event,
+                     int bounce)
     {
-        SurfaceScatterEvent sample(event);
-        sample.xi = xi;
-
-        if (!bsdf.sample(sample))
+        event.requestedLobe = BsdfLobes::AllButSpecular;
+        if (!bsdf.sample(event))
             return Vec3f(0.0f);
-        if (sample.throughput == 0.0f)
-            return Vec3f(0.0f);
-        if (!sample.isConsistent())
+        if (event.throughput == 0.0f)
             return Vec3f(0.0f);
 
-        Vec3f wi = frame.toGlobal(sample.wi);
-        float t;
-        Vec3f q;
-        if (!light.intersect(p, wi, t, q))
+        Vec3f wo = frame.toGlobal(event.wo);
+        float geometricBackside = (wo.dot(event.info->Ng) < 0.0f);
+        if (geometricBackside != (event.wo.z() < 0.0f))
             return Vec3f(0.0f);
 
-        embree::Ray ray(toE(p), toE(wi), Epsilon, t);
-        if (_mesh.intersector()->occluded(ray))
+        Medium *medium;
+        if (geometricBackside)
+            medium = bsdf.intMedium().get();
+        else
+            medium = bsdf.extMedium().get();
+
+        Primitive::IntersectionTemporary data;
+        Vec3f e = attenuatedEmission(light, medium, event.info->p, wo, -1.0f, data, bounce, Epsilon);
+
+        if (e == Vec3f(0.0f))
             return Vec3f(0.0f);
 
-        Vec3f bsdfF = light.eval(-wi)*std::abs(sample.wi.z())*sample.throughput/sample.pdf;
+        Vec3f bsdfF = e*event.throughput;
 
-        if (!bsdf.flags().hasSpecular())
-            bsdfF *= powerHeuristic(sample.pdf, light.pdf(p, Ns, wi));
+        bsdfF *= Sample::powerHeuristic(event.pdf, light.inboundPdf(data, event.info->p, wo));
 
         return bsdfF;
     }
 
-    Vec3f sampleDirect(const TangentFrame &frame,
-                       const Light &light,
-                       const Bsdf &bsdf,
-                       const SurfaceScatterEvent &event,
-                       const Vec3f &p,
-                       const Vec3f &Ns,
-                       const Vec3f &bsdfXi,
-                       const Vec2f &lightXi)
+    Vec3f volumeLightSample(VolumeScatterEvent &event, const Primitive &light, const Medium *medium, bool performMis, int bounce)
     {
-        Vec3f result;
+        LightSample sample(event.sampler, event.p);
 
-        if (bsdf.flags().hasSpecular())
+        if (!light.sampleInboundDirection(sample))
+            return Vec3f(0.0f);
+        event.wo = sample.d;
+
+        Vec3f f = medium->eval(event);
+        if (f == 0.0f)
             return Vec3f(0.0f);
 
-        if (!bsdf.flags().hasSpecular())
-            result += lightSample(frame, light, bsdf, p, Ns, event.wo, lightXi);
+        Primitive::IntersectionTemporary data;
+        Vec3f e = attenuatedEmission(light, medium, sample.p, sample.d, sample.dist, data, bounce, 0.0f);
+        if (e == 0.0f)
+            return Vec3f(0.0f);
+
+        Vec3f lightF = f*e/sample.pdf;
+
+        if (!light.isDelta() && performMis)
+            lightF *= Sample::powerHeuristic(sample.pdf, medium->pdf(event));
+
+        return lightF;
+    }
+
+    Vec3f volumePhaseSample(const Primitive &light, VolumeScatterEvent &event, const Medium *medium, int bounce)
+    {
+        if (!medium->scatter(event))
+            return Vec3f(0.0f);
+        if (event.throughput == 0.0f)
+            return Vec3f(0.0f);
+
+        Primitive::IntersectionTemporary data;
+        Vec3f e = attenuatedEmission(light, medium, event.p, event.wo, -1.0f, data, bounce, 0.0f);
+
+        if (e == Vec3f(0.0f))
+            return Vec3f(0.0f);
+
+        Vec3f phaseF = e*event.throughput;
+
+        phaseF *= Sample::powerHeuristic(event.pdf, light.inboundPdf(data, event.p, event.wo));
+
+        return phaseF;
+    }
+
+    Vec3f sampleDirect(const TangentFrame &frame,
+                       const Primitive &light,
+                       const Bsdf &bsdf,
+                       SurfaceScatterEvent &event,
+                       int bounce)
+    {
+        Vec3f result(0.0f);
+
+        if (bsdf.flags().isPureSpecular() || bsdf.flags().isForward())
+            return Vec3f(0.0f);
+
+        result += lightSample(frame, light, bsdf, event, bounce);
         if (!light.isDelta())
-            result += bsdfSample(frame, light, bsdf, event, p, Ns, bsdfXi);
+            result += bsdfSample(frame, light, bsdf, event, bounce);
 
         return result;
     }
 
-    Vec3f estimateDirect(const TangentFrame &frame,
-                         const Bsdf &bsdf,
-                         const SurfaceScatterEvent &event,
-                         const Vec3f &p,
-                         const Vec3f &Ns,
-                         const Vec3f &bsdfXi,
-                         const Vec3f &lightXi)
+    Vec3f volumeSampleDirect(const Primitive &light, VolumeScatterEvent &event, const Medium *medium, int bounce)
     {
-        if (_lights.size() == 1)
-            return sampleDirect(frame, *_lights[0], bsdf, event, p, Ns, bsdfXi, lightXi.xy());
+        bool mis = true;//medium->suggestMis();
+
+        Vec3f result = volumeLightSample(event, light, medium, mis, bounce);
+        if (!light.isDelta() && mis)
+            result += volumePhaseSample(light, event, medium, bounce);
+
+        return result;
+    }
+
+    const Primitive *chooseLight(SampleGenerator &sampler, const Vec3f &p, float &weight)
+    {
+        if (_scene->lights().empty())
+            return nullptr;
+        if (_scene->lights().size() == 1) {
+            weight = 1.0f;
+            return _scene->lights()[0].get();
+        }
 
         float total = 0.0f;
-        for (size_t i = 0; i < _lights.size(); ++i) {
-            _lightPdfs[i] = _lights[i]->approximateRadiance(p).max();
-            total += _lightPdfs[i];
+        unsigned numNonNegative = 0;
+        for (size_t i = 0; i < _lightPdf.size(); ++i) {
+            _lightPdf[i] = _scene->lights()[i]->approximateRadiance(p);
+            if (_lightPdf[i] >= 0.0f) {
+                total += _lightPdf[i];
+                numNonNegative++;
+            }
+        }
+        if (numNonNegative == 0) {
+            for (size_t i = 0; i < _lightPdf.size(); ++i)
+                _lightPdf[i] = 1.0f;
+            total = _lightPdf.size();
+        } else if (numNonNegative < _lightPdf.size()) {
+            for (size_t i = 0; i < _lightPdf.size(); ++i) {
+                float uniformWeight = total/numNonNegative;
+                if (_lightPdf[i] < 0.0f) {
+                    _lightPdf[i] = uniformWeight;
+                    total += uniformWeight;
+                }
+            }
         }
         if (total == 0.0f)
-            return Vec3f(0.0f);
-        float t = lightXi.z()*total;
-        for (size_t i = 0; i < _lights.size(); ++i) {
-            if (t < _lightPdfs[i] || i == _lights.size() - 1)
-                return sampleDirect(frame, *_lights[i], bsdf, event, p, Ns, bsdfXi, lightXi.xy())*total/_lightPdfs[i];
-            else
-                t -= _lightPdfs[i];
+            return nullptr;
+        float t = sampler.next1D()*total;
+        for (size_t i = 0; i < _lightPdf.size(); ++i) {
+            if (t < _lightPdf[i] || i == _lightPdf.size() - 1) {
+                weight = total/_lightPdf[i];
+                return _scene->lights()[i].get();
+            } else {
+                t -= _lightPdf[i];
+            }
         }
-        return Vec3f(0.0f);
+        return nullptr;
+    }
+
+    Vec3f volumeEstimateDirect(VolumeScatterEvent &event, const Medium *medium, int bounce)
+    {
+        float weight;
+        const Primitive *light = chooseLight(*event.sampler, event.p, weight);
+        if (light == nullptr)
+            return Vec3f(0.0f);
+        return volumeSampleDirect(*light, event, medium, bounce)*weight;
+    }
+
+    Vec3f estimateDirect(const TangentFrame &frame,
+                         const Bsdf &bsdf,
+                         SurfaceScatterEvent &event,
+                         int bounce)
+    {
+        float weight;
+        const Primitive *light = chooseLight(*event.sampler, event.info->p, weight);
+        if (light == nullptr)
+            return Vec3f(0.0f);
+        return sampleDirect(frame, *light, bsdf, event, bounce)*weight;
     }
 
 public:
-    RayStreamIntegrator(const PackedGeometry &mesh, const std::vector<std::shared_ptr<Light>> &lights)
-    : _mesh(mesh), _lights(lights), _lightPdfs(lights.size())
+    RayStreamIntegrator()
+    : _scene(nullptr),
+      _enableLightSampling(true),
+      _enableVolumeLightSampling(true),
+      _maxBounces(64),
+      _threadId(1)
     {
-        for (const std::shared_ptr<Light> &l : lights)
-            if (dynamic_cast<EnvironmentLight *>(l.get()))
-                _environmentLight = l;
     }
 
     ~RayStreamIntegrator()
     {
-        std::ofstream out1("../BVH/Coherent.rays", std::ios_base::out | std::ios_base::binary);
-        std::ofstream out2("../BVH/Incoherent.rays", std::ios_base::out | std::ios_base::binary);
-        FileUtils::streamWrite(out1, _primaryRays);
-        FileUtils::streamWrite(out2, _indirectRays);
+        if (_threadId == 0) {
+            std::ofstream out1("../BVH/Coherent.rays", std::ios_base::out | std::ios_base::binary);
+            std::ofstream out2("../BVH/Incoherent.rays", std::ios_base::out | std::ios_base::binary);
+            FileUtils::streamWrite(out1, _primaryRays);
+            FileUtils::streamWrite(out2, _indirectRays);
+        }
     }
 
-    Vec3f traceSample(const Camera &cam, Vec2u pixel, SampleGenerator &sampler) final override
+    void setScene(const TraceableScene *scene)
     {
-        Vec3f dir(cam.generateSample(pixel, Vec2f(sampler.fSample(0), sampler.fSample(1))));
+        _scene = scene;
+        _lightPdf.resize(scene->lights().size());
+    }
 
-        const embree::RTCIntersector1 *isector = _mesh.intersector();
-        embree::Ray ray(toE(cam.pos()), toE(dir));
-        intersect(isector, ray, 0);
+    bool handleVolume(SampleGenerator &sampler, UniformSampler &supplementalSampler,
+               const Medium *&medium, int bounce, Ray &ray,
+               Vec3f &throughput, Vec3f &emission, bool &wasSpecular, bool &hitSurface,
+               Medium::MediumState &state)
+    {
+        VolumeScatterEvent event(&sampler, &supplementalSampler, ray.pos(), ray.dir(), ray.farT());
+        if (!medium->sampleDistance(event, state))
+            return false;
+        throughput *= event.throughput;
+        event.throughput = Vec3f(1.0f);
 
-        SurfaceScatterEvent event;
+        emission += throughput*medium->emission(event);
+
+        if (!_enableVolumeLightSampling)
+            wasSpecular = !hitSurface;
+
+        if (event.t < event.maxT) {
+            event.p += event.t*event.wi;
+
+            if (_enableVolumeLightSampling) {
+                wasSpecular = false;
+                emission += throughput*volumeEstimateDirect(event, medium, bounce + 1);
+            }
+
+            if (medium->absorb(event, state))
+                return false;
+            if (!medium->scatter(event))
+                return false;
+            throughput *= event.throughput;
+            ray = Ray(event.p, event.wo, 0.0f);
+            hitSurface = false;
+        } else {
+            hitSurface = true;
+        }
+
+        return true;
+    }
+
+    bool handleSurface(Primitive::IntersectionTemporary &data, IntersectionInfo &info,
+                       SampleGenerator &sampler, UniformSampler &supplementalSampler,
+                       const Medium *&medium, int bounce, Ray &ray,
+                       Vec3f &throughput, Vec3f &emission, bool &wasSpecular,
+                       Medium::MediumState &state)
+    {
+        const Bsdf &bsdf = *info.primitive->bsdf();
+
+        Vec3f wo;
+        if (supplementalSampler.next1D() >= bsdf.alpha(&info)) {
+            wo = ray.dir();
+        } else {
+            TangentFrame frame;
+            bsdf.setupTangentFrame(*info.primitive, data, info, frame);
+
+            SurfaceScatterEvent event(&info, &sampler, &supplementalSampler, frame.toLocal(-ray.dir()), BsdfLobes::AllLobes);
+
+            if (_enableLightSampling) {
+                if (wasSpecular || !info.primitive->isSamplable())
+                    emission += info.primitive->emission(data, info)*throughput;
+
+                if (bounce < _maxBounces - 1)
+                    emission += estimateDirect(frame, bsdf, event, bounce + 1)*throughput;
+            } else {
+                emission += info.primitive->emission(data, info)*throughput;
+            }
+
+            event.requestedLobe = BsdfLobes::AllLobes;
+            if (!bsdf.sample(event))
+                return false;
+
+            wo = frame.toGlobal(event.wo);
+
+            if ((wo.dot(info.Ng) < 0.0f) != (event.wo.z() < 0.0f))
+                return false;
+
+            throughput *= event.throughput;
+            if (!event.sampledLobe.isForward())
+                wasSpecular = event.sampledLobe.hasSpecular();
+        }
+
+        bool geometricBackside = (wo.dot(info.Ng) < 0.0f);
+        Medium *newMedium;
+        if (geometricBackside)
+            newMedium = bsdf.intMedium().get();
+        else
+            newMedium = bsdf.extMedium().get();
+        if (newMedium != medium)
+            state.reset();
+        medium = newMedium;
+        ray = Ray(ray.hitpoint(), wo, Epsilon);
+        return true;
+    }
+
+    Vec3f traceSample(Vec2u pixel, SampleGenerator &sampler, UniformSampler &supplementalSampler) final override
+    {
+        Ray ray(_scene->cam().generateSample(pixel, sampler));
+
+        Primitive::IntersectionTemporary data;
+        Medium::MediumState state;
+        IntersectionInfo info;
         Vec3f throughput(1.0f);
-        Vec3f emission;
+        Vec3f emission(0.0f);
+        const Medium *medium = _scene->cam().medium().get();
 
         int bounce = 0;
-        while (ray && bounce++ < MaxBounces) {
-            uint32_t dim = bounce*DimensionsPerBounce + SensorDimensions;
-
-            Vec3f p(fromE(ray.org + ray.tfar*ray.dir));
-            Vec3f w(-fromE(ray.dir));
-            Vec3f Ng(fromE(ray.Ng));
-            Vec2f lambda(ray.u, ray.v);
-            Ng.normalize();
-
-            const Triangle &triangle = _mesh.tris()[ray.id0];
-            const Material &material = _mesh.materials()[triangle.material()];
-            Vec2f uv = triangle.uvAt(lambda);
-
-            if (sampler.fSample(dim) > material.alpha(uv)) {
-                ray = embree::Ray(toE(p), ray.dir, Epsilon);
-                intersect(isector, ray, bounce - 1);
-                bounce--;
-                continue;
-            }
-
-            Vec3f Ns;
-            if (ray.id1 & PackedGeometry::FlatFlag)
-                Ns = Ng;
-            else
-                Ns = triangle.normalAt(lambda).normalized();
-
-            if (Ng.dot(w) < 0.0f)
-                Ng = -Ng;
-            if (Ns.dot(w) < 0.0f)
-                Ns = -Ns;
-
-            TangentFrame frame(Ns);
-
-            emission += material.emission()*throughput;
-
-            Vec3f bsdfXi0 = Vec3f(sampler.fSample(dim + 1), sampler.fSample(dim + 2), sampler.fSample(dim + 3));
-            Vec3f bsdfXi1 = Vec3f(sampler.fSample(dim + 4), sampler.fSample(dim + 5), sampler.fSample(dim + 6));
-            Vec3f lightXi = Vec3f(sampler.fSample(dim + 7), sampler.fSample(dim + 8), sampler.fSample(dim + 9));
-
-            event.xi = bsdfXi0;
-            event.wo = frame.toLocal(w);
-            event.Ng = frame.toLocal(Ng);
-
-            throughput *= material.color(uv);
-            if (!_lights.empty())
-                emission += throughput*estimateDirect(frame, *material.bsdf(), event, p, Ns, bsdfXi1, lightXi);
-
-            if (!material.bsdf()->sample(event))
-                break;
-            if (!event.isConsistent())
+        bool didHit = _scene->intersect(ray, data, info);
+        addRay(bounce, ray);
+        bool wasSpecular = true;
+        bool hitSurface = true;
+        while (didHit && bounce < _maxBounces) {
+            if (medium && !handleVolume(sampler, supplementalSampler, medium, bounce, ray, throughput, emission, wasSpecular, hitSurface, state))
                 break;
 
-            if (event.switchHemisphere)
-                event.space = triangle.other(event.space);
-
-            Vec3f wi = frame.toGlobal(event.wi);
-
-            throughput *= std::abs(event.wi.z())*event.throughput/event.pdf;
-
-            if (std::isnan(throughput.x()) || std::isnan(throughput.y()) || std::isnan(throughput.z())) {
-                DBG("NAN!!! %f %f %f\n", throughput.x(), throughput.y(), throughput.z());
-            }
+            if (hitSurface && !handleSurface(data, info, sampler, supplementalSampler, medium, bounce, ray, throughput, emission, wasSpecular, state))
+                break;
 
             if (throughput.max() == 0.0f)
                 break;
 
-            if (bounce < MaxBounces) {
-                ray = embree::Ray(toE(p), toE(wi), Epsilon);
-                intersect(isector, ray, bounce - 1);
+            float roulettePdf = throughput.max();
+            if (bounce > 5 && roulettePdf < 0.1f) {
+                if (supplementalSampler.next1D() < roulettePdf)
+                    throughput /= roulettePdf;
+                else
+                    break;
+            }
+
+            bounce++;
+            if (bounce < _maxBounces) {
+                didHit = _scene->intersect(ray, data, info);
+                addRay(bounce, ray);
             }
         }
-
-        if (_environmentLight && bounce == 0)
-            emission += throughput*_environmentLight->eval(fromE(ray.dir));
-
-        if (std::isnan(emission.x()) || std::isnan(emission.y()) || std::isnan(emission.z())) {
-            DBG("NAN: %f %f %f\n", emission.x(), emission.y(), emission.z());
-            return Vec3f(0.0f);
+        if (!didHit && !medium) {
+            if (_scene->intersectInfinites(ray, data, info)) {
+                if (_enableLightSampling) {
+                    if (bounce == 0 || wasSpecular || !info.primitive->isSamplable())
+                        emission += throughput*info.primitive->emission(data, info);
+                } else {
+                    emission += throughput*info.primitive->emission(data, info);
+                }
+            }
         }
-
         return emission;
+    }
+
+    virtual Integrator *cloneThreadSafe(uint32 threadId, const TraceableScene *scene) const
+    {
+        RayStreamIntegrator *integrator = new RayStreamIntegrator(*this);
+        integrator->setScene(scene);
+        integrator->_threadId = threadId;
+        return integrator;
+    }
+
+    virtual void fromJson(const rapidjson::Value &v, const Scene &/*scene*/)
+    {
+        JsonUtils::fromJson(v, "max_bounces", _maxBounces);
+        JsonUtils::fromJson(v, "enable_light_sampling", _enableLightSampling);
+        JsonUtils::fromJson(v, "enable_volume_light_sampling", _enableVolumeLightSampling);
+    }
+
+    virtual rapidjson::Value toJson(Allocator &allocator) const
+    {
+        rapidjson::Value v(JsonSerializable::toJson(allocator));
+        v.AddMember("type", "ray_stream", allocator);
+        v.AddMember("max_bounces", _maxBounces, allocator);
+        v.AddMember("enable_light_sampling", _enableLightSampling, allocator);
+        v.AddMember("enable_volume_light_sampling", _enableVolumeLightSampling, allocator);
+        return std::move(v);
     }
 };
 

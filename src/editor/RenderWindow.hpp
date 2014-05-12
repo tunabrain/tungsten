@@ -5,13 +5,6 @@
 #include <QPixmap>
 #include <memory>
 
-#define EXPORT_RAYS 0
-
-#if EXPORT_RAYS
-#include "integrators/RayStreamIntegrator.hpp"
-#else
-#include "integrators/PathTraceIntegrator.hpp"
-#endif
 #include "TraceableScene.hpp"
 #include "Renderer.hpp"
 
@@ -20,13 +13,6 @@ class QLabel;
 
 namespace Tungsten
 {
-
-
-#if EXPORT_RAYS
-typedef RayStreamIntegrator RenderIntegrator;
-#else
-typedef PathTraceIntegrator RenderIntegrator;
-#endif
 
 class MainWindow;
 
@@ -38,7 +24,7 @@ class RenderWindow : public QWidget
     Scene *_scene;
 
     std::unique_ptr<QImage> _image;
-    std::unique_ptr<Renderer<RenderIntegrator>> _renderer;
+    std::unique_ptr<Renderer> _renderer;
     std::unique_ptr<TraceableScene> _flattenedScene;
 
     QLabel *_sppLabel, *_statusLabel;

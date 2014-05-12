@@ -1,10 +1,14 @@
 #ifndef TRACEABLESCENE_HPP_
 #define TRACEABLESCENE_HPP_
 
+#include "integrators/Integrator.hpp"
+
 #include "primitives/EmbreeUtil.hpp"
 #include "primitives/Primitive.hpp"
 
 #include "cameras/Camera.hpp"
+
+#include "volume/Medium.hpp"
 
 #include <embree/include/intersector1.h>
 #include <embree/geometry/virtual_scene.h>
@@ -37,6 +41,7 @@ class TraceableScene
     }
 
     Camera &_cam;
+    const Integrator &_integratorBase;
     std::vector<std::shared_ptr<Primitive>> &_primitives;
     std::vector<std::shared_ptr<Medium>> &_media;
     std::vector<std::shared_ptr<Primitive>> _lights;
@@ -49,9 +54,11 @@ class TraceableScene
 public:
     TraceableScene(TraceableScene &&o) = default;
 
-    TraceableScene(Camera &cam, std::vector<std::shared_ptr<Primitive>> &primitives,
+    TraceableScene(Camera &cam, const Integrator &integratorBase,
+            std::vector<std::shared_ptr<Primitive>> &primitives,
             std::vector<std::shared_ptr<Medium>> &media)
     : _cam(cam),
+      _integratorBase(integratorBase),
       _primitives(primitives),
       _media(media)
     {
@@ -111,6 +118,11 @@ public:
         embree::rtcDeleteGeometry(_scene);
         _scene = nullptr;
         _intersector = nullptr;
+    }
+
+    Integrator *cloneThreadSafeIntegrator(uint32 threadId) const
+    {
+        return _integratorBase.cloneThreadSafe(threadId, this);
     }
 
     bool intersect(Ray &ray, Primitive::IntersectionTemporary &data, IntersectionInfo &info) const

@@ -52,8 +52,8 @@ void TriangleMesh::saveAsObj(std::ostream &out) const
 
 void TriangleMesh::calcSmoothVertexNormals()
 {
-    //static constexpr float SplitLimit = std::cos(PI*0.25f);
-    static constexpr float SplitLimit = -1.0f;
+    static constexpr float SplitLimit = std::cos(PI*0.25f);
+    //static constexpr float SplitLimit = -1.0f;
 
     std::vector<Vec3f> geometricN(_verts.size(), Vec3f(0.0f));
     std::unordered_multimap<Vec3f, uint32> posToVert;

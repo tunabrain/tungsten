@@ -141,16 +141,13 @@ void RenderWindow::startRender()
         emit rendererFinished();
     };
 
-    int threadCount = std::max(QThread::idealThreadCount() - 1, 1);
-    if (threadCount == -1)
-        threadCount = 7;
-#if EXPORT_RAYS
-    threadCount = 1;
-#endif
-
     if (!_renderer) {
+        int threadCount = std::max(QThread::idealThreadCount() - 1, 1);
+        if (threadCount == -1)
+            threadCount = 7;
+
         _currentSpp = 0;
-        _renderer.reset(new Renderer<RenderIntegrator>(*_flattenedScene));
+        _renderer.reset(new Renderer(*_flattenedScene, threadCount));
 
         _image->fill(Qt::black);
         repaint();
@@ -158,7 +155,7 @@ void RenderWindow::startRender()
     _nextSpp = _currentSpp + sampleStep(_currentSpp, _scene->camera()->spp());
     if (_nextSpp == _currentSpp)
         return;
-    _renderer->startRender(finishCallback, _currentSpp, _nextSpp, threadCount);
+    _renderer->startRender(finishCallback, _currentSpp, _nextSpp);
 
     _rendering = true;
     updateStatus();

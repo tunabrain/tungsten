@@ -75,8 +75,8 @@ public:
             T += info.Ns*(-dudv.x()*_bumpStrength - info.Ns.dot(T));
             B += info.Ns*(-dudv.y()*_bumpStrength - info.Ns.dot(B));
             N = T.cross(B);
-            //if (N.dot(info.Ns) < 0.0f)
-            //  N = -N;
+            if (N.dot(info.Ns) < 0.0f)
+                N = -N;
             N.normalize();
         }
         T = (T - N.dot(T)*N).normalized();

@@ -14,6 +14,7 @@
 #include "cameras/PinholeCamera.hpp"
 
 #include "bsdfs/DielectricBsdf.hpp"
+#include "bsdfs/ThinSheetBsdf.hpp"
 #include "bsdfs/LambertBsdf.hpp"
 #include "bsdfs/MirrorBsdf.hpp"
 #include "bsdfs/PhongBsdf.hpp"
@@ -259,7 +260,9 @@ std::shared_ptr<Bsdf> ObjLoader::convertObjMaterial(const ObjMaterial &mat)
 {
     std::shared_ptr<Bsdf> result = nullptr;
 
-    if (!mat.isTransmissive()) {
+    if (mat.name.find("Thinsheet") != std::string::npos) {
+        result = std::make_shared<ThinSheetBsdf>();
+    } else if (!mat.isTransmissive()) {
         if (!mat.isSpecular()) {
             result = std::make_shared<LambertBsdf>();
             result->setColor(std::make_shared<ConstantTextureRgb>(mat.diffuse));

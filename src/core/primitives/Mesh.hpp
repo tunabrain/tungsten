@@ -147,6 +147,18 @@ public:
         }
     }
 
+    void makeCone(float radius, float height)
+    {
+        constexpr int SubDiv = 36;
+        int base = _verts.size();
+        _verts.emplace_back(Vec3f(0.0f));
+        for (int i = 0; i < SubDiv; ++i) {
+            float a = i*TWO_PI/SubDiv;
+            _verts.emplace_back(Vec3f(std::cos(a)*radius, height, std::sin(a)*radius));
+            _tris.emplace_back(base, base + i + 1, base + ((i + 1) % SubDiv) + 1);
+        }
+    }
+
     virtual bool intersect(Ray &ray, IntersectionTemporary &data) const override
     {
         embree::Ray eRay(toERay(ray));
