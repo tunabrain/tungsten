@@ -23,19 +23,19 @@ public:
         _marginalCdf.resize(h + 1);
 
         _marginalCdf[0] = 0.0f;
-        for (int y = 0, idx = 0; y < h; ++y) {
+        for (int y = 0; y < h; ++y) {
             int idxP = y*w;
             int idxC = y*(w + 1);
 
             _cdf[idxC] = 0.0f;
             for (int x = 0; x < w; ++x, ++idxP, ++idxC) {
-                _marginalPdf[y] += weights[idxP];
+                _marginalPdf[y] += _pdf[idxP];
                 _cdf[idxC + 1] = _cdf[idxC] + _pdf[idxP];
             }
             _marginalCdf[y + 1] = _marginalCdf[y] + _marginalPdf[y];
         }
 
-        for (int y = 0, idx = 0; y < h; ++y) {
+        for (int y = 0; y < h; ++y) {
             int idxP = y*w;
             int idxC = y*(w + 1);
             int idxTail = idxC + w;
@@ -56,19 +56,21 @@ public:
 
     void warp(Vec2f &uv, int &row, int &column) const
     {
-        row = std::distance(_marginalCdf.begin(), std::upper_bound(_marginalCdf.begin(), _marginalCdf.end(), uv.x())) - 1;
-        uv.x() = clamp((uv.x() - _marginalCdf[row])/_marginalPdf[row], 0.0f, 1.0f);
+        row = std::distance(_marginalCdf.begin(), std::upper_bound(_marginalCdf.begin(), _marginalCdf.end(), uv.y())) - 1;
+        uv.y() = clamp((uv.y() - _marginalCdf[row])/_marginalPdf[row], 0.0f, 1.0f);
         auto rowStart = _cdf.begin() + row*(_w + 1);
         auto rowEnd = rowStart + (_w + 1);
-        column = std::distance(rowStart, std::upper_bound(rowStart, rowEnd, uv.y())) - 1;
-        int idxC = row + column*(_w + 1);
-        int idxP = row + column*_w;
-        uv.y() = clamp((uv.y() - _cdf[idxC])/_pdf[idxP], 0.0f, 1.0f);
+        column = std::distance(rowStart, std::upper_bound(rowStart, rowEnd, uv.x())) - 1;
+        int idxC = row*(_w + 1) + column;
+        int idxP = row*_w + column;
+        uv.x() = clamp((uv.x() - _cdf[idxC])/_pdf[idxP], 0.0f, 1.0f);
     }
 
     float pdf(int row, int column) const
     {
-        return _pdf[row + column*_w]*_marginalPdf[row];
+        row    = clamp(row,    0, _h - 1);
+        column = clamp(column, 0, _w - 1);
+        return _pdf[row*_w + column]*_marginalPdf[row];
     }
 };
 

@@ -3,7 +3,11 @@
 
 #include <cmath>
 
+#include "materials/DiskTexture.hpp"
+
 #include "math/Angle.hpp"
+
+#include "io/Scene.hpp"
 
 #include "Camera.hpp"
 
@@ -19,11 +23,16 @@ class ThinlensCamera : public Camera
     float _planeDist;
     float _focusDist;
     float _apertureSize;
+    float _chromaticAberration;
+    float _catEye;
+
+    std::shared_ptr<TextureA> _aperture;
 
     void precompute()
     {
         _fovRad = Angle::degToRad(_fovDeg);
         _planeDist = 1.0f/std::tan(_fovRad*0.5f);
+        _aperture->makeSamplable(MAP_UNIFORM);
     }
 
 public:
@@ -31,7 +40,10 @@ public:
     : Camera(),
       _fovDeg(60.0f),
       _focusDist(1.0f),
-      _apertureSize(0.001f)
+      _apertureSize(0.001f),
+      _chromaticAberration(0.0f),
+      _catEye(0.0f),
+      _aperture(std::make_shared<DiskTexture<true>>())
     {
         precompute();
     }
@@ -40,8 +52,14 @@ public:
     {
         Camera::fromJson(v, scene);
         JsonUtils::fromJson(v, "fov", _fovDeg);
-        JsonUtils::fromJson(v, "focusDistance", _focusDist);
-        JsonUtils::fromJson(v, "apertureSize", _apertureSize);
+        JsonUtils::fromJson(v, "focus_distance", _focusDist);
+        JsonUtils::fromJson(v, "aperture_size", _apertureSize);
+        JsonUtils::fromJson(v, "aberration", _chromaticAberration);
+        JsonUtils::fromJson(v, "cateye", _catEye);
+
+        const rapidjson::Value::Member *aperture = v.FindMember("aperture");
+        if (aperture)
+            _aperture = scene.fetchScalarTexture<2>(aperture->value);
 
         precompute();
     }
@@ -51,24 +69,72 @@ public:
         rapidjson::Value v = Camera::toJson(allocator);
         v.AddMember("type", "thinlens", allocator);
         v.AddMember("fov", _fovDeg, allocator);
-        v.AddMember("focusDistance", _focusDist, allocator);
-        v.AddMember("apertureSize", _apertureSize, allocator);
+        v.AddMember("focus_distance", _focusDist, allocator);
+        v.AddMember("aperture_size", _apertureSize, allocator);
+        v.AddMember("aberration", _chromaticAberration, allocator);
+        v.AddMember("cateye", _catEye, allocator);
+        JsonUtils::addObjectMember(v, "aperture", *_aperture, allocator);
         return std::move(v);
     }
 
-    Ray generateSample(Vec2u pixel, SampleGenerator &sampler) const override final
+    Vec3f aberration(Vec2u pixel, Vec2f &aperturePos, SampleGenerator &sampler) const
+    {
+        Vec2f shift = (Vec2f(Vec2i(pixel) - Vec2i(_res/2))/Vec2f(_res))*2.0f;
+        shift.y() = -shift.y();
+
+        float dist = shift.length();
+        shift.normalize();
+        float shiftAmount = dist*_chromaticAberration;
+        Vec3f shiftAmounts(shiftAmount, 0.0f, -shiftAmount);
+        int sampleKernel = sampler.nextI() % 3;
+        float amount = shiftAmounts[sampleKernel];
+        shiftAmounts -= amount;
+
+        Vec2f blueShift  = aperturePos + shift*shiftAmounts.x();
+        Vec2f greenShift = aperturePos + shift*shiftAmounts.y();
+        Vec2f redShift   = aperturePos + shift*shiftAmounts.z();
+
+        aperturePos -= amount*shift;
+
+        return Vec3f(
+            (*_aperture)[redShift],
+            (*_aperture)[greenShift],
+            (*_aperture)[blueShift]
+        )/_aperture->maximum();
+    }
+
+    bool generateSample(Vec2u pixel, SampleGenerator &sampler, Vec3f &throughput, Ray &ray) const override final
     {
         Vec2f pixelUv = sampler.next2D();
         Vec2f lensUv = sampler.next2D();
+
         Vec3f planePos(
             -1.0f  + (float(pixel.x()) + pixelUv.x())*_pixelSize.x(),
             _ratio - (float(pixel.y()) + pixelUv.y())*_pixelSize.y(),
             _planeDist
         );
         planePos *= _focusDist/planePos.z();
-        Vec3f lensPos = Sample::uniformDisk(lensUv)*_apertureSize;
-        Vec3f dir = _transform.transformVector(planePos - lensPos).normalized();
-        return Ray(_transform*lensPos, dir);
+
+        Vec2f aperturePos = _aperture->sample(lensUv);
+        if (_chromaticAberration > 0.0f)
+            throughput = aberration(pixel, aperturePos, sampler);
+        else
+            throughput = Vec3f(1.0f);
+        aperturePos = (aperturePos*2.0f - 1.0f)*_apertureSize;
+
+        Vec3f lensPos = Vec3f(aperturePos.x(), aperturePos.y(), 0.0f);
+        Vec3f localDir = (planePos - lensPos).normalized();
+        Vec3f dir = _transform.transformVector(localDir);
+
+        if (_catEye > 0.0f) {
+            Vec2f diaphragmPos = lensPos.xy() - _catEye*_planeDist*localDir.xy();
+            if (diaphragmPos.lengthSq() > sqr(_apertureSize))
+                return false;
+        }
+
+        ray = Ray(_transform*lensPos, dir);
+
+        return true;
     }
 
     Mat4f approximateProjectionMatrix(int width, int height) const override final

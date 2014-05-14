@@ -61,6 +61,10 @@ public:
     {
         if (_bump->isConstant() && !_lobes.isAnisotropic()) {
             dst = TangentFrame(info.Ns);
+            if (std::isnan(dst.normal.sum())) {
+                std::cout << tfm::format("NAN default dst! %s -> %s %s %s", info.Ns, dst.normal, dst.tangent, dst.bitangent) << std::endl;
+                exit(0);
+            }
             return;
         }
         Vec3f T, B, N(info.Ns);
@@ -68,21 +72,38 @@ public:
             dst = TangentFrame(info.Ns);
             return;
         }
+        if (std::isnan(T.sum() + B.sum())) {
+            std::cout << tfm::format("NAN tangent! %s %s", T, B) << std::endl;
+            exit(0);
+        }
         if (!_bump->isConstant()) {
             Vec2f dudv;
             _bump->derivatives(info.uv, dudv);
 
-            T += info.Ns*(-dudv.x()*_bumpStrength - info.Ns.dot(T));
-            B += info.Ns*(-dudv.y()*_bumpStrength - info.Ns.dot(B));
+            T += info.Ns*(dudv.x()*_bumpStrength - info.Ns.dot(T));
+            B += info.Ns*(dudv.y()*_bumpStrength - info.Ns.dot(B));
             N = T.cross(B);
+            if (N == 0.0f) {
+                dst = TangentFrame(info.Ns);
+                return;
+            }
             if (N.dot(info.Ns) < 0.0f)
                 N = -N;
             N.normalize();
         }
-        T = (T - N.dot(T)*N).normalized();
+        T = (T - N.dot(T)*N);
+        if (T == 0.0f) {
+            dst = TangentFrame(info.Ns);
+            return;
+        }
+        T.normalize();
         B = N.cross(T);
 
         dst = TangentFrame(N, T, B);
+        if (std::isnan(dst.normal.sum())) {
+            std::cout << tfm::format("NAN dst! %s %s %s", dst.normal, dst.tangent, dst.bitangent) << std::endl;
+            exit(0);
+        }
     }
 
     virtual float alpha(const IntersectionInfo *info) const
@@ -152,6 +173,11 @@ public:
     const std::shared_ptr<Medium> &intMedium() const
     {
         return _intMedium;
+    }
+
+    bool overridesMedia() const
+    {
+        return _extMedium || _intMedium;
     }
 };
 

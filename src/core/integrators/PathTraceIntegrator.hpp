@@ -66,10 +66,12 @@ class PathTraceIntegrator : public Integrator
                 throughput *= medium->transmittance(VolumeScatterEvent(ray.pos(), ray.dir(), ray.farT()));
             if (info.primitive == nullptr || info.primitive == endCap)
                 return throughput;
-            if (info.primitive->hitBackside(data))
-                medium = info.primitive->bsdf()->extMedium().get();
-            else
-                medium = info.primitive->bsdf()->intMedium().get();
+            if (info.primitive->bsdf()->overridesMedia()) {
+                if (info.primitive->hitBackside(data))
+                    medium = info.primitive->bsdf()->extMedium().get();
+                else
+                    medium = info.primitive->bsdf()->intMedium().get();
+            }
             ray.setPos(ray.hitpoint());
             initialFarT -= ray.farT();
             ray.setNearT(Epsilon);
@@ -105,6 +107,7 @@ class PathTraceIntegrator : public Integrator
                       const Primitive &light,
                       const Bsdf &bsdf,
                       SurfaceScatterEvent &event,
+                      const Medium *medium,
                       int bounce)
     {
         LightSample sample(event.sampler, event.info->p);
@@ -117,11 +120,12 @@ class PathTraceIntegrator : public Integrator
         if (geometricBackside != (event.wo.z() < 0.0f))
             return Vec3f(0.0f);
 
-        Medium *medium;
-        if (geometricBackside)
-            medium = bsdf.intMedium().get();
-        else
-            medium = bsdf.extMedium().get();
+        if (bsdf.overridesMedia()) {
+            if (geometricBackside)
+                medium = bsdf.intMedium().get();
+            else
+                medium = bsdf.extMedium().get();
+        }
 
         event.requestedLobe = BsdfLobes::AllButSpecular;
         Vec3f f = bsdf.eval(event);
@@ -145,6 +149,7 @@ class PathTraceIntegrator : public Integrator
                      const Primitive &light,
                      const Bsdf &bsdf,
                      SurfaceScatterEvent &event,
+                     const Medium *medium,
                      int bounce)
     {
         event.requestedLobe = BsdfLobes::AllButSpecular;
@@ -158,11 +163,12 @@ class PathTraceIntegrator : public Integrator
         if (geometricBackside != (event.wo.z() < 0.0f))
             return Vec3f(0.0f);
 
-        Medium *medium;
-        if (geometricBackside)
-            medium = bsdf.intMedium().get();
-        else
-            medium = bsdf.extMedium().get();
+        if (bsdf.overridesMedia()) {
+            if (geometricBackside)
+                medium = bsdf.intMedium().get();
+            else
+                medium = bsdf.extMedium().get();
+        }
 
         Primitive::IntersectionTemporary data;
         Vec3f e = attenuatedEmission(light, medium, event.info->p, wo, -1.0f, data, bounce, Epsilon);
@@ -226,6 +232,7 @@ class PathTraceIntegrator : public Integrator
                        const Primitive &light,
                        const Bsdf &bsdf,
                        SurfaceScatterEvent &event,
+                       const Medium *medium,
                        int bounce)
     {
         Vec3f result(0.0f);
@@ -233,9 +240,9 @@ class PathTraceIntegrator : public Integrator
         if (bsdf.flags().isPureSpecular() || bsdf.flags().isForward())
             return Vec3f(0.0f);
 
-        result += lightSample(frame, light, bsdf, event, bounce);
+        result += lightSample(frame, light, bsdf, event, medium, bounce);
         if (!light.isDelta())
-            result += bsdfSample(frame, light, bsdf, event, bounce);
+            result += bsdfSample(frame, light, bsdf, event, medium, bounce);
 
         return result;
     }
@@ -308,13 +315,14 @@ class PathTraceIntegrator : public Integrator
     Vec3f estimateDirect(const TangentFrame &frame,
                          const Bsdf &bsdf,
                          SurfaceScatterEvent &event,
+                         const Medium *medium,
                          int bounce)
     {
         float weight;
         const Primitive *light = chooseLight(*event.sampler, event.info->p, weight);
         if (light == nullptr)
             return Vec3f(0.0f);
-        return sampleDirect(frame, *light, bsdf, event, bounce)*weight;
+        return sampleDirect(frame, *light, bsdf, event, medium, bounce)*weight;
     }
 
 public:
@@ -337,7 +345,7 @@ public:
                Vec3f &throughput, Vec3f &emission, bool &wasSpecular, bool &hitSurface,
                Medium::MediumState &state)
     {
-        VolumeScatterEvent event(&sampler, &supplementalSampler, ray.pos(), ray.dir(), ray.farT());
+        VolumeScatterEvent event(&sampler, &supplementalSampler, throughput, ray.pos(), ray.dir(), ray.farT());
         if (!medium->sampleDistance(event, state))
             return false;
         throughput *= event.throughput;
@@ -379,11 +387,16 @@ public:
         const Bsdf &bsdf = *info.primitive->bsdf();
 
         Vec3f wo;
-        if (supplementalSampler.next1D() >= bsdf.alpha(&info)) {
+        if (supplementalSampler.next1D() >= bsdf.alpha(&info) || bsdf.flags().isForward()) {
             wo = ray.dir();
         } else {
             TangentFrame frame;
             bsdf.setupTangentFrame(*info.primitive, data, info, frame);
+
+            if (std::isnan(frame.normal.sum())) {
+                std::cout << tfm::format("NAN frame! %s %s %s", frame.normal, frame.tangent, frame.bitangent) << std::endl;
+                exit(0);
+            }
 
             if (frame.normal.dot(ray.dir()) > 0.0f && !bsdf.flags().isTransmissive()) {
                 info.Ng = -info.Ng;
@@ -399,7 +412,7 @@ public:
                     emission += info.primitive->emission(data, info)*throughput;
 
                 if (bounce < _maxBounces - 1)
-                    emission += estimateDirect(frame, bsdf, event, bounce + 1)*throughput;
+                    emission += estimateDirect(frame, bsdf, event, medium, bounce + 1)*throughput;
             } else {
                 emission += info.primitive->emission(data, info)*throughput;
             }
@@ -419,12 +432,14 @@ public:
         }
 
         bool geometricBackside = (wo.dot(info.Ng) < 0.0f);
-        Medium *newMedium;
-        if (geometricBackside)
-            newMedium = bsdf.intMedium().get();
-        else
-            newMedium = bsdf.extMedium().get();
-        if (newMedium != medium)
+        const Medium *newMedium = medium;
+        if (bsdf.overridesMedia()) {
+            if (geometricBackside)
+                newMedium = bsdf.intMedium().get();
+            else
+                newMedium = bsdf.extMedium().get();
+        }
+        //if (newMedium != medium)
             state.reset();
         medium = newMedium;
         ray = Ray(ray.hitpoint(), wo, Epsilon);
@@ -433,12 +448,19 @@ public:
 
     Vec3f traceSample(Vec2u pixel, SampleGenerator &sampler, UniformSampler &supplementalSampler) final override
     {
-        Ray ray(_scene->cam().generateSample(pixel, sampler));
+        const Vec3f nanDirColor(1000.0f, 0.0f, 0.0f);
+        const Vec3f nanEnvDirColor(0.0f, 0.0f, 1000.0f);
+        const Vec3f nanBsdfColor(0.0f, 1000.0f, 0.0f);
+
+        Ray ray;
+        Vec3f throughput(1.0f);
+        if (!_scene->cam().generateSample(pixel, sampler, throughput, ray))
+            return Vec3f(0.0f);
 
         Primitive::IntersectionTemporary data;
         Medium::MediumState state;
+        state.reset();
         IntersectionInfo info;
-        Vec3f throughput(1.0f);
         Vec3f emission(0.0f);
         const Medium *medium = _scene->cam().medium().get();
 
@@ -457,12 +479,17 @@ public:
                 break;
 
             float roulettePdf = throughput.max();
-            if (bounce > 5 && roulettePdf < 0.1f) {
+            if (bounce > 2 && roulettePdf < 0.1f) {
                 if (supplementalSampler.next1D() < roulettePdf)
                     throughput /= roulettePdf;
                 else
                     break;
             }
+
+            if (std::isnan(ray.dir().sum() + ray.pos().sum()))
+                return nanDirColor;
+            if (std::isnan(throughput.sum() + emission.sum()))
+                return nanBsdfColor;
 
             bounce++;
             if (bounce < _maxBounces)
@@ -478,6 +505,8 @@ public:
                 }
             }
         }
+        if (std::isnan(throughput.sum() + emission.sum()))
+            return nanEnvDirColor;
         return emission;
     }
 

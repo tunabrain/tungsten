@@ -1,157 +1,130 @@
-#include <common/ray.h>
-#include <iostream>
-#include <thread>
-#include <chrono>
+#include "Timer.hpp"
 
-#include <tbb/concurrent_queue.h>
+#include "cameras/Camera.hpp"
 
-#include "integrators/PathTraceIntegrator.hpp"
-
-#include "primitives/HeightmapTerrain.hpp"
-
-#include "materials/AtmosphericScattering.hpp"
-
-#include "sampling/SampleGenerator.hpp"
-#include "sampling/LightSample.hpp"
-
-#include "extern/lodepng/lodepng.h"
-
-#include "lights/ConeLight.hpp"
-
-#include "bsdfs/LambertBsdf.hpp"
-
-#include "math/TangentFrame.hpp"
-#include "math/MathUtil.hpp"
-#include "math/Angle.hpp"
-
-#include "io/HfaLoader.hpp"
-#include "io/ObjLoader.hpp"
+#include "io/FileUtils.hpp"
 #include "io/Scene.hpp"
 
+#include "TraceableScene.hpp"
 #include "Renderer.hpp"
-#include "Camera.hpp"
 
-
-namespace Tungsten
-{
-
-Vec3f tonemap(const Vec3f &c)
-{
-    //return min(c, Vec3f(1.0f));
-    Vec3f x(max(c - 0.004f, Vec3f(0.0f)));
-    x = (x*(6.2f*x + 0.5f))/(x*(6.2f*x + 1.7f) + 0.06f);
-    return min(x, Vec3f(1.0f));
-    /*return c;
-    constexpr float gamma = 1.0f/2.2f;
-    Vec3f monitor(
-        std::pow(c.x(), gamma),
-        std::pow(c.y(), gamma),
-        std::pow(c.z(), gamma)
-    );
-
-    return min(monitor, Vec3f(1.0f));*/
-}
-
-}
+#include "extern/tinyformat/tinyformat.hpp"
+#include "extern/embree/include/embree.h"
+#include "extern/lodepng/lodepng.h"
 
 using namespace Tungsten;
 
-int main()
+std::string incrementalFilename(const std::string &relFile,
+                                const std::string &dstFile,
+                                const std::string &suffix)
 {
-    constexpr uint32 spp = 4;
-    constexpr uint32 ThreadCount = 6;
-    Vec2u resolution(1920u, 1080u);
+    std::string fileName = FileUtils::stripExt(dstFile) + suffix + "." + FileUtils::extractExt(dstFile);
+    std::string dst = FileUtils::addSlash(FileUtils::extractDir(relFile)) + fileName;
+    std::string basename = FileUtils::stripExt(dst);
+    std::string extension = FileUtils::extractExt(dst);
+    int index = 0;
+    while (FileUtils::fileExists(dst))
+        dst = tfm::format("%s%05d.%s", basename, ++index, extension);
+
+    return std::move(dst);
+}
+
+void saveFrameAndVariance(Renderer &renderer, Scene &scene, Camera &camera, const std::string &suffix)
+{
+    std::string dst         = incrementalFilename(scene.path(), camera.outputFile(), suffix);
+    std::string dstVariance = incrementalFilename(scene.path(), camera.outputFile(), suffix + "Variance");
+
+    int w = camera.resolution().x();
+    int h = camera.resolution().y();
+    std::unique_ptr<uint8[]> ldr(new uint8[w*h*3]);
+    for (int y = 0, idx = 0; y < h; ++y) {
+        for (int x = 0; x < w; ++x, ++idx) {
+            Vec3c rgb(clamp(camera.get(x, y)*256.0f, Vec3f(0.0f), Vec3f(255.0f)));
+            ldr[idx*3 + 0] = rgb.x();
+            ldr[idx*3 + 1] = rgb.y();
+            ldr[idx*3 + 2] = rgb.z();
+        }
+    }
+
+    FileUtils::createDirectory(FileUtils::extractDir(dst));
+
+    lodepng_encode24_file(dst.c_str(), ldr.get(), w, h);
+    renderer.saveVariance(dstVariance);
+}
+
+std::string formatTime(double elapsed)
+{
+    uint64 seconds = uint64(elapsed);
+    uint64 minutes = seconds/60;
+    uint64 hours = minutes/60;
+    uint64 days = hours/24;
+    double fraction = elapsed - seconds;
+
+    std::stringstream ss;
+
+    if (days)    ss << tfm::format("%dd ", days);
+    if (hours)   ss << tfm::format("%dh ", hours % 24);
+    if (minutes) ss << tfm::format("%dm ", minutes % 60);
+    if (seconds) ss << tfm::format("%ds %dms", seconds % 60, uint64(fraction*1000.0f) % 1000);
+    else ss << elapsed << "s";
+
+    return ss.str();
+}
+
+int main(int argc, const char *argv[])
+{
+    constexpr int ThreadCount = 7;
+    constexpr int SppStep = 16;
+    constexpr int BackupInterval = 60*5;
+
+    if (argc < 2) {
+        std::cerr << "Usage: tungsten scene1 [scene2 [scene3....]]\n";
+        return 1;
+    }
 
     embree::rtcInit();
-    embree::rtcSetVerbose(1);
+    //embree::rtcSetVerbose(1);
     embree::rtcStartThreads(ThreadCount);
 
-    //PackedGeometry *mesh = ObjLoader::load("models/CornellBox/CornellBox-Glossy.obj");
-    //Mesh *mesh = ObjLoader::load("models/DrabovicSponza/sponza.obj");
+    for (int i = 1; i < argc; ++i) {
+        std::cout << tfm::format("Loading scene '%s'...", argv[i]) << std::endl;
+        std::unique_ptr<Scene> scene;
+        try {
+            scene.reset(Scene::load(argv[1]));
+        } catch (std::runtime_error &e) {
+            std::cerr << tfm::format("Scene loader for file '%s' encountered an unrecoverable error: \n%s",
+                    argv[i], e.what()) << std::endl;
+            continue;
+        }
 
-    //Scene scene(*ObjLoader::load("models/DrabovicSponza/sponza.obj"));
-    //Scene scene(*ObjLoader::load("models/SanMiguel/san-miguel.obj"));
-    //Scene scene(*ObjLoader::load("models/LostEmpire/lost_empire.obj"));
-    //Scene scene = ObjLoader::load("models/CornellBox/CornellBox-Glossy.obj");
-    //Scene scene = Scene::load("TestConversion/Test.scene");
-    //Scene scene = Scene::load("SanMiguel/scene.json");
-    //Scene scene = Scene::load("LostEmpire/scene.json");
-    //Scene scene = Scene::load("Sponza/scene.json");
+        try {
+            int maxSpp = scene->camera()->spp();
+            std::unique_ptr<TraceableScene> flattenedScene(scene->makeTraceable());
+            std::unique_ptr<Renderer> renderer(new Renderer(*flattenedScene, ThreadCount));
 
-    Scene scene;
+            std::cout << "Starting render..." << std::endl;
+            Timer timer, checkpointTimer;
+            for (int i = 0; i < maxSpp; i += SppStep) {
+                renderer->startRender([](){}, i, min(i + SppStep, maxSpp));
+                renderer->waitForCompletion();
+                std::cout << tfm::format("Completed %d/%d spp", min(i + SppStep, maxSpp), maxSpp) << std::endl;
+                checkpointTimer.stop();
+                if (checkpointTimer.elapsed() > BackupInterval) {
+                    std::cout << tfm::format("Saving checkpoint after %s", formatTime(checkpointTimer.elapsed()).c_str()) << std::endl;
+                    checkpointTimer.start();
+                    saveFrameAndVariance(*renderer, *scene, *scene->camera(), "Checkpoint");
+                }
+            }
+            timer.stop();
 
-    //Scene::save("Sponza/scene.json", scene);
-    //return 0;
+            std::cout << tfm::format("Finished render. Render time %s", formatTime(timer.elapsed()).c_str()) << std::endl;
 
-    std::vector<std::shared_ptr<Light>> lights = std::move(scene.lights());
-    //delete scene;
-
-    //Vec3f sun = Vec3f(0.5f, -1.0f, -0.3f).normalized();
-    //Vec3f sun = Vec3f(0.3f, -1.0f, -0.1f).normalized();
-    Vec3f sun = Vec3f(-0.3f, -0.2f, 1.0f).normalized();
-
-    lights.emplace_back(new ConeLight(
-        9.35e-3f*9.0f,
-        sun,
-        Vec3f(600.0f))
-    );
-
-    //Mat4f transform = Mat4f::translate(Vec3f(23.57511f, 9.77478f, 2.23092f + 0.1f))*Mat4f::rotXYZ(Vec3f(52.941f - 90.0f, -249.706f, 0.0f));
-    //Mat4f transform = Mat4f::translate(Vec3f(-13.0f, 2.0f, 0.0f))*Mat4f::rotYZX(Vec3f(-15.0f, -90.0f, 0.0f));
-    Mat4f transform = Mat4f::translate(Vec3f(0.0f, 100.0f, 0.0f))*Mat4f::rotYZX(Vec3f(10.0f, 0.0f, 0.0f));
-
-    //Camera cam(Vec3f(0.0f, 20.0f, 130.0f), resolution, degToRad(60.0f));
-    Camera cam(transform, resolution, Angle::degToRad(70.0f));
-
-
-    HfaLoader loader("C:/Users/Tuna brain/Desktop/Terrain/imgn37w116_13.img", "");
-    MinMaxChain heightmap(loader.mapData(), loader.w(), loader.h());
-    uint32 centerX = loader.w()/2 - 500;
-    uint32 centerY = loader.h()/2 - 2600;
-    Vec3f center(
-        centerX,
-        heightmap.at(centerX, centerY),
-        centerY
-    );
-    std::cout << center.y() << std::endl;
-    Mat4f terrainTform = Mat4f::scale(Vec3f(loader.xScale(), 1.0f, loader.yScale()))*Mat4f::translate(-center);
-    HeightmapTerrain terrain(cam, heightmap, terrainTform, 1.0f);
-    scene.addMesh(terrain.buildMesh(
-        std::shared_ptr<Material>(new Material(std::shared_ptr<Bsdf>(new LambertBsdf(Vec3f(0.5f))), Vec3f(0.0f), "default")),
-        "Terrain"
-    ));
-
-    PackedGeometry mesh(scene.flatten());
-
-    Vec3c *img = new Vec3c[resolution.x()*resolution.y()];
-
-    AtmosphericScattering atmosphere(AtmosphereParameters::generic());
-    atmosphere.precompute();
-
-    std::cout << "Starting render..." << std::endl;
-
-    std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
-
-    Renderer<PathTraceIntegrator> renderer(cam, mesh, lights);
-
-    auto setPixel = [&](uint32 x, uint32 y, const Vec3f &c) {
-        img[x + y*resolution.x()] = Vec3c(tonemap(c)*255.0f);
-    };
-
-    renderer.startRender(setPixel, spp, ThreadCount);
-    renderer.waitForCompletion();
-
-    std::chrono::time_point<std::chrono::high_resolution_clock> end = std::chrono::high_resolution_clock::now();
-
-    double elapsed = std::chrono::duration<double>(end - start).count();
-
-    uint64 samples = resolution.x()*resolution.y()*spp;
-    std::cout << "Render time: " << elapsed << " seconds at ";
-    std::cout.precision(10);
-    std::cout << samples/elapsed;
-    std::cout << " samples/s or " << samples/(elapsed*ThreadCount) << " samples/s per core" << std::endl;
-
-    lodepng_encode24_file("Tmp.png", img[0].data(), resolution.x(), resolution.y());
+            saveFrameAndVariance(*renderer, *scene, *scene->camera(), "");
+        } catch (std::runtime_error &e) {
+            std::cerr << tfm::format("Renderer for file '%s' encountered an unrecoverable error: \n%s",
+                    argv[i], e.what()) << std::endl;
+        }
+    }
 
     return 0;
 }

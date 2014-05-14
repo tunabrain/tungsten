@@ -68,7 +68,7 @@ public:
         QuadIntersection *isect = data.as<QuadIntersection>();
         isect->p = q;
         isect->u = l0;
-        isect->v = l1;
+        isect->v = 1.0f - l1;
         isect->backSide = nDotW >= 0.0f;
         data.primitive = this;
 

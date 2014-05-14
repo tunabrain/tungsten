@@ -373,7 +373,7 @@ public:
                Vec3f &throughput, Vec3f &emission, bool &wasSpecular, bool &hitSurface,
                Medium::MediumState &state)
     {
-        VolumeScatterEvent event(&sampler, &supplementalSampler, ray.pos(), ray.dir(), ray.farT());
+        VolumeScatterEvent event(&sampler, &supplementalSampler, throughput, ray.pos(), ray.dir(), ray.farT());
         if (!medium->sampleDistance(event, state))
             return false;
         throughput *= event.throughput;
@@ -462,12 +462,14 @@ public:
 
     Vec3f traceSample(Vec2u pixel, SampleGenerator &sampler, UniformSampler &supplementalSampler) final override
     {
-        Ray ray(_scene->cam().generateSample(pixel, sampler));
+        Ray ray;
+        Vec3f throughput(1.0f);
+        if (!_scene->cam().generateSample(pixel, sampler, throughput, ray))
+            return Vec3f(0.0f);
 
         Primitive::IntersectionTemporary data;
         Medium::MediumState state;
         IntersectionInfo info;
-        Vec3f throughput(1.0f);
         Vec3f emission(0.0f);
         const Medium *medium = _scene->cam().medium().get();
 

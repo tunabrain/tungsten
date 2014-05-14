@@ -21,6 +21,7 @@
 
 #include "bsdfs/Bsdf.hpp"
 
+#include "RendererSettings.hpp"
 #include "TraceableScene.hpp"
 
 namespace Tungsten
@@ -38,6 +39,8 @@ class Scene : public JsonSerializable
     mutable std::map<std::string, std::shared_ptr<BitmapTextureA>> _scalarMaps;
     std::shared_ptr<Camera> _camera;
     std::shared_ptr<Integrator> _integrator;
+
+    RendererSettings _rendererSettings;
 
     std::shared_ptr<Medium>     instantiateMedium    (std::string type, const rapidjson::Value &value) const;
     std::shared_ptr<Bsdf>       instantiateBsdf      (std::string type, const rapidjson::Value &value) const;
@@ -138,6 +141,11 @@ public:
     const std::string path() const
     {
         return _path;
+    }
+
+    RendererSettings rendererSettings() const
+    {
+        return _rendererSettings;
     }
 
     static Scene *load(const std::string &path);

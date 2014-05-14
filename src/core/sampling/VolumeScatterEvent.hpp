@@ -13,6 +13,7 @@ struct VolumeScatterEvent
 {
     SampleGenerator *sampler;
     UniformSampler *supplementalSampler;
+    Vec3f currentThroughput;
     Vec3f p;
     Vec3f wi;
     float maxT;
@@ -24,11 +25,13 @@ struct VolumeScatterEvent
 
     VolumeScatterEvent(SampleGenerator *sampler_,
                  UniformSampler *supplementalSampler_,
+                 Vec3f currentThroughput_,
                  const Vec3f &p_,
                  const Vec3f &wi_,
                  float maxT_)
     : sampler(sampler_),
       supplementalSampler(supplementalSampler_),
+      currentThroughput(currentThroughput_),
       p(p_),
       wi(wi_),
       maxT(maxT_),
@@ -39,7 +42,7 @@ struct VolumeScatterEvent
     }
 
     VolumeScatterEvent(const Vec3f &p_, const Vec3f &wi_, float maxT_)
-    : VolumeScatterEvent(nullptr, nullptr, p_, wi_, maxT_)
+    : VolumeScatterEvent(nullptr, nullptr, Vec3f(1.0f), p_, wi_, maxT_)
     {
     }
 };

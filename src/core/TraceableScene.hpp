@@ -10,6 +10,8 @@
 
 #include "volume/Medium.hpp"
 
+#include "RendererSettings.hpp"
+
 #include <embree/include/intersector1.h>
 #include <embree/geometry/virtual_scene.h>
 #include <embree/common/ray.h>
@@ -46,6 +48,7 @@ class TraceableScene
     std::vector<std::shared_ptr<Medium>> &_media;
     std::vector<std::shared_ptr<Primitive>> _lights;
     std::vector<std::shared_ptr<Primitive>> _infinites;
+    RendererSettings _settings;
 
     embree::VirtualScene *_scene = nullptr;
     embree::Intersector1 *_intersector = nullptr;
@@ -56,11 +59,13 @@ public:
 
     TraceableScene(Camera &cam, const Integrator &integratorBase,
             std::vector<std::shared_ptr<Primitive>> &primitives,
-            std::vector<std::shared_ptr<Medium>> &media)
+            std::vector<std::shared_ptr<Medium>> &media,
+            RendererSettings settings)
     : _cam(cam),
       _integratorBase(integratorBase),
       _primitives(primitives),
-      _media(media)
+      _media(media),
+      _settings(settings)
     {
         _virtualIntersector.intersectPtr = &intersect;
         _virtualIntersector.occludedPtr = &occluded;
@@ -183,6 +188,11 @@ public:
     const std::vector<std::shared_ptr<Primitive>> &lights() const
     {
         return _lights;
+    }
+
+    RendererSettings rendererSettings() const
+    {
+        return _settings;
     }
 };
 

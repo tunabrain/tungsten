@@ -41,7 +41,7 @@ public:
             return false;
         event.wo  = Sample::cosineHemisphere(event.sampler->next2D());
         event.pdf = Sample::cosineHemispherePdf(event.wo);
-        event.throughput = base(event.info);
+        event.throughput = eval(event)/event.pdf;
         event.sampledLobe = BsdfLobes::DiffuseReflectionLobe;
         return true;
     }
@@ -68,7 +68,8 @@ public:
         else
             cosDeltaPhi = (wi.x()*wo.x() + wi.y()*wo.y())/std::sqrt(denom);
 
-        float sigma = (*_roughness)[event.info->uv];
+        const float RoughnessToSigma = 1.0f/std::sqrt(2.0f);
+        float sigma = RoughnessToSigma*(*_roughness)[event.info->uv];
         float sigmaSq = sigma*sigma;
 
         float C1 = 1.0f - 0.5f*sigmaSq/(sigmaSq + 0.33f);
@@ -79,11 +80,11 @@ public:
             C2 *= sinAlpha - cube((2.0f*INV_PI)*beta);
         float C3 = 0.125f*(sigmaSq/(sigmaSq + 0.09f))*sqr((4.0f*INV_PI*INV_PI)*alpha*beta);
 
-        float fr1 = INV_PI*(C1 + cosDeltaPhi*C2*std::tan(beta) + (1.0f - std::abs(cosDeltaPhi))*C3*std::tan(0.5f*(alpha + beta)));
-        float fr2 = 0.17f*INV_PI*sigmaSq/(sigmaSq + 0.13f)*(1.0f - cosDeltaPhi*sqr((2.0f*INV_PI)*beta));
+        float fr1 = (C1 + cosDeltaPhi*C2*std::tan(beta) + (1.0f - std::abs(cosDeltaPhi))*C3*std::tan(0.5f*(alpha + beta)));
+        float fr2 = 0.17f*sigmaSq/(sigmaSq + 0.13f)*(1.0f - cosDeltaPhi*sqr((2.0f*INV_PI)*beta));
 
         Vec3f albedo = base(event.info);
-        return albedo*fr1 + albedo*albedo*fr2;
+        return (albedo*fr1 + albedo*albedo*fr2)*wo.z()*INV_PI;
     }
 
     float pdf(const SurfaceScatterEvent &event) const override final
@@ -93,6 +94,11 @@ public:
         if (event.wi.z() <= 0.0f || event.wo.z() <= 0.0f)
             return 0.0f;
         return Sample::cosineHemispherePdf(event.wo);
+    }
+
+    const std::shared_ptr<TextureA> &roughness() const
+    {
+        return _roughness;
     }
 };
 

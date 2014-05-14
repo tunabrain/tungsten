@@ -42,7 +42,7 @@ static inline float dielectricReflectance(float eta, float cosThetaI)
 static inline float conductorReflectance(float eta, float k, float cosThetaI)
 {
     float cosThetaISq = cosThetaI*cosThetaI;
-    float sinThetaISq = 1.0f - cosThetaISq;
+    float sinThetaISq = max(1.0f - cosThetaISq, 0.0f);
     float sinThetaIQu = sinThetaISq*sinThetaISq;
 
     float innerTerm = eta*eta - k*k - sinThetaISq;

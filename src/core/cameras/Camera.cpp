@@ -31,7 +31,7 @@ rapidjson::Value Camera::toJson(Allocator &allocator) const
     v.AddMember("resolution", JsonUtils::toJsonValue<uint32, 2>(_res, allocator), allocator);
     v.AddMember("spp", _spp, allocator);
     if (_medium)
-        JsonUtils::addObjectMember(v, "intMedium", *_medium,  allocator);
+        JsonUtils::addObjectMember(v, "medium", *_medium,  allocator);
     return std::move(v);
 }
 

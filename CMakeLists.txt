@@ -53,6 +53,9 @@ target_link_libraries(obj2json ${core_libs})
 add_executable(json2xml src/json2xml/json2xml.cpp)
 target_link_libraries(json2xml ${core_libs})
 
+add_executable(tungsten src/standalone/main.cpp)
+target_link_libraries(tungsten ${core_libs})
+
 find_package(Qt4)
 if (QT4_FOUND)
     set(QT_USE_QTOPENGL TRUE)

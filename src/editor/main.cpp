@@ -9,10 +9,15 @@
 using namespace Tungsten;
 
 #include "bsdfs/RoughDielectricBsdf.hpp"
+#include "bsdfs/RoughCoatBsdf.hpp"
+#include "bsdfs/RoughPlasticBsdf.hpp"
+#include "bsdfs/OrenNayarBsdf.hpp"
 #include "bsdfs/RoughConductorBsdf.hpp"
 #include "bsdfs/SmoothCoatBsdf.hpp"
 #include "bsdfs/Microfacet.hpp"
 #include "bsdfs/LambertBsdf.hpp"
+#include "bsdfs/PlasticBsdf.hpp"
+#include "Timer.hpp"
 void microfacetTest()
 {
     std::ofstream Dout("D.txt");
@@ -73,7 +78,7 @@ void bsdfTest()
 void samplingTest()
 {
     //RoughDielectricBsdf bsdf;
-    SmoothCoatBsdf bsdf;
+    RoughCoatBsdf bsdf;
     UniformSampler sampler1(0xBA5EBA11);
     UniformSampler sampler2(123456);
 
@@ -122,21 +127,27 @@ void samplingTest()
 }
 
 #include "mitsuba/Diffuse.hpp"
+#include "mitsuba/Plastic.hpp"
 #include "mitsuba/RoughDielectric.hpp"
 #include "mitsuba/RoughConductor.hpp"
+#include "mitsuba/RoughDiffuse.hpp"
 #include "mitsuba/Coating.hpp"
 void mitsubaVerify()
 {
-    SmoothCoatBsdf *bsdfTungsten = new SmoothCoatBsdf();
+
+    PlasticBsdf *bsdfTungsten = new PlasticBsdf();
+    Mitsuba::SmoothPlastic *bsdfMitsuba = new Mitsuba::SmoothPlastic(1.5f, Vec3f(1.0f));
+    //SmoothCoatBsdf *bsdfTungsten = new SmoothCoatBsdf();
     //RoughConductorBsdf *bsdfTungsten = new RoughConductorBsdf();
-    Mitsuba::RoughConductor *roughMetal = new Mitsuba::RoughConductor(Vec3d(0.214000f, 0.950375f, 1.177500f), Vec3d(3.670000f, 2.576500f, 2.160063f), 0.1f);
-    Mitsuba::SmoothCoating *bsdfMitsuba = new Mitsuba::SmoothCoating(1.3f, 1.0f, roughMetal);
+    //Mitsuba::RoughConductor *roughMetal = new Mitsuba::RoughConductor(Vec3d(0.214000f, 0.950375f, 1.177500f), Vec3d(3.670000f, 2.576500f, 2.160063f), 0.1f);
+    //Mitsuba::SmoothCoating *bsdfMitsuba = new Mitsuba::SmoothCoating(1.3f, 1.0f, roughMetal);
     //Mitsuba::SmoothCoating *bsdfMitsuba = new Mitsuba::SmoothCoating(1.3f, 1.0f, new Mitsuba::SmoothDiffuse(Mitsuba::Spectrum(1.0f)));
 
     const float angle = 45.0f*(PI/180.0f);
+    const float phi = 30.0f*(PI/180.0f);
     std::ofstream Fout("Verify-F.txt");
     std::ofstream Pout("Verify-P.txt");
-    Vec3f wi(std::sin(angle), 0.0f, std::cos(angle));
+    Vec3f wi(std::sin(angle)*std::cos(phi), std::sin(phi), std::cos(angle));
 
     UniformSampler sampler1(0xBA5EBA11);
     UniformSampler sampler2(123456);
@@ -344,11 +355,142 @@ void loadPfm(const char *filename)
     lodepng_encode24_file("Test.png", ldr, w, h);
 }
 
+void blend(uint8 &dst, uint8 top, float v)
+{
+    dst = uint8(min(dst*(1.0f - v) + top*v, 255.0f));
+}
+
+template<bool Scalar>
+void textureSamplingTest(int w, int h, int numSamples, Texture<Scalar, 2> &tex)
+{
+    uint8 *ldr = new uint8[w*h*3];
+    for (int y = 0, idx = 0; y < h; ++y) {
+        for (int x = 0; x < w; ++x, ++idx) {
+            Vec3f rgb(tex[Vec2f((x + 0.5f)/w, (y + 0.5f)/h)]);
+            ldr[idx*3 + 0] = uint8(min(int(255.0f*rgb.x()), 255));
+            ldr[idx*3 + 1] = uint8(min(int(255.0f*rgb.y()), 255));
+            ldr[idx*3 + 2] = uint8(min(int(255.0f*rgb.z()), 255));
+        }
+    }
+
+    UniformSampler sampler(0xBA5EBA11);
+    tex.makeSamplable(MAP_SPHERICAL);
+    for (int i = 0; i < numSamples; ++i) {
+        Vec2f sample = tex.sample(sampler.next2D());
+
+        int px = int(sample.x()*w);
+        int py = int(sample.y()*h);
+        for (int y = max(py - 5, 0); y < min(py + 6, h); ++y) {
+            for (int x = max(px - 5, 0); x < min(px + 6, w); ++x) {
+                float r = std::sqrt(float(sqr(x - px) + sqr(y - py)));
+                float alpha = 1.0f - smoothStep(3.0f, 4.0f, r);
+                if (alpha > 0.0f) {
+                    blend(ldr[(x + y*w)*3 + 0], 255, alpha);
+                    blend(ldr[(x + y*w)*3 + 1],   0, alpha);
+                    blend(ldr[(x + y*w)*3 + 2],   0, alpha);
+                }
+            }
+        }
+    }
+
+    lodepng_encode24_file("SampleResults.png", ldr, w, h);
+
+    for (int y = 0, idx = 0; y < h; ++y) {
+        for (int x = 0; x < w; ++x, ++idx) {
+            Vec3f rgb(tex.pdf(Vec2f((x + 0.5f)/w, (y + 0.5f)/h)));
+            ldr[idx*3 + 0] = uint8(min(int(255.0f*rgb.x()), 255));
+            ldr[idx*3 + 1] = uint8(min(int(255.0f*rgb.y()), 255));
+            ldr[idx*3 + 2] = uint8(min(int(255.0f*rgb.z()), 255));
+        }
+    }
+    lodepng_encode24_file("SamplePdf.png", ldr, w, h);
+}
+
+void computeDiffuseFresnel(float ior)
+{
+    constexpr int SampleCount = 10240;
+    float result = 0.0f;
+
+    for (int i = 0; i <= SampleCount; ++i) {
+        float cosThetaSq = float(i + 0.5f)/SampleCount;
+        float fa = Fresnel::dielectricReflectance(ior, min(std::sqrt(cosThetaSq), 1.0f));
+        result += fa*1.0f/SampleCount;
+    }
+
+    std::cout << result << std::endl;
+}
+
+void computeDiffuseFresnel2(float ior)
+{
+    Timer timer;
+    constexpr int SampleCount = 10240;
+    float result = 0.0f;
+
+    float fb = Fresnel::dielectricReflectance(ior, 0.0f);
+    for (int i = 1; i <= SampleCount; ++i) {
+        float cosThetaSq = float(i)/SampleCount;
+        float fa = Fresnel::dielectricReflectance(ior, min(std::sqrt(cosThetaSq), 1.0f));
+        result += (fa + fb)*0.5f/SampleCount;
+        fb = fa;
+    }
+    timer.bench("Computation took");
+
+    std::cout << result << std::endl;
+}
+
+void computeDiffuseFresnel3(float ior)
+{
+    constexpr int SampleCount = 10240;
+    float result = 0.0f;
+
+    for (int i = 0; i < SampleCount; ++i) {
+        float theta = float(i + 0.5f)*PI_HALF/SampleCount;
+        float cosTheta = std::cos(theta);
+        float sinTheta = std::sin(theta);
+        float fa = Fresnel::dielectricReflectance(ior, cosTheta)*cosTheta;
+        result += fa*TWO_PI*sinTheta*PI_HALF/SampleCount;
+    }
+
+    std::cout << result/PI << std::endl;
+}
+
+void computeDiffuseFresnel4(float eta)
+{
+    float invEta = 1.0f / eta,
+              invEta2 = invEta*invEta,
+              invEta3 = invEta2*invEta,
+              invEta4 = invEta3*invEta,
+              invEta5 = invEta4*invEta;
+
+    std::cout <<
+           0.919317f - 3.4793f * invEta
+         + 6.75335f * invEta2
+         - 7.80989f * invEta3
+         + 4.98554f * invEta4
+         - 1.36881f * invEta5;
+}
+
+#include "materials/CheckerTexture.hpp"
+#include "materials/BladeTexture.hpp"
+#include "materials/DiskTexture.hpp"
 int main(int argc, char **argv)
 {
+//  std::shared_ptr<TextureRgb> tex(new BladeTexture<false>());
+//  textureSamplingTest(512, 512, 1000, *tex);
+//  std::shared_ptr<BitmapTextureRgb> tex = BitmapTextureUtils::loadColorTexture("envmaps/envmap8.pfm");
+//  textureSamplingTest(tex->w(), tex->h(), 1000, *tex);
+//  return 0;
     //phaseFunctionTest();
     //transmittanceTest();
-    //return 0;
+//  samplingTest();
+//  return 0;
+//  mitsubaVerify();
+//  return 0;
+//  computeDiffuseFresnel(1.0f/1.5f);
+//  computeDiffuseFresnel2(1.0f/1.5f);
+//  computeDiffuseFresnel3(1.0f/1.5f);
+//  computeDiffuseFresnel4(1.5f);
+//  return 0;
 
     QApplication app(argc, argv);
 

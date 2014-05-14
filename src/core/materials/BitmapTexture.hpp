@@ -3,9 +3,12 @@
 
 #include "Texture.hpp"
 
+#include "sampling/Distribution2D.hpp"
+
 #include "extern/stbi/stb_image.h"
 
 #include "math/MathUtil.hpp"
+#include "math/Angle.hpp"
 
 #include "io/FileUtils.hpp"
 
@@ -76,6 +79,8 @@ protected:
     int _w;
     int _h;
 
+    std::unique_ptr<Distribution2D> _distribution;
+
     float lerp(float x00, float x01, float x10, float x11, float u, float v) const
     {
         return (x00*(1.0f - u) + x01*u)*(1.0f - v) +
@@ -86,6 +91,16 @@ protected:
     {
         return (x00*(1.0f - u) + x01*u)*(1.0f - v) +
                (x10*(1.0f - u) + x11*u)*v;
+    }
+
+    float weight(float value) const
+    {
+        return value;
+    }
+
+    float weight(const Vec3f &value) const
+    {
+        return value.max();
     }
 
     virtual Value get(int x, int y) const = 0;
@@ -128,8 +143,8 @@ public:
     void derivatives(const Vec2f &uv, Vec<Value, 2> &derivs) const override final
     {
         derivs = Vec<Value, 2>(Value(0.0f));
-        float u = uv.x()*_w;
-        float v = (1.0f - uv.y())*_h;
+        float u = uv.x()*_w - 0.5f;
+        float v = (1.0f - uv.y())*_h - 0.5f;
         int iu = int(u);
         int iv = int(v);
         u -= iu;
@@ -155,8 +170,8 @@ public:
 
     Value operator[](const Vec2f &uv) const override final
     {
-        float u = uv.x()*_w;
-        float v = (1.0f - uv.y())*_h;
+        float u = uv.x()*_w - 0.5f;
+        float v = (1.0f - uv.y())*_h - 0.5f;
         int iu = int(u);
         int iv = int(v);
         u -= iu;
@@ -215,6 +230,53 @@ public:
     Value maximum() const override final
     {
         return _max;
+    }
+
+    void makeSamplable(TextureMapJacobian jacobian) override final
+    {
+        if (_distribution)
+            return;
+
+        std::vector<float> weights(_w*_h);
+        for (int y = 0, idx = 0; y < _h; ++y) {
+            float rowWeight = 1.0f;
+            if (jacobian == MAP_SPHERICAL)
+                rowWeight *= std::sin((y*PI)/_h);
+            for (int x = 0; x < _w; ++x, ++idx) {
+                float w = weight(get(x, y))*4.0f
+                        + weight(get((x + _w - 1) % _w, y))
+                        + weight(get(x, (y + _h - 1) % _h))
+                        + weight(get((x + 1) % _w, y))
+                        + weight(get(x, (y + 1) % _h));
+
+
+                weights[idx] = w*0.125f*rowWeight;
+            }
+        }
+        _distribution.reset(new Distribution2D(std::move(weights), _w, _h));
+    }
+
+    Vec2f sample(const Vec2f &uv) const override final
+    {
+        Vec2f newUv(uv);
+        int row, column;
+        _distribution->warp(newUv, row, column);
+        return Vec2f((newUv.x() + column)/_w, 1.0f - (newUv.y() + row)/_h);
+    }
+
+    float pdf(const Vec2f &uv) const override final
+    {
+        return _distribution->pdf(int((1.0f - uv.y())*_h), int(uv.x()*_w))*_w*_h;
+    }
+
+    int w() const
+    {
+        return _w;
+    }
+
+    int h() const
+    {
+        return _h;
     }
 };
 

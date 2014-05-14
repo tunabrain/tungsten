@@ -11,7 +11,7 @@ namespace Tungsten
 class RoughConductorBsdf : public Bsdf
 {
     std::string _distributionName;
-
+    std::string _materialName;
     std::shared_ptr<TextureA> _roughness;
     Vec3f _eta;
     Vec3f _k;
@@ -27,9 +27,10 @@ public:
 
     RoughConductorBsdf()
     : _distributionName("ggx"),
+      _materialName("Cu"),
       _roughness(std::make_shared<ConstantTextureA>(0.1f)),
-      _eta(0.214000f, 0.950375f, 1.177500f),
-      _k(3.670000f, 2.576500f, 2.160063f)
+      _eta(0.200438f, 0.924033f, 1.10221f),
+      _k(3.91295f, 2.45285f, 2.14219f)
     {
         _lobes = BsdfLobes::GlossyReflectionLobe;
         init();
@@ -113,8 +114,14 @@ public:
         return _k;
     }
 
-    const std::shared_ptr<TextureA> &roughness() const {
+    const std::shared_ptr<TextureA> &roughness() const
+            {
         return _roughness;
+    }
+
+    const std::string &distributionName() const
+    {
+        return _distributionName;
     }
 };
 

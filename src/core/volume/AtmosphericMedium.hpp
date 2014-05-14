@@ -16,7 +16,7 @@ class AtmosphericMedium : public Medium
     static constexpr float BetaR = 5.8f*1e-6f;
     static constexpr float BetaG = 13.5f*1e-6f;
     static constexpr float BetaB = 33.1f*1e-6f;
-    static constexpr float FalloffScale = 50.0f;
+    static constexpr float FalloffScale = 10.0f;
 
     const Scene *_scene;
 
@@ -48,7 +48,9 @@ class AtmosphericMedium : public Medium
 
     Vec2f opticalDepthAndT(const Vec3f &p, const Vec3f &w, float maxT, float targetDepth) const
     {
+        constexpr int MaxStepCount = 1024*10;
         constexpr float maxError = 0.02f;
+        int iter = 0;
 
         Vec3f localP = p - _pos;
         float r = localP.length();
@@ -71,6 +73,10 @@ class AtmosphericMedium : public Medium
             dD = newDd;
             dT = min(maxError/dD.y(), maxT*0.2f);
             t += dT;
+
+            if (iter++ > MaxStepCount) {
+                FAIL("Exceeded maximum step count: %s %s %s %s", p, w, maxT, targetDepth);
+            }
         }
         Vec2f newDd = densityAndDerivative(r, mu, maxT);
         opticalDepth += (dD.x() + newDd.x())*0.5f*(maxT - t + dT);
@@ -153,8 +159,31 @@ public:
             return true;
         }
 
-        if (state.firstScatter)
-            state.component = event.supplementalSampler->nextI() % 3;
+        if (state.firstScatter) {
+            float cdf0 = event.currentThroughput.x();
+            float cdf1 = event.currentThroughput.y() + cdf0;
+            float cdf2 = event.currentThroughput.z() + cdf1;
+            cdf0 /= cdf2;
+            cdf1 /= cdf2;
+
+            float pick = event.supplementalSampler->next1D();
+            float componentWeight;
+            if (pick < cdf0) {
+                state.component = 0;
+                componentWeight = 1.0f/cdf0;
+            } else if (pick < cdf1) {
+                state.component = 1;
+                componentWeight = 1.0f/(cdf1 - cdf0);
+            } else {
+                state.component = 2;
+                componentWeight = 1.0f/(1.0f - cdf1);
+            }
+            event.throughput = Vec3f(0.0f);
+            event.throughput[state.component] = componentWeight;
+        } else {
+            event.throughput = Vec3f(0.0f);
+            event.throughput[state.component] = 1.0f;
+        }
         state.advance();
 
         float targetDepth = -std::log(1.0f - event.sampler->next1D())/_sigmaS[state.component];
@@ -165,8 +194,6 @@ public:
         Vec2f depthAndT = opticalDepthAndT(p, event.wi, maxT, targetDepth);
 
         event.t = depthAndT.y() == maxT ? event.maxT : (depthAndT.y() + minT);
-        event.throughput = Vec3f(0.0f);
-        event.throughput[state.component] = 3.0f;
 
         return true;
     }

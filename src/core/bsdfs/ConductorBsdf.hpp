@@ -1,11 +1,11 @@
 #ifndef CONDUCTORBSDF_HPP_
 #define CONDUCTORBSDF_HPP_
 
-
 #include <rapidjson/document.h>
 
-#include "Bsdf.hpp"
+#include "ComplexIor.hpp"
 #include "Fresnel.hpp"
+#include "Bsdf.hpp"
 
 #include "sampling/SampleGenerator.hpp"
 #include "sampling/SurfaceScatterEvent.hpp"
@@ -24,13 +24,15 @@ class Scene;
 
 class ConductorBsdf : public Bsdf
 {
+    std::string _materialName;
     Vec3f _eta;
     Vec3f _k;
 
 public:
     ConductorBsdf()
-    : _eta(0.214000f, 0.950375f, 1.177500f),
-      _k(3.670000f, 2.576500f, 2.160063f)
+    : _materialName("Cu"),
+      _eta(0.200438f, 0.924033f, 1.10221f),
+      _k(3.91295f, 2.45285f, 2.14219f)
     {
         _lobes = BsdfLobes(BsdfLobes::SpecularReflectionLobe);
     }
@@ -38,16 +40,26 @@ public:
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override
     {
         Bsdf::fromJson(v, scene);
-        JsonUtils::fromJson(v, "eta", _eta);
-        JsonUtils::fromJson(v, "k", _k);
+        if (JsonUtils::fromJson(v, "eta", _eta) && JsonUtils::fromJson(v, "k", _k))
+            _materialName.clear();
+        if (JsonUtils::fromJson(v, "material", _materialName)) {
+            if (!ComplexIorList::lookup(_materialName, _eta, _k)) {
+                DBG("Warning: Unable to find material with name '%s'. Using default", _materialName.c_str());
+                ComplexIorList::lookup("Cu", _eta, _k);
+            }
+        }
     }
 
     virtual rapidjson::Value toJson(Allocator &allocator) const override
     {
         rapidjson::Value v = Bsdf::toJson(allocator);
         v.AddMember("type", "conductor", allocator);
-        v.AddMember("eta", JsonUtils::toJsonValue(_eta, allocator), allocator);
-        v.AddMember("k", JsonUtils::toJsonValue(_k, allocator), allocator);
+        if (_materialName.empty()) {
+            v.AddMember("eta", JsonUtils::toJsonValue(_eta, allocator), allocator);
+            v.AddMember("k", JsonUtils::toJsonValue(_k, allocator), allocator);
+        } else {
+            v.AddMember("material", _materialName.c_str(), allocator);
+        }
         return std::move(v);
     }
 

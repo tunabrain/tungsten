@@ -67,7 +67,11 @@ void TriangleMesh::calcSmoothVertexNormals()
         const Vec3f &p0 = _verts[t.v0].pos();
         const Vec3f &p1 = _verts[t.v1].pos();
         const Vec3f &p2 = _verts[t.v2].pos();
-        Vec3f normal = (p1 - p0).cross(p2 - p0).normalized();
+        Vec3f normal = (p1 - p0).cross(p2 - p0);
+        if (normal == 0.0f)
+            normal = Vec3f(0.0f, 1.0f, 0.0f);
+        else
+            normal.normalize();
 
         for (int i = 0; i < 3; ++i) {
             Vec3f &n = geometricN[t.vs[i]];
@@ -97,8 +101,12 @@ void TriangleMesh::calcSmoothVertexNormals()
         }
     }
 
-    for (Vertex &v : _verts)
-        v.normal().normalize();
+    for (uint32 i = 0; i < _verts.size(); ++i) {
+        if (_verts[i].normal() == 0.0f)
+            _verts[i].normal() = geometricN[i];
+        else
+            _verts[i].normal().normalize();
+    }
 }
 
 void TriangleMesh::computeBounds()

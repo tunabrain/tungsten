@@ -21,6 +21,31 @@ class InfiniteSphere : public Primitive
 
     std::shared_ptr<TriangleMesh> _proxy;
 
+    Vec2f directionToUV(const Vec3f &wi) const
+    {
+        Vec3f wLocal = _invRotTransform*wi;
+        return Vec2f(std::atan2(wLocal.z(), wLocal.x())*INV_TWO_PI + 0.5f, std::acos(wLocal.y())*INV_PI);
+    }
+
+    Vec2f directionToUV(const Vec3f &wi, float &sinTheta) const
+    {
+        Vec3f wLocal = _invRotTransform*wi;
+        sinTheta = std::sqrt(max(1.0f - wLocal.y()*wLocal.y(), 0.0f));
+        return Vec2f(std::atan2(wLocal.z(), wLocal.x())*INV_TWO_PI + 0.5f, std::acos(wLocal.y())*INV_PI);
+    }
+
+    Vec3f uvToDirection(Vec2f uv, float &sinTheta) const
+    {
+        float phi   = (uv.x() - 0.5f)*TWO_PI;
+        float theta = uv.y()*PI;
+        sinTheta = std::sin(theta);
+        return _rotTransform*Vec3f(
+            std::cos(phi)*sinTheta,
+            std::cos(theta),
+            std::sin(phi)*sinTheta
+        );
+    }
+
 public:
     InfiniteSphere()
     : _doSample(true)
@@ -62,10 +87,9 @@ public:
     virtual void intersectionInfo(const IntersectionTemporary &data, IntersectionInfo &info) const
     {
         const InfiniteSphereIntersection *isect = data.as<InfiniteSphereIntersection>();
-        Vec3f wLocal = _rotTransform*isect->w;
         info.Ng = info.Ns = -isect->w;
         info.p = isect->p;
-        info.uv = Vec2f(std::atan2(wLocal.z(), wLocal.x())*INV_TWO_PI + 0.5f, std::acos(wLocal.y())*INV_PI);
+        info.uv = directionToUV(isect->w);
         info.primitive = this;
     }
 
@@ -76,20 +100,23 @@ public:
 
     virtual bool isSamplable() const
     {
-        return _doSample && !_emission->isConstant();
+        return _doSample;
     }
 
     virtual void makeSamplable()
     {
+        _emission->makeSamplable(MAP_SPHERICAL);
     }
 
-    virtual float inboundPdf(const IntersectionTemporary &/*data*/, const Vec3f &/*p*/, const Vec3f &/*d*/) const
+    virtual float inboundPdf(const IntersectionTemporary &data, const Vec3f &/*p*/, const Vec3f &/*d*/) const
     {
         if (_emission->isConstant()) {
             return INV_FOUR_PI;
         } else {
-            /* TODO */
-            return 0.0f;
+            const InfiniteSphereIntersection *isect = data.as<InfiniteSphereIntersection>();
+            float sinTheta;
+            Vec2f uv = directionToUV(isect->w, sinTheta);
+            return INV_PI*INV_TWO_PI*_emission->pdf(uv)/sinTheta;
         }
     }
 
@@ -101,8 +128,12 @@ public:
             sample.pdf = INV_FOUR_PI;
             return true;
         } else {
-            /* TODO */
-            return false;
+            Vec2f uv = _emission->sample(sample.sampler->next2D());
+            float sinTheta;
+            sample.d = uvToDirection(uv, sinTheta);
+            sample.pdf = INV_PI*INV_TWO_PI*_emission->pdf(uv)/sinTheta;
+            sample.dist = 1e30f;
+            return true;
         }
     }
 

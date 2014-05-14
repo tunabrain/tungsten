@@ -109,11 +109,9 @@ class Renderer
                     y,
                     min(TileSize, _w - x),
                     min(TileSize, _h - y),
-#if USE_SOBOL
-                    std::unique_ptr<SampleGenerator>(new SobolSampler()),
-#else
-                    std::unique_ptr<SampleGenerator>(new UniformSampler(MathUtil::hash32(_sampler.nextI()))),
-#endif
+                    _scene.rendererSettings().useSobol() ?
+                        std::unique_ptr<SampleGenerator>(new SobolSampler()) :
+                        std::unique_ptr<SampleGenerator>(new UniformSampler(MathUtil::hash32(_sampler.nextI()))),
                     std::unique_ptr<UniformSampler>(new UniformSampler(MathUtil::hash32(_sampler.nextI())))
                 );
             }
@@ -151,7 +149,7 @@ class Renderer
         for (SampleRecord &record : _samples)
             record.sampleIndex += record.nextSampleCount;
 
-        if (sppFrom < 16)
+        if (sppFrom < 16 || !_scene.rendererSettings().useAdaptiveSampling())
             _adaptiveStep = false;
         else
             _adaptiveStep = true;//!_adaptiveStep;
@@ -202,9 +200,9 @@ class Renderer
             }
             spentSamples *= VarianceTileSize*VarianceTileSize;
         }
-        std::cout << "Spent " << spentSamples << " out of " << sampleBudget
-                  << " (difference: " << sampleBudget - spentSamples << ")" << std::endl;
-        std::cout << "Most samples spent on a single pixel: " << maxSamples << std::endl;
+//      std::cout << "Spent " << spentSamples << " out of " << sampleBudget
+//                << " (difference: " << sampleBudget - spentSamples << ")" << std::endl;
+//      std::cout << "Most samples spent on a single pixel: " << maxSamples << std::endl;
 
         for (ImageTile &tile : _tiles)
             _tileQueue.push(&tile);

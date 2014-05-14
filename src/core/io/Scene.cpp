@@ -17,6 +17,8 @@
 #include "primitives/Mesh.hpp"
 
 #include "materials/CheckerTexture.hpp"
+#include "materials/BladeTexture.hpp"
+#include "materials/DiskTexture.hpp"
 
 #include "volume/HeterogeneousMedium.hpp"
 #include "volume/HomogeneousMedium.hpp"
@@ -24,15 +26,18 @@
 
 #include "bsdfs/RoughDielectricBsdf.hpp"
 #include "bsdfs/RoughConductorBsdf.hpp"
+#include "bsdfs/RoughPlasticBsdf.hpp"
 #include "bsdfs/DielectricBsdf.hpp"
 #include "bsdfs/SmoothCoatBsdf.hpp"
+#include "bsdfs/RoughCoatBsdf.hpp"
 #include "bsdfs/ConductorBsdf.hpp"
 #include "bsdfs/OrenNayarBsdf.hpp"
 #include "bsdfs/ThinSheetBsdf.hpp"
-#include "bsdfs/LambertBsdf.hpp"
-#include "bsdfs/PhongBsdf.hpp"
 #include "bsdfs/ForwardBsdf.hpp"
+#include "bsdfs/LambertBsdf.hpp"
+#include "bsdfs/PlasticBsdf.hpp"
 #include "bsdfs/MirrorBsdf.hpp"
+#include "bsdfs/PhongBsdf.hpp"
 #include "bsdfs/MixedBsdf.hpp"
 #include "bsdfs/NullBsdf.hpp"
 #include "bsdfs/Bsdf.hpp"
@@ -89,6 +94,12 @@ std::shared_ptr<Bsdf> Scene::instantiateBsdf(std::string type, const rapidjson::
         result = std::make_shared<ThinSheetBsdf>();
     else if (type == "oren_nayar")
         result = std::make_shared<OrenNayarBsdf>();
+    else if (type == "plastic")
+        result = std::make_shared<PlasticBsdf>();
+    else if (type == "rough_plastic")
+        result = std::make_shared<RoughPlasticBsdf>();
+    else if (type == "rough_coat")
+        result = std::make_shared<RoughCoatBsdf>();
     else
         FAIL("Unkown bsdf type: '%s'", type.c_str());
     result->fromJson(value, *this);
@@ -159,6 +170,10 @@ std::shared_ptr<Texture<true, Dimension>>
         result = std::make_shared<ConstantTexture<true, Dimension>>();
     } else if (type == "checker") {
         result = std::make_shared<CheckerTexture<true>>();
+    } else if (type == "disk") {
+        result = std::make_shared<DiskTexture<true>>();
+    } else if (type == "blade") {
+        result = std::make_shared<BladeTexture<true>>();
     } else {
         FAIL("Unkown texture type: '%s'", type.c_str());
     }
@@ -183,6 +198,10 @@ std::shared_ptr<Texture<false, Dimension>>
         result = std::make_shared<ConstantTexture<false, Dimension>>();
     } else if (type == "checker") {
         result = std::make_shared<CheckerTexture<false>>();
+    } else if (type == "disk") {
+        result = std::make_shared<DiskTexture<false>>();
+    } else if (type == "blade") {
+        result = std::make_shared<BladeTexture<false>>();
     } else {
         FAIL("Unkown texture type: '%s'", type.c_str());
     }
@@ -406,6 +425,7 @@ void Scene::fromJson(const rapidjson::Value &v, const Scene &scene)
     const rapidjson::Value::Member *bsdfs      = v.FindMember("bsdfs");
     const rapidjson::Value::Member *camera     = v.FindMember("camera");
     const rapidjson::Value::Member *integrator = v.FindMember("integrator");
+    const rapidjson::Value::Member *renderer   = v.FindMember("renderer");
 
     SOFT_ASSERT(primitives != nullptr, "Scene file must contain 'primitives' array");
     SOFT_ASSERT(bsdfs      != nullptr, "Scene file must contain 'bsdfs' array");
@@ -420,6 +440,8 @@ void Scene::fromJson(const rapidjson::Value &v, const Scene &scene)
 
     if (integrator)
         _integrator = instantiateIntegrator(JsonUtils::as<std::string>(integrator->value, "type"), integrator->value);
+    if (renderer)
+        _rendererSettings.fromJson(renderer->value, *this);
 }
 
 Scene::Scene(const std::string &srcDir,
@@ -455,6 +477,7 @@ rapidjson::Value Scene::toJson(Allocator &allocator) const
     v.AddMember("primitives", primitives, allocator);
     v.AddMember("camera", _camera->toJson(allocator), allocator);
     v.AddMember("integrator", _integrator->toJson(allocator), allocator);
+    v.AddMember("renderer", _rendererSettings.toJson(allocator), allocator);
 
     return std::move(v);
 }
@@ -489,7 +512,7 @@ void Scene::deletePrimitives(const std::unordered_set<Primitive *> &primitives)
 
 TraceableScene *Scene::makeTraceable()
 {
-    return new TraceableScene(*_camera, *_integrator, _primitives, _media);
+    return new TraceableScene(*_camera, *_integrator, _primitives, _media, _rendererSettings);
 }
 
 Scene *Scene::load(const std::string &path)

@@ -13,7 +13,10 @@
 
 #include "cameras/PinholeCamera.hpp"
 
+#include "bsdfs/RoughConductorBsdf.hpp"
+#include "bsdfs/RoughPlasticBsdf.hpp"
 #include "bsdfs/DielectricBsdf.hpp"
+#include "bsdfs/OrenNayarBsdf.hpp"
 #include "bsdfs/ThinSheetBsdf.hpp"
 #include "bsdfs/LambertBsdf.hpp"
 #include "bsdfs/MirrorBsdf.hpp"
@@ -187,11 +190,12 @@ void ObjLoader::loadMaterialLibrary(const char *path)
 
 void ObjLoader::loadLine(const char *line)
 {
-    bool meshBoundary =
-               hasPrefix(line, "usemtl")
-            || hasPrefix(line, "g")
-            || hasPrefix(line, "o")
-            || hasPrefix(line, "s");
+//  bool meshBoundary =
+//             hasPrefix(line, "usemtl")
+//          || hasPrefix(line, "g")
+//          || hasPrefix(line, "o")
+//          || hasPrefix(line, "s");
+    bool meshBoundary = hasPrefix(line, "o");
 
     if (meshBoundary && !_tris.empty()) {
         _meshes.emplace_back(finalizeMesh());
@@ -262,6 +266,12 @@ std::shared_ptr<Bsdf> ObjLoader::convertObjMaterial(const ObjMaterial &mat)
 
     if (mat.name.find("Thinsheet") != std::string::npos) {
         result = std::make_shared<ThinSheetBsdf>();
+    } else if (mat.name.find("OrenNayar") != std::string::npos) {
+        result = std::make_shared<OrenNayarBsdf>();
+    } else if (mat.name.find("RoughConductor") != std::string::npos) {
+        result = std::make_shared<RoughConductorBsdf>();
+    } else if (mat.name.find("RoughPlastic") != std::string::npos) {
+        result = std::make_shared<RoughPlasticBsdf>();
     } else if (!mat.isTransmissive()) {
         if (!mat.isSpecular()) {
             result = std::make_shared<LambertBsdf>();

@@ -55,7 +55,7 @@ public:
         return std::move(v);
     }
 
-    Ray generateSample(Vec2u pixel, SampleGenerator &sampler) const override final
+    bool generateSample(Vec2u pixel, SampleGenerator &sampler, Vec3f &throughput, Ray &ray) const override final
     {
         Vec2f uv = sampler.next2D();
         Vec3f dir = _transform.transformVector(Vec3f(
@@ -64,7 +64,9 @@ public:
             _planeDist
         )).normalized();
 
-        return Ray(pos(), dir);
+        throughput = Vec3f(1.0f);
+        ray = Ray(pos(), dir);
+        return true;
     }
 
     Mat4f approximateProjectionMatrix(int width, int height) const override final

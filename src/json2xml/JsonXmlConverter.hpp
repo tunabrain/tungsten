@@ -1,9 +1,13 @@
 #ifndef JSONXMLCONVERTER_HPP_
 #define JSONXMLCONVERTER_HPP_
 
+#include "primitives/InfiniteSphere.hpp"
 #include "primitives/Sphere.hpp"
 #include "primitives/Quad.hpp"
 #include "primitives/Mesh.hpp"
+
+#include "materials/CheckerTexture.hpp"
+#include "materials/BitmapTexture.hpp"
 
 #include "cameras/ThinlensCamera.hpp"
 #include "cameras/PinholeCamera.hpp"
@@ -17,8 +21,11 @@
 #include "bsdfs/DielectricBsdf.hpp"
 #include "bsdfs/SmoothCoatBsdf.hpp"
 #include "bsdfs/ConductorBsdf.hpp"
+#include "bsdfs/OrenNayarBsdf.hpp"
+#include "bsdfs/ThinSheetBsdf.hpp"
 #include "bsdfs/LambertBsdf.hpp"
 #include "bsdfs/ForwardBsdf.hpp"
+#include "bsdfs/PlasticBsdf.hpp"
 #include "bsdfs/MirrorBsdf.hpp"
 #include "bsdfs/NullBsdf.hpp"
 #include "bsdfs/PhongBsdf.hpp"
@@ -42,6 +49,7 @@ class SceneXmlWriter
     std::ostream &_stream;
     std::string _indent;
     std::stack<std::string> _blocks;
+    Scene &_scene;
 
     void begin(const std::string &block)
     {
@@ -173,9 +181,28 @@ class SceneXmlWriter
     }
 
     template<bool Scalar>
-    void convert(const std::string &/*name*/, BitmapTexture<Scalar, 2> *c)
+    void convert(const std::string &name, CheckerTexture<Scalar> *c)
     {
         begin("texture");
+        if (!name.empty())
+            assign("name", name);
+        assign("type", "checkerboard");
+        beginPost();
+        convertSpectrum("color1", Vec3f(c->offColor()));
+        convertSpectrum("color0", Vec3f(c->onColor()));
+        convert("uoffset", 0.0f);
+        convert("voffset", 0.0f);
+        convert("uscale", float(c->resU())*0.5f);
+        convert("vscale", float(c->resV())*0.5f);
+        end();
+    }
+
+    template<bool Scalar>
+    void convert(const std::string &name, BitmapTexture<Scalar, 2> *c)
+    {
+        begin("texture");
+        if (!name.empty())
+            assign("name", name);
         assign("type", "bitmap");
         beginPost();
         convert("filename", c->path());
@@ -191,6 +218,9 @@ class SceneXmlWriter
             convert(name, a2);
         else if (BitmapTexture<Scalar, 2> *a2 =
                 dynamic_cast<BitmapTexture<Scalar, 2> *>(a))
+            convert(name, a2);
+        else if (CheckerTexture<Scalar> *a2 =
+                dynamic_cast<CheckerTexture<Scalar> *>(a))
             convert(name, a2);
         else
             FAIL("Unknown texture type!");
@@ -249,6 +279,18 @@ class SceneXmlWriter
         end();
     }
 
+    void convert(OrenNayarBsdf *bsdf)
+    {
+        begin("bsdf");
+        assign("type", "roughdiffuse");
+        if (!bsdf->unnamed())
+            assign("id", bsdf->name());
+        beginPost();
+        convert("reflectance", bsdf->color().get());
+        convert("alpha", bsdf->roughness().get());
+        end();
+    }
+
     void convert(PhongBsdf *bsdf)
     {
         begin("bsdf");
@@ -287,6 +329,18 @@ class SceneXmlWriter
         end();
     }
 
+    void convert(ThinSheetBsdf *bsdf)
+    {
+        begin("bsdf");
+        assign("type", "thindielectric");
+        if (!bsdf->unnamed())
+            assign("id", bsdf->name());
+        beginPost();
+        convert("intIOR", bsdf->ior());
+        convert("extIOR", 1.0f);
+        end();
+    }
+
     void convert(MirrorBsdf *bsdf)
     {
         begin("bsdf");
@@ -295,6 +349,20 @@ class SceneXmlWriter
             assign("id", bsdf->name());
         beginPost();
         convert("material", "none");
+        end();
+    }
+
+    void convert(PlasticBsdf *bsdf)
+    {
+        begin("bsdf");
+        assign("type", "plastic");
+        if (!bsdf->unnamed())
+            assign("id", bsdf->name());
+        beginPost();
+        convert("intIOR", bsdf->ior());
+        convert("extIOR", 1.0f);
+        convert("nonlinear", true);
+        convert("diffuseReflectance", bsdf->color().get());
         end();
     }
 
@@ -320,7 +388,7 @@ class SceneXmlWriter
             assign("id", bsdf->name());
         beginPost();
         convert("alpha", bsdf->roughness().get());
-        convert("distribution", "ggx");
+        convert("distribution", bsdf->distributionName());
         convert("extEta", 1.0f);
         convert("specularReflectance", bsdf->color().get());
         convertSpectrum("eta", bsdf->eta());
@@ -336,7 +404,7 @@ class SceneXmlWriter
             assign("id", bsdf->name());
         beginPost();
         convert("alpha", bsdf->roughness().get());
-        convert("distribution", "beckmann");
+        convert("distribution", bsdf->distributionName());
         convert("intIOR", bsdf->ior());
         convert("extIOR", 1.0f);
         end();
@@ -411,9 +479,15 @@ class SceneXmlWriter
             convert(bsdf2);
         else if (NullBsdf *bsdf2 = dynamic_cast<NullBsdf *>(bsdf))
             convert(bsdf2);
+        else if (ThinSheetBsdf *bsdf2 = dynamic_cast<ThinSheetBsdf *>(bsdf))
+            convert(bsdf2);
+        else if (OrenNayarBsdf *bsdf2 = dynamic_cast<OrenNayarBsdf *>(bsdf))
+            convert(bsdf2);
+        else if (PlasticBsdf *bsdf2 = dynamic_cast<PlasticBsdf *>(bsdf))
+            convert(bsdf2);
         else if (dynamic_cast<ForwardBsdf *>(bsdf)) {
         } else
-            FAIL("Unknown bsdf type!");
+            FAIL("Unknown bsdf type with name '%s'!", bsdf->name());
 
         if (hasBump)
             end();
@@ -452,11 +526,10 @@ class SceneXmlWriter
         convert("toWorld", cam->transform()*Mat4f::scale(Vec3f(-1.0f, 1.0f, 1.0f)));
 
         begin("sampler");
-#if USE_SOBOL
-        assign("type", "sobol");
-#else
-        assign("type", "independent");
-#endif
+        if (_scene.rendererSettings().useSobol())
+            assign("type", "sobol");
+        else
+            assign("type", "independent");
         beginPost();
         convert("sampleCount", int(cam->spp()));
         end();
@@ -517,6 +590,26 @@ class SceneXmlWriter
                 Mat4f::scale(Vec3f(0.5f)));
     }
 
+    void convert(InfiniteSphere *prim)
+    {
+        if (prim->emission()->isConstant()) {
+            begin("emitter");
+            assign("type", "constant");
+            beginPost();
+            convertSpectrum("radiance", prim->emission()->average());
+            end();
+        } else if (BitmapTextureRgb *tex = dynamic_cast<BitmapTextureRgb *>(prim->emission().get())) {
+            begin("emitter");
+            assign("type", "envmap");
+            beginPost();
+            convert("toWorld", prim->transform()*Mat4f::rotXYZ(Vec3f(0.0f, 90.0f, 0.0f)));
+            convert("filename", FileUtils::stripExt(tex->path()) + ".hdr");
+            end();
+        } else {
+            FAIL("Infinite sphere has to be a constant or bitmap textured light source!");
+        }
+    }
+
     void convert(Primitive *prim)
     {
         prim->prepareForRender();
@@ -527,7 +620,10 @@ class SceneXmlWriter
             convert(prim2);
         else if (Quad *prim2 = dynamic_cast<Quad *>(prim))
             convert(prim2);
-        else
+        else if (InfiniteSphere *prim2 = dynamic_cast<InfiniteSphere *>(prim)) {
+            convert(prim2);
+            return;
+        } else
             FAIL("Unknown primitive type!");
 
         if (!dynamic_cast<ForwardBsdf *>(prim->bsdf().get()))
@@ -579,7 +675,8 @@ class SceneXmlWriter
 public:
     SceneXmlWriter(const std::string &folder, Scene &scene, std::ostream &stream)
     : _folder(FileUtils::stripSlash(folder)),
-      _stream(stream)
+      _stream(stream),
+      _scene(scene)
     {
         _stream << "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n\n";
 

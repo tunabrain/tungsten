@@ -76,8 +76,11 @@ public:
 //  Vec3f maxSigmaA() const override { return _sigmaA; }
 //  Vec3f maxSigmaS() const override { return _sigmaS; }
 
-    bool sampleDistance(VolumeScatterEvent &event, MediumState &/*data*/) const override
+    bool sampleDistance(VolumeScatterEvent &event, MediumState &state) const override
     {
+        if (state.bounce > _maxBounce)
+            return false;
+
         if (_absorptionOnly) {
             event.t = event.maxT;
             event.throughput = std::exp(-_sigmaT*event.t);
@@ -92,12 +95,14 @@ public:
                 event.throughput /= (_sigmaT*event.throughput).avg();
             else
                 event.throughput /= event.throughput.avg();
+
+            state.advance();
         }
 
         return true;
     }
 
-    bool absorb(VolumeScatterEvent &event, MediumState &/*data*/) const
+    bool absorb(VolumeScatterEvent &event, MediumState &/*state*/) const
     {
         if (event.sampler->next1D() >= _maxAlbedo)
             return true;

@@ -73,6 +73,11 @@ public:
     {
         return 0.0f;
     }
+
+    float ior() const
+    {
+        return _ior;
+    }
 };
 
 }

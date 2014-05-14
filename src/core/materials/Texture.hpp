@@ -11,10 +11,16 @@
 namespace Tungsten
 {
 
+enum TextureMapJacobian {
+    MAP_UNIFORM,
+    MAP_SPHERICAL,
+};
+
 template<bool Scalar, int Dimension>
 class Texture : public JsonSerializable
 {
 public:
+
     typedef typename std::conditional<Scalar, float, Vec3f>::type Value;
 
     virtual ~Texture() {}
@@ -28,6 +34,10 @@ public:
     virtual void derivatives(const Vec<float, Dimension> &uv, Vec<Value, Dimension> &derivs) const = 0;
 
     virtual Value operator[](const Vec<float, Dimension> &uv) const = 0;
+
+    virtual void makeSamplable(TextureMapJacobian jacobian) = 0;
+    virtual Vec<float, Dimension> sample(const Vec<float, Dimension> &uv) const = 0;
+    virtual float pdf(const Vec<float, Dimension> &uv) const = 0;
 };
 
 template<bool Scalar, int Dimension>
@@ -87,6 +97,20 @@ public:
     Value operator[](const Vec<float, Dimension> &/*uv*/) const override final
     {
         return _value;
+    }
+
+    void makeSamplable(TextureMapJacobian /*jacobian*/) override final
+    {
+    }
+
+    Vec<float, Dimension> sample(const Vec<float, Dimension> &uv) const override final
+    {
+        return uv;
+    }
+
+    float pdf(const Vec<float, Dimension> &/*uv*/) const override final
+    {
+        return 1.0f;
     }
 };
 
