@@ -16,7 +16,7 @@ class AtmosphericMedium : public Medium
     static constexpr float BetaR = 5.8f*1e-6f;
     static constexpr float BetaG = 13.5f*1e-6f;
     static constexpr float BetaB = 33.1f*1e-6f;
-    static constexpr float FalloffScale = 10.0f;
+    static constexpr float FalloffScale = 30.0f;
 
     const Scene *_scene;
 
@@ -224,7 +224,14 @@ public:
 
     virtual Vec3f transmittance(const VolumeScatterEvent &event) const override final
     {
-        Vec2f depthAndT = opticalDepthAndT(event.p, event.wi, event.maxT, 1.0f);
+        Vec2f tSpan;
+        if (!atmosphereMinTMaxT(event.p, event.wi, tSpan) || event.maxT < tSpan.x())
+            return Vec3f(1.0f);
+
+        float minT = max(0.0f, tSpan.x());
+        Vec3f p = event.p + minT*event.wi;
+        float maxT = min(event.maxT - minT, tSpan.y());
+        Vec2f depthAndT = opticalDepthAndT(p, event.wi, maxT, 1.0f);
 
         return std::exp(-_sigmaS*depthAndT.x());
     }

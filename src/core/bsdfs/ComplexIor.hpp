@@ -6,6 +6,7 @@ namespace Tungsten
 
 namespace ComplexIorList {
 
+// http://homepages.rpi.edu/~schubert/Educational-resources/Materials-Refractive-index-and-extinction-coefficient.pdf
 #include "ComplexIorData.hpp"
 
 static inline bool lookup(const std::string &name, Vec3f &eta, Vec3f &k)

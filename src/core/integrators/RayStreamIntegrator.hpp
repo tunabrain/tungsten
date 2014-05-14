@@ -75,11 +75,11 @@ class RayStreamIntegrator : public Integrator
             if (_scene->intersect(ray, data, info) && info.primitive != endCap) {
                 addRay(bounce, ray);
                 if (!info.primitive->bsdf()->flags().isForward()) {
-                    float alpha = info.primitive->bsdf()->alpha(&info);
-                    if (alpha < 1.0f)
-                        throughput *= 1.0f - alpha;
-                    else
+                    Vec3f transmittance = info.primitive->bsdf()->transmittance(&info);
+                    if (transmittance == 0.0f)
                         return Vec3f(0.0f);
+                    else
+                        throughput *= transmittance;
                 }
                 bounce++;
                 if (bounce >= _maxBounces)
@@ -414,9 +414,16 @@ public:
     {
         const Bsdf &bsdf = *info.primitive->bsdf();
 
+        Vec3f transmittance = bsdf.transmittance(&info);
+        float transmittanceRoll = sampler.next1D();
+        float transmittanceProbability = transmittance.avg();
+
         Vec3f wo;
-        if (supplementalSampler.next1D() >= bsdf.alpha(&info)) {
+        if (bsdf.flags().isForward()) {
             wo = ray.dir();
+        } else if (transmittanceRoll < transmittanceProbability) {
+            wo = ray.dir();
+            throughput *= transmittance/transmittanceProbability;
         } else {
             TangentFrame frame;
             bsdf.setupTangentFrame(*info.primitive, data, info, frame);

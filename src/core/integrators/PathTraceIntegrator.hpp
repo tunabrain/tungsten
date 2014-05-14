@@ -53,10 +53,13 @@ class PathTraceIntegrator : public Integrator
             if (_scene->intersect(ray, data, info) && info.primitive != endCap) {
                 if (!info.primitive->bsdf()->flags().isForward()) {
                     float alpha = info.primitive->bsdf()->alpha(&info);
-                    if (alpha < 1.0f)
-                        throughput *= 1.0f - alpha;
-                    else
+                    if (alpha == 1.0f)
                         return Vec3f(0.0f);
+                    Vec3f transmittance = info.primitive->bsdf()->transmittance(&info)*(1.0f - alpha);
+                    if (transmittance == 0.0f)
+                        return Vec3f(0.0f);
+                    else
+                        throughput *= transmittance;
                 }
                 bounce++;
                 if (bounce >= _maxBounces)
@@ -387,8 +390,11 @@ public:
         const Bsdf &bsdf = *info.primitive->bsdf();
 
         Vec3f wo;
-        if (supplementalSampler.next1D() >= bsdf.alpha(&info) || bsdf.flags().isForward()) {
+        if (bsdf.flags().isForward()) {
             wo = ray.dir();
+        } else if (sampler.next1D() < bsdf.alpha(&info)) {
+            wo = ray.dir();
+            throughput *= bsdf.transmittance(&info);
         } else {
             TangentFrame frame;
             bsdf.setupTangentFrame(*info.primitive, data, info, frame);
@@ -448,9 +454,12 @@ public:
 
     Vec3f traceSample(Vec2u pixel, SampleGenerator &sampler, UniformSampler &supplementalSampler) final override
     {
-        const Vec3f nanDirColor(1000.0f, 0.0f, 0.0f);
-        const Vec3f nanEnvDirColor(0.0f, 0.0f, 1000.0f);
-        const Vec3f nanBsdfColor(0.0f, 1000.0f, 0.0f);
+//      const Vec3f nanDirColor(1000.0f, 0.0f, 0.0f);
+//      const Vec3f nanEnvDirColor(0.0f, 0.0f, 1000.0f);
+//      const Vec3f nanBsdfColor(0.0f, 1000.0f, 0.0f);
+        const Vec3f nanDirColor(0.0f, 0.0f, 0.0f);
+        const Vec3f nanEnvDirColor(0.0f, 0.0f, 0.0f);
+        const Vec3f nanBsdfColor(0.0f, 0.0f, 0.0f);
 
         Ray ray;
         Vec3f throughput(1.0f);

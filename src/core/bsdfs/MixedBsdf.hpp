@@ -63,6 +63,12 @@ public:
         return (*_alpha)[info->uv]*(_bsdf0->alpha(info)*ratio + _bsdf1->alpha(info)*(1.0f - ratio));
     }
 
+    virtual Vec3f transmittance(const IntersectionInfo *info) const
+    {
+        float ratio = (*_ratio)[info->uv];
+        return _bsdf0->transmittance(info)*ratio + _bsdf1->transmittance(info)*(1.0f - ratio);
+    }
+
     bool sample(SurfaceScatterEvent &event) const final override
     {
         float ratio;

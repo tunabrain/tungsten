@@ -104,7 +104,9 @@ public:
     {
         info.Ns = info.Ng = (info.p - _pos)/_radius;
         Vec3f localN = _invRot.transformVector(info.Ng);
-        info.uv = Vec2f(std::atan2(localN.y(), localN.x())*INV_TWO_PI + 0.5f, std::acos(localN.z())*INV_PI);
+        info.uv = Vec2f(std::atan2(localN.y(), localN.x())*INV_TWO_PI + 0.5f, std::acos(clamp(localN.z(), -1.0f, 1.0f))*INV_PI);
+        if (std::isnan(info.uv.x()))
+            info.uv.x() = 0.0f;
         info.primitive = this;
     }
 

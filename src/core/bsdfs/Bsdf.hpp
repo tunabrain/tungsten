@@ -59,6 +59,10 @@ public:
     void setupTangentFrame(const Primitive &primitive, const Primitive::IntersectionTemporary &data,
             const IntersectionInfo &info, TangentFrame &dst) const
     {
+        if (std::isnan(info.Ns.sum())) {
+            std::cout << tfm::format("NAN Ns! %s", info.Ns) << std::endl;
+            exit(0);
+        }
         if (_bump->isConstant() && !_lobes.isAnisotropic()) {
             dst = TangentFrame(info.Ns);
             if (std::isnan(dst.normal.sum())) {
@@ -77,8 +81,16 @@ public:
             exit(0);
         }
         if (!_bump->isConstant()) {
+            if (std::isnan(info.uv.sum())) {
+                std::cout << tfm::format("NAN uv coords! %s", info.uv) << std::endl;
+                exit(0);
+            }
             Vec2f dudv;
             _bump->derivatives(info.uv, dudv);
+            if (std::isnan(dudv.sum())) {
+                std::cout << tfm::format("NAN derivatives! %s", dudv) << std::endl;
+                exit(0);
+            }
 
             T += info.Ns*(dudv.x()*_bumpStrength - info.Ns.dot(T));
             B += info.Ns*(dudv.y()*_bumpStrength - info.Ns.dot(B));
@@ -90,6 +102,10 @@ public:
             if (N.dot(info.Ns) < 0.0f)
                 N = -N;
             N.normalize();
+            if (std::isnan(N.sum())) {
+                std::cout << tfm::format("NAN N! %s %s %s", N, B, T) << std::endl;
+                exit(0);
+            }
         }
         T = (T - N.dot(T)*N);
         if (T == 0.0f) {
@@ -109,6 +125,11 @@ public:
     virtual float alpha(const IntersectionInfo *info) const
     {
         return (*_alpha)[info->uv];
+    }
+
+    virtual Vec3f transmittance(const IntersectionInfo */*info*/) const
+    {
+        return Vec3f(1.0f);
     }
 
     virtual bool sample(SurfaceScatterEvent &event) const = 0;
