@@ -60,14 +60,12 @@ public:
             const IntersectionInfo &info, TangentFrame &dst) const
     {
         if (std::isnan(info.Ns.sum())) {
-            std::cout << tfm::format("NAN Ns! %s", info.Ns) << std::endl;
-            exit(0);
+            FAIL("NAN Ns! %s", info.Ns);
         }
         if (_bump->isConstant() && !_lobes.isAnisotropic()) {
             dst = TangentFrame(info.Ns);
             if (std::isnan(dst.normal.sum())) {
-                std::cout << tfm::format("NAN default dst! %s -> %s %s %s", info.Ns, dst.normal, dst.tangent, dst.bitangent) << std::endl;
-                exit(0);
+                FAIL("NAN default dst! %s -> %s %s %s", info.Ns, dst.normal, dst.tangent, dst.bitangent);
             }
             return;
         }
@@ -77,19 +75,16 @@ public:
             return;
         }
         if (std::isnan(T.sum() + B.sum())) {
-            std::cout << tfm::format("NAN tangent! %s %s", T, B) << std::endl;
-            exit(0);
+            FAIL("NAN tangent! %s %s", T, B);
         }
         if (!_bump->isConstant()) {
             if (std::isnan(info.uv.sum())) {
-                std::cout << tfm::format("NAN uv coords! %s", info.uv) << std::endl;
-                exit(0);
+                FAIL("NAN uv coords! %s", info.uv);
             }
             Vec2f dudv;
             _bump->derivatives(info.uv, dudv);
             if (std::isnan(dudv.sum())) {
-                std::cout << tfm::format("NAN derivatives! %s", dudv) << std::endl;
-                exit(0);
+                FAIL("NAN derivatives! %s", dudv);
             }
 
             T += info.Ns*(dudv.x()*_bumpStrength - info.Ns.dot(T));
@@ -103,8 +98,7 @@ public:
                 N = -N;
             N.normalize();
             if (std::isnan(N.sum())) {
-                std::cout << tfm::format("NAN N! %s %s %s", N, B, T) << std::endl;
-                exit(0);
+                FAIL("NAN N! %s %s %s", N, B, T);
             }
         }
         T = (T - N.dot(T)*N);
@@ -117,8 +111,7 @@ public:
 
         dst = TangentFrame(N, T, B);
         if (std::isnan(dst.normal.sum())) {
-            std::cout << tfm::format("NAN dst! %s %s %s", dst.normal, dst.tangent, dst.bitangent) << std::endl;
-            exit(0);
+            FAIL("NAN dst! %s %s %s", dst.normal, dst.tangent, dst.bitangent);
         }
     }
 

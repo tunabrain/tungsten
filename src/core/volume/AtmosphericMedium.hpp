@@ -16,7 +16,7 @@ class AtmosphericMedium : public Medium
     static constexpr float BetaR = 5.8f*1e-6f;
     static constexpr float BetaG = 13.5f*1e-6f;
     static constexpr float BetaB = 33.1f*1e-6f;
-    static constexpr float FalloffScale = 30.0f;
+    static constexpr float FalloffScale = 10.0f;
 
     const Scene *_scene;
 

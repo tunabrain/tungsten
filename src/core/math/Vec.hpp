@@ -487,6 +487,15 @@ Tungsten::Vec<ElementType, Size> exp(const Tungsten::Vec<ElementType, Size> &t)
 }
 
 template<typename ElementType, unsigned Size>
+Tungsten::Vec<ElementType, Size> sqrt(const Tungsten::Vec<ElementType, Size> &t)
+{
+    Tungsten::Vec<ElementType, Size> result;
+    for (unsigned i = 0; i < Size; ++i)
+        result[i] = std::sqrt(t[i]);
+    return result;
+}
+
+template<typename ElementType, unsigned Size>
 Tungsten::Vec<ElementType, Size> pow(const Tungsten::Vec<ElementType, Size> &t, ElementType e)
 {
     Tungsten::Vec<ElementType, Size> result;

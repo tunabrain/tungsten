@@ -11,19 +11,65 @@ namespace Tungsten
 namespace Fresnel
 {
 
+static inline float thinFilmReflectance(float eta, float cosThetaI, float &cosThetaT)
+{
+    float sinThetaTSq = eta*eta*(1.0f - cosThetaI*cosThetaI);
+    if (sinThetaTSq > 1.0f) {
+        cosThetaT = 0.0f;
+        return 1.0f;
+    }
+    cosThetaT = std::sqrt(max(1.0f - sinThetaTSq, 0.0f));
+
+    float Rs = sqr((eta*cosThetaI - cosThetaT)/(eta*cosThetaI + cosThetaT));
+    float Rp = sqr((eta*cosThetaT - cosThetaI)/(eta*cosThetaT + cosThetaI));
+
+    return 1.0f - ((1.0f - Rs)/(1.0f + Rs) + (1.0f - Rp)/(1.0f + Rp))*0.5f;
+}
+
+static inline Vec3f thinFilmReflectanceInterference(float eta, float cosThetaI, float thickness, float &R, float &cosThetaT)
+{
+    const Vec3f invLambdas = 1.0f/Vec3f(650.0f, 510.0f, 475.0f);
+
+    float sinThetaTSq = eta*eta*(1.0f - cosThetaI*cosThetaI);
+    if (sinThetaTSq > 1.0f) {
+        R = 1.0f;
+        cosThetaT = 0.0f;
+        return Vec3f(1.0f);
+    }
+    cosThetaT = std::sqrt(max(1.0f - sinThetaTSq, 0.0f));
+
+    float Rs = sqr((eta*cosThetaI - cosThetaT)/(eta*cosThetaI + cosThetaT));
+    float Rp = sqr((eta*cosThetaT - cosThetaI)/(eta*cosThetaT + cosThetaI));
+    float Ts = 1.0f - Rs;
+    float Tp = 1.0f - Rp;
+
+    R = 1.0f - ((1.0f - Rs)/(1.0f + Rs) + (1.0f - Rp)/(1.0f + Rp))*0.5f;
+
+    float alphaS = Rs*Rs;
+    float alphaP = Rp*Rp;
+    float betaS = Ts*Ts;
+    float betaP = Tp*Tp;
+    Vec3f phi = (thickness*cosThetaT*FOUR_PI/eta)*invLambdas;
+    Vec3f cosPhi(std::cos(phi.x()), std::cos(phi.y()), std::cos(phi.z()));
+
+    Vec3f tS = std::sqrt(max((betaS*betaS)/((alphaS*alphaS + 1.0f) - 2.0f*alphaS*cosPhi), Vec3f(0.0f)));
+    Vec3f tP = std::sqrt(max((betaP*betaP)/((alphaP*alphaP + 1.0f) - 2.0f*alphaP*cosPhi), Vec3f(0.0f)));
+
+    return 1.0f - (tS + tP)*0.5f;
+}
+
 static inline float dielectricReflectance(float eta, float cosThetaI, float &cosThetaT)
 {
     if (cosThetaI < 0.0f) {
         eta = 1.0f/eta;
         cosThetaI = -cosThetaI;
     }
-    float sinThetaI = std::sqrt(max(1.0f - cosThetaI*cosThetaI, 0.0f));
-    float sinThetaT = eta*sinThetaI;
-    if (sinThetaT > 1.0f) {
+    float sinThetaTSq = eta*eta*(1.0f - cosThetaI*cosThetaI);
+    if (sinThetaTSq > 1.0f) {
         cosThetaT = 0.0f;
         return 1.0f;
     }
-    cosThetaT = std::sqrt(max(1.0f - sinThetaT*sinThetaT, 0.0f));
+    cosThetaT = std::sqrt(max(1.0f - sinThetaTSq, 0.0f));
 
     float Rs = (eta*cosThetaI - cosThetaT)/(eta*cosThetaI + cosThetaT);
     float Rp = (eta*cosThetaT - cosThetaI)/(eta*cosThetaT + cosThetaI);

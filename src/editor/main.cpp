@@ -78,7 +78,7 @@ void bsdfTest()
 void samplingTest()
 {
     //RoughDielectricBsdf bsdf;
-    RoughCoatBsdf bsdf;
+    OrenNayarBsdf bsdf;
     UniformSampler sampler1(0xBA5EBA11);
     UniformSampler sampler2(123456);
 
@@ -88,8 +88,8 @@ void samplingTest()
     double wAvg = 0.0f, wMax = 0.0f;
     const int Samples = 10000000;
     for (int i = 0; i < Samples; ++i) {
-        //const float angle = sampler1.next1D()*TWO_PI;//1.0f*(PI/180.0f);
-        const float angle = Angle::degToRad(45.0f);
+        const float angle = sampler1.next1D()*TWO_PI;//1.0f*(PI/180.0f);
+        //const float angle = Angle::degToRad(45.0f);
         Vec3f wi(std::sin(angle), 0.0f, std::cos(angle));
         IntersectionInfo info;
         SurfaceScatterEvent event(&info, &sampler1, &sampler2, wi, BsdfLobes::AllButSpecular);
@@ -361,7 +361,7 @@ void blend(uint8 &dst, uint8 top, float v)
 }
 
 template<bool Scalar>
-void textureSamplingTest(int w, int h, int numSamples, Texture<Scalar, 2> &tex)
+void textureSamplingTest(int w, int h, int numSamples, Texture<Scalar, 2> &tex, const std::string &basename)
 {
     uint8 *ldr = new uint8[w*h*3];
     for (int y = 0, idx = 0; y < h; ++y) {
@@ -373,9 +373,12 @@ void textureSamplingTest(int w, int h, int numSamples, Texture<Scalar, 2> &tex)
         }
     }
 
-    UniformSampler sampler(0xBA5EBA11);
-    tex.makeSamplable(MAP_SPHERICAL);
+    lodepng_encode24_file((basename + "-Base.png").c_str(), ldr, w, h);
+
+    SobolSampler sampler;
+    tex.makeSamplable(MAP_UNIFORM);
     for (int i = 0; i < numSamples; ++i) {
+        sampler.setup(0, i);
         Vec2f sample = tex.sample(sampler.next2D());
 
         int px = int(sample.x()*w);
@@ -393,7 +396,7 @@ void textureSamplingTest(int w, int h, int numSamples, Texture<Scalar, 2> &tex)
         }
     }
 
-    lodepng_encode24_file("SampleResults.png", ldr, w, h);
+    lodepng_encode24_file((basename + "-Sample.png").c_str(), ldr, w, h);
 
     for (int y = 0, idx = 0; y < h; ++y) {
         for (int x = 0; x < w; ++x, ++idx) {
@@ -403,7 +406,7 @@ void textureSamplingTest(int w, int h, int numSamples, Texture<Scalar, 2> &tex)
             ldr[idx*3 + 2] = uint8(min(int(255.0f*rgb.z()), 255));
         }
     }
-    lodepng_encode24_file("SamplePdf.png", ldr, w, h);
+    lodepng_encode24_file((basename + "-Pdf.png").c_str(), ldr, w, h);
 }
 
 void computeDiffuseFresnel(float ior)
@@ -470,15 +473,51 @@ void computeDiffuseFresnel4(float eta)
          - 1.36881f * invEta5;
 }
 
+static inline Vec3f thinFilmReflectanceInterference(float eta, float cosThetaI, float thickness, float &R, float &cosThetaT)
+{
+    const Vec3f invLambdas = 1.0f/Vec3f(650.0f, 510.0f, 475.0f);
+
+    float sinThetaTSq = eta*eta*(1.0f - cosThetaI*cosThetaI);
+    if (sinThetaTSq > 1.0f) {
+        R = 1.0f;
+        cosThetaT = 0.0f;
+        return Vec3f(1.0f);
+    }
+    cosThetaT = std::sqrt(max(1.0f - sinThetaTSq, 0.0f));
+
+    float Rs = sqr((eta*cosThetaI - cosThetaT)/(eta*cosThetaI + cosThetaT));
+    float Rp = sqr((eta*cosThetaT - cosThetaI)/(eta*cosThetaT + cosThetaI));
+    float Ts = 1.0f - Rs;
+    float Tp = 1.0f - Rp;
+
+    R = 1.0f - ((1.0f - Rs)/(1.0f + Rs) + (1.0f - Rp)/(1.0f + Rp))*0.5f;
+
+    float alphaS = Rs*Rs;
+    float alphaP = Rp*Rp;
+    float betaS = Ts*Ts;
+    float betaP = Tp*Tp;
+    Vec3f phi = (thickness*cosThetaT*FOUR_PI/eta)*invLambdas;
+    Vec3f cosPhi(std::cos(phi.x()), std::cos(phi.y()), std::cos(phi.z()));
+
+    Vec3f tS = std::sqrt(max((betaS*betaS)/((alphaS*alphaS + 1.0f) - 2.0f*alphaS*cosPhi), Vec3f(0.0f)));
+    Vec3f tP = std::sqrt(max((betaP*betaP)/((alphaP*alphaP + 1.0f) - 2.0f*alphaP*cosPhi), Vec3f(0.0f)));
+
+    return 1.0f - (tS + tP)*0.5f;
+}
+
 #include "materials/CheckerTexture.hpp"
 #include "materials/BladeTexture.hpp"
 #include "materials/DiskTexture.hpp"
 int main(int argc, char **argv)
 {
-//  std::shared_ptr<TextureRgb> tex(new BladeTexture<false>());
-//  textureSamplingTest(512, 512, 1000, *tex);
+//  std::shared_ptr<TextureRgb> tex1(new BladeTexture<false>());
+//  std::shared_ptr<TextureRgb> tex2(new DiskTexture<false>());
+//  std::shared_ptr<TextureRgb> tex3(new CheckerTexture<false>());
+//  textureSamplingTest(512, 512, 1000, *tex1, "Texture-Blade");
+//  textureSamplingTest(512, 512, 1000, *tex2, "Texture-Disk");
+//  textureSamplingTest(512, 512, 1000, *tex3, "Texture-Checker");
 //  std::shared_ptr<BitmapTextureRgb> tex = BitmapTextureUtils::loadColorTexture("envmaps/envmap8.pfm");
-//  textureSamplingTest(tex->w(), tex->h(), 1000, *tex);
+//  textureSamplingTest(tex->w(), tex->h(), 1000, *tex, "Texture-Envmap");
 //  return 0;
     //phaseFunctionTest();
     //transmittanceTest();
@@ -490,6 +529,10 @@ int main(int argc, char **argv)
 //  computeDiffuseFresnel2(1.0f/1.5f);
 //  computeDiffuseFresnel3(1.0f/1.5f);
 //  computeDiffuseFresnel4(1.5f);
+//  return 0;
+//  float R, cosThetaT;
+//  for (int i = 12; i < 200; i += 5)
+//      std::cout << thinFilmReflectanceInterference(1.0f/(i*0.01f), 0.2f, 300.0f, R, cosThetaT) << std::endl;
 //  return 0;
 
     QApplication app(argc, argv);

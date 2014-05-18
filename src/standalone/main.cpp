@@ -90,7 +90,7 @@ int main(int argc, const char *argv[])
         std::cout << tfm::format("Loading scene '%s'...", argv[i]) << std::endl;
         std::unique_ptr<Scene> scene;
         try {
-            scene.reset(Scene::load(argv[1]));
+            scene.reset(Scene::load(argv[i]));
         } catch (std::runtime_error &e) {
             std::cerr << tfm::format("Scene loader for file '%s' encountered an unrecoverable error: \n%s",
                     argv[i], e.what()) << std::endl;
@@ -99,6 +99,7 @@ int main(int argc, const char *argv[])
 
         try {
             int maxSpp = scene->camera()->spp();
+            //int maxSpp = 2048;
             std::unique_ptr<TraceableScene> flattenedScene(scene->makeTraceable());
             std::unique_ptr<Renderer> renderer(new Renderer(*flattenedScene, ThreadCount));
 

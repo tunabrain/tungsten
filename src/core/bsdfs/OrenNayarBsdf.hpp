@@ -25,7 +25,7 @@ class OrenNayarBsdf : public Bsdf
 
 public:
     OrenNayarBsdf()
-    : _roughness(std::make_shared<ConstantTextureA>(0.5f))
+    : _roughness(std::make_shared<ConstantTextureA>(1.0f))
     {
         _lobes = BsdfLobes(BsdfLobes::DiffuseReflectionLobe);
     }
@@ -39,11 +39,18 @@ public:
             return false;
         if (event.wi.z() <= 0.0f)
             return false;
-        event.wo  = Sample::cosineHemisphere(event.sampler->next2D());
-        event.pdf = Sample::cosineHemispherePdf(event.wo);
+
+        float roughness = (*_roughness)[event.info->uv];
+        float ratio = clamp(roughness, 0.01f, 1.0f);
+        if (event.sampler->next1D() < ratio)
+            event.wo  = Sample::uniformHemisphere(event.sampler->next2D());
+        else
+            event.wo  = Sample::cosineHemisphere(event.sampler->next2D());
+
+        event.pdf = Sample::uniformHemispherePdf(event.wo)*ratio + Sample::cosineHemispherePdf(event.wo)*(1.0f - ratio);
         event.throughput = eval(event)/event.pdf;
         event.sampledLobe = BsdfLobes::DiffuseReflectionLobe;
-        return true;
+        return event.wo.z() > 0.0f;
     }
 
     Vec3f eval(const SurfaceScatterEvent &event) const override final
@@ -93,7 +100,10 @@ public:
             return 0.0f;
         if (event.wi.z() <= 0.0f || event.wo.z() <= 0.0f)
             return 0.0f;
-        return Sample::cosineHemispherePdf(event.wo);
+
+        float roughness = (*_roughness)[event.info->uv];
+        float ratio = clamp(roughness, 0.01f, 1.0f);
+        return Sample::uniformHemispherePdf(event.wo)*ratio + Sample::cosineHemispherePdf(event.wo)*(1.0f - ratio);
     }
 
     const std::shared_ptr<TextureA> &roughness() const

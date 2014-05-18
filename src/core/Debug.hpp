@@ -21,9 +21,9 @@ class DebugUtils
 {
 public:
     static void debugLog(const char *module, DebugLevel level, const char *format, ...);
-    static void debugFail(const char *file, int line, const char *format, ...);
+    //static void debugFail(const char *file, int line, const char *format, ...);
     static void debug(const std::string &message);
-    static void fail(const std::string &message);
+    //static void fail(const std::string &message);
 };
 #ifndef NDEBUG
 #define DEBUG_BEGIN

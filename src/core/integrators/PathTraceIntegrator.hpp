@@ -31,6 +31,7 @@ namespace Tungsten
 class PathTraceIntegrator : public Integrator
 {
     static constexpr float Epsilon = 5e-4f;
+    static constexpr bool GeneralizedShadowRays = true;
 
     const TraceableScene *_scene;
 
@@ -44,6 +45,8 @@ class PathTraceIntegrator : public Integrator
                                const Primitive *endCap,
                                int bounce)
     {
+        if (!GeneralizedShadowRays)
+            return _scene->occluded(ray) ? Vec3f(0.0f) : Vec3f(1.0f);
         Primitive::IntersectionTemporary data;
         IntersectionInfo info;
 
@@ -252,7 +255,7 @@ class PathTraceIntegrator : public Integrator
 
     Vec3f volumeSampleDirect(const Primitive &light, VolumeScatterEvent &event, const Medium *medium, int bounce)
     {
-        bool mis = true;//medium->suggestMis();
+        bool mis = false;//medium->suggestMis();
 
         Vec3f result = volumeLightSample(event, light, medium, mis, bounce);
         if (!light.isDelta() && mis)
@@ -275,7 +278,14 @@ class PathTraceIntegrator : public Integrator
         for (size_t i = 0; i < _lightPdf.size(); ++i) {
             _lightPdf[i] = _scene->lights()[i]->approximateRadiance(p);
             if (_lightPdf[i] >= 0.0f) {
+#if 1
                 total += _lightPdf[i];
+#else
+                if (_lightPdf[i] > 0.0f) {
+                    total += 1.0f;
+                    _lightPdf[i] = 1.0f;
+                }
+#endif
                 numNonNegative++;
             }
         }
@@ -392,16 +402,19 @@ public:
         Vec3f wo;
         if (bsdf.flags().isForward()) {
             wo = ray.dir();
-        } else if (sampler.next1D() < bsdf.alpha(&info)) {
+            if (!GeneralizedShadowRays)
+                wasSpecular = true;
+        } else if (sampler.next1D() >= bsdf.alpha(&info)) {
             wo = ray.dir();
             throughput *= bsdf.transmittance(&info);
+            if (!GeneralizedShadowRays)
+                wasSpecular = true;
         } else {
             TangentFrame frame;
             bsdf.setupTangentFrame(*info.primitive, data, info, frame);
 
             if (std::isnan(frame.normal.sum())) {
-                std::cout << tfm::format("NAN frame! %s %s %s", frame.normal, frame.tangent, frame.bitangent) << std::endl;
-                exit(0);
+                FAIL("NAN frame! %s %s %s", frame.normal, frame.tangent, frame.bitangent);
             }
 
             if (frame.normal.dot(ray.dir()) > 0.0f && !bsdf.flags().isTransmissive()) {
@@ -433,8 +446,7 @@ public:
                 return false;
 
             throughput *= event.throughput;
-            if (!event.sampledLobe.isForward())
-                wasSpecular = event.sampledLobe.hasSpecular();
+            wasSpecular = event.sampledLobe.hasSpecular();
         }
 
         bool geometricBackside = (wo.dot(info.Ng) < 0.0f);
@@ -460,6 +472,8 @@ public:
         const Vec3f nanDirColor(0.0f, 0.0f, 0.0f);
         const Vec3f nanEnvDirColor(0.0f, 0.0f, 0.0f);
         const Vec3f nanBsdfColor(0.0f, 0.0f, 0.0f);
+
+        try {
 
         Ray ray;
         Vec3f throughput(1.0f);
@@ -517,6 +531,12 @@ public:
         if (std::isnan(throughput.sum() + emission.sum()))
             return nanEnvDirColor;
         return emission;
+
+        } catch (std::runtime_error &e) {
+            std::cout << tfm::format("Caught an internal error at pixel %s: %s", pixel, e.what()) << std::endl;
+
+            return Vec3f(0.0f);
+        }
     }
 
     virtual Integrator *cloneThreadSafe(uint32 /*threadId*/, const TraceableScene *scene) const

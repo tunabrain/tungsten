@@ -77,7 +77,22 @@ public:
         return std::move(v);
     }
 
-    Vec3f aberration(Vec2u pixel, Vec2f &aperturePos, SampleGenerator &sampler) const
+    float evalApertureThroughput(Vec3f planePos, Vec2f aperturePos) const
+    {
+        float aperture = (*_aperture)[aperturePos];
+
+        if (_catEye > 0.0f) {
+            aperturePos = (aperturePos*2.0f - 1.0f)*_apertureSize;
+            Vec3f lensPos = Vec3f(aperturePos.x(), aperturePos.y(), 0.0f);
+            Vec3f localDir = (planePos - lensPos).normalized();
+            Vec2f diaphragmPos = lensPos.xy() - _catEye*_planeDist*localDir.xy();
+            if (diaphragmPos.lengthSq() > sqr(_apertureSize))
+                return 0.0f;
+        }
+        return aperture/_aperture->maximum();
+    }
+
+    Vec3f aberration(const Vec3f &planePos, Vec2u pixel, Vec2f &aperturePos, SampleGenerator &sampler) const
     {
         Vec2f shift = (Vec2f(Vec2i(pixel) - Vec2i(_res/2))/Vec2f(_res))*2.0f;
         shift.y() = -shift.y();
@@ -97,10 +112,10 @@ public:
         aperturePos -= amount*shift;
 
         return Vec3f(
-            (*_aperture)[redShift],
-            (*_aperture)[greenShift],
-            (*_aperture)[blueShift]
-        )/_aperture->maximum();
+            evalApertureThroughput(planePos, redShift),
+            evalApertureThroughput(planePos, greenShift),
+            evalApertureThroughput(planePos, blueShift)
+        );
     }
 
     bool generateSample(Vec2u pixel, SampleGenerator &sampler, Vec3f &throughput, Ray &ray) const override final
@@ -117,7 +132,7 @@ public:
 
         Vec2f aperturePos = _aperture->sample(lensUv);
         if (_chromaticAberration > 0.0f)
-            throughput = aberration(pixel, aperturePos, sampler);
+            throughput = aberration(planePos, pixel, aperturePos, sampler);
         else
             throughput = Vec3f(1.0f);
         aperturePos = (aperturePos*2.0f - 1.0f)*_apertureSize;
@@ -126,7 +141,7 @@ public:
         Vec3f localDir = (planePos - lensPos).normalized();
         Vec3f dir = _transform.transformVector(localDir);
 
-        if (_catEye > 0.0f) {
+        if (_catEye > 0.0f && _chromaticAberration <= 0.0f) {
             Vec2f diaphragmPos = lensPos.xy() - _catEye*_planeDist*localDir.xy();
             if (diaphragmPos.lengthSq() > sqr(_apertureSize))
                 return false;

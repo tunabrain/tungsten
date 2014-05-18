@@ -198,7 +198,7 @@ public:
             + std::acos(n2.dot(n3))
             + std::acos(n3.dot(n0));
 
-        return std::abs(Q)*_emission->average().max();
+        return (TWO_PI - std::abs(Q))*_emission->average().max();
     }
 
     virtual Box3f bounds() const

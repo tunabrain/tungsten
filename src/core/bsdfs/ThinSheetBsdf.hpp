@@ -22,36 +22,30 @@ class Scene;
 
 class ThinSheetBsdf : public Bsdf
 {
+    static constexpr bool UseAlphaTrick = true;
+
     float _ior;
-    float _thickness;
+    std::shared_ptr<TextureA> _thickness;
     Vec3f _sigmaA;
-
-    Vec3f _scaledSigmaA;
-
-    void init()
-    {
-        _scaledSigmaA = _thickness*_sigmaA;
-    }
 
 public:
     ThinSheetBsdf()
     : _ior(1.5f),
-      _thickness(0.0f),
+      _thickness(std::make_shared<ConstantTextureA>(300.0f)),
       _sigmaA(0.0f)
     {
         _lobes = BsdfLobes(BsdfLobes::SpecularReflectionLobe);
-
-        init();
     }
 
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override
     {
         Bsdf::fromJson(v, scene);
         JsonUtils::fromJson(v, "ior", _ior);
-        JsonUtils::fromJson(v, "thickness", _thickness);
         JsonUtils::fromJson(v, "sigmaA", _sigmaA);
 
-        init();
+        const rapidjson::Value::Member *thickness = v.FindMember("thickness");
+        if (thickness)
+            _thickness = scene.fetchScalarTexture<2>(thickness->value);
     }
 
     virtual rapidjson::Value toJson(Allocator &allocator) const override
@@ -59,41 +53,80 @@ public:
         rapidjson::Value v = Bsdf::toJson(allocator);
         v.AddMember("type", "thinsheet", allocator);
         v.AddMember("ior", _ior, allocator);
-        v.AddMember("thickness", _thickness, allocator);
+        JsonUtils::addObjectMember(v, "thickness", *_thickness, allocator);
         v.AddMember("sigmaA", JsonUtils::toJsonValue(_sigmaA, allocator), allocator);
         return std::move(v);
     }
 
     virtual float alpha(const IntersectionInfo *info) const override final
     {
-        float R = Fresnel::dielectricReflectance(1.0f/_ior, std::abs(info->w.dot(info->Ns)));
-        if (R < 1.0f)
-            return 1.0f - (1.0f - R)/(1.0f + R);
-        else
+        if (!UseAlphaTrick) {
             return 1.0f;
+        } else {
+            float cosThetaT;
+            return Fresnel::thinFilmReflectance(1.0f/_ior, std::abs(info->w.dot(info->Ns)), cosThetaT);
+        }
     }
 
     virtual Vec3f transmittance(const IntersectionInfo *info) const override final
     {
-        if (_scaledSigmaA == 0.0f)
-            return Vec3f(1.0f);
+        return Vec3f(1.0f);
+//      float thickness = (*_thickness)[info->uv];
+//      if (_sigmaA == 0.0f || thickness == 0.0f)
+//          return Vec3f(1.0f);
+//
+//      float cosThetaT;
+//      float R = Fresnel::dielectricReflectance(1.0f/_ior, std::abs(info->w.dot(info->Ns)), cosThetaT);
+//
+//      Vec3f absorption = std::exp(-_sigmaA*thickness/cosThetaT);
+//      Vec3f interference = Fresnel::thinFilmReflectance(1.0f/_ior, std::abs(info->w.dot(info->Ns)), thickness);
+//
+//      return absorption*(1.0f - R)*(1.0f - R)/(1.0f - absorption*R*R);
+//      return Vec3f(1.0f);
+//      if (/*_sigmaA == 0.0f || */thickness == 0.0f)
+//          return Vec3f(1.0f);
+//
+        float thickness = (*_thickness)[info->uv];
+        float R, cosThetaT;
+        Vec3f interference = Fresnel::thinFilmReflectanceInterference(1.0f/_ior,
+                std::abs(info->w.dot(info->Ns)), thickness, R, cosThetaT);
+        return (1.0f - interference)/(1.0f - R);
+//
+//      return ((1.0f - interference)*(1.0f + R))/((1.0f + interference)*(1.0f - R));
 
-        float cosThetaT;
-        float R = Fresnel::dielectricReflectance(1.0f/_ior, std::abs(info->w.dot(info->Ns)), cosThetaT);
+        //Vec3f absorption = std::exp(-_sigmaA*thickness/cosThetaT);
 
-        Vec3f absorption = std::exp(-_scaledSigmaA/cosThetaT);
-
-        return absorption*(1.0f - R)*(1.0f - R)/(1.0f - absorption*R*R);
+        //return absorption*(1.0f - R)*(1.0f - R)/(1.0f - absorption*R*R);
     }
 
     bool sample(SurfaceScatterEvent &event) const override final
     {
         if (!event.requestedLobe.test(BsdfLobes::SpecularReflectionLobe))
             return false;
-        event.wo = Vec3f(-event.wi.x(), -event.wi.y(), event.wi.z());
-        event.pdf = 1.0f;
-        event.sampledLobe = BsdfLobes::SpecularReflectionLobe;
-        event.throughput = base(event.info);
+        if (!UseAlphaTrick) {
+            float cosThetaT;
+            float R = Fresnel::thinFilmReflectance(1.0f/_ior, std::abs(event.wi.z()), cosThetaT);
+
+            if (event.sampler->next1D() < R) {
+                event.wo = Vec3f(-event.wi.x(), -event.wi.y(), event.wi.z());
+                event.pdf = R;
+                event.sampledLobe = BsdfLobes::SpecularReflectionLobe;
+            } else {
+                event.wo = Vec3f(-event.wi.x(), -event.wi.y(), -event.wi.z());
+                event.pdf = 1.0f - R;
+                event.sampledLobe = BsdfLobes::SpecularTransmissionLobe;
+            }
+            event.throughput = Vec3f(1.0f);
+        } else {
+            event.wo = Vec3f(-event.wi.x(), -event.wi.y(), event.wi.z());
+            event.pdf = 1.0f;
+            event.sampledLobe = BsdfLobes::SpecularReflectionLobe;
+            event.throughput = Vec3f(1.0f);
+//          float R, cosThetaT;
+//          event.throughput = Fresnel::thinFilmReflectanceInterference(1.0f/_ior,
+//                  std::abs(event.wi.z()), (*_thickness)[event.info->uv], R, cosThetaT);
+//          event.throughput /= R;
+        }
         return true;
     }
 

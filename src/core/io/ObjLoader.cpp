@@ -190,12 +190,12 @@ void ObjLoader::loadMaterialLibrary(const char *path)
 
 void ObjLoader::loadLine(const char *line)
 {
-//  bool meshBoundary =
-//             hasPrefix(line, "usemtl")
-//          || hasPrefix(line, "g")
-//          || hasPrefix(line, "o")
-//          || hasPrefix(line, "s");
-    bool meshBoundary = hasPrefix(line, "o");
+    bool meshBoundary =
+               hasPrefix(line, "usemtl")
+            || hasPrefix(line, "g")
+            || hasPrefix(line, "o")
+            || hasPrefix(line, "s");
+    //bool meshBoundary = hasPrefix(line, "o");
 
     if (meshBoundary && !_tris.empty()) {
         _meshes.emplace_back(finalizeMesh());
