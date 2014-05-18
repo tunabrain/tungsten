@@ -265,10 +265,8 @@ float cleverTransmittance(float h, float r, float mu, float d)
     return opticalDepth;
 }
 
-float cleverTransmittance2(float h, float r, float mu, float d, int &steps)
+float cleverTransmittance2(float h, float r, float mu, float d, int &steps, float maxError)
 {
-    constexpr float maxError = 0.02f;
-
     int numSteps = 0;
 
     float opticalDepth = 0.0f;
@@ -283,6 +281,7 @@ float cleverTransmittance2(float h, float r, float mu, float d, int &steps)
         dT = min(maxError/dD.y(), d*0.2f);
         t += dT;
         numSteps++;
+        //std::cout << t << " " << dD.x() << std::endl;
     }
     Vec2f newDd = densityAndDerivative(h, r, mu, d);
     opticalDepth += (dD.x() + newDd.x())*0.5f*(d - t + dT);
@@ -299,7 +298,7 @@ void transmittanceTest()
     int steps;
     std::cout << analyticTransmittance(8.0f, Rg + 5.0f, 1.0f, 1000.0f)*2 << std::endl;
     std::cout <<  numericTransmittance(8.0f, Rg + 5.0f, 1.0f, 1000.0f) << std::endl;
-    std::cout <<  cleverTransmittance2(8.0f, Rg + 5.0f, 1.0f, 1000.0f, steps) << std::endl;
+    //std::cout <<  cleverTransmittance2(8.0f, Rg + 5.0f, 1.0f, 1000.0f, steps) << std::endl;
     std::cout <<   cleverTransmittance(8.0f, Rg + 5.0f, 1.0f, 1000.0f) << std::endl;
 //  std::cout << analyticTransmittance(800.0f, Rg + 6001.0f, -1.0f, 6000.0f)*2 << std::endl;
 //  std::cout <<  numericTransmittance(800.0f, Rg + 6001.0f, -1.0f, 6000.0f) << std::endl;
@@ -505,6 +504,33 @@ static inline Vec3f thinFilmReflectanceInterference(float eta, float cosThetaI, 
     return 1.0f - (tS + tP)*0.5f;
 }
 
+float density(float h, float r, float mu, float t)
+{
+    float d = std::sqrt(r*r + t*t + 2.0f*r*t*mu);
+    return std::exp((Rg - d)/h);
+}
+
+void atmosphericTransmittancePlot()
+{
+    std::ofstream out("Density.txt");
+    float r = Rg*5.0;
+    float nearR = Rg*1.023f;
+    float maxT = std::sqrt(nearR*nearR + r*r)*2.0f;
+    float mu = -r/std::sqrt(nearR*nearR + r*r);
+    const int NumSamples = 10000;
+    for (int i = 0; i < NumSamples; ++i) {
+        float t = (i*maxT)/NumSamples;
+        out << t << " " << density(8.0f, r, mu, t) << std::endl;
+    }
+    out.close();
+
+    std::cout << numericTransmittance(8.0f, r, mu, maxT) << std::endl;
+
+    int steps = 0;
+    std::cout << cleverTransmittance2(8.0f, r, mu, maxT, steps, 0.1f) << std::endl;
+    std::cout << "Num steps: " << steps;
+}
+
 #include "materials/CheckerTexture.hpp"
 #include "materials/BladeTexture.hpp"
 #include "materials/DiskTexture.hpp"
@@ -533,7 +559,8 @@ int main(int argc, char **argv)
 //  float R, cosThetaT;
 //  for (int i = 12; i < 200; i += 5)
 //      std::cout << thinFilmReflectanceInterference(1.0f/(i*0.01f), 0.2f, 300.0f, R, cosThetaT) << std::endl;
-//  return 0;
+    atmosphericTransmittancePlot();
+    return 0;
 
     QApplication app(argc, argv);
 

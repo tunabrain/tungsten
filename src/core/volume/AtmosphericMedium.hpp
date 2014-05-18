@@ -24,17 +24,21 @@ class AtmosphericMedium : public Medium
 
     Vec3f _pos;
     float _scale;
+    float _cloudMinR;
+    float _cloudMaxR;
+    float _cloudDensity;
+    std::shared_ptr<TextureA> _cloudThickness;
 
     Vec3f _sigmaS;
     float _rG;
     float _rT;
     float _hR;
 
-    bool atmosphereMinTMaxT(const Vec3f &o, const Vec3f &w, Vec2f &tSpan) const
+    inline bool sphereMinTMaxT(const Vec3f &o, const Vec3f &w, Vec2f &tSpan, float r) const
     {
         Vec3f p = o - _pos;
         float B = p.dot(w);
-        float C = p.lengthSq() - _rT*_rT;
+        float C = p.lengthSq() - r*r;
         float detSq = B*B - C;
         if (detSq >= 0.0f) {
             float det = std::sqrt(detSq);
@@ -44,6 +48,74 @@ class AtmosphericMedium : public Medium
         }
 
         return false;
+    }
+
+    bool useCloudDensity(const Vec3f &p, const Vec3f &w, float t, float d) const
+    {
+        Vec3f q = p + w*t;
+        q.normalize();
+        Vec2f uv(std::atan2(q.y(), q.x())*INV_TWO_PI + 0.5f, std::acos(clamp(q.z(), -1.0f, 1.0f))*INV_PI);
+        if (std::isnan(uv.x()))
+            uv.x() = 0.0f;
+
+        float cloudThickness = (*_cloudThickness)[uv];
+        return (cloudThickness*(_cloudMaxR - _cloudMinR) > d - _rG - _cloudMinR);
+    }
+
+    Vec4f spectralOpticalDepthAndT(const Vec3f &p, const Vec3f &w, float maxT, float targetDepth, int targetChannel) const
+    {
+        constexpr int MaxStepCount = 1024*10;
+        constexpr float maxError = 0.02f;
+        int iter = 0;
+
+        Vec3f localP = p - _pos;
+        float r = localP.length();
+        float mu = w.dot(localP)/r;
+
+        Vec3f opticalDepth(0.0f);
+        Vec2f dD = densityAndDerivative(r, mu, 0.0f, r);
+        Vec3f sigmaS = _sigmaS*dD.x();
+        float dT = min(maxError/dD.y(), maxT*0.2f);
+        float t = dT;
+        while (t < maxT) {
+            float d = std::sqrt(r*r + t*t + 2.0f*r*t*mu);
+
+            Vec2f newDd = densityAndDerivative(r, mu, t, d);
+            float newDt = min(maxError/newDd.y(), maxT*0.2f);
+            Vec3f newSigmaS = _sigmaS*newDd.x();
+
+            if (_cloudThickness) {
+                bool insideClouds = (d - _rG >= _cloudMinR && d - _rG <= _cloudMaxR);
+                if (insideClouds) {
+                    newDt = (_cloudMaxR - _cloudMinR)*0.1f;
+                    if (useCloudDensity(localP, w, t, d))
+                        newSigmaS = Vec3f(_cloudDensity);
+                }
+            }
+
+            Vec3f depthStep = (sigmaS + newSigmaS)*0.5f*dT;
+            opticalDepth += depthStep;
+            if (opticalDepth[targetChannel] >= targetDepth) {
+                float alpha = (targetDepth - opticalDepth[targetChannel] + depthStep[targetChannel])/depthStep[targetChannel];
+                t -= dT*(1.0f - alpha);
+                return Vec4f(1.0f, 1.0f, 1.0f, t);
+            }
+
+            dD = newDd;
+            dT = newDt;
+            sigmaS = newSigmaS;
+            t += dT;
+
+            if (iter++ > MaxStepCount) {
+                FAIL("Exceeded maximum step count: %s %s %s %s", p, w, maxT, targetDepth);
+            }
+        }
+        float d = std::sqrt(r*r + maxT*maxT + 2.0f*r*maxT*mu);
+        Vec2f newDd = densityAndDerivative(r, mu, maxT, d);
+        Vec3f newSigmaS = _sigmaS*newDd.x();
+        opticalDepth += (sigmaS + newSigmaS)*0.5f*(maxT - t + dT);
+
+        return Vec4f(opticalDepth.x(), opticalDepth.y(), opticalDepth.z(), maxT);
     }
 
     Vec2f opticalDepthAndT(const Vec3f &p, const Vec3f &w, float maxT, float targetDepth) const
@@ -57,11 +129,13 @@ class AtmosphericMedium : public Medium
         float mu = w.dot(localP)/r;
 
         float opticalDepth = 0.0f;
-        Vec2f dD = densityAndDerivative(r, mu, 0.0f);
+        Vec2f dD = densityAndDerivative(r, mu, 0.0f, r);
         float dT = min(maxError/dD.y(), maxT*0.2f);
         float t = dT;
         while (t < maxT) {
-            Vec2f newDd = densityAndDerivative(r, mu, t);
+            float d = std::sqrt(r*r + t*t + 2.0f*r*t*mu);
+            Vec2f newDd = densityAndDerivative(r, mu, t, d);
+
             float depthStep = (dD.x() + newDd.x())*0.5f*dT;
             opticalDepth += depthStep;
             if (opticalDepth >= targetDepth) {
@@ -71,14 +145,15 @@ class AtmosphericMedium : public Medium
             }
 
             dD = newDd;
-            dT = min(maxError/dD.y(), maxT*0.2f);
+            dT = min(maxError/newDd.y(), maxT*0.2f);
             t += dT;
 
             if (iter++ > MaxStepCount) {
                 FAIL("Exceeded maximum step count: %s %s %s %s", p, w, maxT, targetDepth);
             }
         }
-        Vec2f newDd = densityAndDerivative(r, mu, maxT);
+        float d = std::sqrt(r*r + maxT*maxT + 2.0f*r*maxT*mu);
+        Vec2f newDd = densityAndDerivative(r, mu, maxT, d);
         opticalDepth += (dD.x() + newDd.x())*0.5f*(maxT - t + dT);
 
         return Vec2f(opticalDepth, maxT);
@@ -86,7 +161,7 @@ class AtmosphericMedium : public Medium
 
 public:
     AtmosphericMedium()
-    : _scene(nullptr), _pos(0.0f), _scale(Rg)
+    : _scene(nullptr), _pos(0.0f), _scale(Rg), _cloudDensity(1.0f)
     {
     }
 
@@ -98,6 +173,18 @@ public:
         JsonUtils::fromJson(v, "pos", _pos);
         JsonUtils::fromJson(v, "scale", _scale);
         JsonUtils::fromJson(v, "pivot", _primName);
+        JsonUtils::fromJson(v, "cloud_density", _cloudDensity);
+
+        const rapidjson::Value::Member *cloudThickness = v.FindMember("cloud_thickness");
+        if (cloudThickness) {
+            _cloudThickness = scene.fetchScalarTexture<2>(cloudThickness->value);
+
+            if (!JsonUtils::fromJson(v, "cloud_min_radius", _cloudMinR) ||
+                !JsonUtils::fromJson(v, "cloud_max_radius", _cloudMaxR)) {
+                _cloudThickness = nullptr;
+            }
+        }
+
         init();
     }
 
@@ -109,6 +196,12 @@ public:
         v.AddMember("pos", JsonUtils::toJsonValue(_pos, allocator), allocator);
         if (!_primName.empty())
             v.AddMember("pivot", _primName.c_str(), allocator);
+        if (_cloudThickness) {
+            JsonUtils::addObjectMember(v, "cloud_thickness", *_cloudThickness, allocator);
+            v.AddMember("cloud_min_radius", _cloudMinR, allocator);
+            v.AddMember("cloud_max_radius", _cloudMaxR, allocator);
+            v.AddMember("cloud_density", _cloudDensity, allocator);
+        }
 
         return std::move(v);
     }
@@ -153,7 +246,7 @@ public:
             return false;
 
         Vec2f tSpan;
-        if (!atmosphereMinTMaxT(event.p, event.wi, tSpan) || event.maxT < tSpan.x()) {
+        if (!sphereMinTMaxT(event.p, event.wi, tSpan, _rT) || event.maxT < tSpan.x()) {
             event.t = event.maxT;
             event.throughput = Vec3f(1.0f);
             return true;
@@ -191,9 +284,17 @@ public:
         Vec3f p = event.p + minT*event.wi;
         float maxT = min(event.maxT - minT, tSpan.y());
 
-        Vec2f depthAndT = opticalDepthAndT(p, event.wi, maxT, targetDepth);
+        float sampledT;
+        if (_cloudThickness) {
+            targetDepth *= _sigmaS[state.component];
+            Vec4f depthAndT = spectralOpticalDepthAndT(p, event.wi, maxT, targetDepth, state.component);
+            sampledT = depthAndT.w();
+        } else {
+            Vec2f depthAndT = opticalDepthAndT(p, event.wi, maxT, targetDepth);
+            sampledT = depthAndT.y();
+        }
 
-        event.t = depthAndT.y() == maxT ? event.maxT : (depthAndT.y() + minT);
+        event.t = sampledT == maxT ? event.maxT : (sampledT + minT);
 
         return true;
     }
@@ -214,9 +315,8 @@ public:
         return true;
     }
 
-    Vec2f densityAndDerivative(float r, float mu, float t) const
+    Vec2f densityAndDerivative(float r, float mu, float t, float d) const
     {
-        float d = std::sqrt(r*r + t*t + 2.0f*r*t*mu);
         float density = std::exp((_rG - d)/_hR);
         float dDdT = std::abs((t + r*mu)/(d*_hR))*max(density, 0.01f);
         return Vec2f(density, dDdT);
@@ -225,15 +325,22 @@ public:
     virtual Vec3f transmittance(const VolumeScatterEvent &event) const override final
     {
         Vec2f tSpan;
-        if (!atmosphereMinTMaxT(event.p, event.wi, tSpan) || event.maxT < tSpan.x())
+        if (!sphereMinTMaxT(event.p, event.wi, tSpan, _rT) || event.maxT < tSpan.x())
             return Vec3f(1.0f);
 
         float minT = max(0.0f, tSpan.x());
         Vec3f p = event.p + minT*event.wi;
         float maxT = min(event.maxT - minT, tSpan.y());
-        Vec2f depthAndT = opticalDepthAndT(p, event.wi, maxT, 1.0f);
 
-        return std::exp(-_sigmaS*depthAndT.x());
+        if (_cloudThickness) {
+            Vec4f depthAndT = spectralOpticalDepthAndT(p, event.wi, maxT, 1.0f, 0);
+
+            return std::exp(-depthAndT.xyz());
+        } else {
+            Vec2f depthAndT = opticalDepthAndT(p, event.wi, maxT, 1.0f);
+
+            return std::exp(-_sigmaS*depthAndT.x());
+        }
     }
 
     virtual Vec3f emission(const VolumeScatterEvent &/*event*/) const override final
