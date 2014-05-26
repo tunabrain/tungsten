@@ -255,7 +255,7 @@ class PathTraceIntegrator : public Integrator
 
     Vec3f volumeSampleDirect(const Primitive &light, VolumeScatterEvent &event, const Medium *medium, int bounce)
     {
-        bool mis = false;//medium->suggestMis();
+        bool mis = true;//medium->suggestMis();
 
         Vec3f result = volumeLightSample(event, light, medium, mis, bounce);
         if (!light.isDelta() && mis)
@@ -427,7 +427,7 @@ public:
             SurfaceScatterEvent event(&info, &sampler, &supplementalSampler, frame.toLocal(-ray.dir()), BsdfLobes::AllLobes);
 
             if (_enableLightSampling) {
-                if (wasSpecular || !info.primitive->isSamplable())
+                if ((wasSpecular || !info.primitive->isSamplable()) && !info.primitive->disableReflectedEmission())
                     emission += info.primitive->emission(data, info)*throughput;
 
                 if (bounce < _maxBounces - 1)
@@ -530,7 +530,7 @@ public:
         }
         if (std::isnan(throughput.sum() + emission.sum()))
             return nanEnvDirColor;
-        return emission;
+        return min(emission, Vec3f(100.0f));
 
         } catch (std::runtime_error &e) {
             std::cout << tfm::format("Caught an internal error at pixel %s: %s", pixel, e.what()) << std::endl;

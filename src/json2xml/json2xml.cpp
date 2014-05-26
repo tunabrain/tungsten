@@ -8,47 +8,57 @@
 
 using namespace Tungsten;
 
-int main(int argc, const char *argv[])
+bool convert(const std::string &src, const std::string &dst)
 {
-    if (argc != 3) {
-        std::cerr << "Usage: json2xml inputfile outputfile\n";
-        return 1;
-    }
-
-    std::string dst(argv[2]);
     std::string dstDir(FileUtils::extractDir(dst));
     if (!dstDir.empty() && !FileUtils::createDirectory(dstDir)) {
         std::cerr << "Unable to create target directory '" << dstDir <<"'\n";
-        return 1;
+        return false;
     }
 
     Scene *scene;
     try {
-        scene = Scene::load(argv[1]);
+        scene = Scene::load(src.c_str());
     } catch (std::runtime_error &e) {
         std::cerr << "Scene loader encountered an unrecoverable error: \n" << e.what() << std::endl;
-        return 1;
+        return false;
     }
 
     if (!scene) {
-        std::cerr << "Unable to open input file '" << argv[1] << "'\n";
-        return 1;
+        std::cerr << "Unable to open input file '" << src << "'\n";
+        return false;
     }
 
     std::ofstream out(dst);
     if (!out.good()) {
-        std::cerr << "Unable to write to target file '" << argv[2] << "'\n";
+        std::cerr << "Unable to write to target file '" << dst << "'\n";
+        return false;
+    }
+
+    try {
+        SceneXmlWriter writer(dstDir, *scene, out);
+    } catch (std::runtime_error &e) {
+        std::cerr << "SceneXmlWriter encountered an unrecoverable error: \n" << e.what() << std::endl;
+        return false;
+    }
+    return true;
+}
+
+int main(int argc, const char *argv[])
+{
+    if (argc < 3) {
+        std::cerr << "Usage: json2xml inputfile outputfile\n";
         return 1;
     }
 
     embree::rtcInit();
     embree::rtcStartThreads(8);
 
-    try {
-        SceneXmlWriter writer(dstDir, *scene, out);
-    } catch (std::runtime_error &e) {
-        std::cerr << "SceneXmlWriter encountered an unrecoverable error: \n" << e.what() << std::endl;
-        return 1;
+    if (argc == 3) {
+        convert(argv[1], argv[2]);
+    } else {
+        for (int i = 1; i < argc; ++i)
+            convert(argv[i], FileUtils::stripExt(argv[i]) + ".xml");
     }
 
     return 0;

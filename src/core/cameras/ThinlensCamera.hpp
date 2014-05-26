@@ -18,6 +18,8 @@ class Scene;
 
 class ThinlensCamera : public Camera
 {
+    const Scene *_scene;
+
     float _fovDeg;
     float _fovRad;
     float _planeDist;
@@ -25,6 +27,7 @@ class ThinlensCamera : public Camera
     float _apertureSize;
     float _chromaticAberration;
     float _catEye;
+    std::string _focusPivot;
 
     std::shared_ptr<TextureA> _aperture;
 
@@ -38,6 +41,7 @@ class ThinlensCamera : public Camera
 public:
     ThinlensCamera()
     : Camera(),
+      _scene(nullptr),
       _fovDeg(60.0f),
       _focusDist(1.0f),
       _apertureSize(0.001f),
@@ -50,12 +54,14 @@ public:
 
     void fromJson(const rapidjson::Value &v, const Scene &scene) override
     {
+        _scene = &scene;
         Camera::fromJson(v, scene);
         JsonUtils::fromJson(v, "fov", _fovDeg);
         JsonUtils::fromJson(v, "focus_distance", _focusDist);
         JsonUtils::fromJson(v, "aperture_size", _apertureSize);
         JsonUtils::fromJson(v, "aberration", _chromaticAberration);
         JsonUtils::fromJson(v, "cateye", _catEye);
+        JsonUtils::fromJson(v, "focus_pivot", _focusPivot);
 
         const rapidjson::Value::Member *aperture = v.FindMember("aperture");
         if (aperture)
@@ -73,6 +79,8 @@ public:
         v.AddMember("aperture_size", _apertureSize, allocator);
         v.AddMember("aberration", _chromaticAberration, allocator);
         v.AddMember("cateye", _catEye, allocator);
+        if (!_focusPivot.empty())
+            v.AddMember("focus_pivot", _focusPivot.c_str(), allocator);
         JsonUtils::addObjectMember(v, "aperture", *_aperture, allocator);
         return std::move(v);
     }
@@ -160,6 +168,17 @@ public:
     float approximateFov() const override final
     {
         return _fovRad;
+    }
+
+    void prepareForRender() override final
+    {
+        Camera::prepareForRender();
+
+        if (!_focusPivot.empty()) {
+            const Primitive *prim = _scene->findPrimitive(_focusPivot);
+
+            _focusDist = (prim->transform()*Vec3f(0.0f) - _pos).length();
+        }
     }
 
     float fovDeg() const

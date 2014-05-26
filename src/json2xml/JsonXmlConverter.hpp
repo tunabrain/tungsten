@@ -223,7 +223,7 @@ class SceneXmlWriter
                 dynamic_cast<CheckerTexture<Scalar> *>(a))
             convert(name, a2);
         else
-            FAIL("Unknown texture type!");
+            DBG("Unknown texture type!");
     }
 
     template<typename T>
@@ -247,7 +247,7 @@ class SceneXmlWriter
         else if (HeterogeneousMedium *med2 = dynamic_cast<HeterogeneousMedium *>(med))
             convert(med2);
         else
-            FAIL("Unknown medium type!");
+            DBG("Unknown medium type!");
 
         switch(med->phaseFunctionType()) {
         case PhaseFunction::Isotropic:
@@ -312,8 +312,8 @@ class SceneXmlWriter
             assign("id", bsdf->name());
         beginPost();
         convert("weight", bsdf->ratio().get());
-        convertOrRef(bsdf->bsdf0().get());
         convertOrRef(bsdf->bsdf1().get());
+        convertOrRef(bsdf->bsdf0().get());
         end();
     }
 
@@ -487,7 +487,7 @@ class SceneXmlWriter
             convert(bsdf2);
         else if (dynamic_cast<ForwardBsdf *>(bsdf)) {
         } else
-            FAIL("Unknown bsdf type with name '%s'!", bsdf->name());
+            DBG("Unknown bsdf type with name '%s'!", bsdf->name());
 
         if (hasBump)
             end();
@@ -521,7 +521,7 @@ class SceneXmlWriter
         else if (ThinlensCamera *cam2 = dynamic_cast<ThinlensCamera *>(cam))
             convert(cam2);
         else
-            FAIL("Unknown camera type!");
+            DBG("Unknown camera type!");
 
         convert("toWorld", cam->transform()*Mat4f::scale(Vec3f(-1.0f, 1.0f, 1.0f)));
 
@@ -559,12 +559,17 @@ class SceneXmlWriter
         assign("type", "obj");
         beginPost();
         std::string objFile(FileUtils::stripExt(prim->path()) + ".obj");
-        std::string fullObjFile(_folder + "/" + objFile);
-        if (!FileUtils::createDirectory(FileUtils::extractDir(fullObjFile)))
-            FAIL("Unable to create target folder for obj at: '%s'", fullObjFile);
+        std::string fullObjFile;
+        if (_folder.empty())
+            fullObjFile = objFile;
+        else {
+            fullObjFile = _folder + "/" + objFile;
+            if (!FileUtils::createDirectory(FileUtils::extractDir(fullObjFile)))
+                DBG("Unable to create target folder for obj at: '%s'", fullObjFile);
+        }
         std::ofstream out(fullObjFile, std::ios_base::out | std::ios_base::binary);
         if (!out.good())
-            FAIL("Unable to create obj for writing at: '%s'", fullObjFile);
+            DBG("Unable to create obj for writing at: '%s'", fullObjFile);
         prim->saveAsObj(out);
         out.close();
         convert("filename", objFile);
@@ -606,7 +611,7 @@ class SceneXmlWriter
             convert("filename", FileUtils::stripExt(tex->path()) + ".hdr");
             end();
         } else {
-            FAIL("Infinite sphere has to be a constant or bitmap textured light source!");
+            DBG("Infinite sphere has to be a constant or bitmap textured light source!");
         }
     }
 
@@ -624,7 +629,7 @@ class SceneXmlWriter
             convert(prim2);
             return;
         } else
-            FAIL("Unknown primitive type!");
+            DBG("Unknown primitive type!");
 
         if (!dynamic_cast<ForwardBsdf *>(prim->bsdf().get()))
             convertOrRef(prim->bsdf().get());
@@ -659,6 +664,7 @@ class SceneXmlWriter
             assign("type", "volpath");
         beginPost();
         convert("strictNormals", true);
+        convert("maxDepth", 64);
         end();
 
         convert(scene->camera().get());

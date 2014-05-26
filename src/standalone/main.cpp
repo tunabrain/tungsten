@@ -37,12 +37,15 @@ void saveFrameAndVariance(Renderer &renderer, Scene &scene, Camera &camera, cons
     int w = camera.resolution().x();
     int h = camera.resolution().y();
     std::unique_ptr<uint8[]> ldr(new uint8[w*h*3]);
+    std::unique_ptr<Vec3f[]> hdr(new Vec3f[w*h]);
     for (int y = 0, idx = 0; y < h; ++y) {
         for (int x = 0; x < w; ++x, ++idx) {
             Vec3c rgb(clamp(camera.get(x, y)*256.0f, Vec3f(0.0f), Vec3f(255.0f)));
             ldr[idx*3 + 0] = rgb.x();
             ldr[idx*3 + 1] = rgb.y();
             ldr[idx*3 + 2] = rgb.z();
+
+            hdr[idx] = camera.getLinear(x, h - y - 1);
         }
     }
 
@@ -50,6 +53,16 @@ void saveFrameAndVariance(Renderer &renderer, Scene &scene, Camera &camera, cons
 
     lodepng_encode24_file(dst.c_str(), ldr.get(), w, h);
     renderer.saveVariance(dstVariance);
+
+    std::string pfmDst = FileUtils::stripExt(dst) + ".pfm";
+    std::ofstream pfmOut(pfmDst, std::ios_base::out | std::ios_base::binary);
+    if (!pfmOut.good()) {
+        std::cout << "Warning: Unable to open pfm output at" << pfmOut << std::endl;
+        return;
+    }
+    pfmOut << "PF\n" << w << " " << h << "\n" << -1.0 << "\n";
+    pfmOut.write(reinterpret_cast<const char *>(hdr.get()), w*h*sizeof(Vec3f));
+    pfmOut.close();
 }
 
 std::string formatTime(double elapsed)
@@ -75,7 +88,7 @@ int main(int argc, const char *argv[])
 {
     constexpr int ThreadCount = 7;
     constexpr int SppStep = 16;
-    constexpr int BackupInterval = 60*5;
+    constexpr int BackupInterval = 60*15;
 
     if (argc < 2) {
         std::cerr << "Usage: tungsten scene1 [scene2 [scene3....]]\n";
@@ -105,13 +118,15 @@ int main(int argc, const char *argv[])
 
             std::cout << "Starting render..." << std::endl;
             Timer timer, checkpointTimer;
+            double totalElapsed = 0.0;
             for (int i = 0; i < maxSpp; i += SppStep) {
                 renderer->startRender([](){}, i, min(i + SppStep, maxSpp));
                 renderer->waitForCompletion();
                 std::cout << tfm::format("Completed %d/%d spp", min(i + SppStep, maxSpp), maxSpp) << std::endl;
                 checkpointTimer.stop();
                 if (checkpointTimer.elapsed() > BackupInterval) {
-                    std::cout << tfm::format("Saving checkpoint after %s", formatTime(checkpointTimer.elapsed()).c_str()) << std::endl;
+                    totalElapsed += checkpointTimer.elapsed();
+                    std::cout << tfm::format("Saving checkpoint after %s", formatTime(totalElapsed).c_str()) << std::endl;
                     checkpointTimer.start();
                     saveFrameAndVariance(*renderer, *scene, *scene->camera(), "Checkpoint");
                 }

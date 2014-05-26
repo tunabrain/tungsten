@@ -82,8 +82,8 @@ public:
             float pdf0 = event.pdf*ratio;
             float pdf1 = _bsdf1->pdf(event)*(1.0f - ratio);
             Vec3f f = event.throughput*event.pdf*ratio + _bsdf1->eval(event)*(1.0f - ratio);
-            event.throughput = f/pdf0*Sample::powerHeuristic(pdf0, pdf1);
             event.pdf = pdf0 + pdf1;
+            event.throughput = f/event.pdf;//*Sample::powerHeuristic(pdf0, pdf1);
         } else {
             if (!_bsdf1->sample(event))
                 return false;
@@ -91,8 +91,8 @@ public:
             float pdf0 = _bsdf0->pdf(event)*ratio;
             float pdf1 = event.pdf*(1.0f - ratio);
             Vec3f f = _bsdf0->eval(event)*ratio + event.throughput*event.pdf*(1.0f - ratio);
-            event.throughput = f/pdf1*Sample::powerHeuristic(pdf1, pdf0);
             event.pdf = pdf0 + pdf1;
+            event.throughput = f/event.pdf;//*Sample::powerHeuristic(pdf1, pdf0);
         }
 
         event.throughput *= base(event.info);

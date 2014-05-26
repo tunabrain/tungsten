@@ -16,7 +16,7 @@ class AtmosphericMedium : public Medium
     static constexpr float BetaR = 5.8f*1e-6f;
     static constexpr float BetaG = 13.5f*1e-6f;
     static constexpr float BetaB = 33.1f*1e-6f;
-    static constexpr float FalloffScale = 10.0f;
+    static constexpr float FalloffScale = 14.0f;
 
     const Scene *_scene;
 
@@ -27,6 +27,9 @@ class AtmosphericMedium : public Medium
     float _cloudMinR;
     float _cloudMaxR;
     float _cloudDensity;
+    float _cloudAlbedo;
+    float _cloudShift;
+    Vec3f _backgroundSigmaS;
     std::shared_ptr<TextureA> _cloudThickness;
 
     Vec3f _sigmaS;
@@ -50,19 +53,23 @@ class AtmosphericMedium : public Medium
         return false;
     }
 
-    bool useCloudDensity(const Vec3f &p, const Vec3f &w, float t, float d) const
+    bool useCloudDensity(const Vec3f &q, float d) const
     {
-        Vec3f q = p + w*t;
-        q.normalize();
         Vec2f uv(std::atan2(q.y(), q.x())*INV_TWO_PI + 0.5f, std::acos(clamp(q.z(), -1.0f, 1.0f))*INV_PI);
         if (std::isnan(uv.x()))
             uv.x() = 0.0f;
+        uv.x() += _cloudShift;
 
         float cloudThickness = (*_cloudThickness)[uv];
         return (cloudThickness*(_cloudMaxR - _cloudMinR) > d - _rG - _cloudMinR);
     }
 
-    Vec4f spectralOpticalDepthAndT(const Vec3f &p, const Vec3f &w, float maxT, float targetDepth, int targetChannel) const
+    Vec3f lerpSigma(const Vec3f &a, const Vec3f &b, float r) const
+    {
+        return a*(1.0f - r) + b*r;
+    }
+
+    Vec4f spectralOpticalDepthAndT(const Vec3f &p, const Vec3f &w, float maxT, float targetDepth, int targetChannel, float rand) const
     {
         constexpr int MaxStepCount = 1024*10;
         constexpr float maxError = 0.02f;
@@ -74,23 +81,21 @@ class AtmosphericMedium : public Medium
 
         Vec3f opticalDepth(0.0f);
         Vec2f dD = densityAndDerivative(r, mu, 0.0f, r);
-        Vec3f sigmaS = _sigmaS*dD.x();
+        Vec3f sigmaS = lerpSigma(_backgroundSigmaS, _sigmaS, dD.x());
         float dT = min(maxError/dD.y(), maxT*0.2f);
-        float t = dT;
+        float t = dT*rand;
         while (t < maxT) {
             float d = std::sqrt(r*r + t*t + 2.0f*r*t*mu);
 
             Vec2f newDd = densityAndDerivative(r, mu, t, d);
             float newDt = min(maxError/newDd.y(), maxT*0.2f);
-            Vec3f newSigmaS = _sigmaS*newDd.x();
+            Vec3f newSigmaS = lerpSigma(_backgroundSigmaS, _sigmaS, newDd.x());
 
-            if (_cloudThickness) {
-                bool insideClouds = (d - _rG >= _cloudMinR && d - _rG <= _cloudMaxR);
-                if (insideClouds) {
-                    newDt = (_cloudMaxR - _cloudMinR)*0.1f;
-                    if (useCloudDensity(localP, w, t, d))
-                        newSigmaS = Vec3f(_cloudDensity);
-                }
+            bool insideClouds = (d - _rG >= _cloudMinR && d - _rG <= _cloudMaxR);
+            if (insideClouds) {
+                newDt = (_cloudMaxR - _cloudMinR)*0.1f;
+                if (useCloudDensity((localP + w*t)/d, d))
+                    newSigmaS = Vec3f(_cloudDensity);
             }
 
             Vec3f depthStep = (sigmaS + newSigmaS)*0.5f*dT;
@@ -112,7 +117,7 @@ class AtmosphericMedium : public Medium
         }
         float d = std::sqrt(r*r + maxT*maxT + 2.0f*r*maxT*mu);
         Vec2f newDd = densityAndDerivative(r, mu, maxT, d);
-        Vec3f newSigmaS = _sigmaS*newDd.x();
+        Vec3f newSigmaS = lerpSigma(_backgroundSigmaS, _sigmaS, newDd.x());
         opticalDepth += (sigmaS + newSigmaS)*0.5f*(maxT - t + dT);
 
         return Vec4f(opticalDepth.x(), opticalDepth.y(), opticalDepth.z(), maxT);
@@ -161,7 +166,13 @@ class AtmosphericMedium : public Medium
 
 public:
     AtmosphericMedium()
-    : _scene(nullptr), _pos(0.0f), _scale(Rg), _cloudDensity(1.0f)
+    : _scene(nullptr),
+      _pos(0.0f),
+      _scale(Rg),
+      _cloudDensity(1.0f),
+      _cloudAlbedo(0.9f),
+      _cloudShift(0.0f),
+      _backgroundSigmaS(0.0f)
     {
     }
 
@@ -174,6 +185,9 @@ public:
         JsonUtils::fromJson(v, "scale", _scale);
         JsonUtils::fromJson(v, "pivot", _primName);
         JsonUtils::fromJson(v, "cloud_density", _cloudDensity);
+        JsonUtils::fromJson(v, "cloud_albedo", _cloudAlbedo);
+        JsonUtils::fromJson(v, "cloud_shift", _cloudShift);
+        JsonUtils::fromJson(v, "background_sigma_s", _backgroundSigmaS);
 
         const rapidjson::Value::Member *cloudThickness = v.FindMember("cloud_thickness");
         if (cloudThickness) {
@@ -201,6 +215,9 @@ public:
             v.AddMember("cloud_min_radius", _cloudMinR, allocator);
             v.AddMember("cloud_max_radius", _cloudMaxR, allocator);
             v.AddMember("cloud_density", _cloudDensity, allocator);
+            v.AddMember("cloud_albedo", _cloudAlbedo, allocator);
+            v.AddMember("cloud_shift", _cloudShift, allocator);
+            v.AddMember("background_sigma_s", JsonUtils::toJsonValue(_backgroundSigmaS, allocator), allocator);
         }
 
         return std::move(v);
@@ -232,8 +249,6 @@ public:
         _rG = float(double(Rg)/double(_scale));
         _rT = float(double((Rt - Rg)*FalloffScale + Rg)/double(_scale));
         _hR = float(FalloffScale*double(Hr)/double(_scale));
-
-        std::cout << _rG << " " << _hR << " " << _sigmaS << std::endl;
     }
 
     virtual void cleanupAfterRender() override final
@@ -287,7 +302,7 @@ public:
         float sampledT;
         if (_cloudThickness) {
             targetDepth *= _sigmaS[state.component];
-            Vec4f depthAndT = spectralOpticalDepthAndT(p, event.wi, maxT, targetDepth, state.component);
+            Vec4f depthAndT = spectralOpticalDepthAndT(p, event.wi, maxT, targetDepth, state.component, event.sampler->next1D());
             sampledT = depthAndT.w();
         } else {
             Vec2f depthAndT = opticalDepthAndT(p, event.wi, maxT, targetDepth);
@@ -301,6 +316,16 @@ public:
 
     virtual bool absorb(VolumeScatterEvent &event, MediumState &state) const override final
     {
+        if (_cloudThickness) {
+            Vec3f localP = event.p - _pos;
+            float r = localP.length();
+            bool insideClouds = (r - _rG >= _cloudMinR && r - _rG <= _cloudMaxR);
+            if (insideClouds && useCloudDensity(localP/r, r)) {
+                if (event.sampler->next1D() >= _cloudAlbedo)
+                    return true;
+            }
+        }
+
         event.throughput = Vec3f(0.0f);
         event.throughput[state.component] = 1.0f;
         return false;
@@ -308,6 +333,16 @@ public:
 
     virtual bool scatter(VolumeScatterEvent &event) const override final
     {
+        if (_cloudThickness) {
+            Vec3f localP = event.p - _pos;
+            float r = localP.length();
+            bool insideClouds = (r - _rG >= _cloudMinR && r - _rG <= _cloudMaxR);
+            if (insideClouds && useCloudDensity(localP/r, r)) {
+                event.wo  = PhaseFunction::sample(PhaseFunction::Isotropic, 0.0f, event.sampler->next2D());
+                event.pdf = PhaseFunction::eval(PhaseFunction::Isotropic, event.wo.z(), 0.0f);
+                return true;
+            }
+        }
         event.wo = PhaseFunction::sample(PhaseFunction::Rayleigh, 0.0f, event.sampler->next2D());
         event.pdf = PhaseFunction::eval(PhaseFunction::Rayleigh, event.wo.z(), 0.0f);
         TangentFrame frame(event.wi);
@@ -333,7 +368,7 @@ public:
         float maxT = min(event.maxT - minT, tSpan.y());
 
         if (_cloudThickness) {
-            Vec4f depthAndT = spectralOpticalDepthAndT(p, event.wi, maxT, 1.0f, 0);
+            Vec4f depthAndT = spectralOpticalDepthAndT(p, event.wi, maxT, 1.0f, 0, 1.0f);
 
             return std::exp(-depthAndT.xyz());
         } else {
@@ -350,6 +385,14 @@ public:
 
     virtual Vec3f eval(const VolumeScatterEvent &event) const override final
     {
+        if (_cloudThickness) {
+            Vec3f localP = event.p - _pos;
+            float r = localP.length();
+            bool insideClouds = (r - _rG >= _cloudMinR && r - _rG <= _cloudMaxR);
+            if (insideClouds && useCloudDensity(localP/r, r))
+                return Vec3f(_cloudAlbedo*PhaseFunction::eval(PhaseFunction::Isotropic, event.wi.dot(event.wo), 0.0f));
+        }
+
         return Vec3f(PhaseFunction::eval(PhaseFunction::Rayleigh, event.wi.dot(event.wo), 0.0f));
     }
 };

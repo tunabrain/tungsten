@@ -105,6 +105,11 @@ public:
         return (*_emission)[info.uv];
     }
 
+    virtual bool disableReflectedEmission() const
+    {
+        return false;
+    }
+
     void setEmission(const std::shared_ptr<TextureRgb> &emission)
     {
         _emission = emission;

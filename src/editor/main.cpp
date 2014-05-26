@@ -295,7 +295,7 @@ float cleverTransmittance2(float h, float r, float mu, float d, int &steps, floa
 
 void transmittanceTest()
 {
-    int steps;
+    //int steps;
     std::cout << analyticTransmittance(8.0f, Rg + 5.0f, 1.0f, 1000.0f)*2 << std::endl;
     std::cout <<  numericTransmittance(8.0f, Rg + 5.0f, 1.0f, 1000.0f) << std::endl;
     //std::cout <<  cleverTransmittance2(8.0f, Rg + 5.0f, 1.0f, 1000.0f, steps) << std::endl;
@@ -305,7 +305,7 @@ void transmittanceTest()
 //  std::cout <<  cleverTransmittance2(800.0f, Rg + 6001.0f, -1.0f, 6000.0f, steps) << std::endl;
 //  std::cout <<   cleverTransmittance(800.0f, Rg + 6001.0f, -1.0f, 6000.0f) << std::endl;
 
-    std::cout << "#steps: " << steps << std::endl;
+    //std::cout << "#steps: " << steps << std::endl;
 }
 
 void loadPfm(const char *filename)
@@ -559,8 +559,8 @@ int main(int argc, char **argv)
 //  float R, cosThetaT;
 //  for (int i = 12; i < 200; i += 5)
 //      std::cout << thinFilmReflectanceInterference(1.0f/(i*0.01f), 0.2f, 300.0f, R, cosThetaT) << std::endl;
-    atmosphericTransmittancePlot();
-    return 0;
+//  atmosphericTransmittancePlot();
+//  return 0;
 
     QApplication app(argc, argv);
 

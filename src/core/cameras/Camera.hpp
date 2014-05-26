@@ -84,13 +84,13 @@ public:
     virtual Mat4f approximateProjectionMatrix(int width, int height) const = 0;
     virtual float approximateFov() const = 0;
 
-    void prepareForRender()
+    virtual void prepareForRender()
     {
         _pixels.resize(_res.x()*_res.y(), Vec3d(0.0));
         _weights.resize(_res.x()*_res.y(), 0.0);
     }
 
-    void teardownAfterRender()
+    virtual void teardownAfterRender()
     {
         _pixels.clear();
         _weights.clear();
@@ -108,6 +108,12 @@ public:
     Vec3f tonemap(const Vec3f &c) const
     {
         return Tonemap::tonemap(_tonemapOp, c);
+    }
+
+    Vec3f getLinear(int x, int y) const
+    {
+        int idx = x + y*_res.x();
+        return Vec3f(_pixels[idx]/_weights[idx]);
     }
 
     Vec3f get(int x, int y) const
