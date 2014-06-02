@@ -71,6 +71,12 @@ T cube(T val)
 }
 
 template<typename T>
+T lerp(T a, T b, T ratio)
+{
+    return a*(T(1) - ratio) + b*ratio;
+}
+
+template<typename T>
 T smoothStep(T edge0, T edge1, T x) {
     x = clamp((x - edge0)/(edge1 - edge0), T(0), T(1));
 

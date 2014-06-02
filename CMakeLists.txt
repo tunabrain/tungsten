@@ -56,6 +56,9 @@ target_link_libraries(json2xml ${core_libs})
 add_executable(tungsten src/standalone/main.cpp)
 target_link_libraries(tungsten ${core_libs})
 
+add_executable(testbed src/testbed/testbed.cpp)
+target_link_libraries(testbed ${core_libs} glfw3 gdi32 opengl32 glu32)
+
 find_package(Qt4)
 if (QT4_FOUND)
     set(QT_USE_QTOPENGL TRUE)
