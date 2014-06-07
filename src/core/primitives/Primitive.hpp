@@ -27,6 +27,7 @@ struct IntersectionInfo
     Vec3f p;
     Vec3f w;
     Vec2f uv;
+    float epsilon;
 
     const Primitive *primitive;
 };
@@ -38,6 +39,8 @@ protected:
     std::shared_ptr<TextureRgb> _emission;
 
     Mat4f _transform;
+
+    bool _needsRayTransform = false;
 
 public:
     struct IntersectionTemporary
@@ -53,11 +56,13 @@ public:
         template<typename T>
         T *as()
         {
+            static_assert(sizeof(T) <= sizeof(data), "Exceeding size of intersection temporary");
             return reinterpret_cast<T *>(&data[0]);
         }
         template<typename T>
         const T *as() const
         {
+            static_assert(sizeof(T) <= sizeof(data), "Exceeding size of intersection temporary");
             return reinterpret_cast<const T *>(&data[0]);
         }
     };
@@ -127,11 +132,14 @@ public:
     virtual void prepareForRender() = 0;
     virtual void cleanupAfterRender() = 0;
 
-    virtual float area() const = 0;
-
     virtual Primitive *clone() = 0;
 
     virtual void saveData() const {} /* TODO */
+
+    bool needsRayTransform() const
+    {
+        return _needsRayTransform;
+    }
 
     void setTransform(const Mat4f &m)
     {

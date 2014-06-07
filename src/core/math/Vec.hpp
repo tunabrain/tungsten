@@ -23,11 +23,11 @@ public:
     static const unsigned size = Size;
     typedef ElementType elementType;
 
-    //Vec() = default;
-    Vec()
-    : Vec(ElementType(0))
-    {
-    }
+    Vec() = default;
+//  Vec()
+//  : Vec(ElementType(0))
+//  {
+//  }
 
     explicit Vec(ElementType a)
     {
@@ -324,6 +324,32 @@ public:
         for (unsigned i = 0; i < Size; ++i)
             _v[i] /= a;
         return *this;
+    }
+
+    uint32 maxDim() const
+    {
+        ElementType m = _v[0];
+        uint32 idx = 0;
+        for (unsigned i = 1; i < Size; ++i) {
+            if (_v[i] > m) {
+                m = _v[i];
+                idx = i;
+            }
+        }
+        return idx;
+    }
+
+    uint32 minDim() const
+    {
+        ElementType m = _v[0];
+        uint32 idx = 0;
+        for (unsigned i = 1; i < Size; ++i) {
+            if (_v[i] < m) {
+                m = _v[i];
+                idx = i;
+            }
+        }
+        return idx;
     }
 
     ElementType max() const

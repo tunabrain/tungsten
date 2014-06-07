@@ -14,6 +14,7 @@
 #include "primitives/InfiniteSphere.hpp"
 #include "primitives/Spotlight.hpp"
 #include "primitives/Sphere.hpp"
+#include "primitives/Curves.hpp"
 #include "primitives/Quad.hpp"
 #include "primitives/Mesh.hpp"
 
@@ -122,6 +123,8 @@ std::shared_ptr<Primitive> Scene::instantiatePrimitive(std::string type, const r
         result = std::make_shared<InfiniteSphere>();
     else if (type == "infinite_sphere_cap")
         result = std::make_shared<InfiniteSphereCap>();
+    else if (type == "curves")
+        result = std::make_shared<Curves>();
     else
         FAIL("Unknown primitive type: '%s'", type.c_str());
 

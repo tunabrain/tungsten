@@ -40,9 +40,6 @@ public:
     template<typename T>
     static inline void streamRead(std::istream &in, std::vector<T> &dst)
     {
-        uint64 s;
-        streamRead(in, s);
-        dst.resize(s);
         in.read(reinterpret_cast<char *>(&dst[0]), dst.size()*sizeof(T));
     }
 
@@ -55,7 +52,6 @@ public:
     template<typename T>
     static inline void streamWrite(std::ostream &out, const std::vector<T> &src)
     {
-        streamWrite(out, uint64(src.size()));
         out.write(reinterpret_cast<const char *>(&src[0]), src.size()*sizeof(T));
     }
 };

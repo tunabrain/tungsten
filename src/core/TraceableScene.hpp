@@ -22,6 +22,8 @@ namespace Tungsten {
 
 class TraceableScene
 {
+    static constexpr float DefaultEpsilon = 5e-4f;
+
     struct PerRayData
     {
         Primitive::IntersectionTemporary &data;
@@ -32,8 +34,20 @@ class TraceableScene
     {
         const Primitive *primitive = reinterpret_cast<const Primitive *>(userData);
         PerRayData *data = reinterpret_cast<PerRayData *>(eRay.userData);
-        if (primitive->intersect(data->ray, data->data))
-            eRay.tfar = data->ray.farT();
+//      if (primitive->needsRayTransform()) {
+//          Ray ray(fromERay(eRay));
+//          float length = ray.dir().length();
+//          ray.setDir(ray.dir()*(1.0f/length));
+//          ray.setNearT(ray.nearT()/length);
+//          ray.setFarT(ray.farT()/length);
+//          if (primitive->intersect(ray, data->data)) {
+//              data->ray.setFarT(ray.farT()*length);
+//              eRay.tfar = data->ray.farT();
+//          }
+//      } else {
+            if (primitive->intersect(data->ray, data->data))
+                eRay.tfar = data->ray.farT();
+//      }
     }
 
     static bool occluded(const void *userData, embree::Ray &eRay)
@@ -98,9 +112,17 @@ public:
             if (m->isInfinite() || m->isDelta())
                 continue;
 
+            if (m->needsRayTransform()) {
+                objects->hasTransform = true;
+                objects->localBounds = toEBox(m->bounds());
+                objects->local2world = toEMat(m->transform());
+                objects->calculateWorldData();
+            } else {
+                objects->hasTransform = false;
+                objects->localBounds = objects->worldBounds = toEBox(m->bounds());
+            }
+
             /* TODO: Transforms */
-            objects->hasTransform = false;
-            objects->localBounds = objects->worldBounds = toEBox(m->bounds());
             objects->userData = m.get();
             objects->intersector1 = &_virtualIntersector;
             objects++;
@@ -144,7 +166,17 @@ public:
         if (data.primitive) {
             info.p = ray.pos() + ray.dir()*ray.farT();
             info.w = ray.dir();
-            data.primitive->intersectionInfo(data, info);
+//          if (data.primitive->needsRayTransform()) {
+//              Vec3f scale = data.primitive->transform().extractScaleVec();
+//              float diagScale = scale.avg();
+//              info.epsilon = DefaultEpsilon/diagScale;
+//              data.primitive->intersectionInfo(data, info);
+//              info.epsilon *= diagScale;
+//              info.Ng = data.primitive->transform()
+//          } else {
+                info.epsilon = DefaultEpsilon;
+                data.primitive->intersectionInfo(data, info);
+//          }
             return true;
         } else {
             return false;
@@ -162,6 +194,7 @@ public:
         if (data.primitive) {
             info.p = ray.pos() + ray.dir()*ray.farT();
             info.w = ray.dir();
+            info.epsilon = DefaultEpsilon;
             data.primitive->intersectionInfo(data, info);
             return true;
         } else {

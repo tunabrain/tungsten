@@ -88,6 +88,14 @@ public:
         return true;
     }
 
+    bool contains(const TBox &box) const
+    {
+        for (int i = 0; i < TVec::size; i++)
+            if (box._max[i] < _min[i] || box._min[i] > _max[i])
+                return false;
+        return true;
+    }
+
     void intersect(const TBox &box)
     {
         _min = Tungsten::max(_min, box._min);

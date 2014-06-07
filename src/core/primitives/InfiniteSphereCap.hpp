@@ -163,11 +163,6 @@ public:
     {
     }
 
-    virtual float area() const
-    {
-        return 1e30f;
-    }
-
     virtual Primitive *clone()
     {
         return new InfiniteSphereCap(*this);

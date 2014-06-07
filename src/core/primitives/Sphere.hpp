@@ -227,11 +227,6 @@ public:
     {
     }
 
-    float area() const override
-    {
-        return _radius*_radius*FOUR_PI;
-    }
-
     virtual Primitive *clone()
     {
         return new Sphere(*this);

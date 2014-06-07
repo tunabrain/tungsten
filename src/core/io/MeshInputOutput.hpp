@@ -27,7 +27,12 @@ public:
         if (!stream.good())
             return;
 
+        uint64 numVerts, numTris;
+        FileUtils::streamRead(stream, numVerts);
+        verts.resize(numVerts);
         FileUtils::streamRead(stream, verts);
+        FileUtils::streamRead(stream, numTris);
+        tris.resize(numTris);
         FileUtils::streamRead(stream, tris);
     }
 
@@ -38,7 +43,9 @@ public:
         if (!stream.good())
             return;
 
+        FileUtils::streamWrite(stream, uint64(verts.size()));
         FileUtils::streamWrite(stream, verts);
+        FileUtils::streamWrite(stream, uint64(tris.size()));
         FileUtils::streamWrite(stream, tris);
     }
 };

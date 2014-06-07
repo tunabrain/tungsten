@@ -3,6 +3,7 @@
 
 #include "math/Ray.hpp"
 #include "math/Box.hpp"
+#include "math/Mat4f.hpp"
 
 #include <embree/common/ray.h>
 
@@ -21,6 +22,18 @@ inline Vec3f fromE(const embree::Vec3fa v)
 inline embree::BBox3f toEBox(const Box3f &b)
 {
     return embree::BBox3f(toE(b.min()), toE(b.max()));
+}
+
+inline embree::AffineSpace3f toEMat(const Mat4f &m)
+{
+    return embree::AffineSpace3f(
+        embree::LinearSpace3f(
+            embree::Vector3f(m[0], m[4], m[ 8]),
+            embree::Vector3f(m[1], m[5], m[ 9]),
+            embree::Vector3f(m[2], m[6], m[10])
+        ),
+        embree::Vector3f(m[3], m[7], m[11])
+    );
 }
 
 inline Box3f fromEBox(const embree::BBox3f &b)

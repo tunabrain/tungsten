@@ -30,7 +30,6 @@ namespace Tungsten
 
 class PathTraceIntegrator : public Integrator
 {
-    static constexpr float Epsilon = 5e-4f;
     static constexpr bool GeneralizedShadowRays = true;
 
     const TraceableScene *_scene;
@@ -80,7 +79,7 @@ class PathTraceIntegrator : public Integrator
             }
             ray.setPos(ray.hitpoint());
             initialFarT -= ray.farT();
-            ray.setNearT(Epsilon);
+            ray.setNearT(info.epsilon);
             ray.setFarT(initialFarT);
         } while(true);
         return Vec3f(0.0f);
@@ -114,7 +113,8 @@ class PathTraceIntegrator : public Integrator
                       const Bsdf &bsdf,
                       SurfaceScatterEvent &event,
                       const Medium *medium,
-                      int bounce)
+                      int bounce,
+                      float epsilon)
     {
         LightSample sample(event.sampler, event.info->p);
 
@@ -139,7 +139,7 @@ class PathTraceIntegrator : public Integrator
             return Vec3f(0.0f);
 
         Primitive::IntersectionTemporary data;
-        Vec3f e = attenuatedEmission(light, medium, sample.p, sample.d, sample.dist, data, bounce, Epsilon);
+        Vec3f e = attenuatedEmission(light, medium, sample.p, sample.d, sample.dist, data, bounce, epsilon);
         if (e == 0.0f)
             return Vec3f(0.0f);
 
@@ -156,7 +156,8 @@ class PathTraceIntegrator : public Integrator
                      const Bsdf &bsdf,
                      SurfaceScatterEvent &event,
                      const Medium *medium,
-                     int bounce)
+                     int bounce,
+                     float epsilon)
     {
         event.requestedLobe = BsdfLobes::AllButSpecular;
         if (!bsdf.sample(event))
@@ -177,7 +178,7 @@ class PathTraceIntegrator : public Integrator
         }
 
         Primitive::IntersectionTemporary data;
-        Vec3f e = attenuatedEmission(light, medium, event.info->p, wo, -1.0f, data, bounce, Epsilon);
+        Vec3f e = attenuatedEmission(light, medium, event.info->p, wo, -1.0f, data, bounce, epsilon);
 
         if (e == Vec3f(0.0f))
             return Vec3f(0.0f);
@@ -239,16 +240,17 @@ class PathTraceIntegrator : public Integrator
                        const Bsdf &bsdf,
                        SurfaceScatterEvent &event,
                        const Medium *medium,
-                       int bounce)
+                       int bounce,
+                       float epsilon)
     {
         Vec3f result(0.0f);
 
         if (bsdf.flags().isPureSpecular() || bsdf.flags().isForward())
             return Vec3f(0.0f);
 
-        result += lightSample(frame, light, bsdf, event, medium, bounce);
+        result += lightSample(frame, light, bsdf, event, medium, bounce, epsilon);
         if (!light.isDelta())
-            result += bsdfSample(frame, light, bsdf, event, medium, bounce);
+            result += bsdfSample(frame, light, bsdf, event, medium, bounce, epsilon);
 
         return result;
     }
@@ -329,13 +331,14 @@ class PathTraceIntegrator : public Integrator
                          const Bsdf &bsdf,
                          SurfaceScatterEvent &event,
                          const Medium *medium,
-                         int bounce)
+                         int bounce,
+                         float epsilon)
     {
         float weight;
         const Primitive *light = chooseLight(*event.sampler, event.info->p, weight);
         if (light == nullptr)
             return Vec3f(0.0f);
-        return sampleDirect(frame, *light, bsdf, event, medium, bounce)*weight;
+        return sampleDirect(frame, *light, bsdf, event, medium, bounce, epsilon)*weight;
     }
 
 public:
@@ -431,7 +434,7 @@ public:
                     emission += info.primitive->emission(data, info)*throughput;
 
                 if (bounce < _maxBounces - 1)
-                    emission += estimateDirect(frame, bsdf, event, medium, bounce + 1)*throughput;
+                    emission += estimateDirect(frame, bsdf, event, medium, bounce + 1, info.epsilon)*throughput;
             } else {
                 emission += info.primitive->emission(data, info)*throughput;
             }
@@ -457,10 +460,9 @@ public:
             else
                 newMedium = bsdf.extMedium().get();
         }
-        //if (newMedium != medium)
-            state.reset();
+        state.reset();
         medium = newMedium;
-        ray = Ray(ray.hitpoint(), wo, Epsilon);
+        ray = Ray(ray.hitpoint(), wo, info.epsilon);
         return true;
     }
 

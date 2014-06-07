@@ -357,7 +357,9 @@ public:
         if (_threadId == 0) {
             std::ofstream out1("../BVH/Coherent.rays", std::ios_base::out | std::ios_base::binary);
             std::ofstream out2("../BVH/Incoherent.rays", std::ios_base::out | std::ios_base::binary);
+            FileUtils::streamWrite(out1, uint64(_primaryRays.size()));
             FileUtils::streamWrite(out1, _primaryRays);
+            FileUtils::streamWrite(out2, uint64(_indirectRays.size()));
             FileUtils::streamWrite(out2, _indirectRays);
         }
     }

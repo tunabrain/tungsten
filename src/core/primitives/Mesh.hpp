@@ -288,11 +288,6 @@ public:
         _tfVerts.clear();
     }
 
-    float area() const override
-    {
-        return _totalArea;
-    }
-
     bool isSamplable() const override final
     {
         return _triSampler.operator bool();

@@ -74,6 +74,11 @@ Mat4f Mat4f::extractRotation() const
     );
 }
 
+Vec3f Mat4f::extractScaleVec() const
+{
+    return Vec3f(right().length(), up().length(), fwd().length());
+}
+
 Mat4f Mat4f::extractScale() const
 {
     return scale(Vec3f(right().length(), up().length(), fwd().length()));

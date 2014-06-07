@@ -64,6 +64,7 @@ public:
 
     Mat4f extractRotation() const;
     Mat4f extractTranslation() const;
+    Vec3f extractScaleVec() const;
     Mat4f extractScale() const;
     Mat4f stripRotation() const;
     Mat4f stripTranslation() const;

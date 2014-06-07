@@ -268,11 +268,6 @@ public:
     {
     }
 
-    float area() const override
-    {
-        return _r*_r*PI;
-    }
-
     virtual Primitive *clone()
     {
         return new Spotlight(*this);
