@@ -99,7 +99,7 @@ void dct2D(float *dst, float *tmp, const float *src, const float *dctTable, cons
         dst[i] *= scale;
 }
 
-static const int qMatrix[8][8] = {
+static const int jpegMatrix[8][8] = {
     {16, 11, 10, 16,  24,  40,  51,  61},
     {12, 12, 14, 19,  26,  58,  60,  55},
     {14, 13, 16, 24,  40,  57,  69,  56},
@@ -109,6 +109,17 @@ static const int qMatrix[8][8] = {
     {49, 64, 78, 87, 103, 121, 120, 101},
     {72, 92, 95, 98, 112, 100, 103,  99},
 };
+static int qMatrix[8][8];
+
+void computeQMatrix()
+{
+    for (int y = 0; y < 8; ++y) {
+        for (int x = 0; x < 8; ++x) {
+            //qMatrix[y][x] = 16;
+            qMatrix[y][x] = jpegMatrix[y][x];
+        }
+    }
+}
 
 static const int zigZag[8][8] = {
     { 0,  1,  5,  6, 14, 15, 27, 28},
@@ -248,8 +259,12 @@ int encodeBestDiff(uint8 *dst, uint8 *src, const int bx, const int by, const int
         blockPrediction(prediction, left, top, c, N, type);
         for (int y = 0; y < N; ++y)
             for (int x = 0; x < N; ++x)
-                dst[(by + y)*stride + bx + x] = 128 + srcBlock[y*N + x] - prediction[y*N + x];
+                dst[(by + y)*stride + bx + x] = clamp(128 + int(srcBlock[y*N + x]) - int(prediction[y*N + x]), 0, 255);
                 //dst[(by + y)*stride + bx + x] = std::abs(int(srcBlock[y*N + x]) - int(prediction[y*N + x]));
+    } else {
+        for (int y = 0; y < N; ++y)
+            for (int x = 0; x < N; ++x)
+                dst[(by + y)*stride + bx + x] = srcBlock[y*N + x];
     }
 
     return type;
@@ -276,7 +291,7 @@ void decodeDiff(uint8 *src, const int bx, const int by, const int N, const int s
     blockPrediction(prediction, left, top, c, N, type);
     for (int y = 0; y < N; ++y)
         for (int x = 0; x < N; ++x)
-            src[(by + y)*stride + bx + x] += prediction[y*N + x] - 128;
+            src[(by + y)*stride + bx + x] = clamp(int(src[(by + y)*stride + bx + x]) + int(prediction[y*N + x]) - 128, 0, 255);
 }
 
 uint8 *encodeImage(uint8 *src, int w, int h, int &bufSize)
@@ -290,16 +305,22 @@ uint8 *encodeImage(uint8 *src, int w, int h, int &bufSize)
     int blocksY = (h + 7)/8;
     int componentStride = (w*h)/64;
 
+    int predictorBytes = (blocksX*blocksY + 3)/4;
+    int srcBytes = w*h;
+    int totalSize = predictorBytes + srcBytes;
+    uint8 *srcBuf = new uint8[totalSize];
+    uint8 *dstBuf = new uint8[totalSize];
+    std::memset(srcBuf, 0, totalSize);
+
     uint8 *tmp = new uint8[w*h];
 
     int *predictors = new int[blocksX*blocksY];
 
-    for (int by = 0; by < h; by += 8)
-        for (int bx = 0; bx < w; bx += 8)
-            predictors[bx/8 + (by/8)*blocksX] = encodeBestDiff(tmp, src, bx, by, 8, w);
-
     for (int by = 0; by < h; by += 8) {
         for (int bx = 0; bx < w; bx += 8) {
+            int predictor = encodeBestDiff(tmp, src, bx, by, 8, w);
+            predictors[bx/8 + (by/8)*blocksX] = predictor;
+
             for (int y = 0; y < 8; ++y)
                 for (int x = 0; x < 8; ++x)
                     srcBlock[y][x] = int(tmp[(by + y)*w + (bx + x)]) - 128;
@@ -307,30 +328,34 @@ uint8 *encodeImage(uint8 *src, int w, int h, int &bufSize)
             dct2D(&dstBlock[0][0], &tmpBlock[0][0], &srcBlock[0][0], &dctTable[0][0], 8);
 
             int componentOffset = bx/8 + (by/8)*blocksX;
-            for (int y = 0; y < 8; ++y)
-                for (int x = 0; x < 8; ++x)
-                    src[zigZag[y][x]*componentStride + componentOffset] =
-                            clamp(int(std::round(dstBlock[y][x]/qMatrix[y][x])) + 128, 0, 255);
+            for (int y = 0; y < 8; ++y) {
+                for (int x = 0; x < 8; ++x) {
+                    int value = clamp(int(std::round(dstBlock[y][x]/qMatrix[y][x])), -128, 127);
+                    srcBuf[zigZag[y][x]*componentStride + componentOffset + predictorBytes] = value;
+                    dstBlock[y][x] = value*qMatrix[y][x];
+                }
+            }
+
+            dct2D(&srcBlock[0][0], &tmpBlock[0][0], &dstBlock[0][0], &idctTable[0][0], 8);
+
+            for (int y = 0; y < 8; ++y) {
+                for (int x = 0; x < 8; ++x) {
+                    src[(by + y)*w + (bx + x)] = clamp(int(std::round(srcBlock[y][x] + 128)), 0, 255);
+                }
+            }
+            if (bx + by > 0)
+                decodeDiff(src, bx, by, 8, w, predictor);
         }
     }
-
-    int predictorBytes = (blocksX*blocksY + 3)/4;
-    int srcBytes = w*h;
-    int totalSize = predictorBytes + srcBytes;
-    uint8 *srcBuf = new uint8[totalSize];
-    uint8 *dstBuf = new uint8[totalSize];
-
-    std::memset(srcBuf, 0, totalSize);
 
     for (int i = 1; i < blocksX*blocksY; ++i) {
         int byte = i/4;
         int bit = (i % 4)*2;
         srcBuf[byte] |= predictors[i] << bit;
     }
-    std::memcpy(srcBuf + predictorBytes, src, w*h);
 
     uLongf compressedSize = totalSize;
-    std::cout << compress(dstBuf, &compressedSize, srcBuf, totalSize) << std::endl;
+    std::cout << compress2(dstBuf, &compressedSize, srcBuf, totalSize, 9) << std::endl;
 
     std::cout << "Compressed size: " << compressedSize <<
             " Total compression ratio: " << (compressedSize*100.0f)/(w*h) << "%" << std::endl;
@@ -368,7 +393,7 @@ void decodeImage(uint8 *dst, const uint8 *src, const int bufSize, const int w, c
             for (int y = 0; y < 8; ++y) {
                 for (int x = 0; x < 8; ++x) {
                     uint8 srcByte = dstBuf[zigZag[y][x]*componentStride + componentOffset + predictorBytes];
-                    srcBlock[y][x] = (int(srcByte) - 128)*qMatrix[y][x];
+                    srcBlock[y][x] = int(int8(srcByte))*qMatrix[y][x];
                 }
             }
 
@@ -449,7 +474,7 @@ void saveGrayscale(const std::string &path, uint8 *src, int w, int h)
     delete[] tmp;
 }
 
-void testImage(const std::string &path)
+void testGrayscaleImage(const std::string &path)
 {
     int w, h, comp;
     uint8 *img = stbi_load(path.c_str(), &w, &h, &comp, 1);
@@ -486,6 +511,7 @@ int main()
 //  dctTest();
 //  idctTest();
 //  transformTest();
-    testImage("C:/Users/Tuna brain/Desktop/TestImages/hdr.png");
+    computeQMatrix();
+    testGrayscaleImage("C:/Users/Tuna brain/Desktop/TestImages/fireworks.png");
     return 0;
 }
