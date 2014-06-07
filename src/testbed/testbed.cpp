@@ -1,340 +1,491 @@
-#include "math/Vec.hpp"
 #include "math/MathUtil.hpp"
-#include "extern/tinyformat/tinyformat.hpp"
-#include "extern/lodepng/lodepng.h"
+#include "math/Angle.hpp"
+#include "io/FileUtils.hpp"
+#include "IntTypes.hpp"
 
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
+#include <extern/lodepng/lodepng.h>
+#include <extern/stbi/stb_image.h>
 #include <iostream>
-#include <vector>
+#include <cstring>
+#include <cmath>
+#include <zlib.h>
 
 using namespace Tungsten;
 
-std::vector<Vec2f> points;
-GLFWwindow *window;
-
-// http://www.answers.com/topic/b-spline
-template<typename T>
-inline T quadraticBSpline(T p0, T p1, T p2, float t)
+void dctTest()
 {
-    return (0.5f*p0 - p1 + 0.5f*p2)*t*t + (p1 - p0)*t + 0.5f*(p0 + p1);
-}
+    constexpr int N = 8;
 
-template<typename T>
-inline T quadraticBSplineDeriv(T p0, T p1, T p2, float t)
-{
-    return (p0 - 2.0f*p1 + p2)*t + (p1 - p0);
-}
+    uint8 result[N*N][N*N][3];
 
-inline Vec2f minMaxQuadratic(float p0, float p1, float p2)
-{
-    float xMin = (p0 + p1)*0.5f;
-    float xMax = (p1 + p2)*0.5f;
-    if (xMin > xMax)
-        std::swap(xMin, xMax);
-
-    float tFlat = (p0 - p1)/(p0 - 2.0f*p1 + p2);
-    if (tFlat > 0.0f && tFlat < 1.0f) {
-        float xFlat = quadraticBSpline(p0, p1, p2, tFlat);
-        xMin = min(xMin, xFlat);
-        xMax = max(xMax, xFlat);
-    }
-    return Vec2f(xMin, xMax);
-}
-
-bool pointOnSpline(const Vec4f &q0, const Vec4f &q1, const Vec4f &q2, float tMin, float tMax, float &t, Vec2f &uv)
-{
-    constexpr int MaxDepth = 10;
-
-    struct StackNode
-    {
-        Vec2f p0, p1;
-        float w0, w1;
-        float tMin, tSpan;
-        int depth;
-
-        void set(float tMin_, float tSpan_, Vec2f p0_, Vec2f p1_, float w0_, float w1_, int depth_)
-        {
-            p0 = p0_;
-            p1 = p1_;
-            w0 = w0_;
-            w1 = w1_;
-            tMin = tMin_;
-            tSpan = tSpan_;
-            depth = depth_;
+    for (int by = 0; by < N; ++by) {
+        for (int bx = 0; bx < N; ++bx) {
+            for (int y = 0; y < N; ++y) {
+                for (int x = 0; x < N; ++x) {
+                    float Xk = std::cos(PI/N*(x + 0.5f)*bx);
+                    float Yk = std::cos(PI/N*(y + 0.5f)*by);
+                    uint8 r = int((Xk*Yk*0.5f + 0.5f)*255.0f);
+                    uint8 *c = &result[by*N + y][bx*N + x][0];
+                    c[0] = c[1] = c[2] = r;
+                }
+            }
         }
+    }
+
+    lodepng_encode24_file("DCT.png", &result[0][0][0], N*N, N*N);
+}
+
+void idctTest()
+{
+    constexpr int N = 8;
+
+    uint8 result[N*N][N*N][3];
+
+    for (int by = 0; by < N; ++by) {
+        for (int bx = 0; bx < N; ++bx) {
+            for (int y = 0; y < N; ++y) {
+                for (int x = 0; x < N; ++x) {
+                    float Xk = std::cos(PI/N*(bx + 0.5f)*x);
+                    float Yk = std::cos(PI/N*(by + 0.5f)*y);
+                    uint8 r = int((Xk*Yk*0.5f + 0.5f)*255.0f);
+                    uint8 *c = &result[by*N + y][bx*N + x][0];
+                    c[0] = c[1] = c[2] = r;
+                }
+            }
+        }
+    }
+
+    lodepng_encode24_file("DCT-Inv.png", &result[0][0][0], N*N, N*N);
+}
+
+void computeDctTables(float *dct, float *idct, const int N)
+{
+    for (int bx = 0; bx < N; ++bx) {
+        for (int x = 0; x < N; ++x) {
+             dct[bx + x*N] = bx == 0 ? 1.0f/std::sqrt(2.0f) : std::cos(PI/N*(x + 0.5f)*bx);
+            idct[bx + x*N] =  x == 0 ? 1.0f/std::sqrt(2.0f) : std::cos(PI/N*(bx + 0.5f)*x);
+        }
+    }
+}
+
+void dctKernel1D(float *acc, const float *src, const float *dctTable, const int k, const int N)
+{
+    for (int i = 0; i < N; ++i)
+        acc[i] += dctTable[k*N + i]*src[k];
+}
+
+void dct1D(float *acc, const float *src, const float *dctTable, const int N)
+{
+    for (int k = 0; k < N; ++k)
+        dctKernel1D(acc, src, dctTable, k, N);
+}
+
+void dct2D(float *dst, float *tmp, const float *src, const float *dctTable, const int N)
+{
+    std::memset(tmp, 0, N*N*sizeof(float));
+    std::memset(dst, 0, N*N*sizeof(float));
+
+    for (int r = 0; r < N; ++r)
+        for (int k = 0; k < N; ++k)
+            for (int i = 0; i < N; ++i)
+                tmp[i*N + r] += dctTable[k*N + i]*src[r*N + k];
+    for (int r = 0; r < N; ++r)
+        for (int k = 0; k < N; ++k)
+            for (int i = 0; i < N; ++i)
+                dst[i*N + r] += dctTable[k*N + i]*tmp[r*N + k];
+
+    const float scale = 2.0f/N;
+    for (int i = 0; i < N*N; ++i)
+        dst[i] *= scale;
+}
+
+static const int qMatrix[8][8] = {
+    {16, 11, 10, 16,  24,  40,  51,  61},
+    {12, 12, 14, 19,  26,  58,  60,  55},
+    {14, 13, 16, 24,  40,  57,  69,  56},
+    {14, 17, 22, 29,  51,  87,  80,  62},
+    {18, 22, 37, 56,  68, 109, 103,  77},
+    {24, 35, 55, 64,  81, 104, 113,  92},
+    {49, 64, 78, 87, 103, 121, 120, 101},
+    {72, 92, 95, 98, 112, 100, 103,  99},
+};
+
+static const int zigZag[8][8] = {
+    { 0,  1,  5,  6, 14, 15, 27, 28},
+    { 2,  4,  7, 13, 16, 26, 29, 42},
+    { 3,  8, 12, 17, 25, 30, 41, 43},
+    { 9, 11, 18, 24, 31, 40, 44, 53},
+    {10, 19, 23, 32, 39, 45, 52, 54},
+    {20, 22, 33, 38, 46, 51, 55, 60},
+    {21, 34, 37, 47, 50, 56, 59, 61},
+    {35, 36, 48, 49, 57, 58, 62, 63},
+};
+
+void transformTest()
+{
+    float dst[8][8], result[8][8], tmp[8][8];
+    float dctTable[8][8], idctTable[8][8];
+
+    float src[8][8] = {
+        {52, 55, 61,  66,  70,  61, 64, 73},
+        {63, 59, 55,  90, 109,  85, 69, 72},
+        {62, 59, 68, 113, 144, 104, 66, 73},
+        {63, 58, 71, 122, 154, 106, 70, 69},
+        {67, 61, 68, 104, 126,  88, 68, 70},
+        {79, 65, 60,  70,  77,  68, 58, 75},
+        {85, 71, 64,  59,  55,  61, 65, 83},
+        {87, 79, 69,  68,  65,  76, 78, 94},
     };
 
-    Vec2f p0 = q0.xy(), p1 = q1.xy(), p2 = q2.xy();
-    Vec2f tFlat = (p0 - p1)/(p0 - 2.0f*p1 + p2);
-    float xFlat = quadraticBSpline(p0.x(), p1.x(), p2.x(), tFlat.x());
-    float yFlat = quadraticBSpline(p0.y(), p1.y(), p2.y(), tFlat.y());
+    for (int y = 0; y < 8; ++y)
+        for (int x = 0; x < 8; ++x)
+            src[y][x] -= 128;
 
-    StackNode stackBuf[MaxDepth];
-    const StackNode *top = &stackBuf[0];
-    StackNode *stack = &stackBuf[0];
+    computeDctTables(&dctTable[0][0], &idctTable[0][0], 8);
+    dct2D(&dst[0][0], &tmp[0][0], &src[0][0], &dctTable[0][0], 8);
 
-    StackNode cur{(p0 + p1)*0.5f, (p1 + p2)*0.5f, (q0.w() + q1.w())*0.5f, (q1.w() + q2.w())*0.5f, 0.0f, 1.0f, 0};
+    for (int y = 0; y < 8; ++y)
+        for (int x = 0; x < 8; ++x)
+            dst[y][x] = std::round(dst[y][x]/qMatrix[y][x])*qMatrix[y][x];
 
-    float closestDepth = tMax;
+    dct2D(&result[0][0], &tmp[0][0], &dst[0][0], &idctTable[0][0], 8);
 
-    while (true) {
-        Vec2f pMin = min(cur.p0, cur.p1);
-        Vec2f pMax = max(cur.p0, cur.p1);
-        if (tFlat.x() > cur.tMin && tFlat.x() < cur.tMin + cur.tSpan) {
-            pMin.x() = min(pMin.x(), xFlat);
-            pMax.x() = max(pMax.x(), xFlat);
+    for (int y = 0; y < 8; ++y) {
+        for (int x = 0; x < 8; ++x) {
+            std::cout << std::round(result[y][x] + 128) << " ";
+            //std::cout << dst[y][x] << " ";
         }
-        if (tFlat.y() > cur.tMin && tFlat.y() < cur.tMin + cur.tSpan) {
-            pMin.y() = min(pMin.y(), yFlat);
-            pMax.y() = max(pMax.y(), yFlat);
-        }
+        std::cout << std::endl;
+    }
+}
 
-        float testWidth = max(cur.w0, cur.w1);
-        if (pMin.x() <= testWidth && pMin.y() <= testWidth && pMax.x() >= -testWidth && pMax.y() >= -testWidth) {
-            if (cur.depth >= MaxDepth) {
-                Vec2f v = (cur.p1 - cur.p0);
-                float lengthSq = v.lengthSq();
-                float segmentT = -(cur.p0.dot(v))/lengthSq;
-                float distance;
-                float signedUnnormalized = cur.p0.x()*v.y() - cur.p0.y()*v.x();
-                if (segmentT <= 0.0f)
-                    distance = cur.p0.length();
-                else if (segmentT >= 1.0f)
-                    distance = cur.p1.length();
-                else
-                    distance = std::fabs(signedUnnormalized)/std::sqrt(lengthSq);
+#define PREDICT_H  0
+#define PREDICT_V  1
+#define PREDICT_DC 2
+#define PREDICT_TM 3
 
-                float newT = segmentT*cur.tSpan + cur.tMin;
-                float currentWidth = quadraticBSpline(q0.w(), q1.w(), q2.w(), newT);
-                float currentDepth = quadraticBSpline(q0.z(), q1.z(), q2.z(), newT);
-                if (currentDepth < tMax && currentDepth > tMin && distance < currentWidth && newT >= 0.0f && newT <= 1.0f) {
-                    float halfDistance = 0.5f*distance/currentWidth;
-                    uv = Vec2f(newT, signedUnnormalized < 0.0f ? 0.5f - halfDistance : halfDistance + 0.5f);
-                    t = currentDepth;
-                    closestDepth = currentDepth;
-                }
-            } else {
-                float newSpan = cur.tSpan*0.5f;
-                float splitT = cur.tMin + newSpan;
-                Vec4f qSplit = quadraticBSpline(q0, q1, q2, splitT);
-                (*stack++).set(cur.tMin, newSpan, cur.p0, qSplit.xy(), cur.w0, qSplit.w(), cur.depth + 1);
-                cur.set(splitT, newSpan, qSplit.xy(), cur.p1, qSplit.w(), cur.w1, cur.depth + 1);
-                continue;
-            }
-        }
-        if (stack == top)
-            break;
-        cur = *--stack;
+void blockPrediction(uint8 *dst, const uint8 *left, const uint8 *top, const uint8 c, const int N, const int type)
+{
+    switch (type) {
+    case PREDICT_H:
+        for (int y = 0; y < N; ++y)
+            for (int x = 0; x < N; ++x)
+                dst[y*N + x] = left[y];
+        break;
+    case PREDICT_V:
+        for (int y = 0; y < N; ++y)
+            for (int x = 0; x < N; ++x)
+                dst[y*N + x] = top[x];
+        break;
+    case PREDICT_DC: {
+        int dc = 0;
+        for (int i = 0; i < N; ++i)
+            dc += int(left[i]) + int(top[i]);
+        dc /= 2*N;
+        for (int i = 0; i < N*N; ++i)
+            dst[i] = dc;
+        break;
+    }
+    case PREDICT_TM:
+        for (int y = 0; y < N; ++y)
+            for (int x = 0; x < N; ++x)
+                dst[y*N + x] = clamp(int(left[y]) + int(top[x]) - int(c), 0, 255);
+        break;
+    }
+}
+
+int blockError(const uint8 *a, const uint8 *b, const int N)
+{
+    int error = 0;
+    for (int i = 0; i < N*N; ++i)
+        error += std::abs(int(a[i]) - int(b[i]));
+    return error;
+}
+
+void checkPrediction(uint8 *prediction, const uint8 *src, const uint8 *left,
+        const uint8 *top, const uint8 c, const int N, const int type, int &bestError, int &bestType)
+{
+    blockPrediction(prediction, left, top, c, N, type);
+    int predError = blockError(src, prediction, N);
+    if (predError < bestError) {
+        bestType = type;
+        bestError = predError;
+    }
+}
+
+int encodeBestDiff(uint8 *dst, uint8 *src, const int bx, const int by, const int N, const int stride)
+{
+    uint8 srcBlock[N*N];
+    uint8 prediction[N*N];
+    uint8 left[N], top[N];
+    uint8 c = 0;
+
+    int type = -1;
+    int error = N*N*256;
+
+    for (int y = 0; y < N; ++y)
+        for (int x = 0; x < N; ++x)
+            srcBlock[y*N + x] = src[(by + y)*stride + bx + x];
+
+    if (bx) {
+        for (int y = 0; y < N; ++y)
+            left[y] = src[(by + y)*stride + bx - 1];
+        checkPrediction(prediction, srcBlock, left, top, c, N, PREDICT_H, error, type);
+    }
+    if (by) {
+        for (int x = 0; x < N; ++x)
+            top[x] = src[(by - 1)*stride + bx + x];
+        checkPrediction(prediction, srcBlock, left, top, c, N, PREDICT_V, error, type);
+    }
+    if (bx && by) {
+        c = src[(by - 1)*stride + bx - 1];
+
+        checkPrediction(prediction, srcBlock, left, top, c, N, PREDICT_DC, error, type);
+        checkPrediction(prediction, srcBlock, left, top, c, N, PREDICT_TM, error, type);
     }
 
-    return closestDepth < tMax;
+    if (type != -1) {
+        blockPrediction(prediction, left, top, c, N, type);
+        for (int y = 0; y < N; ++y)
+            for (int x = 0; x < N; ++x)
+                dst[(by + y)*stride + bx + x] = 128 + srcBlock[y*N + x] - prediction[y*N + x];
+                //dst[(by + y)*stride + bx + x] = std::abs(int(srcBlock[y*N + x]) - int(prediction[y*N + x]));
+    }
+
+    return type;
 }
 
-float cubicBSpline(float p0, float p1, float p2, float p3, float t)
+void decodeDiff(uint8 *src, const int bx, const int by, const int N, const int stride, const int type)
 {
-    return (1.0f/6.0f)*(
-        (     -p0 + 3.0f*p1 - 3.0f*p2 + p3)*t*t*t +
-        ( 3.0f*p0 - 6.0f*p1 + 3.0f*p2     )*t*t +
-        (-3.0f*p0           + 3.0f*p2     )*t +
-        (      p0 + 4.0f*p1 +      p2     )
-    );
-}
-
-void render()
-{
-    const int NumSteps = 100;
-    int count = points.size();
-
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    if (points.size() < 2)
+    if (type == -1)
         return;
 
-//  glBegin(GL_LINE_STRIP);
-//  glColor3f(1.0, 0.0, 0.0);
-//  for (const Vec2f &p : points)
-//      glVertex2f(p.x(), p.y());
-//  glEnd();
-//
-//
+    uint8 left[N], top[N];
+    uint8 c = 0;
 
-    double cx, cy;
-    glfwGetCursorPos(window, &cx, &cy);
-    float x = cx, y = cy;
+    if (bx)
+        for (int y = 0; y < N; ++y)
+            left[y] = src[(by + y)*stride + bx - 1];
+    if (by)
+        for (int x = 0; x < N; ++x)
+            top[x] = src[(by - 1)*stride + bx + x];
+    if (bx && by)
+        c = src[(by - 1)*stride + bx - 1];
 
-    if (glfwGetKey(window, GLFW_KEY_ENTER)) {
-        static uint8 buf[1280*720*3];
+    uint8 prediction[N*N];
+    blockPrediction(prediction, left, top, c, N, type);
+    for (int y = 0; y < N; ++y)
+        for (int x = 0; x < N; ++x)
+            src[(by + y)*stride + bx + x] += prediction[y*N + x] - 128;
+}
 
-        const float width = 10.0f;
+uint8 *encodeImage(uint8 *src, int w, int h, int &bufSize)
+{
+    float srcBlock[8][8];
+    float tmpBlock[8][8], dstBlock[8][8];
+    float dctTable[8][8], idctTable[8][8];
+    computeDctTables(&dctTable[0][0], &idctTable[0][0], 8);
 
-        for (int y = 0; y < 720; ++y) {
-            for (int x = 0; x < 1280; ++x) {
-                for (int i = 0; i < count; ++i) {
-                    float w0 = (width*max(i - 1, 0))/count;
-                    float w1 = (width*i)/count;
-                    float w2 = (width*min(i + 1, count - 1))/count;
+    int blocksX = (w + 7)/8;
+    int blocksY = (h + 7)/8;
+    int componentStride = (w*h)/64;
 
-                    float z0 = -0.5f;
-                    float z1 = 0.5f;
-                    float z2 = 1.5f;
+    uint8 *tmp = new uint8[w*h];
 
-                    Vec2f p0 = points[max(i - 1, 0)];
-                    Vec2f p1 = points[max(i, 0)];
-                    Vec2f p2 = points[min(i + 1, count - 1)];
+    int *predictors = new int[blocksX*blocksY];
 
-                    Vec4f q0(p0.x() - x, p0.y() - y, z0, w0);
-                    Vec4f q1(p1.x() - x, p1.y() - y, z1, w1);
-                    Vec4f q2(p2.x() - x, p2.y() - y, z2, w2);
+    for (int by = 0; by < h; by += 8)
+        for (int bx = 0; bx < w; bx += 8)
+            predictors[bx/8 + (by/8)*blocksX] = encodeBestDiff(tmp, src, bx, by, 8, w);
 
-                    int idx = x + y*1280;
+    for (int by = 0; by < h; by += 8) {
+        for (int bx = 0; bx < w; bx += 8) {
+            for (int y = 0; y < 8; ++y)
+                for (int x = 0; x < 8; ++x)
+                    srcBlock[y][x] = int(tmp[(by + y)*w + (bx + x)]) - 128;
 
-                    Vec2f uv;
-                    float depth;
-                    if (pointOnSpline(q0, q1, q2, -1.0f, 5.0f, depth, uv)) {
-                        uint8 d = clamp(int(depth*255.0f), 0, 255);
-                        uint8 r = clamp(int(uv.x()*255.0f), 0, 255)*0;
-                        uint8 g = clamp(int(uv.y()*255.0f), 0, 255)*0;
-                        buf[idx*3 + 0] = d;
-                        buf[idx*3 + 1] = d;
-                        buf[idx*3 + 2] = d;
-                    }
-                }
-            }
+            dct2D(&dstBlock[0][0], &tmpBlock[0][0], &srcBlock[0][0], &dctTable[0][0], 8);
+
+            int componentOffset = bx/8 + (by/8)*blocksX;
+            for (int y = 0; y < 8; ++y)
+                for (int x = 0; x < 8; ++x)
+                    src[zigZag[y][x]*componentStride + componentOffset] =
+                            clamp(int(std::round(dstBlock[y][x]/qMatrix[y][x])) + 128, 0, 255);
         }
-
-        lodepng_encode24_file("Traced.png", buf, 1280, 720);
     }
 
+    int predictorBytes = (blocksX*blocksY + 3)/4;
+    int srcBytes = w*h;
+    int totalSize = predictorBytes + srcBytes;
+    uint8 *srcBuf = new uint8[totalSize];
+    uint8 *dstBuf = new uint8[totalSize];
 
+    std::memset(srcBuf, 0, totalSize);
 
+    for (int i = 1; i < blocksX*blocksY; ++i) {
+        int byte = i/4;
+        int bit = (i % 4)*2;
+        srcBuf[byte] |= predictors[i] << bit;
+    }
+    std::memcpy(srcBuf + predictorBytes, src, w*h);
 
-    if (glfwGetKey(window, GLFW_KEY_BACKSPACE))
-        points.clear();
+    uLongf compressedSize = totalSize;
+    std::cout << compress(dstBuf, &compressedSize, srcBuf, totalSize) << std::endl;
 
-    if (glfwGetKey(window, GLFW_KEY_SPACE)) {
-        glBegin(GL_LINE_STRIP);
-        glColor3f(1.0, 1.0, 1.0);
+    std::cout << "Compressed size: " << compressedSize <<
+            " Total compression ratio: " << (compressedSize*100.0f)/(w*h) << "%" << std::endl;
 
-        for (int i = -1; i < count; ++i) {
-            for (int j = 0; j < NumSteps; ++j) {
-                float t = float(j)/NumSteps;
+    delete[] tmp;
+    delete[] predictors;
+    delete[] srcBuf;
 
-                float x = cubicBSpline(points[max(i - 1, 0)].x(), points[max(i, 0)].x(), points[min(i + 1, count - 1)].x(), points[min(i + 2, count - 1)].x(), t);
-                float y = cubicBSpline(points[max(i - 1, 0)].y(), points[max(i, 0)].y(), points[min(i + 1, count - 1)].y(), points[min(i + 2, count - 1)].y(), t);
+    bufSize = compressedSize;
+    return dstBuf;
+}
 
-                glVertex2f(x, y);
+void decodeImage(uint8 *dst, const uint8 *src, const int bufSize, const int w, const int h)
+{
+    float srcBlock[8][8];
+    float tmpBlock[8][8], dstBlock[8][8];
+    float dctTable[8][8], idctTable[8][8];
+    computeDctTables(&dctTable[0][0], &idctTable[0][0], 8);
+
+    int blocksX = (w + 7)/8;
+    int blocksY = (h + 7)/8;
+    int componentStride = (w*h)/64;
+
+    int predictorBytes = (blocksX*blocksY + 3)/4;
+    int srcBytes = w*h;
+    int totalSize = predictorBytes + srcBytes;
+    uint8 *dstBuf = new uint8[totalSize];
+
+    uLongf uncomprSize = totalSize;
+    std::cout << uncompress(dstBuf, &uncomprSize, src, bufSize) << std::endl;
+
+    for (int by = 0; by < h; by += 8) {
+        for (int bx = 0; bx < w; bx += 8) {
+            int componentOffset = bx/8 + (by/8)*blocksX;
+            for (int y = 0; y < 8; ++y) {
+                for (int x = 0; x < 8; ++x) {
+                    uint8 srcByte = dstBuf[zigZag[y][x]*componentStride + componentOffset + predictorBytes];
+                    srcBlock[y][x] = (int(srcByte) - 128)*qMatrix[y][x];
+                }
             }
+
+            dct2D(&dstBlock[0][0], &tmpBlock[0][0], &srcBlock[0][0], &idctTable[0][0], 8);
+
+            for (int y = 0; y < 8; ++y)
+                for (int x = 0; x < 8; ++x)
+                    dst[(by + y)*w + (bx + x)] = clamp(int(std::round(dstBlock[y][x] + 128)), 0, 255);
+
+            int blockIndex = bx/8 + (by/8)*blocksX;
+            int predictorByte = blockIndex/4;
+            int predictorBit = (blockIndex % 4)*2;
+            int predictor = (dstBuf[predictorByte] >> predictorBit) & 3;
+            if (blockIndex == 0)
+                predictor = -1;
+
+            decodeDiff(dst, bx, by, 8, w, predictor);
         }
-        glEnd();
-    } else {
-        const float width = 10.0f;
+    }
 
-        for (int i = 0; i < count; ++i) {
-            float w0 = (width*max(i - 1, 0))/count;
-            float w1 = (width*i)/count;
-            float w2 = (width*min(i + 1, count - 1))/count;
+    delete[] dstBuf;
+}
 
-            float z0 = 0.0f;
-            float z1 = 1.0f;
-            float z2 = 2.0f;
+void handleImage(uint8 *dst, uint8 *src, int w, int h, bool inverse)
+{
+    float srcBlock[8][8];
+    float tmpBlock[8][8], dstBlock[8][8];
 
-            Vec2f p0 = points[max(i - 1, 0)];
-            Vec2f p1 = points[max(i, 0)];
-            Vec2f p2 = points[min(i + 1, count - 1)];
+    float dctTable[8][8], idctTable[8][8];
+    computeDctTables(&dctTable[0][0], &idctTable[0][0], 8);
 
-            Vec4f q0(p0.x() - x, p0.y() - y, z0, w0);
-            Vec4f q1(p1.x() - x, p1.y() - y, z1, w1);
-            Vec4f q2(p2.x() - x, p2.y() - y, z2, w2);
+    int predictors[4] = {0};
 
-            Vec2f minMaxX = minMaxQuadratic(p0.x(), p1.x(), p2.x());
-            Vec2f minMaxY = minMaxQuadratic(p0.y(), p1.y(), p2.y());
+    for (int by = 0; by < h; by += 8)
+        for (int bx = 0; bx < w; bx += 8)
+            predictors[encodeBestDiff(dst, src, bx, by, 8, w)]++;
+    std::cout
+        << "PREDICT_H: "  << predictors[0] << std::endl
+        << "PREDICT_V: "  << predictors[1] << std::endl
+        << "PREDICT_DC: " << predictors[2] << std::endl
+        << "PREDICT_TM: " << predictors[3] << std::endl;
+    return;
 
-            glBegin(GL_LINE_LOOP);
-            glColor3f(1.0, 1.0, 1.0);
-            glVertex2f(minMaxX.x(), minMaxY.x());
-            glVertex2f(minMaxX.x(), minMaxY.y());
-            glVertex2f(minMaxX.y(), minMaxY.y());
-            glVertex2f(minMaxX.y(), minMaxY.x());
-            glEnd();
+    for (int by = 0; by < h; by += 8) {
+        for (int bx = 0; bx < w; bx += 8) {
+            for (int y = 0; y < 8; ++y)
+                for (int x = 0; x < 8; ++x)
+                    srcBlock[y][x] = int(src[(by + y)*w + (bx + x)]) - 128;
 
-            glBegin(GL_TRIANGLE_STRIP);
-            Vec2f uv;
-            float depth;
-            if (pointOnSpline(q0, q1, q2, -1.0f, 5.0f, depth, uv))
-                glColor3f(1.0, 1.0, 1.0);
-            else
-                glColor3f(0.0, 1.0, 0.0);
-            for (int j = 0; j <= NumSteps; ++j) {
-                float t = float(j)/NumSteps;
-                Vec2f d = quadraticBSplineDeriv(p0, p1, p2, t).normalized()*quadraticBSpline(w0, w1, w2, t);
-                Vec2f p = quadraticBSpline(p0, p1, p2, t);
-                glVertex2f(p.x() - d.y(), p.y() + d.x());
-                glVertex2f(p.x() + d.y(), p.y() - d.x());
+            if (inverse) {
+                for (int y = 0; y < 8; ++y)
+                    for (int x = 0; x < 8; ++x)
+                        srcBlock[y][x] = srcBlock[y][x]*qMatrix[y][x];
+                dct2D(&dstBlock[0][0], &tmpBlock[0][0], &srcBlock[0][0], &idctTable[0][0], 8);
+            } else {
+                dct2D(&dstBlock[0][0], &tmpBlock[0][0], &srcBlock[0][0], &dctTable[0][0], 8);
+
+                for (int y = 0; y < 8; ++y)
+                    for (int x = 0; x < 8; ++x)
+                        dstBlock[y][x] = std::round(dstBlock[y][x]/qMatrix[y][x]);
             }
-            glEnd();
 
-            //if (i > 0 && i < count - 1) {
-//              glColor3f(1.0, 0.0, 0.0);
-//              glBegin(GL_LINES);
-//              Vec2f uv;
-//              bool result = pointOnSpline(p0, p1, p2, Vec2f(float(x), float(y)), width, uv);
-//              glEnd();
-//
-//              if (result) {
-//                  Vec2f p = quadraticBSpline(p0, p1, p2, uv.x());
-//                  glPointSize(5.0f);
-//                  glBegin(GL_POINTS);
-//                  glVertex2f(p.x(), p.y());
-//                  glEnd();
-//              }
-            //}
+            for (int y = 0; y < 8; ++y)
+                for (int x = 0; x < 8; ++x)
+                    src[(by + y)*w + (bx + x)] = clamp(int(std::round(dstBlock[y][x] + 128)), 0, 255);
         }
     }
 }
 
-int main(void)
+void saveGrayscale(const std::string &path, uint8 *src, int w, int h)
 {
-    /* Initialize the library */
-    if (!glfwInit())
-        return -1;
+    uint8 *tmp = new uint8[w*h*3];
+    for (int i = 0; i < w*h; ++i)
+        tmp[i*3 + 0] = tmp[i*3 + 1] = tmp[i*3 + 2] = src[i];
 
-    glfwWindowHint(GLFW_SAMPLES, 16);
-    /* Create a windowed mode window and its OpenGL context */
-    window = glfwCreateWindow(1280, 720, "", NULL, NULL);
-    if (!window)
-    {
-        glfwTerminate();
-        return -1;
-    }
+    lodepng_encode24_file(path.c_str(), tmp, w, h);
 
+    delete[] tmp;
+}
 
-    /* Make the window's context current */
-    glfwMakeContextCurrent(window);
+void testImage(const std::string &path)
+{
+    int w, h, comp;
+    uint8 *img = stbi_load(path.c_str(), &w, &h, &comp, 1);
 
-    glMatrixMode(GL_PROJECTION);
-    gluOrtho2D(0.0f, 1280.0f, 720.0f, 0.0f);
+    if (img) {
+        if (h % 8 || w % 8) {
+            std::cout << "Warning: image size " << w << "x" << h << " not divisible by 8" << std::endl;
 
-    glfwSetMouseButtonCallback(window, [](GLFWwindow *window, int button, int action, int /*mods*/) {
-        if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-            double x, y;
-            glfwGetCursorPos(window, &x, &y);
-            points.emplace_back(float(x), float(y));
+            int newH = (h & ~7) + 8;
+            int newW = (w & ~7) + 8;
+
+            uint8 *newImg = new uint8[newW*newH];
+            std::memset(newImg, 0, newW*newH);
+            for (int y = 0; y < h; ++y)
+                for (int x = 0; x < w; ++x)
+                    newImg[x + y*newW] = img[x + y*w];
+            img = newImg;
+            w = newW;
+            h = newH;
         }
-    });
 
-    /* Loop until the user closes the window */
-    while (!glfwWindowShouldClose(window))
-    {
-        render();
+        std::string encodedImg = FileUtils::stripExt(path) + "-encoded.png";
+        std::string decodedImg = FileUtils::stripExt(path) + "-decoded.png";
 
-        /* Swap front and back buffers */
-        glfwSwapBuffers(window);
-
-        /* Poll for and process events */
-        glfwPollEvents();
+        int bufSize;
+        uint8 *compressed = encodeImage(img, w, h, bufSize);
+        decodeImage(img, compressed, bufSize, w, h);
+        saveGrayscale(decodedImg, img, w, h);
     }
+}
 
-    glfwTerminate();
+int main()
+{
+//  dctTest();
+//  idctTest();
+//  transformTest();
+    testImage("C:/Users/Tuna brain/Desktop/TestImages/hdr.png");
     return 0;
 }
