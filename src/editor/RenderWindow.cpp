@@ -77,8 +77,10 @@ void RenderWindow::mousePressEvent(QMouseEvent *eventMove)
 
 void RenderWindow::wheelEvent(QWheelEvent *wheelEvent)
 {
-    for (int i = 0; i < std::abs(wheelEvent->delta()); ++i)
-        wheelEvent->delta() < 0 ? zoomOut() : zoomIn();
+    if (wheelEvent->delta() < 0)
+        zoomOut();
+    else
+        zoomIn();
 }
 
 void RenderWindow::sceneChanged()
@@ -235,7 +237,7 @@ void RenderWindow::zoomIn()
 
 void RenderWindow::zoomOut()
 {
-    _zoom = clamp(_zoom*0.75f, 0.05f, 20.0f);
+    _zoom = clamp(_zoom/1.25f, 0.05f, 20.0f);
     update();
 }
 

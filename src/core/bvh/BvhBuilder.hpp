@@ -10,6 +10,7 @@
 #include "Timer.hpp"
 
 #include <algorithm>
+#include <future>
 
 namespace Tungsten {
 
@@ -80,6 +81,7 @@ public:
 template<uint32 BranchFactor>
 class BvhBuilder
 {
+    static constexpr int ParallelThreshold = 1000000;
     static constexpr float IntersectionCost = 1.0f;
     static constexpr float TraversalCost = 1.0f;
 
@@ -146,6 +148,12 @@ public:
         {
             return _id;
         }
+    };
+
+    struct BuildResult
+    {
+        uint32 nodeCount;
+        uint32 depth;
     };
 
     BvhBuilder()
@@ -221,10 +229,9 @@ public:
             sort(start, end, split.dim, prims);
     }
 
-    void recursiveBuild(Node &dst, uint32 start, uint32 end, uint32 depth, std::vector<Primitive> &prims, const Box3f &box)
+    BuildResult recursiveBuild(Node &dst, uint32 start, uint32 end, std::vector<Primitive> &prims, const Box3f &box)
     {
-        _numNodes++;
-        _depth = max(_depth, depth);
+        BuildResult result{1, 1};
 
         dst.bbox() = box;
         uint32 numPrims = end - start + 1;
@@ -232,7 +239,7 @@ public:
         if (numPrims == 1) {
             dst.setId(prims[start].id());
         } else if (numPrims <= BranchFactor) {
-            _numNodes += end - start + 1;
+            result.nodeCount += numPrims;
             for (uint32 i = start; i <= end; ++i)
                 dst.setChild(i - start, new Node(prims[i].box(), prims[i].id()));
         } else {
@@ -257,9 +264,36 @@ public:
 
             for (unsigned i = 0; i < child; ++i) {
                 dst.setChild(i, new Node());
-                recursiveBuild(*dst.child(i), starts[i], ends[i], depth + 1, prims, boxes[i]);
+                BuildResult recursiveResult = recursiveBuild(*dst.child(i), starts[i], ends[i], prims, boxes[i]);
+                result.nodeCount += recursiveResult.nodeCount;
+                result.depth = max(result.depth, recursiveResult.depth + 1);
             }
+
+//            std::array<std::future<BuildResult>, BranchFactor> futures;
+//
+//            int asyncIndex = child - 1, lazyIndex = 0;
+//            for (unsigned i = 0; i < child; ++i) {
+//                dst.setChild(i, new Node());
+//                int index;
+//                std::launch flags;
+//                if (!(i == child - 1 && lazyIndex == 0) && ends[i] - starts[i] > ParallelThreshold) {
+//                  index = asyncIndex--;
+//                  flags = std::launch::async;
+//                } else {
+//                  index = lazyIndex++;
+//                  flags = std::launch::deferred;
+//                }
+//              futures[index] = std::async(flags, &BvhBuilder<BranchFactor>::recursiveBuild,
+//                      this, std::ref(*dst.child(i)), starts[i], ends[i], std::ref(prims), std::cref(boxes[i]));
+//            }
+//            for (unsigned i = 0; i < child; ++i) {
+//              BuildResult recursiveResult = futures[i].get();
+//              result.nodeCount += recursiveResult.nodeCount;
+//              result.depth = max(result.depth, recursiveResult.depth + 1);
+//            }
         }
+
+        return result;
     }
 
     void build(std::vector<Primitive> prims)
@@ -271,7 +305,10 @@ public:
         for (const Primitive &p : prims)
             bounds.grow(p.box());
 
-        recursiveBuild(*_root, 0, prims.size() - 1, 0, prims, bounds);
+        BuildResult result = recursiveBuild(*_root, 0, prims.size() - 1, prims, bounds);
+        _numNodes = result.nodeCount;
+        _depth = result.depth;
+
 #ifndef NDEBUG
         timer.bench("Recursive build finished");
 

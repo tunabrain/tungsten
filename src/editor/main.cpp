@@ -8,7 +8,7 @@
 
 using namespace Tungsten;
 
-int main(int argc, char **argv)
+int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
 
@@ -21,6 +21,9 @@ int main(int argc, char **argv)
     mainWindow.setGeometry(windowSize);
 
     mainWindow.show();
+
+    if (argc > 1)
+        mainWindow.openScene(QString(argv[1]));
 
     embree::rtcInit();
     //embree::rtcSetVerbose(1);

@@ -22,6 +22,7 @@ class Curves : public Primitive
     };
 
     std::string _path;
+    std::string _dir;
 
     uint32 _curveCount;
     uint32 _nodeCount;

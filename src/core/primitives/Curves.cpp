@@ -199,10 +199,10 @@ void Curves::loadCurves()
         std::vector<uint16> segmentLength(_curveCount);
         FileUtils::streamRead(in, segmentLength);
         for (size_t i = 0; i < _curveCount; ++i)
-            _curveEnds[i] = segmentLength[i] + 1 + (i > 0 ? _curveEnds[i - 1] : 0);
+            _curveEnds[i] = uint32(segmentLength[i]) + 1 + (i > 0 ? _curveEnds[i - 1] : 0);
     } else {
         for (size_t i = 0; i < _curveCount; ++i)
-            _curveEnds[i] = (i + 1)*defaultSegments;
+            _curveEnds[i] = (i + 1)*(defaultSegments + 1);
     }
 
     ASSERT(hasPoints,  "Error while loading curves: "
@@ -247,6 +247,7 @@ void Curves::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     Primitive::fromJson(v, scene);
     _path = JsonUtils::as<std::string>(v, "file");
+    _dir = FileUtils::getCurrentDir();
 
     loadCurves();
 }
@@ -282,6 +283,7 @@ bool Curves::intersect(Ray &ray, IntersectionTemporary &data) const
 
         if (pointOnSpline(q0, q1, q2, ray.nearT(), ray.farT(), isect.t, isect.uv, isect.w)) {
             ray.setFarT(isect.t);
+            isect.curveP0 = id - 2;
             didIntersect = true;
         }
     });
@@ -335,10 +337,13 @@ void Curves::buildProxy()
 void Curves::intersectionInfo(const IntersectionTemporary &data, IntersectionInfo &info) const
 {
     const CurveIntersection &isect = *data.as<CurveIntersection>();
-    info.Ng = info.Ns = -info.w;
+    uint32 p0 = isect.curveP0;
+    Vec3f tangent = quadraticBSplineDeriv(_nodeData[p0].xyz(), _nodeData[p0 + 1].xyz(), _nodeData[p0 + 2].xyz(), isect.uv.x()).normalized();
+    info.Ng = info.Ns = tangent;
+//  info.Ng = info.Ns = (-info.w - tangent*tangent.dot(-info.w)).normalized();
     info.uv = isect.uv;
     info.primitive = this;
-    info.epsilon = 2.5f*isect.w;
+    info.epsilon = 10.0f*isect.w;
 }
 
 void Curves::prepareForRender()
@@ -384,7 +389,10 @@ void Curves::prepareForRender()
 void Curves::cleanupAfterRender()
 {
     _bvh.reset();
+    std::string dir = FileUtils::getCurrentDir();
+    FileUtils::changeCurrentDir(_dir);
     loadCurves();
+    FileUtils::changeCurrentDir(dir);
 }
 
 }
