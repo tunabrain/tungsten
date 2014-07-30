@@ -2,6 +2,7 @@
 #define FRESNEL_HPP_
 
 #include "math/MathUtil.hpp"
+#include "math/Angle.hpp"
 
 #include <cmath>
 
@@ -30,30 +31,28 @@ static inline Vec3f thinFilmReflectanceInterference(float eta, float cosThetaI, 
 {
     const Vec3f invLambdas = 1.0f/Vec3f(650.0f, 510.0f, 475.0f);
 
-    float sinThetaTSq = eta*eta*(1.0f - cosThetaI*cosThetaI);
-    if (sinThetaTSq > 1.0f) {
-        R = 1.0f;
-        cosThetaT = 0.0f;
-        return Vec3f(1.0f);
-    }
-    cosThetaT = std::sqrt(max(1.0f - sinThetaTSq, 0.0f));
+    float cosThetaISq = cosThetaI*cosThetaI;
+    float sinThetaISq = 1.0f - cosThetaISq;
+    float invEta = 1.0f/eta;
 
-    float Rs = sqr((eta*cosThetaI - cosThetaT)/(eta*cosThetaI + cosThetaT));
-    float Rp = sqr((eta*cosThetaT - cosThetaI)/(eta*cosThetaT + cosThetaI));
-    float Ts = 1.0f - Rs;
-    float Tp = 1.0f - Rp;
+    float sinThetaTSq = eta*eta*sinThetaISq;
+    if (sinThetaTSq > 1.0f)
+        return Vec3f(1.0f);
+    cosThetaT = std::sqrt(1.0f - sinThetaTSq);
+
+    float Ts = 4.0f*eta*cosThetaI*cosThetaT/sqr(eta*cosThetaI + cosThetaT);
+    float Tp = 4.0f*eta*cosThetaI*cosThetaT/sqr(eta*cosThetaT + cosThetaI);
+
+    float Rs = 1.0f - Ts;
+    float Rp = 1.0f - Tp;
 
     R = 1.0f - ((1.0f - Rs)/(1.0f + Rs) + (1.0f - Rp)/(1.0f + Rp))*0.5f;
 
-    float alphaS = Rs*Rs;
-    float alphaP = Rp*Rp;
-    float betaS = Ts*Ts;
-    float betaP = Tp*Tp;
-    Vec3f phi = (thickness*cosThetaT*FOUR_PI/eta)*invLambdas;
+    Vec3f phi = (thickness*cosThetaT*FOUR_PI*invEta)*invLambdas;
     Vec3f cosPhi(std::cos(phi.x()), std::cos(phi.y()), std::cos(phi.z()));
 
-    Vec3f tS = std::sqrt(max((betaS*betaS)/((alphaS*alphaS + 1.0f) - 2.0f*alphaS*cosPhi), Vec3f(0.0f)));
-    Vec3f tP = std::sqrt(max((betaP*betaP)/((alphaP*alphaP + 1.0f) - 2.0f*alphaP*cosPhi), Vec3f(0.0f)));
+    Vec3f tS = sqr(Ts)/((sqr(Rs) + 1.0f) - 2.0f*Rs*cosPhi);
+    Vec3f tP = sqr(Tp)/((sqr(Rp) + 1.0f) - 2.0f*Rp*cosPhi);
 
     return 1.0f - (tS + tP)*0.5f;
 }

@@ -31,7 +31,7 @@ class ThinSheetBsdf : public Bsdf
 public:
     ThinSheetBsdf()
     : _ior(1.5f),
-      _thickness(std::make_shared<ConstantTextureA>(300.0f)),
+      _thickness(std::make_shared<ConstantTextureA>(0.5f)),
       _sigmaA(0.0f)
     {
         _lobes = BsdfLobes(BsdfLobes::SpecularReflectionLobe);
@@ -63,14 +63,19 @@ public:
         if (!UseAlphaTrick) {
             return 1.0f;
         } else {
-            float cosThetaT;
-            return Fresnel::thinFilmReflectance(1.0f/_ior, std::abs(info->w.dot(info->Ns)), cosThetaT);
+            float thickness = (*_thickness)[info->uv]*500.0f;
+            float R, cosThetaT;
+            Vec3f interference = Fresnel::thinFilmReflectanceInterference(1.0f/_ior,
+                    std::abs(info->w.dot(info->Ns)), thickness, R, cosThetaT);
+            return interference.avg();
+//          float cosThetaT;
+//          return Fresnel::thinFilmReflectance(1.0f/_ior, std::abs(info->w.dot(info->Ns)), cosThetaT);
         }
     }
 
     virtual Vec3f transmittance(const IntersectionInfo *info) const override final
     {
-        return Vec3f(1.0f);
+//      return Vec3f(1.0f);
 //      float thickness = (*_thickness)[info->uv];
 //      if (_sigmaA == 0.0f || thickness == 0.0f)
 //          return Vec3f(1.0f);
@@ -86,11 +91,11 @@ public:
 //      if (/*_sigmaA == 0.0f || */thickness == 0.0f)
 //          return Vec3f(1.0f);
 //
-        float thickness = (*_thickness)[info->uv];
+        float thickness = (*_thickness)[info->uv]*500.0f;
         float R, cosThetaT;
         Vec3f interference = Fresnel::thinFilmReflectanceInterference(1.0f/_ior,
                 std::abs(info->w.dot(info->Ns)), thickness, R, cosThetaT);
-        return (1.0f - interference)/(1.0f - R);
+        return (1.0f - interference)/(1.0f - interference.avg());
 //
 //      return ((1.0f - interference)*(1.0f + R))/((1.0f + interference)*(1.0f - R));
 
@@ -121,11 +126,11 @@ public:
             event.wo = Vec3f(-event.wi.x(), -event.wi.y(), event.wi.z());
             event.pdf = 1.0f;
             event.sampledLobe = BsdfLobes::SpecularReflectionLobe;
-            event.throughput = Vec3f(1.0f);
-//          float R, cosThetaT;
-//          event.throughput = Fresnel::thinFilmReflectanceInterference(1.0f/_ior,
-//                  std::abs(event.wi.z()), (*_thickness)[event.info->uv], R, cosThetaT);
-//          event.throughput /= R;
+//          event.throughput = Vec3f(1.0f);
+            float R, cosThetaT;
+            event.throughput = Fresnel::thinFilmReflectanceInterference(1.0f/_ior,
+                    std::abs(event.wi.z()), (*_thickness)[event.info->uv]*500.0f, R, cosThetaT);
+            event.throughput /= event.throughput.avg();
         }
         return true;
     }
