@@ -3,21 +3,19 @@
 
 #include "Tonemap.hpp"
 
-#include "math/Angle.hpp"
+#include "math/Mat4f.hpp"
 #include "math/Vec.hpp"
-#include "math/Ray.hpp"
 
 #include "io/JsonSerializable.hpp"
-#include "io/JsonUtils.hpp"
 
 #include <rapidjson/document.h>
 #include <vector>
 #include <memory>
-#include <cmath>
 
 namespace Tungsten
 {
 
+class Ray;
 class Scene;
 class Medium;
 class SampleGenerator;
@@ -48,34 +46,11 @@ protected:
     std::vector<uint32> _weights;
 
 private:
-    void precompute()
-    {
-        _tonemapOp = Tonemap::stringToType(_tonemapString);
-        _ratio = _res.y()/float(_res.x());
-        _pixelSize = Vec2f(2.0f/_res.x(), 2.0f/_res.x());
-        _transform = Mat4f::lookAt(_pos, _lookAt - _pos, _up);
-        _invTransform = _transform.pseudoInvert();
-    }
+    void precompute();
 
 public:
-    Camera()
-    : Camera(Mat4f(), Vec2u(800u, 600u), 256)
-    {
-    }
-
-    Camera(const Mat4f &transform, const Vec2u &res, uint32 spp)
-    : _outputFile("Frame.png"),
-      _tonemapString("gamma"),
-      _transform(transform),
-      _res(res),
-      _spp(spp)
-    {
-        _pos    = _transform*Vec3f(0.0f, 0.0f, 2.0f);
-        _lookAt = _transform*Vec3f(0.0f, 0.0f, -1.0f);
-        _up     = _transform*Vec3f(0.0f, 1.0f, 0.0f);
-
-        precompute();
-    }
+    Camera();
+    Camera(const Mat4f &transform, const Vec2u &res, uint32 spp);
 
     void fromJson(const rapidjson::Value &v, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
@@ -84,19 +59,13 @@ public:
     virtual Mat4f approximateProjectionMatrix(int width, int height) const = 0;
     virtual float approximateFov() const = 0;
 
-    virtual void prepareForRender()
-    {
-        _pixels.resize(_res.x()*_res.y(), Vec3d(0.0));
-        _weights.resize(_res.x()*_res.y(), 0.0);
-    }
+    virtual void prepareForRender();
+    virtual void teardownAfterRender();
 
-    virtual void teardownAfterRender()
-    {
-        _pixels.clear();
-        _weights.clear();
-        _pixels.shrink_to_fit();
-        _weights.shrink_to_fit();
-    }
+    void setTransform(const Vec3f &pos, const Vec3f &lookAt, const Vec3f &up);
+    void setPos(const Vec3f &pos);
+    void setLookAt(const Vec3f &lookAt);
+    void setUp(const Vec3f &up);
 
     void addSamples(int x, int y, const Vec3f &c, uint32 weight)
     {
@@ -155,32 +124,6 @@ public:
     const std::string &outputFile() const
     {
         return _outputFile;
-    }
-
-    void setTransform(const Vec3f &pos, const Vec3f &lookAt, const Vec3f &up)
-    {
-        _pos = pos;
-        _lookAt = lookAt;
-        _up = up;
-        precompute();
-    }
-
-    void setPos(const Vec3f &pos)
-    {
-        _pos = pos;
-        precompute();
-    }
-
-    void setLookAt(const Vec3f &lookAt)
-    {
-        _lookAt = lookAt;
-        precompute();
-    }
-
-    void setUp(const Vec3f &up)
-    {
-        _up = up;
-        precompute();
     }
 
     const std::shared_ptr<Medium> &medium() const

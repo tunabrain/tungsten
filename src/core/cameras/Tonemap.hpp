@@ -30,7 +30,7 @@ public:
         return GammaOnly;
     }
 
-    static Vec3f tonemap(Type type, const Vec3f &c)
+    static inline Vec3f tonemap(Type type, const Vec3f &c)
     {
         switch (type) {
         case GammaOnly:

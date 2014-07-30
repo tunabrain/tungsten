@@ -14,6 +14,7 @@
 #include "math/Vec.hpp"
 
 #include "io/JsonUtils.hpp"
+#include "io/Scene.hpp"
 
 namespace Tungsten
 {
