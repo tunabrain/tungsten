@@ -6,48 +6,33 @@
 #include "extern/tinyformat/tinyformat.hpp"
 
 #include <chrono>
-
-//#if defined(__GNUC__) && (defined(__WIN32) || defined(__WIN64))
-//#define USE_RDTSC 1
-//#endif
+#if _WIN32
+#include <windows.h>
+#endif
 
 namespace Tungsten {
 
+// std::chrono::high_resolution_clock has disappointing accuracy on windows
+// On windows, we use the WinAPI high performance counter instead
 class Timer
 {
-#if USE_RDTSC
-    typedef union
-    {
-        int64 longWord;
-        int32 shortWord[2];
-    } tsc_counter;
-
-    tsc_counter _start, _stop;
+#if _WIN32
+    LARGE_INTEGER _pfFrequency;
+    LARGE_INTEGER _start, _stop;
 #else
     std::chrono::time_point<std::chrono::high_resolution_clock> _start, _stop;
 #endif
 public:
     Timer()
     {
+        QueryPerformanceFrequency(&_pfFrequency);
         start();
     }
 
-#if USE_RDTSC
-    void measure(tsc_counter &tsc) const
-    {
-#if defined(__ia64__)
-    __asm__ __volatile__ ("mov %0=ar.itc" : "=r" (tsc.longWord) );
-#else
-    __asm__ __volatile__ ("rdtsc" : "=a" (tsc.shortWord[0]), "=d"(tsc.shortWord[1]));
-    __asm__ __volatile__ ("cpuid" : : "a" (0) : "bx", "cx", "dx" );
-#endif
-    }
-#endif
-
     void start()
     {
-#if USE_RDTSC
-        measure(_start);
+#if _WIN32
+        QueryPerformanceCounter(&_start);
 #else
         _start = std::chrono::high_resolution_clock::now();
 #endif
@@ -55,8 +40,8 @@ public:
 
     void stop()
     {
-#if USE_RDTSC
-        measure(_stop);
+#if _WIN32
+        QueryPerformanceCounter(&_stop);
 #else
         _stop = std::chrono::high_resolution_clock::now();
 #endif
@@ -70,8 +55,8 @@ public:
 
     double elapsed() const
     {
-#if USE_RDTSC
-        return double(_stop.longWord - _start.longWord)*(1.0/(2.4*1e9));
+#if _WIN32
+        return double(_stop.QuadPart - _start.QuadPart)/double(_pfFrequency.QuadPart);
 #else
         return std::chrono::duration<double>(_stop - _start).count();
 #endif
