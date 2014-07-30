@@ -15,19 +15,12 @@ namespace Tungsten
 
 template<typename ElementType, unsigned Size>
 class Vec {
-    typedef Vec<ElementType, Size> TVec;
-
     ElementType _v[Size];
 
 public:
     static const unsigned size = Size;
-    typedef ElementType elementType;
 
     Vec() = default;
-//  Vec()
-//  : Vec(ElementType(0))
-//  {
-//  }
 
     explicit Vec(ElementType a)
     {
@@ -155,16 +148,16 @@ public:
             _v[i] *= invLen;
     }
 
-    TVec normalized() const
+    Vec normalized() const
     {
         ElementType invLen = ElementType(1)/length();
-        TVec other(*this);
+        Vec other(*this);
         for (unsigned i = 0; i < Size; ++i)
             other._v[i] *= invLen;
         return other;
     }
 
-    ElementType dot(const TVec &other) const
+    ElementType dot(const Vec &other) const
     {
         ElementType sum = _v[0]*other._v[0];
         for (unsigned i = 1; i < Size; ++i)
@@ -172,10 +165,10 @@ public:
         return sum;
     }
 
-    TVec cross(const TVec &other) const
+    Vec cross(const Vec &other) const
     {
         static_assert(Size == 3, "Cross product only defined in three dimensions!");
-        return TVec(
+        return Vec(
             y()*other.z() - z()*other.y(),
             z()*other.x() - x()*other.z(),
             x()*other.y() - y()*other.x()
@@ -198,128 +191,128 @@ public:
         return _v[i];
     }
 
-    TVec operator-() const
+    Vec operator-() const
     {
-        TVec result;
+        Vec result;
         for (unsigned i = 0; i < Size; ++i)
             result._v[i] = -_v[i];
         return result;
     }
 
-    TVec operator+(const TVec &other) const
+    Vec operator+(const Vec &other) const
     {
-        TVec result;
+        Vec result;
         for (unsigned i = 0; i < Size; ++i)
             result._v[i] = _v[i] + other._v[i];
         return result;
     }
 
-    TVec operator-(const TVec &other) const
+    Vec operator-(const Vec &other) const
     {
-        TVec result;
+        Vec result;
         for (unsigned i = 0; i < Size; ++i)
             result._v[i] = _v[i] - other._v[i];
         return result;
     }
 
-    TVec operator*(const TVec &other) const
+    Vec operator*(const Vec &other) const
     {
-        TVec result;
+        Vec result;
         for (unsigned i = 0; i < Size; ++i)
             result._v[i] = _v[i]*other._v[i];
         return result;
     }
 
-    TVec operator/(const TVec &other) const
+    Vec operator/(const Vec &other) const
     {
-        TVec result;
+        Vec result;
         for (unsigned i = 0; i < Size; ++i)
             result._v[i] = _v[i]/other._v[i];
         return result;
     }
 
-    TVec operator+(ElementType a) const
+    Vec operator+(ElementType a) const
     {
-        TVec result;
+        Vec result;
         for (unsigned i = 0; i < Size; ++i)
             result._v[i] = _v[i] + a;
         return result;
     }
 
-    TVec operator-(ElementType a) const
+    Vec operator-(ElementType a) const
     {
-        TVec result;
+        Vec result;
         for (unsigned i = 0; i < Size; ++i)
             result._v[i] = _v[i] - a;
         return result;
     }
 
-    TVec operator*(ElementType a) const
+    Vec operator*(ElementType a) const
     {
-        TVec result;
+        Vec result;
         for (unsigned i = 0; i < Size; ++i)
             result._v[i] = _v[i]*a;
         return result;
     }
 
-    TVec operator/(ElementType a) const
+    Vec operator/(ElementType a) const
     {
-        TVec result;
+        Vec result;
         for (unsigned i = 0; i < Size; ++i)
             result._v[i] = _v[i]/a;
         return result;
     }
 
-    TVec operator+=(const TVec &other)
+    Vec operator+=(const Vec &other)
     {
         for (unsigned i = 0; i < Size; ++i)
             _v[i] += other._v[i];
         return *this;
     }
 
-    TVec operator-=(const TVec &other)
+    Vec operator-=(const Vec &other)
     {
         for (unsigned i = 0; i < Size; ++i)
             _v[i] -= other._v[i];
         return *this;
     }
 
-    TVec operator*=(const TVec &other)
+    Vec operator*=(const Vec &other)
     {
         for (unsigned i = 0; i < Size; ++i)
             _v[i] *= other._v[i];
         return *this;
     }
 
-    TVec operator/=(const TVec &other)
+    Vec operator/=(const Vec &other)
     {
         for (unsigned i = 0; i < Size; ++i)
             _v[i] /= other._v[i];
         return *this;
     }
 
-    TVec operator+=(ElementType a)
+    Vec operator+=(ElementType a)
     {
         for (unsigned i = 0; i < Size; ++i)
             _v[i] += a;
         return *this;
     }
 
-    TVec operator-=(ElementType a)
+    Vec operator-=(ElementType a)
     {
         for (unsigned i = 0; i < Size; ++i)
             _v[i] -= a;
         return *this;
     }
 
-    TVec operator*=(ElementType a)
+    Vec operator*=(ElementType a)
     {
         for (unsigned i = 0; i < Size; ++i)
             _v[i] *= a;
         return *this;
     }
 
-    TVec operator/=(ElementType a)
+    Vec operator/=(ElementType a)
     {
         for (unsigned i = 0; i < Size; ++i)
             _v[i] /= a;
@@ -370,7 +363,7 @@ public:
         return m;
     }
 
-    bool operator==(const TVec &o) const
+    bool operator==(const Vec &o) const
     {
         for (unsigned i = 0; i < Size; ++i)
             if (_v[i] != o[i])
@@ -378,7 +371,7 @@ public:
         return true;
     }
 
-    bool operator!=(const TVec &o) const
+    bool operator!=(const Vec &o) const
     {
         for (unsigned i = 0; i < Size; ++i)
             if (_v[i] != o[i])
@@ -404,8 +397,8 @@ public:
 
     friend std::ostream &operator<< (std::ostream &stream, const Vec &v) {
         stream << '(';
-        for (uint32 i = 0; i < v.size; ++i)
-            stream << v[i] << (i == v.size - 1 ? ')' : ',');
+        for (uint32 i = 0; i < Size; ++i)
+            stream << v[i] << (i == Size - 1 ? ')' : ',');
         return stream;
     }
 };
@@ -466,25 +459,28 @@ typedef Vec<uint8, 4> Vec4c;
 typedef Vec<uint8, 3> Vec3c;
 typedef Vec<uint8, 2> Vec2c;
 
-//static_assert(std::is_pod<Vec4d>::value, "Vec4d is not a pod!");
-//static_assert(std::is_pod<Vec3d>::value, "Vec3d is not a pod!");
-//static_assert(std::is_pod<Vec2d>::value, "Vec2d is not a pod!");
-//
-//static_assert(std::is_pod<Vec4f>::value, "Vec4f is not a pod!");
-//static_assert(std::is_pod<Vec3f>::value, "Vec3f is not a pod!");
-//static_assert(std::is_pod<Vec2f>::value, "Vec2f is not a pod!");
-//
-//static_assert(std::is_pod<Vec4u>::value, "Vec4u is not a pod!");
-//static_assert(std::is_pod<Vec3u>::value, "Vec3u is not a pod!");
-//static_assert(std::is_pod<Vec2u>::value, "Vec2u is not a pod!");
-//
-//static_assert(std::is_pod<Vec4i>::value, "Vec4i is not a pod!");
-//static_assert(std::is_pod<Vec3i>::value, "Vec3i is not a pod!");
-//static_assert(std::is_pod<Vec2i>::value, "Vec2i is not a pod!");
-//
-//static_assert(std::is_pod<Vec4c>::value, "Vec4c is not a pod!");
-//static_assert(std::is_pod<Vec3c>::value, "Vec3c is not a pod!");
-//static_assert(std::is_pod<Vec2c>::value, "Vec2c is not a pod!");
+// Vec classes were accidentally turned into not-POD-types on several occasions,
+// but a lot of code relies on vectors being POD. The static_asserts here catch
+// it in case another mistake happens
+static_assert(std::is_pod<Vec4d>::value, "Vec4d is not a pod!");
+static_assert(std::is_pod<Vec3d>::value, "Vec3d is not a pod!");
+static_assert(std::is_pod<Vec2d>::value, "Vec2d is not a pod!");
+
+static_assert(std::is_pod<Vec4f>::value, "Vec4f is not a pod!");
+static_assert(std::is_pod<Vec3f>::value, "Vec3f is not a pod!");
+static_assert(std::is_pod<Vec2f>::value, "Vec2f is not a pod!");
+
+static_assert(std::is_pod<Vec4u>::value, "Vec4u is not a pod!");
+static_assert(std::is_pod<Vec3u>::value, "Vec3u is not a pod!");
+static_assert(std::is_pod<Vec2u>::value, "Vec2u is not a pod!");
+
+static_assert(std::is_pod<Vec4i>::value, "Vec4i is not a pod!");
+static_assert(std::is_pod<Vec3i>::value, "Vec3i is not a pod!");
+static_assert(std::is_pod<Vec2i>::value, "Vec2i is not a pod!");
+
+static_assert(std::is_pod<Vec4c>::value, "Vec4c is not a pod!");
+static_assert(std::is_pod<Vec3c>::value, "Vec3c is not a pod!");
+static_assert(std::is_pod<Vec2c>::value, "Vec2c is not a pod!");
 
 }
 
