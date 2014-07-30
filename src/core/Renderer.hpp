@@ -17,7 +17,6 @@
 
 #include "TraceableScene.hpp"
 #include "IntTypes.hpp"
-#include "Config.hpp"
 
 #include "extern/lodepng/lodepng.h"
 
