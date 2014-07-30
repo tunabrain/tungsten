@@ -21,53 +21,6 @@ namespace Tungsten
 
 using namespace GL;
 
-static void GLAPIENTRY errorCallback(GLenum source, GLenum type, GLuint /*id*/, GLenum severity,
-        GLsizei /*length*/, const char *message, void */*userParam*/) {
-
-    const char *sourceN = 0, *typeN = 0, *severityN = 0;
-
-    switch(source) {
-    case GL_DEBUG_SOURCE_API_ARB:
-        sourceN = "API"; break;
-    case GL_DEBUG_SOURCE_APPLICATION_ARB:
-        sourceN = "Application"; break;
-    case GL_DEBUG_SOURCE_OTHER_ARB:
-        sourceN = "Other"; break;
-    case GL_DEBUG_SOURCE_SHADER_COMPILER_ARB:
-        sourceN = "Shader compiler"; break;
-    case GL_DEBUG_SOURCE_THIRD_PARTY_ARB:
-        sourceN = "Third party"; break;
-    case GL_DEBUG_SOURCE_WINDOW_SYSTEM_ARB:
-        sourceN = "Window system"; break;
-    }
-
-    switch(type) {
-    case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR_ARB:
-        typeN = "Deprecated behavior"; break;
-    case GL_DEBUG_TYPE_ERROR_ARB:
-        typeN = "Error"; break;
-    case GL_DEBUG_TYPE_OTHER_ARB:
-        typeN = "Other"; break;
-    case GL_DEBUG_TYPE_PERFORMANCE_ARB:
-        typeN = "Performance"; break;
-    case GL_DEBUG_TYPE_PORTABILITY_ARB:
-        typeN = "Portability"; break;
-    case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR_ARB:
-        typeN = "Undefined behavior"; break;
-    }
-
-    switch (severity) {
-    case GL_DEBUG_SEVERITY_HIGH_ARB:
-        severityN = "High"; break;
-    case GL_DEBUG_SEVERITY_MEDIUM_ARB:
-        severityN = "Medium"; break;
-    case GL_DEBUG_SEVERITY_LOW_ARB:
-        severityN = "Low"; break;
-    }
-
-    LOG("GL", WARN, "Severity: %s. Source: %s. Type: %s. Message: %s\n", severityN, sourceN, typeN, message);
-}
-
 GlMesh::GlMesh(const TriangleMesh &src)
 : _vertexBuffer(src.verts().size()),
   _indexBuffer(ELEMENT_ARRAY_BUFFER, src.tris().size()*3*sizeof(uint32))
@@ -511,9 +464,6 @@ void PreviewWindow::initializeGL()
     glewExperimental = GL_TRUE;
     glewInit();
     glGetError();
-
-    glDebugMessageCallbackARB((GLDEBUGPROCARB)errorCallback, NULL);
-    glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE);
 
     GLuint vao;
     glGenVertexArrays(1, &vao);

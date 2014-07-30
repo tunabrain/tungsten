@@ -21,9 +21,7 @@ class DebugUtils
 {
 public:
     static void debugLog(const char *module, DebugLevel level, const char *format, ...);
-    //static void debugFail(const char *file, int line, const char *format, ...);
     static void debug(const std::string &message);
-    //static void fail(const std::string &message);
 };
 #ifndef NDEBUG
 #define DEBUG_BEGIN
@@ -33,7 +31,6 @@ public:
 #define DEBUG_END }
 #endif
 
-//# define FAIL(...) DebugUtils::debugFail(__FILE__, __LINE__, __VA_ARGS__)
 # define FAIL(...) throw std::runtime_error(tfm::format("PROGRAM FAILURE in %s:%d: " FIRST(__VA_ARGS__), __FILE__, __LINE__ REST(__VA_ARGS__)))
 # define SOFT_FAIL(...) FAIL(__VA_ARGS__)
 # define LOG(MODULE, LEVEL, ...) do { DEBUG_BEGIN if (LEVEL <= DEBUG_LEVEL) DebugUtils::debugLog(MODULE, LEVEL, __VA_ARGS__); DEBUG_END } while(false)
@@ -44,12 +41,6 @@ public:
         throw std::runtime_error(tfm::format("ASSERTION FAILURE in %s:%d (" #EXP "): " FIRST(__VA_ARGS__), __FILE__, __LINE__ REST(__VA_ARGS__))); \
     DEBUG_END \
     } while(false);
-/*# define ASSERT(EXP, ...) do { \
-    DEBUG_BEGIN \
-    if (!bool(EXP)) \
-        DebugUtils::fail(tfm::format("ASSERTION FAILURE in %s:%d (" #EXP "): " FIRST(__VA_ARGS__), __FILE__, __LINE__ REST(__VA_ARGS__))); \
-    DEBUG_END \
-    } while(false);*/
 
 # define SOFT_ASSERT(EXP, ...) ASSERT(EXP, __VA_ARGS__)
 
