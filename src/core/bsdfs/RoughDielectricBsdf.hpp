@@ -22,6 +22,12 @@ class RoughDielectricBsdf : public Bsdf
         _distribution = Microfacet::stringToType(_distributionName);
     }
 
+    // Signum that exludes 0
+    template <typename T>
+    static inline T sgnE(T val) {
+        return val < T(0) ? T(-1) : T(1);
+    }
+
 public:
 
     RoughDielectricBsdf()

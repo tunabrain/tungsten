@@ -9,6 +9,9 @@ namespace Tungsten
 class BitManip
 {
 public:
+    // Note: Could replace this with memcpy, which gcc optimizes to the same assembly
+    // as the code below. I'm not sure how other compiler treat it though, since it's
+    // really part of the C runtime. The union seems to be portable enough.
     static inline float uintBitsToFloat(uint32 i)
     {
         union {
@@ -29,6 +32,7 @@ public:
         return unionHack.i;
     }
 
+    // 2x-5x faster than i/float(UINT_MAX)
     static inline float normalizedUint(uint32 i)
     {
         return uintBitsToFloat((i >> 9u) | 0x3F800000u) - 1.0f;

@@ -12,18 +12,12 @@ class Ray
     float _nearT;
     float _farT;
     float _time;
-    uint32 _flags;
 
 public:
-    enum RayFlags {
-        PrimaryRay       = (1 << 0),
-        ShadowRay        = (1 << 1),
-    };
-
     Ray() = default;
 
     Ray(const Vec3f &pos, const Vec3f &dir, float nearT = 1e-4f, float farT = 1e30f, float time = 0.0f)
-    : _pos(pos), _dir(dir), _nearT(nearT), _farT(farT), _time(time), _flags(0xFFFFFFFFU)
+    : _pos(pos), _dir(dir), _nearT(nearT), _farT(farT), _time(time)
     {
     }
 
@@ -70,16 +64,6 @@ public:
     void setNearT(float nearT)
     {
         _nearT = nearT;
-    }
-
-    uint32 flags() const
-    {
-        return _flags;
-    }
-
-    void setFlags(uint32 flags)
-    {
-        _flags = flags;
     }
 
     float time() const

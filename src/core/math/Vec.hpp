@@ -1,14 +1,14 @@
 #ifndef VEC_HPP_
 #define VEC_HPP_
 
+#include "math/BitManip.hpp"
+
+#include "IntTypes.hpp"
+
 #include <rapidjson/document.h>
 #include <type_traits>
 #include <ostream>
 #include <cmath>
-
-#include "math/BitManip.hpp"
-
-#include "IntTypes.hpp"
 
 namespace Tungsten
 {

@@ -87,13 +87,11 @@ template <typename T> int sgn(T val) {
     return (T(0) < val) - (val < T(0));
 }
 
-template <typename T> T sgnE(T val) {
-    return val < T(0) ? T(-1) : T(1);
-}
-
+// TODO: Review which of these are still in use
 class MathUtil
 {
 public:
+    // TODO: Is this a good hash? Try to track down the source of this
     static inline uint32 hash32(uint32 x) {
         x = ~x + (x << 15);
         x = x ^ (x >> 12);
