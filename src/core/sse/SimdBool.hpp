@@ -1,9 +1,9 @@
 #ifndef SIMDBOOL_HPP_
 #define SIMDBOOL_HPP_
 
-#include "../math/MathUtil.hpp"
+#include "math/MathUtil.hpp"
 
-#include "../IntTypes.hpp"
+#include "IntTypes.hpp"
 
 #include <immintrin.h>
 

@@ -3,8 +3,9 @@
 
 #include "SimdBool.hpp"
 
-#include "../IntTypes.hpp"
-#include "../math/MathUtil.hpp"
+#include "math/MathUtil.hpp"
+
+#include "IntTypes.hpp"
 
 #include <immintrin.h>
 
