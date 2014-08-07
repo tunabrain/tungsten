@@ -71,7 +71,7 @@ public:
 
         event.wo = Vec3f(-event.wi.x(), -event.wi.y(), event.wi.z());
         event.pdf = 1.0f;
-        event.throughput = base(event.info)*Fresnel::conductorReflectance(_eta, _k, event.wi.z());
+        event.throughput = albedo(event.info)*Fresnel::conductorReflectance(_eta, _k, event.wi.z());
         event.sampledLobe = BsdfLobes::SpecularReflectionLobe;
         return true;
     }

@@ -399,7 +399,7 @@ void Scene::addBsdf(const std::shared_ptr<Bsdf> &bsdf)
             addUnique(bsdf->extMedium(), _media);
         addTexture(bsdf->alpha(), _scalarMaps);
         addTexture(bsdf->bump(), _scalarMaps);
-        addTexture(bsdf->color(), _colorMaps);
+        addTexture(bsdf->albedo(), _colorMaps);
     }
 }
 

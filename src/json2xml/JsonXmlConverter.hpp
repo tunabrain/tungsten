@@ -275,7 +275,7 @@ class SceneXmlWriter
         if (!bsdf->unnamed())
             assign("id", bsdf->name());
         beginPost();
-        convert("reflectance", bsdf->color().get());
+        convert("reflectance", bsdf->albedo().get());
         end();
     }
 
@@ -286,7 +286,7 @@ class SceneXmlWriter
         if (!bsdf->unnamed())
             assign("id", bsdf->name());
         beginPost();
-        convert("reflectance", bsdf->color().get());
+        convert("reflectance", bsdf->albedo().get());
         convert("alpha", bsdf->roughness().get());
         end();
     }
@@ -298,7 +298,7 @@ class SceneXmlWriter
         if (!bsdf->unnamed())
             assign("id", bsdf->name());
         beginPost();
-        convert("specularReflectance", bsdf->color().get());
+        convert("specularReflectance", bsdf->albedo().get());
         convert("exponent", float(bsdf->hardness()));
         convertSpectrum("diffuseReflectance", Vec3f(0.0f));
         end();
@@ -362,7 +362,7 @@ class SceneXmlWriter
         convert("intIOR", bsdf->ior());
         convert("extIOR", 1.0f);
         convert("nonlinear", true);
-        convert("diffuseReflectance", bsdf->color().get());
+        convert("diffuseReflectance", bsdf->albedo().get());
         end();
     }
 
@@ -374,7 +374,7 @@ class SceneXmlWriter
             assign("id", bsdf->name());
         beginPost();
         convert("extEta", 1.0f);
-        convert("specularReflectance", bsdf->color().get());
+        convert("specularReflectance", bsdf->albedo().get());
         convertSpectrum("eta", bsdf->eta());
         convertSpectrum("k", bsdf->k());
         end();
@@ -390,7 +390,7 @@ class SceneXmlWriter
         convert("alpha", bsdf->roughness().get());
         convert("distribution", bsdf->distributionName());
         convert("extEta", 1.0f);
-        convert("specularReflectance", bsdf->color().get());
+        convert("specularReflectance", bsdf->albedo().get());
         convertSpectrum("eta", bsdf->eta());
         convertSpectrum("k", bsdf->k());
         end();

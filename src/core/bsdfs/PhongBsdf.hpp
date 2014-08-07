@@ -87,7 +87,7 @@ public:
         cosTheta = lobe.normal.dot(event.wo);
         float cosThetaPowN = std::pow(cosTheta, _exponent);
         event.pdf = cosThetaPowN*_pdfFactor;
-        event.throughput = base(event.info)*(event.wo.z()*(_brdfFactor/_pdfFactor));
+        event.throughput = albedo(event.info)*(event.wo.z()*(_brdfFactor/_pdfFactor));
         return true;
     }
 
@@ -100,7 +100,7 @@ public:
         float cosTheta = Vec3f(-event.wi.x(), -event.wi.y(), event.wi.z()).dot(event.wo);
         if (cosTheta < 0.0f)
             return Vec3f(0.0f);
-        return base(event.info)*(std::pow(cosTheta, _exponent)*_brdfFactor*event.wo.z());
+        return albedo(event.info)*(std::pow(cosTheta, _exponent)*_brdfFactor*event.wo.z());
     }
 
     float pdf(const SurfaceScatterEvent &event) const override final

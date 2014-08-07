@@ -77,7 +77,7 @@ public:
             event.wo = Vec3f(-event.wi.x()*eta, -event.wi.y()*eta, -std::copysign(cosThetaT, event.wi.z()));
             event.pdf = 1.0f - F;
             event.sampledLobe = BsdfLobes::SpecularTransmissionLobe;
-            event.throughput = base(event.info);
+            event.throughput = albedo(event.info);
         }
         return true;
     }

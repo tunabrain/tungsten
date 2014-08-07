@@ -67,7 +67,7 @@ public:
         Vec3f F = Fresnel::conductorReflectance(_eta, _k, wiDotM);
 
         event.pdf = pdf;
-        event.throughput = base(event.info)*(F*weight);
+        event.throughput = albedo(event.info)*(F*weight);
         event.sampledLobe = BsdfLobes::GlossyReflectionLobe;
         return true;
     }
@@ -89,7 +89,7 @@ public:
         float D = Microfacet::D(_distribution, alpha, hr);
         float fr = (G*D*0.25f)/event.wi.z();
 
-        return base(event.info)*(F*fr);
+        return albedo(event.info)*(F*fr);
     }
 
     float pdf(const SurfaceScatterEvent &event) const override final

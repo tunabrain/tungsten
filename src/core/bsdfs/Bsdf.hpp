@@ -30,14 +30,14 @@ protected:
 
     std::shared_ptr<Medium> _intMedium, _extMedium;
 
-    std::shared_ptr<TextureRgb> _base;
+    std::shared_ptr<TextureRgb> _albedo;
     std::shared_ptr<TextureA> _alpha;
     std::shared_ptr<TextureA> _bump;
     float _bumpStrength;
 
-    Vec3f base(const IntersectionInfo *info) const
+    Vec3f albedo(const IntersectionInfo *info) const
     {
-        return (*_base)[info->uv];
+        return (*_albedo)[info->uv];
     }
 
 public:
@@ -46,7 +46,7 @@ public:
     }
 
     Bsdf()
-    : _base(std::make_shared<ConstantTextureRgb>(Vec3f(1.0f))),
+    : _albedo(std::make_shared<ConstantTextureRgb>(Vec3f(1.0f))),
       _alpha(std::make_shared<ConstantTextureA>(1.0f)),
       _bump(std::make_shared<ConstantTextureA>(0.0f)),
       _bumpStrength(1.0f)
@@ -59,14 +59,8 @@ public:
     void setupTangentFrame(const Primitive &primitive, const Primitive::IntersectionTemporary &data,
             const IntersectionInfo &info, TangentFrame &dst) const
     {
-        if (std::isnan(info.Ns.sum())) {
-            FAIL("NAN Ns! %s", info.Ns);
-        }
         if (_bump->isConstant() && !_lobes.isAnisotropic()) {
             dst = TangentFrame(info.Ns);
-            if (std::isnan(dst.normal.sum())) {
-                FAIL("NAN default dst! %s -> %s %s %s", info.Ns, dst.normal, dst.tangent, dst.bitangent);
-            }
             return;
         }
         Vec3f T, B, N(info.Ns);
@@ -74,18 +68,9 @@ public:
             dst = TangentFrame(info.Ns);
             return;
         }
-        if (std::isnan(T.sum() + B.sum())) {
-            FAIL("NAN tangent! %s %s", T, B);
-        }
         if (!_bump->isConstant()) {
-            if (std::isnan(info.uv.sum())) {
-                FAIL("NAN uv coords! %s", info.uv);
-            }
             Vec2f dudv;
             _bump->derivatives(info.uv, dudv);
-            if (std::isnan(dudv.sum())) {
-                FAIL("NAN derivatives! %s", dudv);
-            }
 
             T += info.Ns*(dudv.x()*_bumpStrength - info.Ns.dot(T));
             B += info.Ns*(dudv.y()*_bumpStrength - info.Ns.dot(B));
@@ -97,9 +82,6 @@ public:
             if (N.dot(info.Ns) < 0.0f)
                 N = -N;
             N.normalize();
-            if (std::isnan(N.sum())) {
-                FAIL("NAN N! %s %s %s", N, B, T);
-            }
         }
         T = (T - N.dot(T)*N);
         if (T == 0.0f) {
@@ -110,9 +92,6 @@ public:
         B = N.cross(T);
 
         dst = TangentFrame(N, T, B);
-        if (std::isnan(dst.normal.sum())) {
-            FAIL("NAN dst! %s %s %s", dst.normal, dst.tangent, dst.bitangent);
-        }
     }
 
     virtual float alpha(const IntersectionInfo *info) const
@@ -136,7 +115,7 @@ public:
 
     void setColor(const std::shared_ptr<TextureRgb> &c)
     {
-        _base = c;
+        _albedo = c;
     }
 
     void setAlpha(const std::shared_ptr<TextureA> &a)
@@ -149,9 +128,9 @@ public:
         _bump = b;
     }
 
-    std::shared_ptr<TextureRgb> &color()
+    std::shared_ptr<TextureRgb> &albedo()
     {
-        return _base;
+        return _albedo;
     }
 
     std::shared_ptr<TextureA> &alpha()
@@ -164,9 +143,9 @@ public:
         return _bump;
     }
 
-    const std::shared_ptr<TextureRgb> &color() const
+    const std::shared_ptr<TextureRgb> &albedo() const
     {
-        return _base;
+        return _albedo;
     }
 
     const std::shared_ptr<TextureA> &alpha() const

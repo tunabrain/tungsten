@@ -91,8 +91,8 @@ public:
         float fr1 = (C1 + cosDeltaPhi*C2*std::tan(beta) + (1.0f - std::abs(cosDeltaPhi))*C3*std::tan(0.5f*(alpha + beta)));
         float fr2 = 0.17f*sigmaSq/(sigmaSq + 0.13f)*(1.0f - cosDeltaPhi*sqr((2.0f*INV_PI)*beta));
 
-        Vec3f albedo = base(event.info);
-        return (albedo*fr1 + albedo*albedo*fr2)*wo.z()*INV_PI;
+        Vec3f diffuseAlbedo = albedo(event.info);
+        return (diffuseAlbedo*fr1 + diffuseAlbedo*diffuseAlbedo*fr2)*wo.z()*INV_PI;
     }
 
     float pdf(const SurfaceScatterEvent &event) const override final

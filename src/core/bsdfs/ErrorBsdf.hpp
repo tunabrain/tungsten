@@ -10,7 +10,7 @@ class ErrorBsdf : public LambertBsdf
 public:
     ErrorBsdf()
     {
-        _base = std::make_shared<ConstantTextureRgb>(Vec3f(1.0f, 0.0f, 0.0f));
+        _albedo = std::make_shared<ConstantTextureRgb>(Vec3f(1.0f, 0.0f, 0.0f));
     }
 };
 

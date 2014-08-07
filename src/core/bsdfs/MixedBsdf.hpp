@@ -97,7 +97,7 @@ public:
             event.throughput = f/event.pdf;//*Sample::powerHeuristic(pdf1, pdf0);
         }
 
-        event.throughput *= base(event.info);
+        event.throughput *= albedo(event.info);
         return true;
     }
 
@@ -106,7 +106,7 @@ public:
         float ratio;
         if (!adjustedRatio(event.requestedLobe, event.info->uv, ratio))
             return Vec3f(0.0f);
-        return base(event.info)*(_bsdf0->eval(event)*ratio + _bsdf1->eval(event)*(1.0f - ratio));
+        return albedo(event.info)*(_bsdf0->eval(event)*ratio + _bsdf1->eval(event)*(1.0f - ratio));
     }
 
     float pdf(const SurfaceScatterEvent &event) const final override

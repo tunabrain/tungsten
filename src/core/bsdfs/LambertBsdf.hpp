@@ -43,7 +43,7 @@ public:
             return false;
         event.wo  = Sample::cosineHemisphere(event.sampler->next2D());
         event.pdf = Sample::cosineHemispherePdf(event.wo);
-        event.throughput = base(event.info);
+        event.throughput = albedo(event.info);
         event.sampledLobe = BsdfLobes::DiffuseReflectionLobe;
         return true;
     }
@@ -54,7 +54,7 @@ public:
             return Vec3f(0.0f);
         if (event.wi.z() <= 0.0f || event.wo.z() <= 0.0f)
             return Vec3f(0.0f);
-        return base(event.info)*INV_PI*event.wo.z();
+        return albedo(event.info)*INV_PI*event.wo.z();
     }
 
     float pdf(const SurfaceScatterEvent &event) const override final

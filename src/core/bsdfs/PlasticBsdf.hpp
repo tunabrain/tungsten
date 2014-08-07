@@ -121,10 +121,10 @@ public:
         } else {
             Vec3f wo(Sample::cosineHemisphere(event.sampler->next2D()));
             float Fo = Fresnel::dielectricReflectance(eta, wo.z());
-            Vec3f albedo = base(event.info);
+            Vec3f diffuseAlbedo = albedo(event.info);
 
             event.wo = wo;
-            event.throughput = ((1.0f - Fi)*(1.0f - Fo)*eta*eta)*(albedo/(1.0f - albedo*_diffuseFresnel));
+            event.throughput = ((1.0f - Fi)*(1.0f - Fo)*eta*eta)*(diffuseAlbedo/(1.0f - diffuseAlbedo*_diffuseFresnel));
             if (_scaledSigmaA.max() > 0.0f)
                 event.throughput *= std::exp(_scaledSigmaA*(-1.0f/event.wo.z() - 1.0f/event.wi.z()));
 
@@ -149,9 +149,9 @@ public:
         float Fi = Fresnel::dielectricReflectance(eta, event.wi.z());
         float Fo = Fresnel::dielectricReflectance(eta, event.wo.z());
 
-        Vec3f albedo = base(event.info);
+        Vec3f diffuseAlbedo = albedo(event.info);
 
-        Vec3f brdf = ((1.0f - Fi)*(1.0f - Fo)*eta*eta*event.wo.z()*INV_PI)*(albedo/(1.0f - albedo*_diffuseFresnel));
+        Vec3f brdf = ((1.0f - Fi)*(1.0f - Fo)*eta*eta*event.wo.z()*INV_PI)*(diffuseAlbedo/(1.0f - diffuseAlbedo*_diffuseFresnel));
 
         if (_scaledSigmaA.max() > 0.0f)
             brdf *= std::exp(_scaledSigmaA*(-1.0f/event.wo.z() - 1.0f/event.wi.z()));

@@ -107,10 +107,10 @@ public:
             if (!RoughDielectricBsdf::sampleBase(event, true, false, roughness, _ior, _distribution))
                 return false;
             if (sampleT) {
-                Vec3f albedo = base(event.info);
+                Vec3f diffuseAlbedo = albedo(event.info);
                 float Fo = Fresnel::dielectricReflectance(eta, event.wo.z());
 
-                Vec3f brdfSubstrate = ((1.0f - Fi)*(1.0f - Fo)*eta*eta)*(albedo/(1.0f - albedo*_diffuseFresnel))*INV_PI*event.wo.z();
+                Vec3f brdfSubstrate = ((1.0f - Fi)*(1.0f - Fo)*eta*eta)*(diffuseAlbedo/(1.0f - diffuseAlbedo*_diffuseFresnel))*INV_PI*event.wo.z();
                 Vec3f brdfSpecular = event.throughput*event.pdf;
                 float pdfSubstrate = Sample::cosineHemispherePdf(event.wo)*(1.0f - specularProbability);
                 float pdfSpecular = event.pdf*specularProbability;
@@ -122,10 +122,10 @@ public:
         } else {
             Vec3f wo(Sample::cosineHemisphere(event.sampler->next2D()));
             float Fo = Fresnel::dielectricReflectance(eta, wo.z());
-            Vec3f albedo = base(event.info);
+            Vec3f diffuseAlbedo = albedo(event.info);
 
             event.wo = wo;
-            event.throughput = ((1.0f - Fi)*(1.0f - Fo)*eta*eta)*(albedo/(1.0f - albedo*_diffuseFresnel));
+            event.throughput = ((1.0f - Fi)*(1.0f - Fo)*eta*eta)*(diffuseAlbedo/(1.0f - diffuseAlbedo*_diffuseFresnel));
             if (_scaledSigmaA.max() > 0.0f)
                 event.throughput *= std::exp(_scaledSigmaA*(-1.0f/event.wo.z() - 1.0f/event.wi.z()));
 
@@ -164,9 +164,9 @@ public:
             float Fi = Fresnel::dielectricReflectance(eta, event.wi.z());
             float Fo = Fresnel::dielectricReflectance(eta, event.wo.z());
 
-            Vec3f albedo = base(event.info);
+            Vec3f diffuseAlbedo = albedo(event.info);
 
-            diffuseR = ((1.0f - Fi)*(1.0f - Fo)*eta*eta*event.wo.z()*INV_PI)*(albedo/(1.0f - albedo*_diffuseFresnel));
+            diffuseR = ((1.0f - Fi)*(1.0f - Fo)*eta*eta*event.wo.z()*INV_PI)*(diffuseAlbedo/(1.0f - diffuseAlbedo*_diffuseFresnel));
             if (_scaledSigmaA.max() > 0.0f)
                 diffuseR *= std::exp(_scaledSigmaA*(-1.0f/event.wo.z() - 1.0f/event.wi.z()));
         }
