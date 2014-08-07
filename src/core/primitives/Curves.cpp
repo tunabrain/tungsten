@@ -192,7 +192,6 @@ void Curves::loadCurves()
     char fileInfo[89];
     in.read(fileInfo, 88);
     fileInfo[88] = '\0';
-    DBG("File info for '%s': '%s'", _path, fileInfo);
 
     _curveEnds.resize(_curveCount);
     if (hasSegments) {
