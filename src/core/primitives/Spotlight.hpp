@@ -19,7 +19,6 @@ class Spotlight : public Primitive
     };
 
     float _angle;
-    bool _disableReflection;
 
     Vec3f _center;
     float _r;
@@ -32,8 +31,7 @@ class Spotlight : public Primitive
 
 public:
     Spotlight()
-    : _angle(45.0f),
-      _disableReflection(false)
+    : _angle(45.0f)
     {
     }
 
@@ -41,7 +39,6 @@ public:
     {
         Primitive::fromJson(v, scene);
         JsonUtils::fromJson(v, "angle", _angle);
-        JsonUtils::fromJson(v, "disable_reflection", _disableReflection);
     }
 
     rapidjson::Value toJson(Allocator &allocator) const override
@@ -49,7 +46,6 @@ public:
         rapidjson::Value v = Primitive::toJson(allocator);
         v.AddMember("type", "spot", allocator);
         v.AddMember("angle", _angle, allocator);
-        v.AddMember("disable_reflection", _disableReflection, allocator);
         return std::move(v);
     }
 
@@ -184,11 +180,6 @@ public:
         float r = uv.y()*_r;
         pos = _center + std::cos(phi)*r*_frame.bitangent + std::sin(phi)*r*_frame.tangent;
         return true;
-    }
-
-    virtual bool disableReflectedEmission() const override final
-    {
-        return _disableReflection;
     }
 
     virtual bool isDelta() const

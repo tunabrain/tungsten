@@ -434,7 +434,7 @@ public:
             SurfaceScatterEvent event(&info, &sampler, &supplementalSampler, frame.toLocal(-ray.dir()), BsdfLobes::AllLobes);
 
             if (_enableLightSampling) {
-                if ((wasSpecular || !info.primitive->isSamplable()) && !info.primitive->disableReflectedEmission() && bounce >= _minBounces)
+                if ((wasSpecular || !info.primitive->isSamplable()) && bounce >= _minBounces)
                     emission += info.primitive->emission(data, info)*throughput;
 
                 if (bounce < _maxBounces - 1)
