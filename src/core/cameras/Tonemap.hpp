@@ -13,6 +13,7 @@ class Tonemap
 {
 public:
     enum Type {
+        LinearOnly,
         GammaOnly,
         Reinhard,
         Filmic
@@ -20,7 +21,9 @@ public:
 
     static Type stringToType(const std::string &s)
     {
-        if (s == "gamma")
+        if (s == "linear")
+            return LinearOnly;
+        else if (s == "gamma")
             return GammaOnly;
         else if (s == "reinhard")
             return Reinhard;
@@ -33,6 +36,8 @@ public:
     static inline Vec3f tonemap(Type type, const Vec3f &c)
     {
         switch (type) {
+        case LinearOnly:
+            return c;
         case GammaOnly:
             return std::pow(c, 1.0f/2.2f);
         case Reinhard:
