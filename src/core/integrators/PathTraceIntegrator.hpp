@@ -38,6 +38,7 @@ class PathTraceIntegrator : public Integrator
 
     bool _enableLightSampling;
     bool _enableVolumeLightSampling;
+    int _minBounces;
     int _maxBounces;
     std::vector<float> _lightPdf;
 
@@ -72,7 +73,7 @@ class PathTraceIntegrator : public Integrator
             if (medium)
                 throughput *= medium->transmittance(VolumeScatterEvent(ray.pos(), ray.dir(), ray.farT()));
             if (info.primitive == nullptr || info.primitive == endCap)
-                return throughput;
+                return bounce >= _minBounces ? throughput : Vec3f(0.0f);
             if (info.primitive->bsdf()->overridesMedia()) {
                 if (info.primitive->hitBackside(data))
                     medium = info.primitive->bsdf()->extMedium().get();
@@ -348,6 +349,7 @@ public:
     : _scene(nullptr),
       _enableLightSampling(true),
       _enableVolumeLightSampling(true),
+      _minBounces(0),
       _maxBounces(64)
     {
     }
@@ -432,12 +434,12 @@ public:
             SurfaceScatterEvent event(&info, &sampler, &supplementalSampler, frame.toLocal(-ray.dir()), BsdfLobes::AllLobes);
 
             if (_enableLightSampling) {
-                if ((wasSpecular || !info.primitive->isSamplable()) && !info.primitive->disableReflectedEmission())
+                if ((wasSpecular || !info.primitive->isSamplable()) && !info.primitive->disableReflectedEmission() && bounce >= _minBounces)
                     emission += info.primitive->emission(data, info)*throughput;
 
                 if (bounce < _maxBounces - 1)
                     emission += estimateDirect(frame, bsdf, event, medium, bounce + 1, info.epsilon)*throughput;
-            } else {
+            } else if (bounce >= _minBounces) {
                 emission += info.primitive->emission(data, info)*throughput;
             }
 
@@ -522,7 +524,7 @@ public:
             if (bounce < _maxBounces)
                 didHit = _scene->intersect(ray, data, info);
         }
-        if (!didHit && !medium) {
+        if (!didHit && !medium && bounce >= _minBounces) {
             if (_scene->intersectInfinites(ray, data, info)) {
                 if (_enableLightSampling) {
                     if (bounce == 0 || wasSpecular || !info.primitive->isSamplable())
@@ -557,6 +559,7 @@ public:
 
     virtual void fromJson(const rapidjson::Value &v, const Scene &/*scene*/)
     {
+        JsonUtils::fromJson(v, "min_bounces", _minBounces);
         JsonUtils::fromJson(v, "max_bounces", _maxBounces);
         JsonUtils::fromJson(v, "enable_light_sampling", _enableLightSampling);
         JsonUtils::fromJson(v, "enable_volume_light_sampling", _enableVolumeLightSampling);
@@ -566,6 +569,7 @@ public:
     {
         rapidjson::Value v(JsonSerializable::toJson(allocator));
         v.AddMember("type", "path_trace", allocator);
+        v.AddMember("min_bounces", _minBounces, allocator);
         v.AddMember("max_bounces", _maxBounces, allocator);
         v.AddMember("enable_light_sampling", _enableLightSampling, allocator);
         v.AddMember("enable_volume_light_sampling", _enableVolumeLightSampling, allocator);
