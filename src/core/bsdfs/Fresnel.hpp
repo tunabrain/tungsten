@@ -10,6 +10,8 @@ namespace Tungsten {
 
 namespace Fresnel {
 
+// Computes total reflectance from an infinitesimally thin film with refraction index eta
+// from all internal reflection/refraction events
 static inline float thinFilmReflectance(float eta, float cosThetaI, float &cosThetaT)
 {
     float sinThetaTSq = eta*eta*(1.0f - cosThetaI*cosThetaI);
@@ -31,6 +33,9 @@ static inline float thinFilmReflectance(float eta, float cosThetaI)
     return thinFilmReflectance(eta, cosThetaI, cosThetaT);
 }
 
+// Computes total reflectance including spectral interference from a thin film
+// that is `thickness' nanometers thick and has refraction index eta
+// See http://www.gamedev.net/page/resources/_/technical/graphics-programming-and-theory/thin-film-interference-for-computer-graphics-r2962
 static inline Vec3f thinFilmReflectanceInterference(float eta, float cosThetaI, float thickness, float &cosThetaT)
 {
     const Vec3f invLambdas = 1.0f/Vec3f(650.0f, 510.0f, 475.0f);
@@ -132,6 +137,7 @@ static inline Vec3f conductorReflectance(const Vec3f &eta, const Vec3f &k, float
     );
 }
 
+// Computes hemispherical integral of dielectricReflectance(ior, cos(theta))*cos(theta)
 static inline float computeDiffuseFresnel(float ior, const int sampleCount)
 {
     double diffuseFresnel = 0.0;
