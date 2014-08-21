@@ -149,7 +149,7 @@ public:
         if (_n.dot(sample.p - _center) < 0.0f)
             return false;
 
-        Vec2f lQ = Sample::uniformDisk(sample.sampler->next2D()).xy()*_r;
+        Vec2f lQ = SampleWarp::uniformDisk(sample.sampler->next2D()).xy()*_r;
         Vec3f q = _center + lQ.x()*_frame.bitangent + lQ.y()*_frame.tangent;
         sample.d = q - sample.p;
         float rSq = sample.d.lengthSq();
@@ -164,10 +164,10 @@ public:
 
     virtual bool sampleOutboundDirection(LightSample &sample) const
     {
-        Vec2f lQ = Sample::uniformDisk(sample.sampler->next2D()).xy();
+        Vec2f lQ = SampleWarp::uniformDisk(sample.sampler->next2D()).xy();
         sample.p = _center + lQ.x()*_frame.bitangent + lQ.y()*_frame.tangent;
-        sample.d = Sample::cosineHemisphere(sample.sampler->next2D());
-        sample.pdf = Sample::cosineHemispherePdf(sample.d)/(_r*_r*PI);
+        sample.d = SampleWarp::cosineHemisphere(sample.sampler->next2D());
+        sample.pdf = SampleWarp::cosineHemispherePdf(sample.d)/(_r*_r*PI);
         TangentFrame frame(_n);
         sample.d = frame.toGlobal(sample.d);
         return true;

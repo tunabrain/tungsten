@@ -49,11 +49,11 @@ bool OrenNayarBsdf::sample(SurfaceScatterEvent &event) const
     float roughness = (*_roughness)[event.info->uv];
     float ratio = clamp(roughness, 0.01f, 1.0f);
     if (event.sampler->next1D() < ratio)
-        event.wo  = Sample::uniformHemisphere(event.sampler->next2D());
+        event.wo  = SampleWarp::uniformHemisphere(event.sampler->next2D());
     else
-        event.wo  = Sample::cosineHemisphere(event.sampler->next2D());
+        event.wo  = SampleWarp::cosineHemisphere(event.sampler->next2D());
 
-    event.pdf = Sample::uniformHemispherePdf(event.wo)*ratio + Sample::cosineHemispherePdf(event.wo)*(1.0f - ratio);
+    event.pdf = SampleWarp::uniformHemispherePdf(event.wo)*ratio + SampleWarp::cosineHemispherePdf(event.wo)*(1.0f - ratio);
     event.throughput = eval(event)/event.pdf;
     event.sampledLobe = BsdfLobes::DiffuseReflectionLobe;
     return event.wo.z() > 0.0f;
@@ -109,7 +109,7 @@ float OrenNayarBsdf::pdf(const SurfaceScatterEvent &event) const
 
     float roughness = (*_roughness)[event.info->uv];
     float ratio = clamp(roughness, 0.01f, 1.0f);
-    return Sample::uniformHemispherePdf(event.wo)*ratio + Sample::cosineHemispherePdf(event.wo)*(1.0f - ratio);
+    return SampleWarp::uniformHemispherePdf(event.wo)*ratio + SampleWarp::cosineHemispherePdf(event.wo)*(1.0f - ratio);
 }
 
 }

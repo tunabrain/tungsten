@@ -78,7 +78,7 @@ bool PhongBsdf::sample(SurfaceScatterEvent &event) const
 
         event.sampledLobe = BsdfLobes::GlossyReflectionLobe;
     } else {
-        event.wo = Sample::cosineHemisphere(event.sampler->next2D());
+        event.wo = SampleWarp::cosineHemisphere(event.sampler->next2D());
         event.sampledLobe = BsdfLobes::DiffuseReflectionLobe;
     }
 
@@ -127,9 +127,9 @@ float PhongBsdf::pdf(const SurfaceScatterEvent &event) const
             result += std::pow(cosTheta, _exponent)*_pdfFactor;
     }
     if (evalDiffuse && evalGlossy)
-        result = result*(1.0f - _diffuseRatio) + _diffuseRatio*Sample::cosineHemispherePdf(event.wo);
+        result = result*(1.0f - _diffuseRatio) + _diffuseRatio*SampleWarp::cosineHemispherePdf(event.wo);
     else if (evalDiffuse)
-        result = Sample::cosineHemispherePdf(event.wo);
+        result = SampleWarp::cosineHemispherePdf(event.wo);
 
     return result;
 }

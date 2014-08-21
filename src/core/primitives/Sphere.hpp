@@ -131,7 +131,7 @@ public:
     {
         float dist = (_pos - p).length();
         float cosTheta = std::sqrt(max(dist*dist - _radius*_radius, 0.0f))/dist;
-        return Sample::uniformSphericalCapPdf(cosTheta);
+        return SampleWarp::uniformSphericalCapPdf(cosTheta);
     }
 
     virtual bool sampleInboundDirection(LightSample &sample) const
@@ -140,21 +140,21 @@ public:
         float d = L.length();
         L.normalize();
         float cosTheta = std::sqrt(max(d*d - _radius*_radius, 0.0f))/d;
-        sample.d = Sample::uniformSphericalCap(sample.sampler->next2D(), cosTheta);
+        sample.d = SampleWarp::uniformSphericalCap(sample.sampler->next2D(), cosTheta);
 
         TangentFrame frame(L);
         sample.dist = d;
         sample.d = frame.toGlobal(sample.d);
-        sample.pdf = Sample::uniformSphericalCapPdf(cosTheta);
+        sample.pdf = SampleWarp::uniformSphericalCapPdf(cosTheta);
 
         return true;
     }
 
     virtual bool sampleOutboundDirection(LightSample &sample) const
     {
-        sample.p = Sample::uniformSphere(sample.sampler->next2D());
-        sample.d = Sample::cosineHemisphere(sample.sampler->next2D());
-        sample.pdf = Sample::cosineHemispherePdf(sample.d)/(FOUR_PI*_radius*_radius);
+        sample.p = SampleWarp::uniformSphere(sample.sampler->next2D());
+        sample.d = SampleWarp::cosineHemisphere(sample.sampler->next2D());
+        sample.pdf = SampleWarp::cosineHemispherePdf(sample.d)/(FOUR_PI*_radius*_radius);
         TangentFrame frame(sample.p);
         sample.d = frame.toGlobal(sample.d);
         sample.p = sample.p*_radius + _pos;

@@ -172,7 +172,7 @@ class PathTraceIntegrator : public Integrator
         Vec3f lightF = f*e/sample.pdf;
 
         if (!light.isDelta())
-            lightF *= Sample::powerHeuristic(sample.pdf, bsdf.pdf(event));
+            lightF *= SampleWarp::powerHeuristic(sample.pdf, bsdf.pdf(event));
 
         return lightF;
     }
@@ -211,7 +211,7 @@ class PathTraceIntegrator : public Integrator
 
         Vec3f bsdfF = e*event.throughput;
 
-        bsdfF *= Sample::powerHeuristic(event.pdf, light.inboundPdf(data, event.info->p, wo));
+        bsdfF *= SampleWarp::powerHeuristic(event.pdf, light.inboundPdf(data, event.info->p, wo));
 
         return bsdfF;
     }
@@ -236,7 +236,7 @@ class PathTraceIntegrator : public Integrator
         Vec3f lightF = f*e/sample.pdf;
 
         if (!light.isDelta() && performMis)
-            lightF *= Sample::powerHeuristic(sample.pdf, medium->pdf(event));
+            lightF *= SampleWarp::powerHeuristic(sample.pdf, medium->pdf(event));
 
         return lightF;
     }
@@ -256,7 +256,7 @@ class PathTraceIntegrator : public Integrator
 
         Vec3f phaseF = e*event.throughput;
 
-        phaseF *= Sample::powerHeuristic(event.pdf, light.inboundPdf(data, event.p, event.wo));
+        phaseF *= SampleWarp::powerHeuristic(event.pdf, light.inboundPdf(data, event.p, event.wo));
 
         return phaseF;
     }

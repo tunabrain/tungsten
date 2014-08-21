@@ -63,12 +63,12 @@ public:
 
     Vec2f sample(const Vec2f &uv) const override final
     {
-        return Sample::uniformDisk(uv).xy()*0.5f + 0.5f;
+        return SampleWarp::uniformDisk(uv).xy()*0.5f + 0.5f;
     }
 
     float pdf(const Vec2f &uv) const override final
     {
-        return (uv - Vec2f(0.5f)).lengthSq() < 0.25f ? Sample::uniformDiskPdf()*4.0f : 0.0f;
+        return (uv - Vec2f(0.5f)).lengthSq() < 0.25f ? SampleWarp::uniformDiskPdf()*4.0f : 0.0f;
     }
 };
 

@@ -32,8 +32,8 @@ bool LambertBsdf::sample(SurfaceScatterEvent &event) const
         return false;
     if (event.wi.z() <= 0.0f)
         return false;
-    event.wo  = Sample::cosineHemisphere(event.sampler->next2D());
-    event.pdf = Sample::cosineHemispherePdf(event.wo);
+    event.wo  = SampleWarp::cosineHemisphere(event.sampler->next2D());
+    event.pdf = SampleWarp::cosineHemispherePdf(event.wo);
     event.throughput = albedo(event.info);
     event.sampledLobe = BsdfLobes::DiffuseReflectionLobe;
     return true;
@@ -54,7 +54,7 @@ float LambertBsdf::pdf(const SurfaceScatterEvent &event) const
         return 0.0f;
     if (event.wi.z() <= 0.0f || event.wo.z() <= 0.0f)
         return 0.0f;
-    return Sample::cosineHemispherePdf(event.wo);
+    return SampleWarp::cosineHemispherePdf(event.wo);
 }
 
 }

@@ -9,7 +9,7 @@
 
 namespace Tungsten {
 
-namespace Sample {
+namespace SampleWarp {
 
 static inline Vec3f uniformHemisphere(const Vec2f &uv)
 {

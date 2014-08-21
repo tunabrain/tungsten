@@ -152,8 +152,8 @@ public:
     {
         Vec2f xi = sample.sampler->next2D();
         sample.p = _base + xi.x()*_edge0 + xi.y()*_edge1;
-        sample.d = Sample::cosineHemisphere(sample.sampler->next2D());
-        sample.pdf = Sample::cosineHemispherePdf(sample.d)/_area;
+        sample.d = SampleWarp::cosineHemisphere(sample.sampler->next2D());
+        sample.pdf = SampleWarp::cosineHemispherePdf(sample.d)/_area;
         TangentFrame frame(_n);
         sample.d = frame.toGlobal(sample.d);
         return true;

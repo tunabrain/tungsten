@@ -78,7 +78,7 @@ bool PlasticBsdf::sample(SurfaceScatterEvent &event) const
         }
         event.sampledLobe = BsdfLobes::SpecularReflectionLobe;
     } else {
-        Vec3f wo(Sample::cosineHemisphere(event.sampler->next2D()));
+        Vec3f wo(SampleWarp::cosineHemisphere(event.sampler->next2D()));
         float Fo = Fresnel::dielectricReflectance(eta, wo.z());
         Vec3f diffuseAlbedo = albedo(event.info);
 
@@ -87,7 +87,7 @@ bool PlasticBsdf::sample(SurfaceScatterEvent &event) const
         if (_scaledSigmaA.max() > 0.0f)
             event.throughput *= std::exp(_scaledSigmaA*(-1.0f/event.wo.z() - 1.0f/event.wi.z()));
 
-        event.pdf = Sample::cosineHemispherePdf(event.wo);
+        event.pdf = SampleWarp::cosineHemispherePdf(event.wo);
         if (sampleR) {
             event.pdf *= 1.0f - specularProbability;
             event.throughput /= 1.0f - specularProbability;
@@ -129,7 +129,7 @@ float PlasticBsdf::pdf(const SurfaceScatterEvent &event) const
     if (!sampleT)
         return 0.0f;
 
-    float pdf = Sample::cosineHemispherePdf(event.wo);
+    float pdf = SampleWarp::cosineHemispherePdf(event.wo);
     if (sampleR) {
         float Fi = Fresnel::dielectricReflectance(1.0f/_ior, event.wi.z());
         float substrateWeight = _avgTransmittance*(1.0f - Fi);

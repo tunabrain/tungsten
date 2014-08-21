@@ -325,7 +325,7 @@ public:
         Vec3f p2 = _tfVerts[_tris[idx].v2].pos();
         Vec3f normal = (p1 - p0).cross(p2 - p0).normalized();
 
-        Vec3f p = Sample::uniformTriangle(sample.sampler->next2D(), p0, p1, p2);
+        Vec3f p = SampleWarp::uniformTriangle(sample.sampler->next2D(), p0, p1, p2);
         Vec3f L = p - sample.p;
 
         float rSq = L.lengthSq();
@@ -351,9 +351,9 @@ public:
         Vec3f normal = (p1 - p0).cross(p2 - p0).normalized();
         TangentFrame frame(normal);
 
-        sample.p = Sample::uniformTriangle(sample.sampler->next2D(), p0, p1, p2);
-        sample.d = Sample::cosineHemisphere(sample.sampler->next2D());
-        sample.pdf = Sample::cosineHemispherePdf(sample.d)/_totalArea;
+        sample.p = SampleWarp::uniformTriangle(sample.sampler->next2D(), p0, p1, p2);
+        sample.d = SampleWarp::cosineHemisphere(sample.sampler->next2D());
+        sample.pdf = SampleWarp::cosineHemispherePdf(sample.d)/_totalArea;
         sample.d = frame.toGlobal(sample.d);
 
         return true;

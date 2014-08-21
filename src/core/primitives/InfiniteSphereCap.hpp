@@ -93,15 +93,15 @@ public:
 
     virtual float inboundPdf(const IntersectionTemporary &/*data*/, const Vec3f &/*p*/, const Vec3f &/*d*/) const
     {
-        return Sample::uniformSphericalCapPdf(_cosCapAngle);
+        return SampleWarp::uniformSphericalCapPdf(_cosCapAngle);
     }
 
     virtual bool sampleInboundDirection(LightSample &sample) const
     {
-        Vec3f dir = Sample::uniformSphericalCap(sample.sampler->next2D(), _cosCapAngle);
+        Vec3f dir = SampleWarp::uniformSphericalCap(sample.sampler->next2D(), _cosCapAngle);
         sample.d = _capFrame.toGlobal(dir);
         sample.dist = 1e30f;
-        sample.pdf = Sample::uniformSphericalCapPdf(_cosCapAngle);
+        sample.pdf = SampleWarp::uniformSphericalCapPdf(_cosCapAngle);
         return true;
     }
 

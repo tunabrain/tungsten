@@ -122,7 +122,7 @@ public:
     virtual bool sampleInboundDirection(LightSample &sample) const
     {
         if (_emission->isConstant()) {
-            sample.d = Sample::uniformSphere(sample.sampler->next2D());
+            sample.d = SampleWarp::uniformSphere(sample.sampler->next2D());
             sample.dist = 1e30f;
             sample.pdf = INV_FOUR_PI;
             return true;
