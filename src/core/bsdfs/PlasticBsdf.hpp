@@ -18,7 +18,6 @@ class PlasticBsdf : public Bsdf
     float _avgTransmittance;
     Vec3f _scaledSigmaA;
 
-    void computeDiffuseFresnel();
     void init();
 
 public:

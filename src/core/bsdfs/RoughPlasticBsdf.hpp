@@ -22,7 +22,6 @@ class RoughPlasticBsdf : public Bsdf
     Vec3f _scaledSigmaA;
     Microfacet::Distribution _distribution;
 
-    void computeDiffuseFresnel();
     void init();
 
 public:

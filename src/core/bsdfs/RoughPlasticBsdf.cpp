@@ -18,26 +18,12 @@
 
 namespace Tungsten {
 
-void RoughPlasticBsdf::computeDiffuseFresnel()
-{
-    constexpr int SampleCount = 10000;
-
-    _diffuseFresnel = 0.0f;
-    float fb = Fresnel::dielectricReflectance(_ior, 0.0f);
-    for (int i = 1; i <= SampleCount; ++i) {
-        float cosThetaSq = float(i)/SampleCount;
-        float fa = Fresnel::dielectricReflectance(_ior, min(std::sqrt(cosThetaSq), 1.0f));
-        _diffuseFresnel += (fa + fb)*0.5f/SampleCount;
-        fb = fa;
-    }
-}
-
 void RoughPlasticBsdf::init()
 {
     _scaledSigmaA = _thickness*_sigmaA;
     _avgTransmittance = std::exp(-2.0f*_scaledSigmaA.avg());
 
-    computeDiffuseFresnel();
+    _diffuseFresnel = Fresnel::computeDiffuseFresnel(_ior, 1000000);
 }
 
 RoughPlasticBsdf::RoughPlasticBsdf()

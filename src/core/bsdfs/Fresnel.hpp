@@ -122,6 +122,20 @@ static inline Vec3f conductorReflectance(const Vec3f &eta, const Vec3f &k, float
     );
 }
 
+static inline float computeDiffuseFresnel(float ior, const int sampleCount)
+{
+    double diffuseFresnel = 0.0;
+    float fb = Fresnel::dielectricReflectance(ior, 0.0f);
+    for (int i = 1; i <= sampleCount; ++i) {
+        float cosThetaSq = float(i)/sampleCount;
+        float fa = Fresnel::dielectricReflectance(ior, min(std::sqrt(cosThetaSq), 1.0f));
+        diffuseFresnel += double(fa + fb)*(0.5/sampleCount);
+        fb = fa;
+    }
+
+    return diffuseFresnel;
+}
+
 }
 
 }
