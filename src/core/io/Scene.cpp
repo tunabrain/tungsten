@@ -8,7 +8,6 @@
 #include "Scene.hpp"
 
 #include "integrators/PathTraceIntegrator.hpp"
-#include "integrators/RayStreamIntegrator.hpp"
 
 #include "primitives/InfiniteSphereCap.hpp"
 #include "primitives/InfiniteSphere.hpp"
@@ -150,8 +149,6 @@ std::shared_ptr<Integrator> Scene::instantiateIntegrator(std::string type, const
     std::shared_ptr<Integrator> result;
     if (type == "path_trace")
         result = std::make_shared<PathTraceIntegrator>();
-    else if (type == "ray_stream")
-        result = std::make_shared<RayStreamIntegrator>();
     else
         FAIL("Unknown integrator type: '%s'", type.c_str());
 
