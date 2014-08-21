@@ -35,7 +35,6 @@ MixedBsdf::MixedBsdf()
   _bsdf1(_bsdf0),
   _ratio(std::make_shared<ConstantTextureA>(0.5f))
 {
-
 }
 
 MixedBsdf::MixedBsdf(std::shared_ptr<Bsdf> bsdf0, std::shared_ptr<Bsdf> bsdf1, float ratio)
@@ -113,9 +112,7 @@ bool MixedBsdf::sample(SurfaceScatterEvent &event) const
 
 Vec3f MixedBsdf::eval(const SurfaceScatterEvent &event) const
 {
-    float ratio;
-    if (!adjustedRatio(event.requestedLobe, event.info->uv, ratio))
-        return Vec3f(0.0f);
+    float ratio = (*_ratio)[event.info->uv];
     return albedo(event.info)*(_bsdf0->eval(event)*ratio + _bsdf1->eval(event)*(1.0f - ratio));
 }
 
