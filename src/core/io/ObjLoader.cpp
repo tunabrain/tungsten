@@ -273,15 +273,15 @@ std::shared_ptr<Bsdf> ObjLoader::convertObjMaterial(const ObjMaterial &mat)
     } else if (!mat.isTransmissive()) {
         if (!mat.isSpecular()) {
             result = std::make_shared<LambertBsdf>();
-            result->setColor(std::make_shared<ConstantTextureRgb>(mat.diffuse));
+            result->setAlbedo(std::make_shared<ConstantTextureRgb>(mat.diffuse));
         } else if (mat.hardness > 500.0f) {
             result = std::make_shared<MirrorBsdf>();
-            result->setColor(std::make_shared<ConstantTextureRgb>(mat.specular));
+            result->setAlbedo(std::make_shared<ConstantTextureRgb>(mat.specular));
         } else {
             std::shared_ptr<Bsdf> lambert = std::make_shared<LambertBsdf>();
             std::shared_ptr<Bsdf> phong = std::make_shared<PhongBsdf>(int(mat.hardness));
-            lambert->setColor(std::make_shared<ConstantTextureRgb>(mat.diffuse));
-            phong->setColor(std::make_shared<ConstantTextureRgb>(mat.specular));
+            lambert->setAlbedo(std::make_shared<ConstantTextureRgb>(mat.diffuse));
+            phong->setAlbedo(std::make_shared<ConstantTextureRgb>(mat.specular));
             float ratio = mat.diffuse.max()/(mat.specular.max() + mat.diffuse.max());
             result = std::make_shared<MixedBsdf>(lambert, phong, ratio);
         }
@@ -297,7 +297,7 @@ std::shared_ptr<Bsdf> ObjLoader::convertObjMaterial(const ObjMaterial &mat)
 //  if (mat.hasBumpMap())
 //      result->setBump(fetchScalarMap(mat.bumpMap));
     if (mat.hasDiffuseMap())
-        result->setColor(fetchColorMap(mat.diffuseMap));
+        result->setAlbedo(fetchColorMap(mat.diffuseMap));
 
     result->setName(mat.name);
 

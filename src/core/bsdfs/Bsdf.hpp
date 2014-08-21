@@ -71,7 +71,7 @@ public:
         return _lobes;
     }
 
-    void setColor(const std::shared_ptr<TextureRgb> &c)
+    void setAlbedo(const std::shared_ptr<TextureRgb> &c)
     {
         _albedo = c;
     }
