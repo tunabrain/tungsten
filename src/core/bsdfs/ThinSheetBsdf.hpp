@@ -9,8 +9,6 @@ class Scene;
 
 class ThinSheetBsdf : public Bsdf
 {
-    static constexpr bool UseAlphaTrick = true;
-
     float _ior;
     std::shared_ptr<TextureA> _thickness;
     Vec3f _sigmaA;

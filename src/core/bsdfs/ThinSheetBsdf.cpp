@@ -50,21 +50,6 @@ bool ThinSheetBsdf::sample(SurfaceScatterEvent &event) const
 {
     if (!event.requestedLobe.test(BsdfLobes::SpecularReflectionLobe))
         return false;
-    if (!UseAlphaTrick) {
-        float cosThetaT;
-        float R = Fresnel::thinFilmReflectance(1.0f/_ior, std::abs(event.wi.z()), cosThetaT);
-
-        if (event.sampler->next1D() < R) {
-            event.wo = Vec3f(-event.wi.x(), -event.wi.y(), event.wi.z());
-            event.pdf = R;
-            event.sampledLobe = BsdfLobes::SpecularReflectionLobe;
-        } else {
-            event.wo = Vec3f(-event.wi.x(), -event.wi.y(), -event.wi.z());
-            event.pdf = 1.0f - R;
-            event.sampledLobe = BsdfLobes::SpecularTransmissionLobe;
-        }
-        event.throughput = Vec3f(1.0f);
-    } else {
         event.wo = Vec3f(-event.wi.x(), -event.wi.y(), event.wi.z());
         event.pdf = 1.0f;
         event.sampledLobe = BsdfLobes::SpecularReflectionLobe;
@@ -73,13 +58,12 @@ bool ThinSheetBsdf::sample(SurfaceScatterEvent &event) const
         event.throughput = Fresnel::thinFilmReflectanceInterference(1.0f/_ior,
                 std::abs(event.wi.z()), (*_thickness)[event.info->uv]*500.0f, R, cosThetaT);
         event.throughput /= event.throughput.avg();
-    }
     return true;
 }
 
 Vec3f ThinSheetBsdf::eval(const SurfaceScatterEvent &event) const
 {
-    if (!UseAlphaTrick || !event.requestedLobe.isForward() || -event.wi != event.wo)
+    if (!event.requestedLobe.isForward() || -event.wi != event.wo)
         return Vec3f(0.0f);
 
     float thickness = (*_thickness)[event.info->uv]*500.0f;
