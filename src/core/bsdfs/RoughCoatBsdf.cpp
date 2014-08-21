@@ -3,6 +3,8 @@
 #include "RoughConductorBsdf.hpp"
 #include "Fresnel.hpp"
 
+#include "sampling/SampleGenerator.hpp"
+
 #include "io/Scene.hpp"
 
 namespace Tungsten {
