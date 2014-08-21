@@ -299,7 +299,7 @@ class SceneXmlWriter
             assign("id", bsdf->name());
         beginPost();
         convert("specularReflectance", bsdf->albedo().get());
-        convert("exponent", float(bsdf->hardness()));
+        convert("exponent", bsdf->exponent());
         convertSpectrum("diffuseReflectance", Vec3f(0.0f));
         end();
     }
