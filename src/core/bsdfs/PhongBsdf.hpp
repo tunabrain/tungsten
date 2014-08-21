@@ -13,6 +13,7 @@ class PhongBsdf : public Bsdf
     float _invExponent;
     float _pdfFactor;
     float _brdfFactor;
+    float _diffuseRatio;
 
     void init();
 

@@ -16,7 +16,8 @@
 namespace Tungsten {
 
 PhongBsdf::PhongBsdf(float exponent)
-: _exponent(exponent)
+: _exponent(exponent),
+  _diffuseRatio(0.2f)
 {
     init();
 }
@@ -33,6 +34,7 @@ void PhongBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     Bsdf::fromJson(v, scene);
     JsonUtils::fromJson(v, "exponent", _exponent);
+    JsonUtils::fromJson(v, "diffuse_ratio", _diffuseRatio);
     init();
 }
 
@@ -41,54 +43,95 @@ rapidjson::Value PhongBsdf::toJson(Allocator &allocator) const
     rapidjson::Value v = Bsdf::toJson(allocator);
     v.AddMember("type", "phong", allocator);
     v.AddMember("exponent", _exponent, allocator);
+    v.AddMember("diffuse_ratio", _diffuseRatio, allocator);
     return std::move(v);
 }
 
 bool PhongBsdf::sample(SurfaceScatterEvent &event) const
 {
-    if (!event.requestedLobe.test(BsdfLobes::GlossyReflectionLobe))
+    bool evalGlossy  = event.requestedLobe.test(BsdfLobes::GlossyReflectionLobe);
+    bool evalDiffuse = event.requestedLobe.test(BsdfLobes::DiffuseReflectionLobe);
+
+    if (!evalGlossy && !evalDiffuse)
         return false;
     if (event.wi.z() <= 0.0f)
         return false;
 
-    Vec2f xi = event.sampler->next2D();
-    float phi      = xi.x()*TWO_PI;
-    float cosTheta = std::pow(xi.y(), _invExponent);
-    float sinTheta = std::sqrt(max(0.0f, 1.0f - cosTheta*cosTheta));
+    bool sampleGlossy;
+    if (evalGlossy & evalDiffuse)
+        sampleGlossy = event.sampler->next1D() >= _diffuseRatio;
+    else
+        sampleGlossy = evalGlossy;
 
-    Vec3f woLocal(std::cos(phi)*sinTheta, std::sin(phi)*sinTheta, cosTheta);
+    if (sampleGlossy) {
+        Vec2f xi = event.sampler->next2D();
+        float phi      = xi.x()*TWO_PI;
+        float cosTheta = std::pow(xi.y(), _invExponent);
+        float sinTheta = std::sqrt(max(0.0f, 1.0f - cosTheta*cosTheta));
 
-    TangentFrame lobe(Vec3f(-event.wi.x(), -event.wi.y(), event.wi.z()));
-    event.wo = lobe.toGlobal(woLocal);
-    if (event.wo.z() < 0.0f)
-        return false;
+        Vec3f woLocal(std::cos(phi)*sinTheta, std::sin(phi)*sinTheta, cosTheta);
 
-    cosTheta = lobe.normal.dot(event.wo);
-    float cosThetaPowN = std::pow(cosTheta, _exponent);
-    event.pdf = cosThetaPowN*_pdfFactor;
-    event.throughput = albedo(event.info)*(event.wo.z()*(_brdfFactor/_pdfFactor));
+        TangentFrame lobe(Vec3f(-event.wi.x(), -event.wi.y(), event.wi.z()));
+        event.wo = lobe.toGlobal(woLocal);
+        if (event.wo.z() < 0.0f)
+            return false;
+
+        event.sampledLobe = BsdfLobes::GlossyReflectionLobe;
+    } else {
+        event.wo = Sample::cosineHemisphere(event.sampler->next2D());
+        event.sampledLobe = BsdfLobes::DiffuseReflectionLobe;
+    }
+
+    event.pdf = pdf(event);
+    event.throughput = eval(event)/event.pdf;
+
     return true;
 }
 
 Vec3f PhongBsdf::eval(const SurfaceScatterEvent &event) const
 {
-    if (!event.requestedLobe.test(BsdfLobes::GlossyReflectionLobe))
+    bool evalGlossy  = event.requestedLobe.test(BsdfLobes::GlossyReflectionLobe);
+    bool evalDiffuse = event.requestedLobe.test(BsdfLobes::DiffuseReflectionLobe);
+
+    if (!evalGlossy && !evalDiffuse)
         return Vec3f(0.0f);
     if (event.wi.z() <= 0.0f || event.wo.z() <= 0.0f)
         return Vec3f(0.0f);
-    float cosTheta = Vec3f(-event.wi.x(), -event.wi.y(), event.wi.z()).dot(event.wo);
-    if (cosTheta < 0.0f)
-        return Vec3f(0.0f);
-    return albedo(event.info)*(std::pow(cosTheta, _exponent)*_brdfFactor*event.wo.z());
+
+    float result = 0.0f;
+    if (evalDiffuse)
+        result += _diffuseRatio;
+    if (evalGlossy) {
+        float cosTheta = Vec3f(-event.wi.x(), -event.wi.y(), event.wi.z()).dot(event.wo);
+        if (cosTheta > 0.0f)
+            result += std::pow(cosTheta, _exponent)*_brdfFactor*(1.0f - _diffuseRatio);
+    }
+
+    return albedo(event.info)*event.wo.z()*result;
 }
 
 float PhongBsdf::pdf(const SurfaceScatterEvent &event) const
 {
-    if (!event.requestedLobe.test(BsdfLobes::GlossyReflectionLobe))
+    bool evalGlossy  = event.requestedLobe.test(BsdfLobes::GlossyReflectionLobe);
+    bool evalDiffuse = event.requestedLobe.test(BsdfLobes::DiffuseReflectionLobe);
+
+    if (!evalGlossy && !evalDiffuse)
         return 0.0f;
     if (event.wi.z() <= 0.0f || event.wo.z() <= 0.0f)
         return 0.0f;
-    return std::pow(Vec3f(-event.wi.x(), -event.wi.y(), event.wi.z()).dot(event.wo), _exponent)*_pdfFactor;
+
+    float result = 0.0f;
+    if (evalGlossy) {
+        float cosTheta = Vec3f(-event.wi.x(), -event.wi.y(), event.wi.z()).dot(event.wo);
+        if (cosTheta > 0.0f)
+            result += std::pow(cosTheta, _exponent)*_pdfFactor;
+    }
+    if (evalDiffuse && evalGlossy)
+        result = result*(1.0f - _diffuseRatio) + _diffuseRatio*Sample::cosineHemispherePdf(event.wo);
+    else if (evalDiffuse)
+        result = Sample::cosineHemispherePdf(event.wo);
+
+    return result;
 }
 
 }
