@@ -75,7 +75,7 @@ class RayStreamIntegrator : public Integrator
         do {
             if (_scene->intersect(ray, data, info) && info.primitive != endCap) {
                 addRay(bounce, ray);
-                if (!info.primitive->bsdf()->flags().isForward()) {
+                if (!info.primitive->bsdf()->lobes().isForward()) {
                     Vec3f transmittance = info.primitive->bsdf()->transmittance(&info);
                     if (transmittance == 0.0f)
                         return Vec3f(0.0f);
@@ -256,7 +256,7 @@ class RayStreamIntegrator : public Integrator
     {
         Vec3f result(0.0f);
 
-        if (bsdf.flags().isPureSpecular() || bsdf.flags().isForward())
+        if (bsdf.lobes().isPureSpecular() || bsdf.lobes().isForward())
             return Vec3f(0.0f);
 
         result += lightSample(frame, light, bsdf, event, bounce);
@@ -422,7 +422,7 @@ public:
         float transmittanceProbability = transmittance.avg();
 
         Vec3f wo;
-        if (bsdf.flags().isForward()) {
+        if (bsdf.lobes().isForward()) {
             wo = ray.dir();
         } else if (transmittanceRoll < transmittanceProbability) {
             wo = ray.dir();

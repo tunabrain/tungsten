@@ -92,7 +92,7 @@ public:
     void setupTangentFrame(const Primitive::IntersectionTemporary &data,
             const IntersectionInfo &info, TangentFrame &dst) const
     {
-        if ((!_bump || _bump->isConstant()) && !_bsdf->flags().isAnisotropic()) {
+        if ((!_bump || _bump->isConstant()) && !_bsdf->lobes().isAnisotropic()) {
             dst = TangentFrame(info.Ns);
             return;
         }

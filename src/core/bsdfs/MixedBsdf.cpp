@@ -16,8 +16,8 @@ namespace Tungsten {
 
 bool MixedBsdf::adjustedRatio(BsdfLobes requestedLobe, Vec2f uv, float &ratio) const
 {
-    bool sample0 = requestedLobe.test(_bsdf0->flags());
-    bool sample1 = requestedLobe.test(_bsdf1->flags());
+    bool sample0 = requestedLobe.test(_bsdf0->lobes());
+    bool sample1 = requestedLobe.test(_bsdf1->lobes());
 
     if (sample0 && sample1)
         ratio = (*_ratio)[uv];
@@ -43,7 +43,7 @@ MixedBsdf::MixedBsdf(std::shared_ptr<Bsdf> bsdf0, std::shared_ptr<Bsdf> bsdf1, f
   _bsdf1(bsdf1),
   _ratio(std::make_shared<ConstantTextureA>(ratio))
 {
-    _lobes = BsdfLobes(_bsdf0->flags(), _bsdf1->flags());
+    _lobes = BsdfLobes(_bsdf0->lobes(), _bsdf1->lobes());
 }
 
 void MixedBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
@@ -52,7 +52,7 @@ void MixedBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
 
     _bsdf0 = scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf0"));
     _bsdf1 = scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf1"));
-    _lobes = BsdfLobes(_bsdf0->flags(), _bsdf1->flags());
+    _lobes = BsdfLobes(_bsdf0->lobes(), _bsdf1->lobes());
 
     const rapidjson::Value::Member *ratio  = v.FindMember("ratio");
     if (ratio)

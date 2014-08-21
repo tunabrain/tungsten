@@ -22,7 +22,7 @@ RoughCoatBsdf::RoughCoatBsdf()
   _distributionName("ggx"),
   _roughness(std::make_shared<ConstantTextureA>(0.02f))
 {
-    _lobes = BsdfLobes(BsdfLobes::GlossyReflectionLobe, _substrate->flags());
+    _lobes = BsdfLobes(BsdfLobes::GlossyReflectionLobe, _substrate->lobes());
     init();
 }
 
@@ -39,7 +39,7 @@ void RoughCoatBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
     if (roughness)
         _roughness = scene.fetchScalarTexture<2>(roughness->value);
 
-    _lobes = BsdfLobes(BsdfLobes::GlossyReflectionLobe, _substrate->flags());
+    _lobes = BsdfLobes(BsdfLobes::GlossyReflectionLobe, _substrate->lobes());
     init();
 }
 
@@ -93,7 +93,7 @@ bool RoughCoatBsdf::sample(SurfaceScatterEvent &event) const
         return false;
 
     bool sampleR = event.requestedLobe.test(BsdfLobes::GlossyReflectionLobe);
-    bool sampleT = event.requestedLobe.test(_substrate->flags());
+    bool sampleT = event.requestedLobe.test(_substrate->lobes());
 
     if (!sampleR && !sampleT)
         return false;
@@ -162,7 +162,7 @@ bool RoughCoatBsdf::sample(SurfaceScatterEvent &event) const
 Vec3f RoughCoatBsdf::eval(const SurfaceScatterEvent &event) const
 {
     bool sampleR = event.requestedLobe.test(BsdfLobes::GlossyReflectionLobe);
-    bool sampleT = event.requestedLobe.test(_substrate->flags());
+    bool sampleT = event.requestedLobe.test(_substrate->lobes());
 
     if (!sampleT && !sampleR)
         return Vec3f(0.0f);
@@ -204,7 +204,7 @@ Vec3f RoughCoatBsdf::eval(const SurfaceScatterEvent &event) const
 float RoughCoatBsdf::pdf(const SurfaceScatterEvent &event) const
 {
     bool sampleR = event.requestedLobe.test(BsdfLobes::GlossyReflectionLobe);
-    bool sampleT = event.requestedLobe.test(_substrate->flags());
+    bool sampleT = event.requestedLobe.test(_substrate->lobes());
 
     if (!sampleT && !sampleR)
         return 0.0f;

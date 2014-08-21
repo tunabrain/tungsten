@@ -55,7 +55,7 @@ class PathTraceIntegrator : public Integrator
         Vec3f throughput(1.0f);
         do {
             if (_scene->intersect(ray, data, info) && info.primitive != endCap) {
-                if (!info.primitive->bsdf()->flags().isForward()) {
+                if (!info.primitive->bsdf()->lobes().isForward()) {
                     float alpha = info.primitive->bsdf()->alpha(&info);
                     if (alpha == 1.0f)
                         return Vec3f(0.0f);
@@ -247,7 +247,7 @@ class PathTraceIntegrator : public Integrator
     {
         Vec3f result(0.0f);
 
-        if (bsdf.flags().isPureSpecular() || bsdf.flags().isForward())
+        if (bsdf.lobes().isPureSpecular() || bsdf.lobes().isForward())
             return Vec3f(0.0f);
 
         result += lightSample(frame, light, bsdf, event, medium, bounce, epsilon);
@@ -406,7 +406,7 @@ public:
         const Bsdf &bsdf = *info.primitive->bsdf();
 
         Vec3f wo;
-        if (bsdf.flags().isForward()) {
+        if (bsdf.lobes().isForward()) {
             wo = ray.dir();
             if (!GeneralizedShadowRays)
                 wasSpecular = true;
@@ -423,7 +423,7 @@ public:
                 FAIL("NAN frame! %s %s %s", frame.normal, frame.tangent, frame.bitangent);
             }
 
-            if (frame.normal.dot(ray.dir()) > 0.0f && !bsdf.flags().isTransmissive()) {
+            if (frame.normal.dot(ray.dir()) > 0.0f && !bsdf.lobes().isTransmissive()) {
                 info.Ng = -info.Ng;
                 info.Ns = -info.Ns;
                 frame.normal = -frame.normal;

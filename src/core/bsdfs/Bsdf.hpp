@@ -66,7 +66,7 @@ public:
     virtual Vec3f eval(const SurfaceScatterEvent &event) const = 0;
     virtual float pdf(const SurfaceScatterEvent &event) const = 0;
 
-    const BsdfLobes &flags() const
+    const BsdfLobes &lobes() const
     {
         return _lobes;
     }

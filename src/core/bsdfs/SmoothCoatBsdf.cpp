@@ -20,7 +20,7 @@ SmoothCoatBsdf::SmoothCoatBsdf()
   _sigmaA(0.0f),
   _substrate(std::make_shared<RoughConductorBsdf>())
 {
-    _lobes = BsdfLobes(BsdfLobes::SpecularReflectionLobe, _substrate->flags());
+    _lobes = BsdfLobes(BsdfLobes::SpecularReflectionLobe, _substrate->lobes());
     init();
 }
 
@@ -32,7 +32,7 @@ void SmoothCoatBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
     JsonUtils::fromJson(v, "sigmaA", _sigmaA);
     _substrate = scene.fetchBsdf(JsonUtils::fetchMember(v, "substrate"));
 
-    _lobes = BsdfLobes(BsdfLobes::SpecularReflectionLobe, _substrate->flags());
+    _lobes = BsdfLobes(BsdfLobes::SpecularReflectionLobe, _substrate->lobes());
     init();
 }
 
@@ -50,7 +50,7 @@ rapidjson::Value SmoothCoatBsdf::toJson(Allocator &allocator) const
 bool SmoothCoatBsdf::sample(SurfaceScatterEvent &event) const
 {
     bool sampleR = event.requestedLobe.test(BsdfLobes::SpecularReflectionLobe);
-    bool sampleT = event.requestedLobe.test(_substrate->flags());
+    bool sampleT = event.requestedLobe.test(_substrate->lobes());
 
     if (!sampleR && !sampleT)
         return false;
@@ -103,7 +103,7 @@ bool SmoothCoatBsdf::sample(SurfaceScatterEvent &event) const
 
 Vec3f SmoothCoatBsdf::eval(const SurfaceScatterEvent &event) const
 {
-    bool sampleT = event.requestedLobe.test(_substrate->flags());
+    bool sampleT = event.requestedLobe.test(_substrate->lobes());
 
     if (!sampleT)
         return Vec3f(0.0f);
@@ -135,7 +135,7 @@ Vec3f SmoothCoatBsdf::eval(const SurfaceScatterEvent &event) const
 float SmoothCoatBsdf::pdf(const SurfaceScatterEvent &event) const
 {
     bool sampleR = event.requestedLobe.test(BsdfLobes::SpecularReflectionLobe);
-    bool sampleT = event.requestedLobe.test(_substrate->flags());
+    bool sampleT = event.requestedLobe.test(_substrate->lobes());
 
     if (!sampleT)
         return 0.0f;
