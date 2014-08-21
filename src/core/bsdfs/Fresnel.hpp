@@ -25,7 +25,13 @@ static inline float thinFilmReflectance(float eta, float cosThetaI, float &cosTh
     return 1.0f - ((1.0f - Rs)/(1.0f + Rs) + (1.0f - Rp)/(1.0f + Rp))*0.5f;
 }
 
-static inline Vec3f thinFilmReflectanceInterference(float eta, float cosThetaI, float thickness, float &R, float &cosThetaT)
+static inline float thinFilmReflectance(float eta, float cosThetaI)
+{
+    float cosThetaT;
+    return thinFilmReflectance(eta, cosThetaI, cosThetaT);
+}
+
+static inline Vec3f thinFilmReflectanceInterference(float eta, float cosThetaI, float thickness, float &cosThetaT)
 {
     const Vec3f invLambdas = 1.0f/Vec3f(650.0f, 510.0f, 475.0f);
 
@@ -34,8 +40,10 @@ static inline Vec3f thinFilmReflectanceInterference(float eta, float cosThetaI, 
     float invEta = 1.0f/eta;
 
     float sinThetaTSq = eta*eta*sinThetaISq;
-    if (sinThetaTSq > 1.0f)
+    if (sinThetaTSq > 1.0f) {
+        cosThetaT = 0.0f;
         return Vec3f(1.0f);
+    }
     cosThetaT = std::sqrt(1.0f - sinThetaTSq);
 
     float Ts = 4.0f*eta*cosThetaI*cosThetaT/sqr(eta*cosThetaI + cosThetaT);
@@ -44,8 +52,6 @@ static inline Vec3f thinFilmReflectanceInterference(float eta, float cosThetaI, 
     float Rs = 1.0f - Ts;
     float Rp = 1.0f - Tp;
 
-    R = 1.0f - ((1.0f - Rs)/(1.0f + Rs) + (1.0f - Rp)/(1.0f + Rp))*0.5f;
-
     Vec3f phi = (thickness*cosThetaT*FOUR_PI*invEta)*invLambdas;
     Vec3f cosPhi(std::cos(phi.x()), std::cos(phi.y()), std::cos(phi.z()));
 
@@ -53,6 +59,12 @@ static inline Vec3f thinFilmReflectanceInterference(float eta, float cosThetaI, 
     Vec3f tP = sqr(Tp)/((sqr(Rp) + 1.0f) - 2.0f*Rp*cosPhi);
 
     return 1.0f - (tS + tP)*0.5f;
+}
+
+static inline Vec3f thinFilmReflectanceInterference(float eta, float cosThetaI, float thickness)
+{
+    float cosThetaT;
+    return thinFilmReflectanceInterference(eta, cosThetaI, thickness, cosThetaT);
 }
 
 static inline float dielectricReflectance(float eta, float cosThetaI, float &cosThetaT)

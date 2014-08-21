@@ -10,6 +10,7 @@ class Scene;
 class ThinSheetBsdf : public Bsdf
 {
     float _ior;
+    bool _enableInterference;
     std::shared_ptr<TextureA> _thickness;
     Vec3f _sigmaA;
 
