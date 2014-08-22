@@ -1,9 +1,7 @@
-*.png
-models
-build
-.cproject
-.project
-.settings
-MayaLicense.txt
-*.dat
-*.exe
+/*
+/*/
+!/.gitignore
+!/CMakeLists.txt
+!/setup_builds.sh
+!/spectrum_converter.cpp
+!/src/
