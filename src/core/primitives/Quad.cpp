@@ -79,8 +79,6 @@ bool Quad::intersect(Ray &ray, IntersectionTemporary &data) const
 bool Quad::occluded(const Ray &ray) const
 {
     float nDotW = ray.dir().dot(_n);
-    //if (nDotW >= 0.0f)
-    //  return false;
 
     float t = _n.dot(_base - ray.pos())/nDotW;
     if (t < ray.nearT() || t > ray.farT())
