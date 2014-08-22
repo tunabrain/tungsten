@@ -417,7 +417,7 @@ public:
                 wasSpecular = true;
         } else {
             TangentFrame frame;
-            bsdf.setupTangentFrame(*info.primitive, data, info, frame);
+            info.primitive->setupTangentFrame(data, info, frame);
 
             if (std::isnan(frame.normal.sum())) {
                 FAIL("NAN frame! %s %s %s", frame.normal, frame.tangent, frame.bitangent);

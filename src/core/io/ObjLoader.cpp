@@ -291,8 +291,11 @@ std::shared_ptr<Bsdf> ObjLoader::convertObjMaterial(const ObjMaterial &mat)
 
     if (mat.hasAlphaMap())
         result->setAlpha(fetchScalarMap(mat.alphaMap));
-    if (mat.hasBumpMap())
-        result->setBump(fetchScalarMap(mat.bumpMap));
+    // TODO: Can no longer set bump maps directly, since they moved from Bsdf to Primitive.
+    // Need to somehow remember this piece of info for later so we can set the bump map on
+    // the primitive when the bsdf is applied
+//  if (mat.hasBumpMap())
+//      result->setBump(fetchScalarMap(mat.bumpMap));
     if (mat.hasDiffuseMap())
         result->setColor(fetchColorMap(mat.diffuseMap));
 

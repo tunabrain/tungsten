@@ -385,8 +385,10 @@ void Scene::addTexture(std::shared_ptr<T1> &t, std::map<std::string, std::shared
 
 void Scene::addPrimitive(const std::shared_ptr<Primitive> &mesh)
 {
-    if (addUnique(mesh, _primitives))
+    if (addUnique(mesh, _primitives)) {
         addBsdf(mesh->bsdf());
+        addTexture(mesh->bump(), _scalarMaps);
+    }
 }
 
 void Scene::addBsdf(const std::shared_ptr<Bsdf> &bsdf)
@@ -397,7 +399,6 @@ void Scene::addBsdf(const std::shared_ptr<Bsdf> &bsdf)
         if (bsdf->extMedium())
             addUnique(bsdf->extMedium(), _media);
         addTexture(bsdf->alpha(), _scalarMaps);
-        addTexture(bsdf->bump(), _scalarMaps);
         addTexture(bsdf->albedo(), _colorMaps);
     }
 }

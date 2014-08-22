@@ -437,18 +437,8 @@ class SceneXmlWriter
 
     void convert(Bsdf *bsdf)
     {
-        bool hasBump = !bsdf->bump()->isConstant();
         bool hasAlpha = !bsdf->alpha()->isConstant() || bsdf->alpha()->average() != 1.0f;
         std::string nameTmp = bsdf->name();
-        if (hasBump) {
-            begin("bsdf");
-            assign("type", "bumpmap");
-            if (!bsdf->unnamed())
-                assign("id", bsdf->name());
-            bsdf->setName("");
-            beginPost();
-            convert("map", bsdf->bump().get());
-        }
         if (hasAlpha) {
             begin("bsdf");
             assign("type", "mask");
@@ -488,8 +478,6 @@ class SceneXmlWriter
         } else
             DBG("Unknown bsdf type with name '%s'!", bsdf->name());
 
-        if (hasBump)
-            end();
         if (hasAlpha)
             end();
         bsdf->setName(nameTmp);
@@ -630,8 +618,18 @@ class SceneXmlWriter
         } else
             DBG("Unknown primitive type!");
 
-        if (!dynamic_cast<ForwardBsdf *>(prim->bsdf().get()))
+        if (!dynamic_cast<ForwardBsdf *>(prim->bsdf().get())) {
+            bool hasBump = prim->bump() && !prim->bump()->isConstant();
+            if (hasBump) {
+                begin("bsdf");
+                assign("type", "bumpmap");
+                beginPost();
+                convert("map", prim->bump().get());
+            }
             convertOrRef(prim->bsdf().get());
+            if (hasBump)
+                end();
+        }
         if (prim->bsdf()->intMedium()) {
             prim->bsdf()->intMedium()->setName("interior");
             convert(prim->bsdf()->intMedium().get());

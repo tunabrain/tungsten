@@ -1,10 +1,15 @@
 #ifndef PRIMITIVE_HPP_
 #define PRIMITIVE_HPP_
 
+#include "IntersectionInfo.hpp"
+
 #include "samplerecords/LightSample.hpp"
 
 #include "materials/Texture.hpp"
 
+#include "bsdfs/Bsdf.hpp"
+
+#include "math/TangentFrame.hpp"
 #include "math/Mat4f.hpp"
 #include "math/Ray.hpp"
 #include "math/Box.hpp"
@@ -17,27 +22,14 @@
 namespace Tungsten {
 
 class TriangleMesh;
-class Primitive;
-class Bsdf;
-
-struct IntersectionInfo
-{
-    Vec3f Ng;
-    Vec3f Ns;
-    Vec3f tangent;
-    Vec3f p;
-    Vec3f w;
-    Vec2f uv;
-    float epsilon;
-
-    const Primitive *primitive;
-};
 
 class Primitive : public JsonSerializable
 {
 protected:
     std::shared_ptr<Bsdf> _bsdf;
     std::shared_ptr<TextureRgb> _emission;
+    std::shared_ptr<TextureA> _bump;
+    float _bumpStrength;
 
     Mat4f _transform;
 
@@ -73,7 +65,8 @@ public:
     Primitive() = default;
 
     Primitive(const std::string &name, std::shared_ptr<Bsdf> bsdf)
-    : JsonSerializable(name), _bsdf(bsdf)
+    : JsonSerializable(name), _bsdf(bsdf),
+      _bumpStrength(1.0f)
     {
     }
 
@@ -96,6 +89,43 @@ public:
 
     virtual bool invertParametrization(Vec2f uv, Vec3f &pos) const = 0;
 
+    void setupTangentFrame(const Primitive::IntersectionTemporary &data,
+            const IntersectionInfo &info, TangentFrame &dst) const
+    {
+        if ((!_bump || _bump->isConstant()) && !_bsdf->flags().isAnisotropic()) {
+            dst = TangentFrame(info.Ns);
+            return;
+        }
+        Vec3f T, B, N(info.Ns);
+        if (!tangentSpace(data, info, T, B)) {
+            dst = TangentFrame(info.Ns);
+            return;
+        }
+        if (_bump && !_bump->isConstant()) {
+            Vec2f dudv;
+            _bump->derivatives(info.uv, dudv);
+
+            T += info.Ns*(dudv.x()*_bumpStrength - info.Ns.dot(T));
+            B += info.Ns*(dudv.y()*_bumpStrength - info.Ns.dot(B));
+            N = T.cross(B);
+            if (N == 0.0f) {
+                dst = TangentFrame(info.Ns);
+                return;
+            }
+            if (N.dot(info.Ns) < 0.0f)
+                N = -N;
+            N.normalize();
+        }
+        T = (T - N.dot(T)*N);
+        if (T == 0.0f) {
+            dst = TangentFrame(info.Ns);
+            return;
+        }
+        T.normalize();
+        B = N.cross(T);
+
+        dst = TangentFrame(N, T, B);
+    }
 
     bool isEmissive() const
     {
@@ -160,6 +190,21 @@ public:
     const std::shared_ptr<TextureRgb> &emission() const
     {
         return _emission;
+    }
+
+    void setBump(const std::shared_ptr<TextureA> &b)
+    {
+        _bump = b;
+    }
+
+    std::shared_ptr<TextureA> &bump()
+    {
+        return _bump;
+    }
+
+    const std::shared_ptr<TextureA> &bump() const
+    {
+        return _bump;
     }
 };
 

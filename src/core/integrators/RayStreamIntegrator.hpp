@@ -429,7 +429,7 @@ public:
             throughput *= transmittance/transmittanceProbability;
         } else {
             TangentFrame frame;
-            bsdf.setupTangentFrame(*info.primitive, data, info, frame);
+            info.primitive->setupTangentFrame(data, info, frame);
 
             SurfaceScatterEvent event(&info, &sampler, &supplementalSampler, frame.toLocal(-ray.dir()), BsdfLobes::AllLobes);
 
