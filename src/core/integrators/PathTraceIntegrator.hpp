@@ -41,6 +41,30 @@ class PathTraceIntegrator : public Integrator
     int _maxBounces;
     std::vector<float> _lightPdf;
 
+    SurfaceScatterEvent makeLocalScatterEvent(Primitive::IntersectionTemporary &data, IntersectionInfo &info,
+            Ray &ray, SampleGenerator *sampler, UniformSampler *supplementalSampler) const
+    {
+        TangentFrame frame;
+        info.primitive->setupTangentFrame(data, info, frame);
+
+        if (frame.normal.dot(ray.dir()) > 0.0f && !info.primitive->bsdf()->lobes().isTransmissive()) {
+            // TODO: Should we flip info.Ns here too? It doesn't seem to be used at the moment,
+            // but it may be in the future. Modifying the intersection info itself could be a bad
+            // idea though
+            frame.normal = -frame.normal;
+            frame.tangent = -frame.tangent;
+        }
+
+        return SurfaceScatterEvent(
+            &info,
+            sampler,
+            supplementalSampler,
+            frame,
+            frame.toLocal(-ray.dir()),
+            BsdfLobes::AllLobes
+        );
+    }
+
     Vec3f generalizedShadowRay(Ray &ray,
                                const Medium *medium,
                                const Primitive *endCap,
@@ -55,20 +79,19 @@ class PathTraceIntegrator : public Integrator
         Vec3f throughput(1.0f);
         do {
             if (_scene->intersect(ray, data, info) && info.primitive != endCap) {
-                if (!info.primitive->bsdf()->lobes().isForward()) {
-                    float alpha = info.primitive->bsdf()->alpha(&info);
-                    if (alpha == 1.0f)
-                        return Vec3f(0.0f);
-                    Vec3f transmittance = info.primitive->bsdf()->transmittance(&info)*(1.0f - alpha);
-                    if (transmittance == 0.0f)
-                        return Vec3f(0.0f);
-                    else
-                        throughput *= transmittance;
-                }
+                SurfaceScatterEvent event = makeLocalScatterEvent(data, info, ray, nullptr, nullptr);
+
+                Vec3f transmittance = info.primitive->bsdf()->eval(event.makeForwardEvent());
+                if (transmittance == 0.0f)
+                    return Vec3f(0.0f);
+
+                throughput *= transmittance;
                 bounce++;
+
                 if (bounce >= _maxBounces)
                     return Vec3f(0.0f);
             }
+
             if (medium)
                 throughput *= medium->transmittance(VolumeScatterEvent(ray.pos(), ray.dir(), ray.farT()));
             if (info.primitive == nullptr || info.primitive == endCap)
@@ -79,6 +102,7 @@ class PathTraceIntegrator : public Integrator
                 else
                     medium = info.primitive->bsdf()->intMedium().get();
             }
+
             ray.setPos(ray.hitpoint());
             initialFarT -= ray.farT();
             ray.setNearT(info.epsilon);
@@ -405,39 +429,25 @@ public:
     {
         const Bsdf &bsdf = *info.primitive->bsdf();
 
+        SurfaceScatterEvent event = makeLocalScatterEvent(data, info, ray, &sampler, &supplementalSampler);
+
+        Vec3f transparency = bsdf.eval(event.makeForwardEvent());
+        float transparencyScalar = transparency.avg();
+
         Vec3f wo;
-        if (bsdf.lobes().isForward()) {
+        if (sampler.next1D() < transparencyScalar) {
             wo = ray.dir();
-            if (!GeneralizedShadowRays)
-                wasSpecular = true;
-        } else if (sampler.next1D() >= bsdf.alpha(&info)) {
-            wo = ray.dir();
-            throughput *= bsdf.transmittance(&info);
+            throughput *= transparency/transparencyScalar;
+
             if (!GeneralizedShadowRays)
                 wasSpecular = true;
         } else {
-            TangentFrame frame;
-            info.primitive->setupTangentFrame(data, info, frame);
-
-            if (std::isnan(frame.normal.sum())) {
-                FAIL("NAN frame! %s %s %s", frame.normal, frame.tangent, frame.bitangent);
-            }
-
-            if (frame.normal.dot(ray.dir()) > 0.0f && !bsdf.lobes().isTransmissive()) {
-                info.Ng = -info.Ng;
-                info.Ns = -info.Ns;
-                frame.normal = -frame.normal;
-                frame.tangent = -frame.tangent;
-            }
-
-            SurfaceScatterEvent event(&info, &sampler, &supplementalSampler, frame.toLocal(-ray.dir()), BsdfLobes::AllLobes);
-
             if (_enableLightSampling) {
                 if ((wasSpecular || !info.primitive->isSamplable()) && bounce >= _minBounces)
                     emission += info.primitive->emission(data, info)*throughput;
 
                 if (bounce < _maxBounces - 1)
-                    emission += estimateDirect(frame, bsdf, event, medium, bounce + 1, info.epsilon)*throughput;
+                    emission += estimateDirect(event.frame, bsdf, event, medium, bounce + 1, info.epsilon)*throughput;
             } else if (bounce >= _minBounces) {
                 emission += info.primitive->emission(data, info)*throughput;
             }
@@ -446,7 +456,7 @@ public:
             if (!bsdf.sample(event))
                 return false;
 
-            wo = frame.toGlobal(event.wo);
+            wo = event.frame.toGlobal(event.wo);
 
             if ((wo.dot(info.Ng) < 0.0f) != (event.wo.z() < 0.0f))
                 return false;

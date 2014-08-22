@@ -20,20 +20,14 @@ rapidjson::Value ForwardBsdf::toJson(Allocator &allocator) const
     return std::move(v);
 }
 
-bool ForwardBsdf::sample(SurfaceScatterEvent &event) const
+bool ForwardBsdf::sample(SurfaceScatterEvent &/*event*/) const
 {
-    if (!event.requestedLobe.test(BsdfLobes::ForwardLobe))
-        return false;
-    event.wo = -event.wi;
-    event.throughput = Vec3f(1.0f);
-    event.pdf = 1.0f;
-    event.sampledLobe = BsdfLobes::ForwardLobe;
-    return true;
+    return false;
 }
 
-Vec3f ForwardBsdf::eval(const SurfaceScatterEvent &/*event*/) const
+Vec3f ForwardBsdf::eval(const SurfaceScatterEvent &event) const
 {
-    return Vec3f(0.0f);
+    return (event.requestedLobe.isForward() && -event.wi == event.wo) ? Vec3f(1.0f) : Vec3f(0.0f);
 }
 
 float ForwardBsdf::pdf(const SurfaceScatterEvent &/*event*/) const

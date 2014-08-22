@@ -62,7 +62,10 @@ public:
 
     virtual ~Primitive() {}
 
-    Primitive() = default;
+    Primitive()
+    : _bumpStrength(1.0f)
+    {
+    }
 
     Primitive(const std::string &name, std::shared_ptr<Bsdf> bsdf)
     : JsonSerializable(name), _bsdf(bsdf),

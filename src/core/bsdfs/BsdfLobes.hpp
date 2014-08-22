@@ -28,8 +28,8 @@ public:
         TransmissiveLobe = GlossyTransmissionLobe | DiffuseTransmissionLobe | SpecularTransmissionLobe,
         ReflectiveLobe   = GlossyReflectionLobe   | DiffuseReflectionLobe   | SpecularReflectionLobe,
 
-        AllLobes = TransmissiveLobe | ReflectiveLobe | AnisotropicLobe | ForwardLobe,
-        AllButSpecular = ~SpecularLobe,
+        AllLobes = TransmissiveLobe | ReflectiveLobe | AnisotropicLobe,
+        AllButSpecular = ~(SpecularLobe | ForwardLobe),
 
         InvalidLobe = 0
     };
@@ -101,7 +101,7 @@ public:
 
     bool isForward() const
     {
-        return (_lobes & ForwardLobe) != 0;
+        return _lobes == ForwardLobe;
     }
 };
 

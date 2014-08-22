@@ -28,6 +28,7 @@
 #include "bsdfs/RoughDielectricBsdf.hpp"
 #include "bsdfs/RoughConductorBsdf.hpp"
 #include "bsdfs/RoughPlasticBsdf.hpp"
+#include "bsdfs/TransparencyBsdf.hpp"
 #include "bsdfs/DielectricBsdf.hpp"
 #include "bsdfs/SmoothCoatBsdf.hpp"
 #include "bsdfs/RoughCoatBsdf.hpp"
@@ -100,6 +101,8 @@ std::shared_ptr<Bsdf> Scene::instantiateBsdf(std::string type, const rapidjson::
         result = std::make_shared<RoughPlasticBsdf>();
     else if (type == "rough_coat")
         result = std::make_shared<RoughCoatBsdf>();
+    else if (type == "transparency")
+        result = std::make_shared<TransparencyBsdf>();
     else
         FAIL("Unkown bsdf type: '%s'", type.c_str());
     result->fromJson(value, *this);
@@ -395,7 +398,7 @@ void Scene::addBsdf(const std::shared_ptr<Bsdf> &bsdf)
             addUnique(bsdf->intMedium(), _media);
         if (bsdf->extMedium())
             addUnique(bsdf->extMedium(), _media);
-        addTexture(bsdf->alpha(), _scalarMaps);
+        // TODO: This doesn't nearly capture all textures. Need to rethink this.
         addTexture(bsdf->albedo(), _colorMaps);
     }
 }

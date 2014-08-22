@@ -18,6 +18,7 @@
 
 #include "bsdfs/RoughDielectricBsdf.hpp"
 #include "bsdfs/RoughConductorBsdf.hpp"
+#include "bsdfs/TransparencyBsdf.hpp"
 #include "bsdfs/DielectricBsdf.hpp"
 #include "bsdfs/SmoothCoatBsdf.hpp"
 #include "bsdfs/ConductorBsdf.hpp"
@@ -435,19 +436,20 @@ class SceneXmlWriter
         end();
     }
 
+    void convert(TransparencyBsdf *bsdf)
+    {
+        begin("bsdf");
+        assign("type", "mask");
+        if (!bsdf->unnamed())
+            assign("id", bsdf->name());
+        beginPost();
+        convert("opacity", bsdf->opacity().get());
+        convertOrRef(bsdf->base().get());
+        end();
+    }
+
     void convert(Bsdf *bsdf)
     {
-        bool hasAlpha = !bsdf->alpha()->isConstant() || bsdf->alpha()->average() != 1.0f;
-        std::string nameTmp = bsdf->name();
-        if (hasAlpha) {
-            begin("bsdf");
-            assign("type", "mask");
-            if (!bsdf->unnamed())
-                assign("id", bsdf->name());
-            bsdf->setName("");
-            beginPost();
-            convert("opacity", bsdf->alpha().get());
-        }
         if (LambertBsdf *bsdf2 = dynamic_cast<LambertBsdf *>(bsdf))
             convert(bsdf2);
         else if (PhongBsdf *bsdf2 = dynamic_cast<PhongBsdf *>(bsdf))
@@ -474,13 +476,11 @@ class SceneXmlWriter
             convert(bsdf2);
         else if (PlasticBsdf *bsdf2 = dynamic_cast<PlasticBsdf *>(bsdf))
             convert(bsdf2);
+        else if (TransparencyBsdf *bsdf2 = dynamic_cast<TransparencyBsdf *>(bsdf))
+            convert(bsdf2);
         else if (dynamic_cast<ForwardBsdf *>(bsdf)) {
         } else
             DBG("Unknown bsdf type with name '%s'!", bsdf->name());
-
-        if (hasAlpha)
-            end();
-        bsdf->setName(nameTmp);
     }
 
     void convert(PinholeCamera *cam)

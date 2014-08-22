@@ -14,7 +14,6 @@ void Bsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
     const rapidjson::Value::Member *extMedium = v.FindMember("ext_medium");
 
     const rapidjson::Value::Member *base  = v.FindMember("albedo");
-    const rapidjson::Value::Member *alpha = v.FindMember("alpha");
 
     if (intMedium)
         _intMedium = scene.fetchMedium(intMedium->value);
@@ -22,8 +21,6 @@ void Bsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
         _extMedium = scene.fetchMedium(extMedium->value);
     if (base)
         _albedo = scene.fetchColorTexture<2>(base->value);
-    if (alpha)
-        _alpha = scene.fetchScalarTexture<2>(alpha->value);
 }
 
 rapidjson::Value Bsdf::toJson(Allocator &allocator) const
@@ -35,7 +32,6 @@ rapidjson::Value Bsdf::toJson(Allocator &allocator) const
     if (_extMedium)
         JsonUtils::addObjectMember(v, "ext_medium", *_extMedium, allocator);
     JsonUtils::addObjectMember(v, "albedo", *_albedo,  allocator);
-    JsonUtils::addObjectMember(v, "alpha", *_alpha, allocator);
 
     return std::move(v);
 }

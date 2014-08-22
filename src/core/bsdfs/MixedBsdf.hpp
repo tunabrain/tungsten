@@ -23,9 +23,6 @@ public:
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
-    virtual float alpha(const IntersectionInfo *info) const;
-    virtual Vec3f transmittance(const IntersectionInfo *info) const;
-
     bool sample(SurfaceScatterEvent &event) const final override;
     Vec3f eval(const SurfaceScatterEvent &event) const final override;
     float pdf(const SurfaceScatterEvent &event) const final override;

@@ -15,6 +15,7 @@
 
 #include "bsdfs/RoughConductorBsdf.hpp"
 #include "bsdfs/RoughPlasticBsdf.hpp"
+#include "bsdfs/TransparencyBsdf.hpp"
 #include "bsdfs/DielectricBsdf.hpp"
 #include "bsdfs/OrenNayarBsdf.hpp"
 #include "bsdfs/ThinSheetBsdf.hpp"
@@ -288,9 +289,9 @@ std::shared_ptr<Bsdf> ObjLoader::convertObjMaterial(const ObjMaterial &mat)
     } else {
         result = std::make_shared<DielectricBsdf>(mat.ior);
     }
+    if (!result)
+        return _errorMaterial;
 
-    if (mat.hasAlphaMap())
-        result->setAlpha(fetchScalarMap(mat.alphaMap));
     // TODO: Can no longer set bump maps directly, since they moved from Bsdf to Primitive.
     // Need to somehow remember this piece of info for later so we can set the bump map on
     // the primitive when the bsdf is applied
@@ -298,13 +299,12 @@ std::shared_ptr<Bsdf> ObjLoader::convertObjMaterial(const ObjMaterial &mat)
 //      result->setBump(fetchScalarMap(mat.bumpMap));
     if (mat.hasDiffuseMap())
         result->setAlbedo(fetchColorMap(mat.diffuseMap));
+    if (mat.hasAlphaMap())
+        result = std::make_shared<TransparencyBsdf>(fetchColorMap(mat.alphaMap), result);
 
     result->setName(mat.name);
 
-    if (result)
-        return result;
-    else
-        return _errorMaterial;
+    return result;
 }
 
 std::string ObjLoader::generateDummyName() const

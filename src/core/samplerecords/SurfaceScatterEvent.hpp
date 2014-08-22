@@ -3,6 +3,7 @@
 
 #include "bsdfs/BsdfLobes.hpp"
 
+#include "math/TangentFrame.hpp"
 #include "math/Vec.hpp"
 
 namespace Tungsten {
@@ -16,6 +17,7 @@ struct SurfaceScatterEvent
     const IntersectionInfo *info;
     SampleGenerator *sampler;
     UniformSampler *supplementalSampler;
+    TangentFrame frame;
     Vec3f wi, wo;
     Vec3f throughput;
     float pdf;
@@ -25,11 +27,13 @@ struct SurfaceScatterEvent
     SurfaceScatterEvent(const IntersectionInfo *info_,
                  SampleGenerator *sampler_,
                  UniformSampler *supplementalSampler_,
+                 const TangentFrame &frame_,
                  const Vec3f &wi_,
                  BsdfLobes requestedLobe_)
     : info(info_),
       sampler(sampler_),
       supplementalSampler(supplementalSampler_),
+      frame(frame_),
       wi(wi_),
       wo(0.0f),
       throughput(1.0f),
@@ -38,19 +42,20 @@ struct SurfaceScatterEvent
     {
     }
 
-    SurfaceScatterEvent(const SurfaceScatterEvent &o,
-                        const Vec3f &wi_,
-                        const Vec3f &wo_)
-    : info(o.info),
-      sampler(o.sampler),
-      supplementalSampler(o.supplementalSampler),
-      wi(wi_),
-      wo(wo_),
-      throughput(1.0f),
-      pdf(1.0f),
-      requestedLobe(o.requestedLobe),
-      sampledLobe(o.sampledLobe)
+    SurfaceScatterEvent makeWarpedQuery(const Vec3f &newWi, const Vec3f &newWo) const
     {
+        SurfaceScatterEvent copy(*this);
+        copy.wi = newWi;
+        copy.wo = newWo;
+        return copy;
+    }
+
+    SurfaceScatterEvent makeForwardEvent() const
+    {
+        SurfaceScatterEvent copy(*this);
+        copy.wo = -copy.wi;
+        copy.requestedLobe = BsdfLobes::ForwardLobe;
+        return copy;
     }
 };
 

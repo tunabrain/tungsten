@@ -124,7 +124,7 @@ Vec3f SmoothCoatBsdf::eval(const SurfaceScatterEvent &event) const
 
     float laplacian = eta*eta*wi.z()*wo.z()/(cosThetaTi*cosThetaTo);
 
-    Vec3f substrateF = _substrate->eval(SurfaceScatterEvent(event, wiSubstrate, woSubstrate));
+    Vec3f substrateF = _substrate->eval(event.makeWarpedQuery(wiSubstrate, woSubstrate));
 
     if (_scaledSigmaA.max() > 0.0f)
         substrateF *= std::exp(_scaledSigmaA*(-1.0f/cosThetaTo - 1.0f/cosThetaTi));
@@ -154,7 +154,7 @@ float SmoothCoatBsdf::pdf(const SurfaceScatterEvent &event) const
     Vec3f wiSubstrate(wi.x()*eta, wi.y()*eta, std::copysign(cosThetaTi, wi.z()));
     Vec3f woSubstrate(wo.x()*eta, wo.y()*eta, std::copysign(cosThetaTo, wo.z()));
 
-    float pdf = _substrate->pdf(SurfaceScatterEvent(event, wiSubstrate, woSubstrate));
+    float pdf = _substrate->pdf(event.makeWarpedQuery(wiSubstrate, woSubstrate));
     if (sampleR) {
         float substrateWeight = _avgTransmittance*(1.0f - Fi);
         float specularWeight = Fi;

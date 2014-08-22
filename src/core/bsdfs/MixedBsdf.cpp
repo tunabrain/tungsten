@@ -68,18 +68,6 @@ rapidjson::Value MixedBsdf::toJson(Allocator &allocator) const
     return std::move(v);
 }
 
-float MixedBsdf::alpha(const IntersectionInfo *info) const
-{
-    float ratio = (*_ratio)[info->uv];
-    return (*_alpha)[info->uv]*(_bsdf0->alpha(info)*ratio + _bsdf1->alpha(info)*(1.0f - ratio));
-}
-
-Vec3f MixedBsdf::transmittance(const IntersectionInfo *info) const
-{
-    float ratio = (*_ratio)[info->uv];
-    return _bsdf0->transmittance(info)*ratio + _bsdf1->transmittance(info)*(1.0f - ratio);
-}
-
 bool MixedBsdf::sample(SurfaceScatterEvent &event) const
 {
     float ratio;
