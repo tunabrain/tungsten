@@ -53,7 +53,7 @@ class TraceableScene
     static bool occluded(const void *userData, embree::Ray &eRay)
     {
         const Primitive *primitive = reinterpret_cast<const Primitive *>(userData);
-        return primitive->occluded(fromERay(eRay));
+        return primitive->occluded(EmbreeUtil::convert(eRay));
     }
 
     Camera &_cam;
@@ -114,12 +114,12 @@ public:
 
             if (m->needsRayTransform()) {
                 objects->hasTransform = true;
-                objects->localBounds = toEBox(m->bounds());
-                objects->local2world = toEMat(m->transform());
+                objects->localBounds = EmbreeUtil::convert(m->bounds());
+                objects->local2world = EmbreeUtil::convert(m->transform());
                 objects->calculateWorldData();
             } else {
                 objects->hasTransform = false;
-                objects->localBounds = objects->worldBounds = toEBox(m->bounds());
+                objects->localBounds = objects->worldBounds = EmbreeUtil::convert(m->bounds());
             }
 
             /* TODO: Transforms */
@@ -158,7 +158,7 @@ public:
         data.primitive = nullptr;
 
         PerRayData rayData{data, ray};
-        embree::Ray eRay(toERay(ray));
+        embree::Ray eRay(EmbreeUtil::convert(ray));
         eRay.userData = &rayData;
 
         _intersector->intersect(eRay);
@@ -204,7 +204,7 @@ public:
 
     bool occluded(const Ray &ray) const
     {
-        embree::Ray eRay(toERay(ray));
+        embree::Ray eRay(EmbreeUtil::convert(ray));
         return _intersector->occluded(eRay);
     }
 

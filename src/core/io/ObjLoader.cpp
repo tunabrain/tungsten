@@ -7,9 +7,9 @@
 #include "FileUtils.hpp"
 #include "Scene.hpp"
 
+#include "primitives/TriangleMesh.hpp"
 #include "primitives/Sphere.hpp"
 #include "primitives/Quad.hpp"
-#include "primitives/Mesh.hpp"
 
 #include "cameras/PinholeCamera.hpp"
 

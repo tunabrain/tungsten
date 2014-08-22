@@ -1,8 +1,8 @@
 #ifndef DISK_HPP_
 #define DISK_HPP_
 
+#include "TriangleMesh.hpp"
 #include "Primitive.hpp"
-#include "Mesh.hpp"
 
 namespace Tungsten {
 

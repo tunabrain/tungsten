@@ -7,7 +7,7 @@
 #include "ShapePainter.hpp"
 #include "MainWindow.hpp"
 
-#include "primitives/Mesh.hpp"
+#include "primitives/TriangleMesh.hpp"
 
 #include "cameras/Camera.hpp"
 

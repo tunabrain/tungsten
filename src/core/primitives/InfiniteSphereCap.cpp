@@ -1,5 +1,5 @@
 #include "InfiniteSphereCap.hpp"
-#include "Mesh.hpp"
+#include "TriangleMesh.hpp"
 
 #include "sampling/SampleGenerator.hpp"
 #include "sampling/SampleWarp.hpp"

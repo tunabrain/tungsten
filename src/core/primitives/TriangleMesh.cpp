@@ -1,4 +1,4 @@
-#include "Mesh.hpp"
+#include "TriangleMesh.hpp"
 #include "EmbreeUtil.hpp"
 
 #include "sampling/SampleGenerator.hpp"
@@ -233,7 +233,7 @@ void TriangleMesh::makeCone(float radius, float height)
 
 bool TriangleMesh::intersect(Ray &ray, IntersectionTemporary &data) const
 {
-    embree::Ray eRay(toERay(ray));
+    embree::Ray eRay(EmbreeUtil::convert(ray));
     _intersector->intersect(eRay);
     if (eRay && eRay.tfar < ray.farT()) {
         ray.setFarT(eRay.tfar);
@@ -241,7 +241,7 @@ bool TriangleMesh::intersect(Ray &ray, IntersectionTemporary &data) const
         data.primitive = this;
         MeshIntersection *isect = data.as<MeshIntersection>();
         isect->Ng = unnormalizedGeometricNormalAt(eRay.id0);
-        isect->p = fromE(eRay.org + eRay.dir*eRay.tfar);
+        isect->p = EmbreeUtil::convert(eRay.org + eRay.dir*eRay.tfar);
         isect->u = eRay.u;
         isect->v = eRay.v;
         isect->id0 = eRay.id0;
@@ -255,7 +255,7 @@ bool TriangleMesh::intersect(Ray &ray, IntersectionTemporary &data) const
 
 bool TriangleMesh::occluded(const Ray &ray) const
 {
-    embree::Ray eRay(toERay(ray));
+    embree::Ray eRay(EmbreeUtil::convert(ray));
     return _intersector->occluded(eRay);
 }
 

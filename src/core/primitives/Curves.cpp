@@ -1,5 +1,5 @@
 #include "Curves.hpp"
-#include "Mesh.hpp"
+#include "TriangleMesh.hpp"
 
 #include "math/TangentFrame.hpp"
 #include "math/MathUtil.hpp"

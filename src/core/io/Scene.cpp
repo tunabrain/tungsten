@@ -11,10 +11,10 @@
 
 #include "primitives/InfiniteSphereCap.hpp"
 #include "primitives/InfiniteSphere.hpp"
+#include "primitives/TriangleMesh.hpp"
 #include "primitives/Sphere.hpp"
 #include "primitives/Curves.hpp"
 #include "primitives/Quad.hpp"
-#include "primitives/Mesh.hpp"
 #include "primitives/Disk.hpp"
 
 #include "materials/CheckerTexture.hpp"

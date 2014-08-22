@@ -1,5 +1,5 @@
-#ifndef MESH_HPP_
-#define MESH_HPP_
+#ifndef TRIANGLEMESH_HPP_
+#define TRIANGLEMESH_HPP_
 
 #include "Primitive.hpp"
 #include "Triangle.hpp"
@@ -132,4 +132,4 @@ public:
 
 }
 
-#endif /* MESH_HPP_ */
+#endif /* TRIANGLEMESH_HPP_ */

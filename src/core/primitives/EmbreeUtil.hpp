@@ -9,22 +9,29 @@
 
 namespace Tungsten {
 
-inline embree::Vec3fa toE(const Vec3f &v)
+namespace EmbreeUtil {
+
+inline embree::Vec3fa convert(const Vec3f &v)
 {
     return embree::Vec3fa(v.x(), v.y(), v.z());
 }
 
-inline Vec3f fromE(const embree::Vec3fa v)
+inline Vec3f convert(const embree::Vec3fa v)
 {
     return Vec3f(v.x, v.y, v.z);
 }
 
-inline embree::BBox3f toEBox(const Box3f &b)
+inline Vec3f convert(const embree::Vector3f v)
 {
-    return embree::BBox3f(toE(b.min()), toE(b.max()));
+    return Vec3f(v.x, v.y, v.z);
 }
 
-inline embree::AffineSpace3f toEMat(const Mat4f &m)
+inline embree::BBox3f convert(const Box3f &b)
+{
+    return embree::BBox3f(convert(b.min()), convert(b.max()));
+}
+
+inline embree::AffineSpace3f convert(const Mat4f &m)
 {
     return embree::AffineSpace3f(
         embree::LinearSpace3f(
@@ -36,19 +43,21 @@ inline embree::AffineSpace3f toEMat(const Mat4f &m)
     );
 }
 
-inline Box3f fromEBox(const embree::BBox3f &b)
+inline Box3f convert(const embree::BBox3f &b)
 {
-    return Box3f(fromE(b.lower), fromE(b.upper));
+    return Box3f(convert(b.lower), convert(b.upper));
 }
 
-inline Ray fromERay(const embree::Ray &r)
+inline Ray convert(const embree::Ray &r)
 {
-    return Ray(fromE(r.org), fromE(r.dir), r.tnear, r.tfar);//, r.time);
+    return Ray(convert(r.org), convert(r.dir), r.tnear, r.tfar);//, r.time);
 }
 
-inline embree::Ray toERay(const Ray &r)
+inline embree::Ray convert(const Ray &r)
 {
-    return embree::Ray(toE(r.pos()), toE(r.dir()), r.nearT(), r.farT());//, r.time(), r.flags());
+    return embree::Ray(convert(r.pos()), convert(r.dir()), r.nearT(), r.farT());//, r.time(), r.flags());
+}
+
 }
 
 }

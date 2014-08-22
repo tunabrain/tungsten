@@ -2,9 +2,9 @@
 #define JSONXMLCONVERTER_HPP_
 
 #include "primitives/InfiniteSphere.hpp"
+#include "primitives/TriangleMesh.hpp"
 #include "primitives/Sphere.hpp"
 #include "primitives/Quad.hpp"
-#include "primitives/Mesh.hpp"
 
 #include "materials/CheckerTexture.hpp"
 #include "materials/BitmapTexture.hpp"
