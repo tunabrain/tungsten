@@ -11,11 +11,11 @@
 
 #include "primitives/InfiniteSphereCap.hpp"
 #include "primitives/InfiniteSphere.hpp"
-#include "primitives/Spotlight.hpp"
 #include "primitives/Sphere.hpp"
 #include "primitives/Curves.hpp"
 #include "primitives/Quad.hpp"
 #include "primitives/Mesh.hpp"
+#include "primitives/Disk.hpp"
 
 #include "materials/CheckerTexture.hpp"
 #include "materials/BladeTexture.hpp"
@@ -118,8 +118,8 @@ std::shared_ptr<Primitive> Scene::instantiatePrimitive(std::string type, const r
         result = std::make_shared<Sphere>();
     else if (type == "quad")
         result = std::make_shared<Quad>();
-    else if (type == "spot")
-        result = std::make_shared<Spotlight>();
+    else if (type == "disk")
+        result = std::make_shared<Disk>();
     else if (type == "infinite_sphere")
         result = std::make_shared<InfiniteSphere>();
     else if (type == "infinite_sphere_cap")

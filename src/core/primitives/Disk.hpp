@@ -1,5 +1,5 @@
-#ifndef SPOTLIGHT_HPP_
-#define SPOTLIGHT_HPP_
+#ifndef DISK_HPP_
+#define DISK_HPP_
 
 #include "Primitive.hpp"
 #include "Mesh.hpp"
@@ -8,9 +8,9 @@
 
 namespace Tungsten {
 
-class Spotlight : public Primitive
+class Disk : public Primitive
 {
-    struct SpotIntersection
+    struct DiskIntersection
     {
         Vec3f p;
         float rSq;
@@ -29,7 +29,7 @@ class Spotlight : public Primitive
     std::shared_ptr<TriangleMesh> _proxy;
 
 public:
-    Spotlight()
+    Disk()
     : _angle(45.0f)
     {
     }
@@ -43,7 +43,7 @@ public:
     rapidjson::Value toJson(Allocator &allocator) const override
     {
         rapidjson::Value v = Primitive::toJson(allocator);
-        v.AddMember("type", "spot", allocator);
+        v.AddMember("type", "disk", allocator);
         v.AddMember("angle", _angle, allocator);
         return std::move(v);
     }
@@ -65,7 +65,7 @@ public:
             return false;
 
         ray.setFarT(t);
-        SpotIntersection *isect = data.as<SpotIntersection>();
+        DiskIntersection *isect = data.as<DiskIntersection>();
         isect->p = q;
         isect->rSq = rSq;
         isect->backSide = -nDotW < _cosApex;
@@ -95,12 +95,12 @@ public:
 
     virtual bool hitBackside(const IntersectionTemporary &data) const
     {
-        return data.as<SpotIntersection>()->backSide;
+        return data.as<DiskIntersection>()->backSide;
     }
 
     virtual void intersectionInfo(const IntersectionTemporary &data, IntersectionInfo &info) const
     {
-        const SpotIntersection *isect = data.as<SpotIntersection>();
+        const DiskIntersection *isect = data.as<DiskIntersection>();
         info.Ng = info.Ns = _n;
 
         info.p = isect->p;
@@ -116,7 +116,7 @@ public:
 
     virtual bool tangentSpace(const IntersectionTemporary &data, const IntersectionInfo &/*info*/, Vec3f &T, Vec3f &B) const
     {
-        const SpotIntersection *isect = data.as<SpotIntersection>();
+        const DiskIntersection *isect = data.as<DiskIntersection>();
         Vec3f d = isect->p - _center;
         if (d.lengthSq() == 0.0f)
             return false;
@@ -260,10 +260,10 @@ public:
 
     virtual Primitive *clone()
     {
-        return new Spotlight(*this);
+        return new Disk(*this);
     }
 };
 
 }
 
-#endif /* SPOTLIGHT_HPP_ */
+#endif /* DISK_HPP_ */
