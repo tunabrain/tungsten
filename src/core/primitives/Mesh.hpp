@@ -1,26 +1,13 @@
 #ifndef MESH_HPP_
 #define MESH_HPP_
 
+#include "Primitive.hpp"
 #include "Triangle.hpp"
 #include "Vertex.hpp"
 
-#include "sampling/SampleGenerator.hpp"
 #include "sampling/Distribution1D.hpp"
-#include "sampling/SampleWarp.hpp"
-
-#include "math/TangentFrame.hpp"
-#include "math/Mat4f.hpp"
-#include "math/Vec.hpp"
-#include "math/Box.hpp"
-
-#include "io/JsonSerializable.hpp"
-
-#include "EmbreeUtil.hpp"
-#include "Primitive.hpp"
 
 #include <embree/include/embree.h>
-#include <rapidjson/document.h>
-#include <iostream>
 #include <memory>
 #include <vector>
 #include <string>
@@ -31,17 +18,6 @@ class Scene;
 
 class TriangleMesh : public Primitive
 {
-    struct MeshIntersection
-    {
-        Vec3f Ng;
-        Vec3f p;
-        float u;
-        float v;
-        int id0;
-        int id1;
-        bool backSide;
-    };
-
     std::string _path;
     bool _dirty;
     bool _smoothed;
@@ -58,332 +34,55 @@ class TriangleMesh : public Primitive
     embree::RTCGeometry *_geom = nullptr;
     embree::RTCIntersector1 *_intersector = nullptr;
 
-    Vec3f unnormalizedGeometricNormalAt(int triangle) const
-    {
-        const TriangleI &t = _tris[triangle];
-        Vec3f p0 = _tfVerts[t.v0].pos();
-        Vec3f p1 = _tfVerts[t.v1].pos();
-        Vec3f p2 = _tfVerts[t.v2].pos();
-        return (p1 - p0).cross(p2 - p0);
-    }
-
-    Vec3f normalAt(int triangle, float u, float v) const
-    {
-        const TriangleI &t = _tris[triangle];
-        Vec3f n0 = _tfVerts[t.v0].normal();
-        Vec3f n1 = _tfVerts[t.v1].normal();
-        Vec3f n2 = _tfVerts[t.v2].normal();
-        return ((1.0f - u - v)*n0 + u*n1 + v*n2).normalized();
-    }
-
-    Vec2f uvAt(int triangle, float u, float v) const
-    {
-        const TriangleI &t = _tris[triangle];
-        Vec2f uv0 = _tfVerts[t.v0].uv();
-        Vec2f uv1 = _tfVerts[t.v1].uv();
-        Vec2f uv2 = _tfVerts[t.v2].uv();
-        return (1.0f - u - v)*uv0 + u*uv1 + v*uv2;
-    }
+    Vec3f unnormalizedGeometricNormalAt(int triangle) const;
+    Vec3f normalAt(int triangle, float u, float v) const;
+    Vec2f uvAt(int triangle, float u, float v) const;
 
 public:
-    TriangleMesh()
-    : _dirty(false),
-      _smoothed(false)
-    {
-    }
-
-    TriangleMesh(const TriangleMesh &o)
-    : Primitive(o),
-      _path(o._path),
-      _dirty(true),
-      _smoothed(o._smoothed),
-      _verts(o._verts),
-      _tris(o._tris),
-      _bounds(o._bounds)
-    {
-    }
-
+    TriangleMesh();
+    TriangleMesh(const TriangleMesh &o);
     TriangleMesh(std::vector<Vertex> verts, std::vector<TriangleI> tris,
                  const std::shared_ptr<Bsdf> &bsdf,
-                 const std::string &name, bool smoothed)
-    : Primitive(name, bsdf),
-      _path(std::string(name).append(".wo3")),
-      _dirty(true),
-      _smoothed(smoothed),
-      _verts(std::move(verts)),
-      _tris(std::move(tris))
-    {
-    }
+                 const std::string &name, bool smoothed);
 
-    void fromJson(const rapidjson::Value &v, const Scene &scene) override;
-    rapidjson::Value toJson(Allocator &allocator) const override;
+    virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
+    virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
-    void saveData() const override;
+    virtual void saveData() const override;
     void saveAsObj(std::ostream &out) const;
     void calcSmoothVertexNormals();
     void computeBounds();
 
-    void makeSphere(float radius)
-    {
-        constexpr int SubDiv = 10;
-        constexpr int Skip = SubDiv*2 + 1;
-        for (int f = 0, idx = _verts.size(); f < 3; ++f) {
-            for (int s = -1; s <= 1; s += 2) {
-                for (int u = -SubDiv; u <= SubDiv; ++u) {
-                    for (int v = -SubDiv; v <= SubDiv; ++v, ++idx) {
-                        Vec3f p(0.0f);
-                        p[f] = s;
-                        p[(f + 1) % 3] = u*(1.0f/SubDiv)*s;
-                        p[(f + 2) % 3] = v*(1.0f/SubDiv);
-                        _verts.emplace_back(p.normalized()*radius);
+    void makeSphere(float radius);
+    void makeCone(float radius, float height);
 
-                        if (v > -SubDiv && u > -SubDiv) {
-                            _tris.emplace_back(idx - Skip - 1, idx, idx - Skip);
-                            _tris.emplace_back(idx - Skip - 1, idx - 1, idx);
-                        }
-                    }
-                }
-            }
-        }
-    }
+    virtual bool intersect(Ray &ray, IntersectionTemporary &data) const override;
+    virtual bool occluded(const Ray &ray) const override;
+    virtual void intersectionInfo(const IntersectionTemporary &data, IntersectionInfo &info) const override;
+    virtual bool hitBackside(const IntersectionTemporary &data) const override;
+    virtual bool tangentSpace(const IntersectionTemporary &data, const IntersectionInfo &/*info*/,
+            Vec3f &T, Vec3f &B) const override;
 
-    void makeCone(float radius, float height)
-    {
-        constexpr int SubDiv = 36;
-        int base = _verts.size();
-        _verts.emplace_back(Vec3f(0.0f));
-        for (int i = 0; i < SubDiv; ++i) {
-            float a = i*TWO_PI/SubDiv;
-            _verts.emplace_back(Vec3f(std::cos(a)*radius, height, std::sin(a)*radius));
-            _tris.emplace_back(base, base + i + 1, base + ((i + 1) % SubDiv) + 1);
-        }
-    }
+    virtual const TriangleMesh &asTriangleMesh() override;
 
-    virtual bool intersect(Ray &ray, IntersectionTemporary &data) const override
-    {
-        embree::Ray eRay(toERay(ray));
-        _intersector->intersect(eRay);
-        if (eRay && eRay.tfar < ray.farT()) {
-            ray.setFarT(eRay.tfar);
+    virtual bool isSamplable() const override;
+    virtual void makeSamplable() override;
 
-            data.primitive = this;
-            MeshIntersection *isect = data.as<MeshIntersection>();
-            isect->Ng = unnormalizedGeometricNormalAt(eRay.id0);
-            isect->p = fromE(eRay.org + eRay.dir*eRay.tfar);
-            isect->u = eRay.u;
-            isect->v = eRay.v;
-            isect->id0 = eRay.id0;
-            isect->id1 = eRay.id1;
-            isect->backSide = isect->Ng.dot(ray.dir()) > 0.0f;
+    virtual float inboundPdf(const IntersectionTemporary &data, const Vec3f &p, const Vec3f &d) const override;
+    virtual bool sampleInboundDirection(LightSample &sample) const override;
+    virtual bool sampleOutboundDirection(LightSample &sample) const override;
+    virtual bool invertParametrization(Vec2f /*uv*/, Vec3f &/*pos*/) const override;
 
-            return true;
-        }
-        return false;
-    }
+    virtual bool isDelta() const override;
+    virtual bool isInfinite() const override;
 
-    virtual bool occluded(const Ray &ray) const override
-    {
-        embree::Ray eRay(toERay(ray));
-        return _intersector->occluded(eRay);
-    }
+    virtual float approximateRadiance(const Vec3f &/*p*/) const override;
+    virtual Box3f bounds() const override;
 
-    virtual void intersectionInfo(const IntersectionTemporary &data, IntersectionInfo &info) const override
-    {
-        const MeshIntersection *isect = data.as<MeshIntersection>();
-        info.Ng = isect->Ng.normalized();
-        if (_smoothed)
-            info.Ns = normalAt(isect->id0, isect->u, isect->v);
-        else
-            info.Ns = info.Ng;
-        info.uv = uvAt(isect->id0, isect->u, isect->v);
-        info.primitive = this;
-        info.p = isect->p;
-    }
+    virtual void prepareForRender() override;
+    virtual void cleanupAfterRender() override;
 
-    virtual bool hitBackside(const IntersectionTemporary &data) const
-    {
-        return data.as<MeshIntersection>()->backSide;
-    }
-
-    virtual bool tangentSpace(const IntersectionTemporary &data, const IntersectionInfo &/*info*/, Vec3f &T, Vec3f &B) const override
-    {
-        const MeshIntersection *isect = data.as<MeshIntersection>();
-        const TriangleI &t = _tris[isect->id0];
-        Vec3f p0 = _tfVerts[t.v0].pos();
-        Vec3f p1 = _tfVerts[t.v1].pos();
-        Vec3f p2 = _tfVerts[t.v2].pos();
-        Vec2f uv0 = _tfVerts[t.v0].uv();
-        Vec2f uv1 = _tfVerts[t.v1].uv();
-        Vec2f uv2 = _tfVerts[t.v2].uv();
-        Vec3f q1 = p1 - p0;
-        Vec3f q2 = p2 - p0;
-        float s1 = uv1.x() - uv0.x(), t1 = uv1.y() - uv0.y();
-        float s2 = uv2.x() - uv0.x(), t2 = uv2.y() - uv0.y();
-        float invDet = s1*t2 - s2*t1;
-        if (std::abs(invDet) < 1e-6f)
-            return false;
-        float det = 1.0f/invDet;
-        T = det*(q1*t2 - t1*q2);
-        B = det*(q2*s1 - s2*q1);
-
-        return true;
-    }
-
-    virtual Box3f bounds() const
-    {
-        return _bounds;
-    }
-
-    virtual const TriangleMesh &asTriangleMesh() final override
-    {
-        return *this;
-    }
-
-    virtual void prepareForRender() override
-    {
-        computeBounds();
-
-        _geom = embree::rtcNewTriangleMesh(_tris.size(), _verts.size(), "bvh2");
-        embree::RTCVertex   *vs = embree::rtcMapPositionBuffer(_geom);
-        embree::RTCTriangle *ts = embree::rtcMapTriangleBuffer(_geom);
-
-        for (size_t i = 0; i < _tris.size(); ++i) {
-            const TriangleI &t = _tris[i];
-            ts[i] = embree::RTCTriangle(t.v0, t.v1, t.v2, i, 0);
-        }
-
-        _tfVerts.resize(_verts.size());
-        Mat4f normalTform(_transform.toNormalMatrix());
-        for (size_t i = 0; i < _verts.size(); ++i) {
-            _tfVerts[i] = Vertex(
-                _transform*_verts[i].pos(),
-                normalTform.transformVector(_verts[i].normal()),
-                _verts[i].uv()
-            );
-            const Vec3f &p = _tfVerts[i].pos();
-            vs[i] = embree::RTCVertex(p.x(), p.y(), p.z());
-        }
-
-        _totalArea = 0.0f;
-        for (size_t i = 0; i < _tris.size(); ++i) {
-            Vec3f p0 = _tfVerts[_tris[i].v0].pos();
-            Vec3f p1 = _tfVerts[_tris[i].v1].pos();
-            Vec3f p2 = _tfVerts[_tris[i].v2].pos();
-            _totalArea += MathUtil::triangleArea(p0, p1, p2);
-        }
-
-        embree::rtcUnmapPositionBuffer(_geom);
-        embree::rtcUnmapTriangleBuffer(_geom);
-
-        embree::rtcBuildAccel(_geom, "objectsplit");
-        _intersector = embree::rtcQueryIntersector1(_geom, "fast.moeller");
-    }
-
-    virtual void cleanupAfterRender() override
-    {
-        if (_geom)
-            embree::rtcDeleteGeometry(_geom);
-        _geom = nullptr;
-        _intersector = nullptr;
-        _tfVerts.clear();
-    }
-
-    bool isSamplable() const override final
-    {
-        return _triSampler.operator bool();
-    }
-
-    void makeSamplable() override final
-    {
-        std::vector<float> areas(_tris.size());
-        _totalArea = 0.0f;
-        for (size_t i = 0; i < _tris.size(); ++i) {
-            Vec3f p0 = _tfVerts[_tris[i].v0].pos();
-            Vec3f p1 = _tfVerts[_tris[i].v1].pos();
-            Vec3f p2 = _tfVerts[_tris[i].v2].pos();
-            areas[i] = MathUtil::triangleArea(p0, p1, p2);
-            _totalArea += areas[i];
-        }
-        _triSampler.reset(new Distribution1D(std::move(areas)));
-    }
-
-    float inboundPdf(const IntersectionTemporary &data, const Vec3f &p, const Vec3f &d) const override final
-    {
-        const MeshIntersection *isect = data.as<MeshIntersection>();
-
-        return (p - isect->p).lengthSq()/(-d.dot(isect->Ng.normalized())*_totalArea);
-    }
-
-    bool sampleInboundDirection(LightSample &sample) const override final
-    {
-        float u = sample.sampler->next1D();
-        int idx;
-        _triSampler->warp(u, idx);
-
-        Vec3f p0 = _tfVerts[_tris[idx].v0].pos();
-        Vec3f p1 = _tfVerts[_tris[idx].v1].pos();
-        Vec3f p2 = _tfVerts[_tris[idx].v2].pos();
-        Vec3f normal = (p1 - p0).cross(p2 - p0).normalized();
-
-        Vec3f p = SampleWarp::uniformTriangle(sample.sampler->next2D(), p0, p1, p2);
-        Vec3f L = p - sample.p;
-
-        float rSq = L.lengthSq();
-        sample.dist = std::sqrt(rSq);
-        sample.d = L/sample.dist;
-        float cosTheta = -(normal.dot(sample.d));
-        if (cosTheta <= 0.0f)
-            return false;
-        sample.pdf = rSq/(cosTheta*_totalArea);
-
-        return true;
-    }
-
-    bool sampleOutboundDirection(LightSample &sample) const override final
-    {
-        float u = sample.sampler->next1D();
-        int idx;
-        _triSampler->warp(u, idx);
-
-        Vec3f p0 = _tfVerts[_tris[idx].v0].pos();
-        Vec3f p1 = _tfVerts[_tris[idx].v1].pos();
-        Vec3f p2 = _tfVerts[_tris[idx].v2].pos();
-        Vec3f normal = (p1 - p0).cross(p2 - p0).normalized();
-        TangentFrame frame(normal);
-
-        sample.p = SampleWarp::uniformTriangle(sample.sampler->next2D(), p0, p1, p2);
-        sample.d = SampleWarp::cosineHemisphere(sample.sampler->next2D());
-        sample.pdf = SampleWarp::cosineHemispherePdf(sample.d)/_totalArea;
-        sample.d = frame.toGlobal(sample.d);
-
-        return true;
-    }
-
-    virtual bool invertParametrization(Vec2f /*uv*/, Vec3f &/*pos*/) const
-    {
-        return false;
-    }
-
-    virtual bool isDelta() const
-    {
-        return false;
-    }
-
-    virtual bool isInfinite() const
-    {
-        return false;
-    }
-
-    virtual float approximateRadiance(const Vec3f &/*p*/) const override final
-    {
-        return -1.0f;
-    }
-
-    virtual Primitive *clone()
-    {
-        return new TriangleMesh(*this);
-    }
-
+    virtual Primitive *clone();
 
     const std::vector<TriangleI>& tris() const
     {

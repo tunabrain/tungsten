@@ -2,18 +2,11 @@
 #define INFINITESPHERECAP_HPP_
 
 #include "Primitive.hpp"
-#include "Mesh.hpp"
 
 namespace Tungsten {
 
 class InfiniteSphereCap : public Primitive
 {
-    struct InfiniteSphereCapIntersection
-    {
-        Vec3f p;
-        Vec3f w;
-    };
-
     bool _doSample;
     float _capAngleDeg;
 
@@ -24,148 +17,40 @@ class InfiniteSphereCap : public Primitive
 
     std::shared_ptr<TriangleMesh> _proxy;
 
+    void buildProxy();
+
 public:
-    InfiniteSphereCap()
-    : _doSample(true),
-      _capAngleDeg(10.0f)
-    {
-    }
+    InfiniteSphereCap();
 
-    void fromJson(const rapidjson::Value &v, const Scene &scene) override
-    {
-        Primitive::fromJson(v, scene);
-        JsonUtils::fromJson(v, "sample", _doSample);
-        JsonUtils::fromJson(v, "cap_angle", _capAngleDeg);
-    }
-    rapidjson::Value toJson(Allocator &allocator) const override
-    {
-        rapidjson::Value v = Primitive::toJson(allocator);
-        v.AddMember("type", "infinite_sphere_cap", allocator);
-        v.AddMember("sample", _doSample, allocator);
-        v.AddMember("cap_angle", _capAngleDeg, allocator);
-        return std::move(v);
-    }
+    virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
+    virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
-    virtual bool intersect(Ray &ray, IntersectionTemporary &data) const
-    {
-        if (ray.dir().dot(_capDir) < _cosCapAngle)
-            return false;
+    virtual bool intersect(Ray &ray, IntersectionTemporary &data) const override;
+    virtual bool occluded(const Ray &ray) const override;
+    virtual bool hitBackside(const IntersectionTemporary &data) const override;
+    virtual void intersectionInfo(const IntersectionTemporary &data, IntersectionInfo &info) const override;
+    virtual bool tangentSpace(const IntersectionTemporary &data, const IntersectionInfo &info,
+            Vec3f &T, Vec3f &B) const override;
 
-        InfiniteSphereCapIntersection *isect = data.as<InfiniteSphereCapIntersection>();
-        isect->p = ray.pos();
-        isect->w = ray.dir();
-        data.primitive = this;
-        return true;
-    }
+    virtual bool isSamplable() const override;
+    virtual void makeSamplable() override;
+    virtual float inboundPdf(const IntersectionTemporary &data, const Vec3f &p, const Vec3f &d) const override;
+    virtual bool sampleInboundDirection(LightSample &sample) const override;
+    virtual bool sampleOutboundDirection(LightSample &sample) const override;
+    virtual bool invertParametrization(Vec2f uv, Vec3f &pos) const override;
 
-    virtual bool occluded(const Ray &ray) const
-    {
-        return ray.dir().dot(_capDir) >= _cosCapAngle;
-    }
+    virtual bool isDelta() const override;
+    virtual bool isInfinite() const override;
 
-    virtual bool hitBackside(const IntersectionTemporary &/*data*/) const
-    {
-        return false;
-    }
+    virtual float approximateRadiance(const Vec3f &p) const override;
+    virtual Box3f bounds() const override;
 
-    virtual void intersectionInfo(const IntersectionTemporary &data, IntersectionInfo &info) const
-    {
-        const InfiniteSphereCapIntersection *isect = data.as<InfiniteSphereCapIntersection>();
-        info.Ng = info.Ns = -isect->w;
-        info.p = isect->p;
-        info.uv = Vec2f(0.0f, 0.0f);
-        info.primitive = this;
-    }
+    virtual const TriangleMesh &asTriangleMesh() override;
 
-    virtual bool tangentSpace(const IntersectionTemporary &/*data*/, const IntersectionInfo &/*info*/, Vec3f &/*T*/, Vec3f &/*B*/) const
-    {
-        return false;
-    }
+    virtual void prepareForRender() override;
+    virtual void cleanupAfterRender() override;
 
-    virtual bool isSamplable() const
-    {
-        return _doSample;
-    }
-
-    virtual void makeSamplable()
-    {
-    }
-
-    virtual float inboundPdf(const IntersectionTemporary &/*data*/, const Vec3f &/*p*/, const Vec3f &/*d*/) const
-    {
-        return SampleWarp::uniformSphericalCapPdf(_cosCapAngle);
-    }
-
-    virtual bool sampleInboundDirection(LightSample &sample) const
-    {
-        Vec3f dir = SampleWarp::uniformSphericalCap(sample.sampler->next2D(), _cosCapAngle);
-        sample.d = _capFrame.toGlobal(dir);
-        sample.dist = 1e30f;
-        sample.pdf = SampleWarp::uniformSphericalCapPdf(_cosCapAngle);
-        return true;
-    }
-
-    virtual bool sampleOutboundDirection(LightSample &/*sample*/) const
-    {
-        return false;
-    }
-
-    virtual bool invertParametrization(Vec2f /*uv*/, Vec3f &/*pos*/) const
-    {
-        return false;
-    }
-
-    virtual bool isDelta() const
-    {
-        return false;
-    }
-
-    virtual bool isInfinite() const
-    {
-        return true;
-    }
-
-    virtual float approximateRadiance(const Vec3f &/*p*/) const override final
-    {
-        if (!isEmissive() || !isSamplable())
-            return 0.0f;
-        return TWO_PI*(1.0f - _cosCapAngle)*_emission->average().max();
-    }
-
-    virtual Box3f bounds() const
-    {
-        return Box3f(Vec3f(-1e30f), Vec3f(1e30f));
-    }
-
-    void buildProxy()
-    {
-        _proxy = std::make_shared<TriangleMesh>(std::vector<Vertex>(), std::vector<TriangleI>(), _bsdf, "Sphere", false);
-        _proxy->makeCone(0.05f, 1.0f);
-    }
-
-    virtual const TriangleMesh &asTriangleMesh()
-    {
-        if (!_proxy)
-            buildProxy();
-        return *_proxy;
-    }
-
-    virtual void prepareForRender()
-    {
-        _capDir = _transform.transformVector(Vec3f(0.0f, 1.0f, 0.0f)).normalized();
-        _capAngleRad = Angle::degToRad(_capAngleDeg);
-        _cosCapAngle = std::cos(_capAngleRad);
-        _capFrame = TangentFrame(_capDir);
-    }
-
-    virtual void cleanupAfterRender()
-    {
-    }
-
-    virtual Primitive *clone()
-    {
-        return new InfiniteSphereCap(*this);
-    }
+    virtual Primitive *clone() override;
 };
 
 }

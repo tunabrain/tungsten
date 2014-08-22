@@ -11,7 +11,13 @@
 
 namespace Tungsten {
 
-class Scene;
+struct CurveIntersection
+{
+    uint32 curveP0;
+    float t;
+    Vec2f uv;
+    float w;
+};
 
 // http://www.answers.com/topic/b-spline
 template<typename T>
@@ -158,6 +164,19 @@ static Box3f curveBox(const Vec4f &q0, const Vec4f &q1, const Vec4f &q2)
     );
 }
 
+Curves::Curves(const Curves &o)
+: Primitive(o)
+{
+    _path       = o._path;
+    _curveCount = o._curveCount;
+    _nodeCount  = o._nodeCount;
+    _curveEnds  = o._curveEnds;
+    _nodeData   = o._nodeData;
+    _nodeColor  = o._nodeColor;
+    _proxy      = o._proxy;
+    _bounds     = o._bounds;
+}
+
 void Curves::loadCurves()
 {
     std::ifstream in(_path, std::ios_base::in | std::ios_base::binary);
@@ -241,6 +260,46 @@ void Curves::computeBounds()
         _bounds.grow(curveBox(_nodeData[i - 2], _nodeData[i - 1], _nodeData[i]));
 }
 
+void Curves::buildProxy()
+{
+    std::vector<Vertex> verts;
+    std::vector<TriangleI> tris;
+
+    const int Samples = _curveCount < 100 ? 100 : (_curveCount < 10000 ? 5 : 2);
+
+    uint32 idx = 0;
+    for (uint32 i = 0; i < _curveCount; ++i) {
+        uint32 start = 0;
+        if (i > 0)
+            start = _curveEnds[i - 1];
+
+        for (uint32 t = start + 2; t < _curveEnds[i]; ++t) {
+            const Vec4f &p0 = _nodeData[t - 2];
+            const Vec4f &p1 = _nodeData[t - 1];
+            const Vec4f &p2 = _nodeData[t - 0];
+
+            for (int j = 0; j <= Samples; ++j) {
+                float curveT = j*(1.0f/Samples);
+                Vec3f tangent = quadraticBSplineDeriv(p0.xyz(), p1.xyz(), p2.xyz(), curveT).normalized();
+                TangentFrame frame(tangent);
+                Vec4f p = quadraticBSpline(p0, p1, p2, curveT);
+                Vec3f v0 = frame.toGlobal(Vec3f(-p.w(), 0.0f, 0.0f)) + p.xyz();
+                Vec3f v1 = frame.toGlobal(Vec3f( p.w(), 0.0f, 0.0f)) + p.xyz();
+
+                verts.emplace_back(v0);
+                verts.emplace_back(v1);
+                idx += 2;
+                if (j > 0) {
+                    tris.emplace_back(idx - 3, idx - 2, idx - 1);
+                    tris.emplace_back(idx - 4, idx - 2, idx - 3);
+                }
+            }
+        }
+    }
+
+    _proxy = std::make_shared<TriangleMesh>(verts, tris, _bsdf, "Curves", false);
+}
+
 void Curves::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     Primitive::fromJson(v, scene);
@@ -292,44 +351,16 @@ bool Curves::intersect(Ray &ray, IntersectionTemporary &data) const
     return didIntersect;
 }
 
-void Curves::buildProxy()
+bool Curves::occluded(const Ray &ray) const
 {
-    std::vector<Vertex> verts;
-    std::vector<TriangleI> tris;
+    IntersectionTemporary tmp;
+    Ray r(ray);
+    return intersect(r, tmp);
+}
 
-    const int Samples = _curveCount < 100 ? 100 : (_curveCount < 10000 ? 5 : 2);
-
-    uint32 idx = 0;
-    for (uint32 i = 0; i < _curveCount; ++i) {
-        uint32 start = 0;
-        if (i > 0)
-            start = _curveEnds[i - 1];
-
-        for (uint32 t = start + 2; t < _curveEnds[i]; ++t) {
-            const Vec4f &p0 = _nodeData[t - 2];
-            const Vec4f &p1 = _nodeData[t - 1];
-            const Vec4f &p2 = _nodeData[t - 0];
-
-            for (int j = 0; j <= Samples; ++j) {
-                float curveT = j*(1.0f/Samples);
-                Vec3f tangent = quadraticBSplineDeriv(p0.xyz(), p1.xyz(), p2.xyz(), curveT).normalized();
-                TangentFrame frame(tangent);
-                Vec4f p = quadraticBSpline(p0, p1, p2, curveT);
-                Vec3f v0 = frame.toGlobal(Vec3f(-p.w(), 0.0f, 0.0f)) + p.xyz();
-                Vec3f v1 = frame.toGlobal(Vec3f( p.w(), 0.0f, 0.0f)) + p.xyz();
-
-                verts.emplace_back(v0);
-                verts.emplace_back(v1);
-                idx += 2;
-                if (j > 0) {
-                    tris.emplace_back(idx - 3, idx - 2, idx - 1);
-                    tris.emplace_back(idx - 4, idx - 2, idx - 3);
-                }
-            }
-        }
-    }
-
-    _proxy = std::make_shared<TriangleMesh>(verts, tris, _bsdf, "Curves", false);
+bool Curves::hitBackside(const IntersectionTemporary &/*data*/) const
+{
+    return false;
 }
 
 void Curves::intersectionInfo(const IntersectionTemporary &data, IntersectionInfo &info) const
@@ -342,6 +373,68 @@ void Curves::intersectionInfo(const IntersectionTemporary &data, IntersectionInf
     info.uv = isect.uv;
     info.primitive = this;
     info.epsilon = 10.0f*isect.w;
+}
+
+bool Curves::tangentSpace(const IntersectionTemporary &/*data*/, const IntersectionInfo &/*info*/,
+        Vec3f &/*T*/, Vec3f &/*B*/) const
+{
+    return false;
+}
+
+bool Curves::isSamplable() const
+{
+    return false;
+}
+
+void Curves::makeSamplable()
+{
+}
+
+float Curves::inboundPdf(const IntersectionTemporary &/*data*/, const Vec3f &/*p*/, const Vec3f &/*d*/) const
+{
+    return 0.0f;
+}
+
+bool Curves::sampleInboundDirection(LightSample &/*sample*/) const
+{
+    return false;
+}
+
+bool Curves::sampleOutboundDirection(LightSample &/*sample*/) const
+{
+    return false;
+}
+
+bool Curves::invertParametrization(Vec2f /*uv*/, Vec3f &/*pos*/) const
+{
+    return false;
+}
+
+bool Curves::isDelta() const
+{
+    return false;
+}
+
+bool Curves::isInfinite() const
+{
+    return false;
+}
+
+float Curves::approximateRadiance(const Vec3f &/*p*/) const
+{
+    return -1.0f;
+}
+
+Box3f Curves::bounds() const
+{
+    return _bounds;
+}
+
+const TriangleMesh &Curves::asTriangleMesh()
+{
+    if (!_proxy)
+        buildProxy();
+    return *_proxy;
 }
 
 void Curves::prepareForRender()
@@ -389,8 +482,14 @@ void Curves::cleanupAfterRender()
     _bvh.reset();
     std::string dir = FileUtils::getCurrentDir();
     FileUtils::changeCurrentDir(_dir);
+    // TODO
     loadCurves();
     FileUtils::changeCurrentDir(dir);
+}
+
+Primitive *Curves::clone()
+{
+    return new Curves(*this);
 }
 
 }
