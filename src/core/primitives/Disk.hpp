@@ -8,7 +8,7 @@ namespace Tungsten {
 
 class Disk : public Primitive
 {
-    float _angle;
+    float _coneAngle;
 
     Vec3f _center;
     float _r;

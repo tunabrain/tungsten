@@ -13,7 +13,7 @@ struct DiskIntersection
 };
 
 Disk::Disk()
-: _angle(45.0f)
+: _coneAngle(45.0f)
 {
 }
 
@@ -26,14 +26,14 @@ void Disk::buildProxy()
 void Disk::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     Primitive::fromJson(v, scene);
-    JsonUtils::fromJson(v, "angle", _angle);
+    JsonUtils::fromJson(v, "angle", _coneAngle);
 }
 
 rapidjson::Value Disk::toJson(Allocator &allocator) const
 {
     rapidjson::Value v = Primitive::toJson(allocator);
     v.AddMember("type", "disk", allocator);
-    v.AddMember("angle", _angle, allocator);
+    v.AddMember("cone_angle", _coneAngle, allocator);
     return std::move(v);
 }
 
@@ -233,8 +233,8 @@ void Disk::prepareForRender()
     _r = (_transform.extractScale()*Vec3f(1.0f, 0.0f, 1.0f)).max();
     _n = _transform.transformVector(Vec3f(0.0f, -1.0f, 0.0f)).normalized();
     _frame = TangentFrame(_n);
-    _cosApex = std::cos(Angle::degToRad(_angle));
-    _coneBase = _center - _n/std::sin(Angle::degToRad(_angle));
+    _cosApex = std::cos(Angle::degToRad(_coneAngle));
+    _coneBase = _center - _n/std::sin(Angle::degToRad(_coneAngle));
 }
 
 void Disk::cleanupAfterRender()
