@@ -41,7 +41,7 @@ class PathTraceIntegrator : public Integrator
     int _maxBounces;
     std::vector<float> _lightPdf;
 
-    SurfaceScatterEvent makeLocalScatterEvent(Primitive::IntersectionTemporary &data, IntersectionInfo &info,
+    SurfaceScatterEvent makeLocalScatterEvent(IntersectionTemporary &data, IntersectionInfo &info,
             Ray &ray, SampleGenerator *sampler, UniformSampler *supplementalSampler) const
     {
         TangentFrame frame;
@@ -72,7 +72,7 @@ class PathTraceIntegrator : public Integrator
     {
         if (!GeneralizedShadowRays)
             return _scene->occluded(ray) ? Vec3f(0.0f) : Vec3f(1.0f);
-        Primitive::IntersectionTemporary data;
+        IntersectionTemporary data;
         IntersectionInfo info;
 
         float initialFarT = ray.farT();
@@ -115,7 +115,7 @@ class PathTraceIntegrator : public Integrator
                              const Medium *medium,
                              const Vec3f &p, const Vec3f &d,
                              float expectedDist,
-                             Primitive::IntersectionTemporary &data,
+                             IntersectionTemporary &data,
                              int bounce,
                              float tMin)
     {
@@ -164,7 +164,7 @@ class PathTraceIntegrator : public Integrator
         if (f == 0.0f)
             return Vec3f(0.0f);
 
-        Primitive::IntersectionTemporary data;
+        IntersectionTemporary data;
         Vec3f e = attenuatedEmission(light, medium, sample.p, sample.d, sample.dist, data, bounce, epsilon);
         if (e == 0.0f)
             return Vec3f(0.0f);
@@ -203,7 +203,7 @@ class PathTraceIntegrator : public Integrator
                 medium = bsdf.extMedium().get();
         }
 
-        Primitive::IntersectionTemporary data;
+        IntersectionTemporary data;
         Vec3f e = attenuatedEmission(light, medium, event.info->p, wo, -1.0f, data, bounce, epsilon);
 
         if (e == Vec3f(0.0f))
@@ -228,7 +228,7 @@ class PathTraceIntegrator : public Integrator
         if (f == 0.0f)
             return Vec3f(0.0f);
 
-        Primitive::IntersectionTemporary data;
+        IntersectionTemporary data;
         Vec3f e = attenuatedEmission(light, medium, sample.p, sample.d, sample.dist, data, bounce, 0.0f);
         if (e == 0.0f)
             return Vec3f(0.0f);
@@ -248,7 +248,7 @@ class PathTraceIntegrator : public Integrator
         if (event.throughput == 0.0f)
             return Vec3f(0.0f);
 
-        Primitive::IntersectionTemporary data;
+        IntersectionTemporary data;
         Vec3f e = attenuatedEmission(light, medium, event.p, event.wo, -1.0f, data, bounce, 0.0f);
 
         if (e == Vec3f(0.0f))
@@ -421,7 +421,7 @@ public:
         return true;
     }
 
-    bool handleSurface(Primitive::IntersectionTemporary &data, IntersectionInfo &info,
+    bool handleSurface(IntersectionTemporary &data, IntersectionInfo &info,
                        SampleGenerator &sampler, UniformSampler &supplementalSampler,
                        const Medium *&medium, int bounce, Ray &ray,
                        Vec3f &throughput, Vec3f &emission, bool &wasSpecular,
@@ -495,7 +495,7 @@ public:
         if (!_scene->cam().generateSample(pixel, sampler, throughput, ray))
             return Vec3f(0.0f);
 
-        Primitive::IntersectionTemporary data;
+        IntersectionTemporary data;
         Medium::MediumState state;
         state.reset();
         IntersectionInfo info;

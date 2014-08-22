@@ -26,7 +26,7 @@ class TraceableScene
 
     struct PerRayData
     {
-        Primitive::IntersectionTemporary &data;
+        IntersectionTemporary &data;
         Ray &ray;
     };
 
@@ -152,7 +152,7 @@ public:
         return _integratorBase.cloneThreadSafe(threadId, this);
     }
 
-    bool intersect(Ray &ray, Primitive::IntersectionTemporary &data, IntersectionInfo &info) const
+    bool intersect(Ray &ray, IntersectionTemporary &data, IntersectionInfo &info) const
     {
         info.primitive = nullptr;
         data.primitive = nullptr;
@@ -183,7 +183,7 @@ public:
         }
     }
 
-    bool intersectInfinites(Ray &ray, Primitive::IntersectionTemporary &data, IntersectionInfo &info) const
+    bool intersectInfinites(Ray &ray, IntersectionTemporary &data, IntersectionInfo &info) const
     {
         info.primitive = nullptr;
         data.primitive = nullptr;

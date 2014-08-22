@@ -1,6 +1,7 @@
 #ifndef PRIMITIVE_HPP_
 #define PRIMITIVE_HPP_
 
+#include "IntersectionTemporary.hpp"
 #include "IntersectionInfo.hpp"
 
 #include "samplerecords/LightSample.hpp"
@@ -36,45 +37,13 @@ protected:
     bool _needsRayTransform = false;
 
 public:
-    struct IntersectionTemporary
-    {
-        const Primitive *primitive;
-        uint8 data[64];
-
-        IntersectionTemporary()
-        : primitive(nullptr)
-        {
-        }
-
-        template<typename T>
-        T *as()
-        {
-            static_assert(sizeof(T) <= sizeof(data), "Exceeding size of intersection temporary");
-            return reinterpret_cast<T *>(&data[0]);
-        }
-        template<typename T>
-        const T *as() const
-        {
-            static_assert(sizeof(T) <= sizeof(data), "Exceeding size of intersection temporary");
-            return reinterpret_cast<const T *>(&data[0]);
-        }
-    };
-
     virtual ~Primitive() {}
 
-    Primitive()
-    : _bumpStrength(1.0f)
-    {
-    }
+    Primitive();
+    Primitive(const std::string &name, std::shared_ptr<Bsdf> bsdf);
 
-    Primitive(const std::string &name, std::shared_ptr<Bsdf> bsdf)
-    : JsonSerializable(name), _bsdf(bsdf),
-      _bumpStrength(1.0f)
-    {
-    }
-
-    void fromJson(const rapidjson::Value &v, const Scene &scene) override;
-    rapidjson::Value toJson(Allocator &allocator) const override;
+    virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
+    virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
     virtual bool intersect(Ray &ray, IntersectionTemporary &data) const = 0;
     virtual bool occluded(const Ray &ray) const = 0;
@@ -92,43 +61,24 @@ public:
 
     virtual bool invertParametrization(Vec2f uv, Vec3f &pos) const = 0;
 
-    void setupTangentFrame(const Primitive::IntersectionTemporary &data,
-            const IntersectionInfo &info, TangentFrame &dst) const
-    {
-        if ((!_bump || _bump->isConstant()) && !_bsdf->lobes().isAnisotropic()) {
-            dst = TangentFrame(info.Ns);
-            return;
-        }
-        Vec3f T, B, N(info.Ns);
-        if (!tangentSpace(data, info, T, B)) {
-            dst = TangentFrame(info.Ns);
-            return;
-        }
-        if (_bump && !_bump->isConstant()) {
-            Vec2f dudv;
-            _bump->derivatives(info.uv, dudv);
+    virtual bool isDelta() const = 0;
+    virtual bool isInfinite() const = 0;
 
-            T += info.Ns*(dudv.x()*_bumpStrength - info.Ns.dot(T));
-            B += info.Ns*(dudv.y()*_bumpStrength - info.Ns.dot(B));
-            N = T.cross(B);
-            if (N == 0.0f) {
-                dst = TangentFrame(info.Ns);
-                return;
-            }
-            if (N.dot(info.Ns) < 0.0f)
-                N = -N;
-            N.normalize();
-        }
-        T = (T - N.dot(T)*N);
-        if (T == 0.0f) {
-            dst = TangentFrame(info.Ns);
-            return;
-        }
-        T.normalize();
-        B = N.cross(T);
+    virtual float approximateRadiance(const Vec3f &p) const = 0;
 
-        dst = TangentFrame(N, T, B);
-    }
+    virtual Box3f bounds() const = 0;
+
+    virtual const TriangleMesh &asTriangleMesh() = 0;
+
+    virtual void prepareForRender() = 0;
+    virtual void cleanupAfterRender() = 0;
+
+    virtual Primitive *clone() = 0;
+
+    virtual void saveData() const {} /* TODO */
+
+    void setupTangentFrame(const IntersectionTemporary &data,
+            const IntersectionInfo &info, TangentFrame &dst) const;
 
     bool isEmissive() const
     {
@@ -149,21 +99,10 @@ public:
         _emission = emission;
     }
 
-    virtual bool isDelta() const = 0;
-    virtual bool isInfinite() const = 0;
-
-    virtual float approximateRadiance(const Vec3f &p) const = 0;
-
-    virtual Box3f bounds() const = 0;
-
-    virtual const TriangleMesh &asTriangleMesh() = 0;
-
-    virtual void prepareForRender() = 0;
-    virtual void cleanupAfterRender() = 0;
-
-    virtual Primitive *clone() = 0;
-
-    virtual void saveData() const {} /* TODO */
+    const std::shared_ptr<TextureRgb> &emission() const
+    {
+        return _emission;
+    }
 
     bool needsRayTransform() const
     {
@@ -188,11 +127,6 @@ public:
     const std::shared_ptr<Bsdf> &bsdf() const
     {
         return _bsdf;
-    }
-
-    const std::shared_ptr<TextureRgb> &emission() const
-    {
-        return _emission;
     }
 
     void setBump(const std::shared_ptr<TextureA> &b)

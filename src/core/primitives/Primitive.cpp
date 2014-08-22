@@ -6,6 +6,17 @@
 
 namespace Tungsten {
 
+Primitive::Primitive()
+: _bumpStrength(1.0f)
+{
+}
+
+Primitive::Primitive(const std::string &name, std::shared_ptr<Bsdf> bsdf)
+: JsonSerializable(name), _bsdf(bsdf),
+  _bumpStrength(1.0f)
+{
+}
+
 void Primitive::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     JsonSerializable::fromJson(v, scene);
@@ -33,6 +44,44 @@ rapidjson::Value Primitive::toJson(Allocator &allocator) const
     if (_bump)
         JsonUtils::addObjectMember(v, "bump", *_bump,  allocator);
     return std::move(v);
+}
+
+void Primitive::setupTangentFrame(const IntersectionTemporary &data,
+        const IntersectionInfo &info, TangentFrame &dst) const
+{
+    if ((!_bump || _bump->isConstant()) && !_bsdf->lobes().isAnisotropic()) {
+        dst = TangentFrame(info.Ns);
+        return;
+    }
+    Vec3f T, B, N(info.Ns);
+    if (!tangentSpace(data, info, T, B)) {
+        dst = TangentFrame(info.Ns);
+        return;
+    }
+    if (_bump && !_bump->isConstant()) {
+        Vec2f dudv;
+        _bump->derivatives(info.uv, dudv);
+
+        T += info.Ns*(dudv.x()*_bumpStrength - info.Ns.dot(T));
+        B += info.Ns*(dudv.y()*_bumpStrength - info.Ns.dot(B));
+        N = T.cross(B);
+        if (N == 0.0f) {
+            dst = TangentFrame(info.Ns);
+            return;
+        }
+        if (N.dot(info.Ns) < 0.0f)
+            N = -N;
+        N.normalize();
+    }
+    T = (T - N.dot(T)*N);
+    if (T == 0.0f) {
+        dst = TangentFrame(info.Ns);
+        return;
+    }
+    T.normalize();
+    B = N.cross(T);
+
+    dst = TangentFrame(N, T, B);
 }
 
 }
