@@ -3,6 +3,8 @@
 
 #include "math/Vec.hpp"
 
+#include <type_traits>
+
 namespace Tungsten {
 
 class Vertex
@@ -53,6 +55,8 @@ public:
         return _uv;
     }
 };
+
+static_assert(std::is_pod<Vertex>::value, "Vertex needs to be of POD type!");
 
 }
 

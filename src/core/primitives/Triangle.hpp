@@ -7,6 +7,8 @@
 
 #include "IntTypes.hpp"
 
+#include <type_traits>
+
 namespace Tungsten {
 
 struct TriangleI
@@ -24,6 +26,8 @@ struct TriangleI
     {
     }
 };
+
+static_assert(std::is_pod<TriangleI>::value, "TriangleI needs to be of POD type!");
 
 }
 
