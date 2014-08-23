@@ -269,6 +269,7 @@ public:
                 result.depth = max(result.depth, recursiveResult.depth + 1);
             }
 
+            // TODO: Thoroughly broken parallel build code. Need to revisit this
 //            std::array<std::future<BuildResult>, BranchFactor> futures;
 //
 //            int asyncIndex = child - 1, lazyIndex = 0;
