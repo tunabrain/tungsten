@@ -172,16 +172,20 @@ void Texture::init(GLuint bufferObject)
         glTexBuffer(GL_TEXTURE_BUFFER, _glFormat, bufferObject);
         break;
     case TEXTURE_1D:
-        glTexStorage1D(GL_TEXTURE_1D, _levels, _glFormat, _width);
+        glTexImage1D(GL_TEXTURE_1D, 0, _glFormat, _width, 0, _glChanType, _elementType, nullptr);
+        //glTexStorage1D(GL_TEXTURE_1D, _levels, _glFormat, _width);
         break;
     case TEXTURE_CUBE:
-        glTexStorage2D(GL_TEXTURE_CUBE_MAP, _levels, _glFormat, _width, _height);
+        glTexImage2D(GL_TEXTURE_CUBE_MAP, 0, _glFormat, _width, _height, 0, _glChanType, _elementType, nullptr);
+        //glTexStorage2D(GL_TEXTURE_CUBE_MAP, _levels, _glFormat, _width, _height);
         break;
     case TEXTURE_2D:
-        glTexStorage2D(GL_TEXTURE_2D, _levels, _glFormat, _width, _height);
+        glTexImage2D(GL_TEXTURE_2D, 0, _glFormat, _width, _height, 0, _glChanType, _elementType, nullptr);
+        //glTexStorage2D(GL_TEXTURE_2D, _levels, _glFormat, _width, _height);
         break;
     case TEXTURE_3D:
-        glTexStorage3D(GL_TEXTURE_3D, _levels, _glFormat, _width, _height, _depth);
+        glTexImage3D(GL_TEXTURE_3D, 0, _glFormat, _width, _height, _depth, 0, _glChanType, _elementType, nullptr);
+        //glTexStorage3D(GL_TEXTURE_3D, _levels, _glFormat, _width, _height, _depth);
         break;
     }
 
