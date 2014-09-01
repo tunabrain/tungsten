@@ -28,7 +28,7 @@ public:
     }
 
     template<typename... Ts>
-    explicit Vec(ElementType a, ElementType b, Ts... ts)
+    Vec(ElementType a, ElementType b, Ts... ts)
     : _v{a, b, ts...}
     {
     }
