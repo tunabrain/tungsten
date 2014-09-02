@@ -32,7 +32,7 @@ Vec<float, Size> ObjLoader::loadVector(const char *s)
 {
     std::istringstream ss(s);
     Vec<float, Size> result;
-    for (int i = 0; i < Size && !ss.eof() && !ss.fail(); ++i)
+    for (unsigned i = 0; i < Size && !ss.eof() && !ss.fail(); ++i)
         ss >> result[i];
     return result;
 }

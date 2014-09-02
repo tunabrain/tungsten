@@ -98,7 +98,7 @@ class SceneXmlWriter
         begin(blockname);
         assign("name", name);
         _stream << "value=\"";
-        for (int i = 0; i < Size; ++i)
+        for (unsigned i = 0; i < Size; ++i)
             _stream << v[i] << (i == Size - 1 ? "" : ", ");
         _stream << "\"";
         endInline();
@@ -149,7 +149,7 @@ class SceneXmlWriter
     {
         begin("point");
         assign("name", name);
-        for (int i = 0; i < Size; ++i)
+        for (unsigned i = 0; i < Size; ++i)
             assign(std::string(1, 'x' + i), v[i]);
         endInline();
     }

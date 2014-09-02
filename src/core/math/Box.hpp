@@ -102,7 +102,7 @@ public:
 
     bool contains(const Box &box) const
     {
-        for (int i = 0; i < TVec::size; i++)
+        for (unsigned i = 0; i < TVec::size; i++)
             if (box._max[i] < _min[i] || box._min[i] > _max[i])
                 return false;
         return true;

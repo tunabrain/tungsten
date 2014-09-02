@@ -275,7 +275,7 @@ inline std::shared_ptr<VoxelVolume<Scalar>> loadVolume(const std::string &path)
 
         if (channels == 3 && Scalar) {
             std::unique_ptr<float[]> grayTexels(new float[w*h*d]);
-            for (int i = 0; i < w*h*d; ++i)
+            for (uint64 i = 0; i < w*h*d; ++i)
                 grayTexels[i] = (texels[i*3] + texels[i*3 + 1] + texels[i*3 + 2])*(1.0f/3.0f);
             texels = std::move(grayTexels);
         }
@@ -288,7 +288,7 @@ inline std::shared_ptr<VoxelVolume<Scalar>> loadVolume(const std::string &path)
 
         if (channels == 3 && Scalar) {
             std::unique_ptr<uint8[]> grayTexels(new uint8[w*h*d]);
-            for (int i = 0; i < w*h*d; ++i)
+            for (uint64 i = 0; i < w*h*d; ++i)
                 grayTexels[i] = uint8((int(texels[i*3]) + int(texels[i*3 + 1]) + int(texels[i*3 + 2]))/3);
             texels = std::move(grayTexels);
         }

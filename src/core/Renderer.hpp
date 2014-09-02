@@ -229,7 +229,7 @@ class Renderer
                     SampleRecord &record = _samples[variancePixelIndex];
                     int spp = record.nextSampleCount;
                     Vec3f c(0.0f);
-                    for (uint32 i = 0; i < spp; ++i) {
+                    for (int i = 0; i < spp; ++i) {
                         tile->sampler->setup(pixelIndex, record.sampleIndex + i);
                         Vec3f s(integrator.traceSample(pixel, *tile->sampler, *tile->supplementalSampler));
 

@@ -433,7 +433,7 @@ public:
 
             if (_channels == 4) {
                 _texels = reinterpret_cast<Texel *>(tmp);
-                for (size_t i = 0; i < _w*_h; ++i)
+                for (int i = 0; i < _w*_h; ++i)
                     _texels[i] = Texel(tmp[i*4 + 3]);
             } else {
                 stbi_image_free(tmp);
@@ -456,7 +456,7 @@ public:
             Texel maxT(_texels[0]);
             Value avgT(convert(_texels[0]));
 
-            for (size_t i = 1; i < _w*_h; ++i) {
+            for (int i = 1; i < _w*_h; ++i) {
                 minT = min(minT, _texels[i]);
                 maxT = max(maxT, _texels[i]);
                 avgT += convert(_texels[i]);
