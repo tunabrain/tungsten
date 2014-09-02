@@ -11,6 +11,8 @@
 #include "primitives/Sphere.hpp"
 #include "primitives/Quad.hpp"
 
+#include "materials/ConstantTexture.hpp"
+
 #include "cameras/PinholeCamera.hpp"
 
 #include "bsdfs/RoughConductorBsdf.hpp"

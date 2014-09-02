@@ -1,10 +1,17 @@
 #include "Bsdf.hpp"
 
+#include "materials/ConstantTexture.hpp"
+
 #include "volume/Medium.hpp"
 
 #include "io/Scene.hpp"
 
 namespace Tungsten {
+
+Bsdf::Bsdf()
+: _albedo(std::make_shared<ConstantTexture>(1.0f))
+{
+}
 
 void Bsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
 {

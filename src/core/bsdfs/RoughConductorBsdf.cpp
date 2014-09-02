@@ -3,6 +3,8 @@
 #include "ComplexIor.hpp"
 #include "Fresnel.hpp"
 
+#include "materials/ConstantTexture.hpp"
+
 #include "sampling/SampleGenerator.hpp"
 
 #include "io/JsonUtils.hpp"

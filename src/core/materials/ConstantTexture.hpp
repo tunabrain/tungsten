@@ -1,26 +1,20 @@
-#ifndef BLADETEXTURE_HPP_
-#define BLADETEXTURE_HPP_
+#ifndef CONSTANTTEXTURE_HPP_
+#define CONSTANTTEXTURE_HPP_
 
 #include "Texture.hpp"
 
 namespace Tungsten {
 
-class BladeTexture : public Texture
+class ConstantTexture : public Texture
 {
     typedef JsonSerializable::Allocator Allocator;
 
-    int _numBlades;
-    float _angle;
-
-    float _area;
-    float _bladeAngle;
-    Vec2f _baseNormal;
-    Vec2f _baseEdge;
-
-    void init();
+    Vec3f _value;
 
 public:
-    BladeTexture();
+    ConstantTexture();
+    ConstantTexture(float value);
+    ConstantTexture(const Vec3f &value);
 
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
@@ -41,4 +35,4 @@ public:
 
 }
 
-#endif /* BLADETEXTURE_HPP_ */
+#endif /* CONSTANTTEXTURE_HPP_ */

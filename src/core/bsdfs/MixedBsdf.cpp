@@ -3,6 +3,8 @@
 
 #include "samplerecords/SurfaceScatterEvent.hpp"
 
+#include "materials/ConstantTexture.hpp"
+
 #include "sampling/UniformSampler.hpp"
 
 #include "math/Vec.hpp"

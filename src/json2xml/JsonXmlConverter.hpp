@@ -6,6 +6,7 @@
 #include "primitives/Sphere.hpp"
 #include "primitives/Quad.hpp"
 
+#include "materials/ConstantTexture.hpp"
 #include "materials/CheckerTexture.hpp"
 #include "materials/BitmapTexture.hpp"
 

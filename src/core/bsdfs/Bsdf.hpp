@@ -42,10 +42,7 @@ public:
     {
     }
 
-    Bsdf()
-    : _albedo(std::make_shared<ConstantTexture>(1.0f))
-    {
-    }
+    Bsdf();
 
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;

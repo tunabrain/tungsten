@@ -3,7 +3,7 @@
 
 #include "samplerecords/SurfaceScatterEvent.hpp"
 
-#include "materials/Texture.hpp"
+#include "materials/ConstantTexture.hpp"
 
 #include "io/Scene.hpp"
 

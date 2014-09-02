@@ -1,6 +1,8 @@
 #include "RoughDielectricBsdf.hpp"
 #include "Fresnel.hpp"
 
+#include "materials/ConstantTexture.hpp"
+
 #include "sampling/UniformSampler.hpp"
 
 #include "io/JsonUtils.hpp"

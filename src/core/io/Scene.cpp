@@ -17,6 +17,7 @@
 #include "primitives/Quad.hpp"
 #include "primitives/Disk.hpp"
 
+#include "materials/ConstantTexture.hpp"
 #include "materials/CheckerTexture.hpp"
 #include "materials/BladeTexture.hpp"
 #include "materials/DiskTexture.hpp"
