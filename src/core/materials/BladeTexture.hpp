@@ -10,11 +10,9 @@
 
 namespace Tungsten {
 
-template<bool Scalar>
-class BladeTexture : public Texture<Scalar, 2>
+class BladeTexture : public Texture
 {
     typedef JsonSerializable::Allocator Allocator;
-    typedef typename Texture<Scalar, 2>::Value Value;
 
     int _numBlades;
     float _angle;
@@ -46,7 +44,7 @@ public:
 
     void fromJson(const rapidjson::Value &v, const Scene &scene) override final
     {
-        Texture<Scalar, 2>::fromJson(v, scene);
+        Texture::fromJson(v, scene);
         JsonUtils::fromJson(v, "blades", _numBlades);
         JsonUtils::fromJson(v, "angle", _angle);
 
@@ -55,16 +53,16 @@ public:
 
     rapidjson::Value toJson(Allocator &allocator) const override final
     {
-        rapidjson::Value v = Texture<Scalar, 2>::toJson(allocator);
+        rapidjson::Value v = Texture::toJson(allocator);
         v.AddMember("type", "blade", allocator);
         v.AddMember("blades", _numBlades, allocator);
         v.AddMember("angle", _angle, allocator);
         return std::move(v);
     }
 
-    void derivatives(const Vec<float, 2> &/*uv*/, Vec<Value, 2> &derivs) const override final
+    void derivatives(const Vec<float, 2> &/*uv*/, Vec2f &derivs) const override final
     {
-        derivs = Vec<Value, 2>(Value(0.0f));
+        derivs = Vec2f(0.0f);
     }
 
     bool isConstant() const override final
@@ -72,25 +70,25 @@ public:
         return false;
     }
 
-    Value average() const override final
+    Vec3f average() const override final
     {
-        return Value(_area);
+        return Vec3f(_area);
     }
 
-    Value minimum() const override final
+    Vec3f minimum() const override final
     {
-        return Value(0.0f);
+        return Vec3f(0.0f);
     }
 
-    Value maximum() const override final
+    Vec3f maximum() const override final
     {
-        return Value(1.0f);
+        return Vec3f(1.0f);
     }
 
-    Value operator[](const Vec<float, 2> &uv) const override final
+    Vec3f operator[](const Vec<float, 2> &uv) const override final
     {
         if (uv.sum() == 0.0f)
-            return Value(1.0f);
+            return Vec3f(1.0f);
         Vec2f globalUv = uv*2.0f - 1.0f;
         float phi = std::atan2(globalUv.y(), globalUv.x()) - _angle;
         phi = -(std::floor(phi/_bladeAngle)*_bladeAngle + _angle);
@@ -98,8 +96,8 @@ public:
         float cosPhi = std::cos(phi);
         Vec2f localUv(globalUv.x()*cosPhi - globalUv.y()*sinPhi, globalUv.y()*cosPhi + globalUv.x()*sinPhi);
         if (_baseNormal.dot(localUv - Vec2f(1.0f, 0.0f)) > 0.0f)
-            return Value(0.0f);
-        return Value(1.0f);
+            return Vec3f(0.0f);
+        return Vec3f(1.0f);
     }
 
     void makeSamplable(TextureMapJacobian /*jacobian*/) override final

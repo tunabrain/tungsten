@@ -9,11 +9,9 @@
 
 namespace Tungsten {
 
-template<bool Scalar>
-class DiskTexture : public Texture<Scalar, 2>
+class DiskTexture : public Texture
 {
     typedef JsonSerializable::Allocator Allocator;
-    typedef typename Texture<Scalar, 2>::Value Value;
 
 public:
     DiskTexture()
@@ -22,14 +20,14 @@ public:
 
     rapidjson::Value toJson(Allocator &allocator) const override final
     {
-        rapidjson::Value v = Texture<Scalar, 2>::toJson(allocator);
+        rapidjson::Value v = Texture::toJson(allocator);
         v.AddMember("type", "disk", allocator);
         return std::move(v);
     }
 
-    void derivatives(const Vec<float, 2> &/*uv*/, Vec<Value, 2> &derivs) const override final
+    void derivatives(const Vec2f &/*uv*/, Vec2f &derivs) const override final
     {
-        derivs = Vec<Value, 2>(Value(0.0f));
+        derivs = Vec2f(0.0f);
     }
 
     bool isConstant() const override final
@@ -37,24 +35,24 @@ public:
         return false;
     }
 
-    Value average() const override final
+    Vec3f average() const override final
     {
-        return Value(PI*0.25f);
+        return Vec3f(PI*0.25f);
     }
 
-    Value minimum() const override final
+    Vec3f minimum() const override final
     {
-        return Value(0.0f);
+        return Vec3f(0.0f);
     }
 
-    Value maximum() const override final
+    Vec3f maximum() const override final
     {
-        return Value(1.0f);
+        return Vec3f(1.0f);
     }
 
-    Value operator[](const Vec<float, 2> &uv) const override final
+    Vec3f operator[](const Vec<float, 2> &uv) const override final
     {
-        return (uv - Vec2f(0.5f)).lengthSq() < 0.25f ? Value(1.0f) : Value(0.0f);
+        return (uv - Vec2f(0.5f)).lengthSq() < 0.25f ? Vec3f(1.0f) : Vec3f(0.0f);
     }
 
     void makeSamplable(TextureMapJacobian /*jacobian*/) override final

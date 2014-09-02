@@ -20,7 +20,7 @@ void Bsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
     if (extMedium)
         _extMedium = scene.fetchMedium(extMedium->value);
     if (base)
-        _albedo = scene.fetchColorTexture<2>(base->value);
+        _albedo = scene.fetchTexture(base->value, false);
 }
 
 rapidjson::Value Bsdf::toJson(Allocator &allocator) const

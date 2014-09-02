@@ -16,7 +16,7 @@ static inline T sgnE(T val) {
 
 RoughDielectricBsdf::RoughDielectricBsdf()
 : _distributionName("ggx"),
-  _roughness(std::make_shared<ConstantTextureA>(0.1f)),
+  _roughness(std::make_shared<ConstantTexture>(0.1f)),
   _ior(1.5f),
   _enableT(true)
 {
@@ -38,7 +38,7 @@ void RoughDielectricBsdf::fromJson(const rapidjson::Value &v, const Scene &scene
 
     const rapidjson::Value::Member *roughness  = v.FindMember("roughness");
     if (roughness)
-        _roughness = scene.fetchScalarTexture<2>(roughness->value);
+        _roughness = scene.fetchTexture(roughness->value, true);
 
     if (_enableT)
         _lobes = BsdfLobes(BsdfLobes::GlossyReflectionLobe | BsdfLobes::GlossyTransmissionLobe);
@@ -212,7 +212,7 @@ bool RoughDielectricBsdf::sample(SurfaceScatterEvent &event) const
 {
     bool sampleR = event.requestedLobe.test(BsdfLobes::GlossyReflectionLobe);
     bool sampleT = event.requestedLobe.test(BsdfLobes::GlossyTransmissionLobe) && _enableT;
-    float roughness = (*_roughness)[event.info->uv];
+    float roughness = (*_roughness)[event.info->uv].x();
 
     return sampleBase(event, sampleR, sampleT, roughness, _ior, _distribution);
 }
@@ -221,7 +221,7 @@ Vec3f RoughDielectricBsdf::eval(const SurfaceScatterEvent &event) const
 {
     bool sampleR = event.requestedLobe.test(BsdfLobes::GlossyReflectionLobe);
     bool sampleT = event.requestedLobe.test(BsdfLobes::GlossyTransmissionLobe) && _enableT;
-    float roughness = (*_roughness)[event.info->uv];
+    float roughness = (*_roughness)[event.info->uv].x();
 
     return evalBase(event, sampleR, sampleT, roughness, _ior, _distribution);
 }
@@ -230,7 +230,7 @@ float RoughDielectricBsdf::pdf(const SurfaceScatterEvent &event) const
 {
     bool sampleR = event.requestedLobe.test(BsdfLobes::GlossyReflectionLobe);
     bool sampleT = event.requestedLobe.test(BsdfLobes::GlossyTransmissionLobe) && _enableT;
-    float roughness = (*_roughness)[event.info->uv];
+    float roughness = (*_roughness)[event.info->uv].x();
 
     return pdfBase(event, sampleR, sampleT, roughness, _ior, _distribution);
 }

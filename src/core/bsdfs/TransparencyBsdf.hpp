@@ -7,12 +7,12 @@ namespace Tungsten {
 
 class TransparencyBsdf : public Bsdf
 {
-    std::shared_ptr<TextureRgb> _opacity;
+    std::shared_ptr<Texture> _opacity;
     std::shared_ptr<Bsdf> _base;
 
 public:
     TransparencyBsdf();
-    TransparencyBsdf(std::shared_ptr<TextureRgb> opacity, std::shared_ptr<Bsdf> base);
+    TransparencyBsdf(std::shared_ptr<Texture> opacity, std::shared_ptr<Bsdf> base);
 
     void fromJson(const rapidjson::Value &v, const Scene &scene) override;
     rapidjson::Value toJson(Allocator &allocator) const override;
@@ -21,7 +21,7 @@ public:
     Vec3f eval(const SurfaceScatterEvent &event) const final override;
     float pdf(const SurfaceScatterEvent &event) const final override;
 
-    const std::shared_ptr<TextureRgb> &opacity() const
+    const std::shared_ptr<Texture> &opacity() const
     {
         return _opacity;
     }

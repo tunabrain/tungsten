@@ -14,7 +14,7 @@ class RoughPlasticBsdf : public Bsdf
     float _thickness;
     Vec3f _sigmaA;
     std::string _distributionName;
-    std::shared_ptr<TextureA> _roughness;
+    std::shared_ptr<Texture> _roughness;
 
     float _diffuseFresnel;
     float _avgTransmittance;

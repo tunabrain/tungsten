@@ -10,7 +10,7 @@ class RoughConductorBsdf : public Bsdf
 {
     std::string _distributionName;
     std::string _materialName;
-    std::shared_ptr<TextureA> _roughness;
+    std::shared_ptr<Texture> _roughness;
     Vec3f _eta;
     Vec3f _k;
 
@@ -36,7 +36,7 @@ public:
         return _k;
     }
 
-    const std::shared_ptr<TextureA> &roughness() const {
+    const std::shared_ptr<Texture> &roughness() const {
         return _roughness;
     }
 

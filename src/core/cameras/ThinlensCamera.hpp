@@ -22,7 +22,7 @@ class ThinlensCamera : public Camera
     float _catEye;
     std::string _focusPivot;
 
-    std::shared_ptr<TextureA> _aperture;
+    std::shared_ptr<Texture> _aperture;
 
     void precompute();
 

@@ -20,7 +20,7 @@ namespace Tungsten {
 ThinSheetBsdf::ThinSheetBsdf()
 : _ior(1.5f),
   _enableInterference(false),
-  _thickness(std::make_shared<ConstantTextureA>(0.5f)),
+  _thickness(std::make_shared<ConstantTexture>(0.5f)),
   _sigmaA(0.0f)
 {
     _lobes = BsdfLobes(BsdfLobes::SpecularReflectionLobe | BsdfLobes::ForwardLobe);
@@ -35,7 +35,7 @@ void ThinSheetBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
 
     const rapidjson::Value::Member *thickness = v.FindMember("thickness");
     if (thickness)
-        _thickness = scene.fetchScalarTexture<2>(thickness->value);
+        _thickness = scene.fetchTexture(thickness->value, true);
 }
 
 rapidjson::Value ThinSheetBsdf::toJson(Allocator &allocator) const
@@ -64,12 +64,12 @@ bool ThinSheetBsdf::sample(SurfaceScatterEvent &event) const
         return true;
     }
 
-    float thickness = (*_thickness)[event.info->uv];
+    float thickness = (*_thickness)[event.info->uv].x();
 
     float cosThetaT;
     if (_enableInterference) {
         event.throughput = Fresnel::thinFilmReflectanceInterference(1.0f/_ior,
-                std::abs(event.wi.z()), (*_thickness)[event.info->uv]*500.0f, cosThetaT);
+                std::abs(event.wi.z()), thickness*500.0f, cosThetaT);
     } else {
         event.throughput = Vec3f(Fresnel::thinFilmReflectance(1.0f/_ior,
                 std::abs(event.wi.z()), cosThetaT));
@@ -89,7 +89,7 @@ Vec3f ThinSheetBsdf::eval(const SurfaceScatterEvent &event) const
     if (!event.requestedLobe.isForward() || -event.wi != event.wo)
         return Vec3f(0.0f);
 
-    float thickness = (*_thickness)[event.info->uv];
+    float thickness = (*_thickness)[event.info->uv].x();
 
     float cosThetaT;
     Vec3f transmittance;

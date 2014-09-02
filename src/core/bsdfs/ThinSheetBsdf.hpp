@@ -11,7 +11,7 @@ class ThinSheetBsdf : public Bsdf
 {
     float _ior;
     bool _enableInterference;
-    std::shared_ptr<TextureA> _thickness;
+    std::shared_ptr<Texture> _thickness;
     Vec3f _sigmaA;
 
 public:

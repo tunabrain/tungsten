@@ -12,7 +12,7 @@ class Scene;
 class MixedBsdf : public Bsdf
 {
     std::shared_ptr<Bsdf> _bsdf0, _bsdf1;
-    std::shared_ptr<TextureA> _ratio;
+    std::shared_ptr<Texture> _ratio;
 
     bool adjustedRatio(BsdfLobes requestedLobe, Vec2f uv, float &ratio) const;
 
@@ -37,7 +37,7 @@ public:
         return _bsdf1;
     }
 
-    const std::shared_ptr<TextureA> &ratio() const
+    const std::shared_ptr<Texture> &ratio() const
     {
         return _ratio;
     }

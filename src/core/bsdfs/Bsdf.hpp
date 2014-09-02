@@ -30,7 +30,7 @@ protected:
     std::shared_ptr<Medium> _intMedium;
     std::shared_ptr<Medium> _extMedium;
 
-    std::shared_ptr<TextureRgb> _albedo;
+    std::shared_ptr<Texture> _albedo;
 
     Vec3f albedo(const IntersectionInfo *info) const
     {
@@ -43,7 +43,7 @@ public:
     }
 
     Bsdf()
-    : _albedo(std::make_shared<ConstantTextureRgb>(Vec3f(1.0f)))
+    : _albedo(std::make_shared<ConstantTexture>(1.0f))
     {
     }
 
@@ -59,17 +59,17 @@ public:
         return _lobes;
     }
 
-    void setAlbedo(const std::shared_ptr<TextureRgb> &c)
+    void setAlbedo(const std::shared_ptr<Texture> &c)
     {
         _albedo = c;
     }
 
-    std::shared_ptr<TextureRgb> &albedo()
+    std::shared_ptr<Texture> &albedo()
     {
         return _albedo;
     }
 
-    const std::shared_ptr<TextureRgb> &albedo() const
+    const std::shared_ptr<Texture> &albedo() const
     {
         return _albedo;
     }

@@ -159,57 +159,21 @@ std::shared_ptr<Integrator> Scene::instantiateIntegrator(std::string type, const
     return result;
 }
 
-template<int Dimension>
-std::shared_ptr<Texture<true, Dimension>>
-    Scene::instantiateScalarTexture(std::string type, const rapidjson::Value &value) const
+std::shared_ptr<Texture> Scene::instantiateTexture(std::string type, const rapidjson::Value &value, bool isScalar) const
 {
-    std::shared_ptr<Texture<true, Dimension>> result;
-    if (type == "bitmap") {
-        // Ugly special casing, but whatever
-        std::string path(JsonUtils::as<std::string>(value, "path"));
-        if (Dimension == 2)
-            return fetchScalarMap(path);
-        //return std::make_shared<BitmapTexture<true, Dimension>>(path);
-        return nullptr;
-    } else if (type == "constant") {
-        result = std::make_shared<ConstantTexture<true, Dimension>>();
-    } else if (type == "checker") {
-        result = std::make_shared<CheckerTexture<true>>();
-    } else if (type == "disk") {
-        result = std::make_shared<DiskTexture<true>>();
-    } else if (type == "blade") {
-        result = std::make_shared<BladeTexture<true>>();
-    } else {
+    std::shared_ptr<Texture> result;
+    if (type == "bitmap")
+        return fetchBitmap(JsonUtils::as<std::string>(value, "path"), isScalar);
+    else if (type == "constant")
+        result = std::make_shared<ConstantTexture>();
+    else if (type == "checker")
+        result = std::make_shared<CheckerTexture>();
+    else if (type == "disk")
+        result = std::make_shared<DiskTexture>();
+    else if (type == "blade")
+        result = std::make_shared<BladeTexture>();
+    else
         FAIL("Unkown texture type: '%s'", type.c_str());
-    }
-
-    result->fromJson(value, *this);
-    return result;
-}
-
-template<int Dimension>
-std::shared_ptr<Texture<false, Dimension>>
-    Scene::instantiateColorTexture(std::string type, const rapidjson::Value &value) const
-{
-    std::shared_ptr<Texture<false, Dimension>> result;
-    if (type == "bitmap") {
-        // Ugly special casing, but whatever
-        std::string path(JsonUtils::as<std::string>(value, "path"));
-        if (Dimension == 2)
-            return fetchColorMap(path);
-        //return std::make_shared<BitmapTexture<false, Dimension>>(path);
-        return nullptr;
-    } else if (type == "constant") {
-        result = std::make_shared<ConstantTexture<false, Dimension>>();
-    } else if (type == "checker") {
-        result = std::make_shared<CheckerTexture<false>>();
-    } else if (type == "disk") {
-        result = std::make_shared<DiskTexture<false>>();
-    } else if (type == "blade") {
-        result = std::make_shared<BladeTexture<false>>();
-    } else {
-        FAIL("Unkown texture type: '%s'", type.c_str());
-    }
 
     result->fromJson(value, *this);
     return result;
@@ -261,67 +225,42 @@ std::shared_ptr<Bsdf> Scene::fetchBsdf(const rapidjson::Value &v) const
     return fetchObject(_bsdfs, v, std::bind(&Scene::instantiateBsdf, this, _1, _2));
 }
 
-template<int Dimension>
-std::shared_ptr<Texture<true, Dimension>> Scene::fetchScalarTexture(const rapidjson::Value &v) const
+std::shared_ptr<Texture> Scene::fetchTexture(const rapidjson::Value &v, bool isScalar) const
 {
-    if (v.IsString()) {
-        if (Dimension == 2)
-            return fetchScalarMap(v.GetString());
-        else
-            FAIL("Cannot instantiate bitmap texture of dimension %d", Dimension);
-    } else if (v.IsNumber()) {
-        return std::make_shared<ConstantTextureA>(JsonUtils::as<float>(v));
-    } else if (v.IsArray()) {
-        FAIL("Cannot instantiate scalar value from vector valued argument");
-    } else if (v.IsObject()) {
-        return instantiateScalarTexture<Dimension>(JsonUtils::as<std::string>(v, "type"), v);
-    } else {
+    if (v.IsString())
+        return fetchBitmap(v.GetString(), isScalar);
+    else if (v.IsNumber())
+        return std::make_shared<ConstantTexture>(JsonUtils::as<float>(v));
+    else if (v.IsArray() && isScalar)
+        return std::make_shared<ConstantTexture>(JsonUtils::as<Vec3f>(v).avg());
+    else if (v.IsArray() && !isScalar)
+        return std::make_shared<ConstantTexture>(JsonUtils::as<Vec3f>(v));
+    else if (v.IsObject())
+        return instantiateTexture(JsonUtils::as<std::string>(v, "type"), v, isScalar);
+    else
         FAIL("Cannot instantiate texture from unknown value type");
-    }
     return nullptr;
 }
 
-template<int Dimension>
-std::shared_ptr<Texture<false, Dimension>> Scene::fetchColorTexture(const rapidjson::Value &v) const
+std::shared_ptr<Texture> Scene::fetchBitmap(const std::string &path, bool isScalar) const
 {
-    if (v.IsString()) {
-        if (Dimension == 2)
-            return fetchColorMap(v.GetString());
-        else
-            FAIL("Cannot instantiate bitmap texture of dimension %d", Dimension);
-    } else if (v.IsNumber()) {
-        return std::make_shared<ConstantTextureRgb>(Vec3f(JsonUtils::as<float>(v)));
-    } else if (v.IsArray()) {
-        return std::make_shared<ConstantTextureRgb>(JsonUtils::as<Vec3f>(v));
-    } else if (v.IsObject()) {
-        return instantiateColorTexture<Dimension>(JsonUtils::as<std::string>(v, "type"), v);
+    if (isScalar) {
+        if (_scalarMaps.count(path))
+            return _scalarMaps[path];
+
+        std::shared_ptr<BitmapTextureA> tex(BitmapTextureUtils::loadScalarTexture(path));
+        _scalarMaps[path] = tex;
+
+        return tex;
     } else {
-        FAIL("Cannot instantiate texture from unknown value type");
+        if (_colorMaps.count(path))
+            return _colorMaps[path];
+
+        std::shared_ptr<BitmapTextureRgb> tex(BitmapTextureUtils::loadColorTexture(path));
+        _colorMaps[path] = tex;
+
+        return tex;
     }
-    return nullptr;
-}
-
-template std::shared_ptr<Texture<true, 2>> Scene::fetchScalarTexture(const rapidjson::Value &) const;
-template std::shared_ptr<Texture<false, 2>> Scene::fetchColorTexture(const rapidjson::Value &) const;
-
-std::shared_ptr<TextureRgb> Scene::fetchColorMap(const std::string &path) const
-{
-    if (_colorMaps.count(path))
-        return _colorMaps[path];
-
-    std::shared_ptr<BitmapTextureRgb> tex(BitmapTextureUtils::loadColorTexture(path));
-    _colorMaps[path] = tex;
-    return tex;
-}
-
-std::shared_ptr<TextureA> Scene::fetchScalarMap(const std::string &path) const
-{
-    if (_scalarMaps.count(path))
-        return _scalarMaps[path];
-
-    std::shared_ptr<BitmapTextureA> tex(BitmapTextureUtils::loadScalarTexture(path));
-    _scalarMaps[path] = tex;
-    return tex;
 }
 
 const Primitive *Scene::findPrimitive(const std::string &name) const

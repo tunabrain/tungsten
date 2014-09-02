@@ -29,7 +29,7 @@ class AtmosphericMedium : public Medium
     float _cloudAlbedo;
     float _cloudShift;
     Vec3f _backgroundSigmaS;
-    std::shared_ptr<TextureA> _cloudThickness;
+    std::shared_ptr<Texture> _cloudThickness;
 
     Vec3f _sigmaS;
     float _rG;
@@ -59,7 +59,7 @@ class AtmosphericMedium : public Medium
             uv.x() = 0.0f;
         uv.x() += _cloudShift;
 
-        float cloudThickness = (*_cloudThickness)[uv];
+        float cloudThickness = (*_cloudThickness)[uv].x();
         return (cloudThickness*(_cloudMaxR - _cloudMinR) > d - _rG - _cloudMinR);
     }
 
@@ -190,7 +190,7 @@ public:
 
         const rapidjson::Value::Member *cloudThickness = v.FindMember("cloud_thickness");
         if (cloudThickness) {
-            _cloudThickness = scene.fetchScalarTexture<2>(cloudThickness->value);
+            _cloudThickness = scene.fetchTexture(cloudThickness->value, true);
 
             if (!JsonUtils::fromJson(v, "cloud_min_radius", _cloudMinR) ||
                 !JsonUtils::fromJson(v, "cloud_max_radius", _cloudMaxR)) {

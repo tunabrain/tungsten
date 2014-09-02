@@ -28,8 +28,8 @@ class Primitive : public JsonSerializable
 {
 protected:
     std::shared_ptr<Bsdf> _bsdf;
-    std::shared_ptr<TextureRgb> _emission;
-    std::shared_ptr<TextureA> _bump;
+    std::shared_ptr<Texture> _emission;
+    std::shared_ptr<Texture> _bump;
     float _bumpStrength;
 
     Mat4f _transform;
@@ -94,12 +94,12 @@ public:
         return (*_emission)[info.uv];
     }
 
-    void setEmission(const std::shared_ptr<TextureRgb> &emission)
+    void setEmission(const std::shared_ptr<Texture> &emission)
     {
         _emission = emission;
     }
 
-    const std::shared_ptr<TextureRgb> &emission() const
+    const std::shared_ptr<Texture> &emission() const
     {
         return _emission;
     }
@@ -129,17 +129,17 @@ public:
         return _bsdf;
     }
 
-    void setBump(const std::shared_ptr<TextureA> &b)
+    void setBump(const std::shared_ptr<Texture> &b)
     {
         _bump = b;
     }
 
-    std::shared_ptr<TextureA> &bump()
+    std::shared_ptr<Texture> &bump()
     {
         return _bump;
     }
 
-    const std::shared_ptr<TextureA> &bump() const
+    const std::shared_ptr<Texture> &bump() const
     {
         return _bump;
     }

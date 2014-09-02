@@ -16,7 +16,7 @@
 namespace Tungsten {
 
 OrenNayarBsdf::OrenNayarBsdf()
-: _roughness(std::make_shared<ConstantTextureA>(1.0f))
+: _roughness(std::make_shared<ConstantTexture>(1.0f))
 {
     _lobes = BsdfLobes(BsdfLobes::DiffuseReflectionLobe);
 }
@@ -27,7 +27,7 @@ void OrenNayarBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
 
     const rapidjson::Value::Member *roughness  = v.FindMember("roughness");
     if (roughness)
-        _roughness = scene.fetchScalarTexture<2>(roughness->value);
+        _roughness = scene.fetchTexture(roughness->value, true);
 }
 
 rapidjson::Value OrenNayarBsdf::toJson(Allocator &allocator) const
@@ -46,7 +46,7 @@ bool OrenNayarBsdf::sample(SurfaceScatterEvent &event) const
     if (event.wi.z() <= 0.0f)
         return false;
 
-    float roughness = (*_roughness)[event.info->uv];
+    float roughness = (*_roughness)[event.info->uv].x();
     float ratio = clamp(roughness, 0.01f, 1.0f);
     if (event.sampler->next1D() < ratio)
         event.wo  = SampleWarp::uniformHemisphere(event.sampler->next2D());
@@ -82,7 +82,7 @@ Vec3f OrenNayarBsdf::eval(const SurfaceScatterEvent &event) const
         cosDeltaPhi = (wi.x()*wo.x() + wi.y()*wo.y())/std::sqrt(denom);
 
     const float RoughnessToSigma = 1.0f/std::sqrt(2.0f);
-    float sigma = RoughnessToSigma*(*_roughness)[event.info->uv];
+    float sigma = RoughnessToSigma*(*_roughness)[event.info->uv].x();
     float sigmaSq = sigma*sigma;
 
     float C1 = 1.0f - 0.5f*sigmaSq/(sigmaSq + 0.33f);
@@ -107,7 +107,7 @@ float OrenNayarBsdf::pdf(const SurfaceScatterEvent &event) const
     if (event.wi.z() <= 0.0f || event.wo.z() <= 0.0f)
         return 0.0f;
 
-    float roughness = (*_roughness)[event.info->uv];
+    float roughness = (*_roughness)[event.info->uv].x();
     float ratio = clamp(roughness, 0.01f, 1.0f);
     return SampleWarp::uniformHemispherePdf(event.wo)*ratio + SampleWarp::cosineHemispherePdf(event.wo)*(1.0f - ratio);
 }

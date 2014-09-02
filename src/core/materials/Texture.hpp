@@ -15,37 +15,51 @@ enum TextureMapJacobian {
     MAP_SPHERICAL,
 };
 
-template<bool Scalar, int Dimension>
 class Texture : public JsonSerializable
 {
+protected:
+    static inline bool scalarOrVecFromJson(const rapidjson::Value &v, const char *field, Vec3f &dst)
+    {
+        float scalar;
+        if (JsonUtils::fromJson(v, field, scalar)) {
+            dst = Vec3f(scalar);
+            return true;
+        } else {
+            return JsonUtils::fromJson(v, field, dst);
+        }
+    }
+
+    static inline rapidjson::Value scalarOrVecToJson(const Vec3f &src, Allocator &allocator)
+    {
+        if (src.x() == src.y() && src.y() == src.z())
+            return std::move(JsonUtils::toJsonValue(src.x(), allocator));
+        else
+            return std::move(JsonUtils::toJsonValue(src, allocator));
+    }
+
 public:
-
-    typedef typename std::conditional<Scalar, float, Vec3f>::type Value;
-
     virtual ~Texture() {}
 
     virtual bool isConstant() const = 0;
 
-    virtual Value average() const = 0;
-    virtual Value minimum() const = 0;
-    virtual Value maximum() const = 0;
+    virtual Vec3f average() const = 0;
+    virtual Vec3f minimum() const = 0;
+    virtual Vec3f maximum() const = 0;
 
-    virtual void derivatives(const Vec<float, Dimension> &uv, Vec<Value, Dimension> &derivs) const = 0;
+    virtual void derivatives(const Vec2f &uv, Vec2f &derivs) const = 0;
 
-    virtual Value operator[](const Vec<float, Dimension> &uv) const = 0;
+    virtual Vec3f operator[](const Vec2f &uv) const = 0;
 
     virtual void makeSamplable(TextureMapJacobian jacobian) = 0;
-    virtual Vec<float, Dimension> sample(const Vec<float, Dimension> &uv) const = 0;
-    virtual float pdf(const Vec<float, Dimension> &uv) const = 0;
+    virtual Vec2f sample(const Vec2f &uv) const = 0;
+    virtual float pdf(const Vec2f &uv) const = 0;
 };
 
-template<bool Scalar, int Dimension>
-class ConstantTexture : public Texture<Scalar, Dimension>
+class ConstantTexture : public Texture
 {
     typedef JsonSerializable::Allocator Allocator;
-    typedef typename Texture<Scalar, Dimension>::Value Value;
 
-    Value _value;
+    Vec3f _value;
 
 public:
     ConstantTexture()
@@ -53,24 +67,29 @@ public:
     {
     }
 
-    ConstantTexture(Value value)
+    ConstantTexture(float value)
+    : _value(value)
+    {
+    }
+
+    ConstantTexture(const Vec3f &value)
     : _value(value)
     {
     }
 
     void fromJson(const rapidjson::Value &v, const Scene &/*scene*/) override final
     {
-        JsonUtils::fromJson(v, "value", _value);
+        scalarOrVecFromJson(v, "value", _value);
     }
 
     rapidjson::Value toJson(Allocator &allocator) const override final
     {
-        return JsonUtils::toJsonValue(_value, allocator);
+        return std::move(scalarOrVecToJson(_value, allocator));
     }
 
-    void derivatives(const Vec<float, Dimension> &/*uv*/, Vec<Value, Dimension> &derivs) const override final
+    void derivatives(const Vec2f &/*uv*/, Vec2f &derivs) const override final
     {
-        derivs = Vec<Value, Dimension>(Value(0.0f));
+        derivs = Vec2f(0.0f);
     }
 
     bool isConstant() const override final
@@ -78,22 +97,22 @@ public:
         return true;
     }
 
-    Value average() const override final
+    Vec3f average() const override final
     {
         return _value;
     }
 
-    Value minimum() const override final
+    Vec3f minimum() const override final
     {
         return _value;
     }
 
-    Value maximum() const override final
+    Vec3f maximum() const override final
     {
         return _value;
     }
 
-    Value operator[](const Vec<float, Dimension> &/*uv*/) const override final
+    Vec3f operator[](const Vec2f &/*uv*/) const override final
     {
         return _value;
     }
@@ -102,21 +121,16 @@ public:
     {
     }
 
-    Vec<float, Dimension> sample(const Vec<float, Dimension> &uv) const override final
+    Vec2f sample(const Vec2f &uv) const override final
     {
         return uv;
     }
 
-    float pdf(const Vec<float, Dimension> &/*uv*/) const override final
+    float pdf(const Vec2f &/*uv*/) const override final
     {
         return 1.0f;
     }
 };
-
-typedef Texture<true, 2> TextureA;
-typedef Texture<false, 2> TextureRgb;
-typedef ConstantTexture<true, 2> ConstantTextureA;
-typedef ConstantTexture<false, 2> ConstantTextureRgb;
 
 }
 

@@ -233,30 +233,26 @@ void ObjLoader::loadLine(const char *line)
     }
 }
 
-std::shared_ptr<TextureRgb> ObjLoader::fetchColorMap(const std::string &path)
+std::shared_ptr<Texture> ObjLoader::fetchBitmap(const std::string &path, bool isScalar)
 {
     if (path.empty())
         return nullptr;
 
-    if (_colorMaps.count(path))
-        return _colorMaps[path];
+    if (isScalar) {
+        if (_scalarMaps.count(path))
+            return _scalarMaps[path];
 
-    std::shared_ptr<BitmapTextureRgb> tex(BitmapTextureUtils::loadColorTexture(path));
-    _colorMaps[path] = tex;
-    return tex;
-}
+        std::shared_ptr<BitmapTextureA> tex(BitmapTextureUtils::loadScalarTexture(path));
+        _scalarMaps[path] = tex;
+        return tex;
+    } else {
+        if (_colorMaps.count(path))
+            return _colorMaps[path];
 
-std::shared_ptr<TextureA> ObjLoader::fetchScalarMap(const std::string &path)
-{
-    if (path.empty())
-        return nullptr;
-
-    if (_scalarMaps.count(path))
-        return _scalarMaps[path];
-
-    std::shared_ptr<BitmapTextureA> tex(BitmapTextureUtils::loadScalarTexture(path));
-    _scalarMaps[path] = tex;
-    return tex;
+        std::shared_ptr<BitmapTextureRgb> tex(BitmapTextureUtils::loadColorTexture(path));
+        _colorMaps[path] = tex;
+        return tex;
+    }
 }
 
 std::shared_ptr<Bsdf> ObjLoader::convertObjMaterial(const ObjMaterial &mat)
@@ -274,15 +270,15 @@ std::shared_ptr<Bsdf> ObjLoader::convertObjMaterial(const ObjMaterial &mat)
     } else if (!mat.isTransmissive()) {
         if (!mat.isSpecular()) {
             result = std::make_shared<LambertBsdf>();
-            result->setAlbedo(std::make_shared<ConstantTextureRgb>(mat.diffuse));
+            result->setAlbedo(std::make_shared<ConstantTexture>(mat.diffuse));
         } else if (mat.hardness > 500.0f) {
             result = std::make_shared<MirrorBsdf>();
-            result->setAlbedo(std::make_shared<ConstantTextureRgb>(mat.specular));
+            result->setAlbedo(std::make_shared<ConstantTexture>(mat.specular));
         } else {
             std::shared_ptr<Bsdf> lambert = std::make_shared<LambertBsdf>();
             std::shared_ptr<Bsdf> phong = std::make_shared<PhongBsdf>(int(mat.hardness));
-            lambert->setAlbedo(std::make_shared<ConstantTextureRgb>(mat.diffuse));
-            phong->setAlbedo(std::make_shared<ConstantTextureRgb>(mat.specular));
+            lambert->setAlbedo(std::make_shared<ConstantTexture>(mat.diffuse));
+            phong->setAlbedo(std::make_shared<ConstantTexture>(mat.specular));
             float ratio = mat.diffuse.max()/(mat.specular.max() + mat.diffuse.max());
             result = std::make_shared<MixedBsdf>(lambert, phong, ratio);
         }
@@ -296,11 +292,11 @@ std::shared_ptr<Bsdf> ObjLoader::convertObjMaterial(const ObjMaterial &mat)
     // Need to somehow remember this piece of info for later so we can set the bump map on
     // the primitive when the bsdf is applied
 //  if (mat.hasBumpMap())
-//      result->setBump(fetchScalarMap(mat.bumpMap));
+//      result->setBump(fetchBitmap(mat.bumpMap, true));
     if (mat.hasDiffuseMap())
-        result->setAlbedo(fetchColorMap(mat.diffuseMap));
+        result->setAlbedo(fetchBitmap(mat.diffuseMap, false));
     if (mat.hasAlphaMap())
-        result = std::make_shared<TransparencyBsdf>(fetchColorMap(mat.alphaMap), result);
+        result = std::make_shared<TransparencyBsdf>(fetchBitmap(mat.alphaMap, false), result);
 
     result->setName(mat.name);
 
@@ -325,14 +321,14 @@ void ObjLoader::clearPerMeshData()
 
 std::shared_ptr<Primitive> ObjLoader::finalizeMesh()
 {
-    std::shared_ptr<TextureRgb> emission;
+    std::shared_ptr<Texture> emission;
     std::shared_ptr<Bsdf> bsdf;
     if (_currentMaterial == -1) {
         bsdf = _errorMaterial;
     } else {
         bsdf = _convertedMaterials[_currentMaterial];
         if (_materials[_currentMaterial].isEmissive())
-            emission = std::make_shared<ConstantTextureRgb>(_materials[_currentMaterial].emission);
+            emission = std::make_shared<ConstantTexture>(_materials[_currentMaterial].emission);
     }
 
     std::string name = _meshName.empty() ? generateDummyName() : _meshName;

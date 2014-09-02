@@ -28,9 +28,9 @@ void Primitive::fromJson(const rapidjson::Value &v, const Scene &scene)
     const rapidjson::Value::Member *bump     = v.FindMember("bump");
 
     if (emission)
-        _emission = scene.fetchColorTexture<2>(emission->value);
+        _emission = scene.fetchTexture(emission->value, false);
     if (bump)
-        _bump = scene.fetchScalarTexture<2>(bump->value);
+        _bump = scene.fetchTexture(bump->value, true);
 }
 
 rapidjson::Value Primitive::toJson(Allocator &allocator) const

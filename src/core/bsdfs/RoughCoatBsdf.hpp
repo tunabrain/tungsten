@@ -13,7 +13,7 @@ class RoughCoatBsdf : public Bsdf
     Vec3f _sigmaA;
     std::shared_ptr<Bsdf> _substrate;
     std::string _distributionName;
-    std::shared_ptr<TextureA> _roughness;
+    std::shared_ptr<Texture> _roughness;
 
     float _avgTransmittance;
     Vec3f _scaledSigmaA;

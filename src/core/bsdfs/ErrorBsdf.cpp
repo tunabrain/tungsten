@@ -9,7 +9,7 @@ namespace Tungsten {
 
 ErrorBsdf::ErrorBsdf()
 {
-    _albedo = std::make_shared<ConstantTextureRgb>(Vec3f(1.0f, 0.0f, 0.0f));
+    _albedo = std::make_shared<ConstantTexture>(Vec3f(1.0f, 0.0f, 0.0f));
 }
 
 }

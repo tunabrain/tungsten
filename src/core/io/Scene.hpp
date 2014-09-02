@@ -46,12 +46,7 @@ class Scene : public JsonSerializable
     std::shared_ptr<Primitive>  instantiatePrimitive (std::string type, const rapidjson::Value &value) const;
     std::shared_ptr<Camera>     instantiateCamera    (std::string type, const rapidjson::Value &value) const;
     std::shared_ptr<Integrator> instantiateIntegrator(std::string type, const rapidjson::Value &value) const;
-    template<int Dimension>
-    std::shared_ptr<Texture<true, Dimension>>
-        instantiateScalarTexture(std::string type, const rapidjson::Value &value) const;
-    template<int Dimension>
-    std::shared_ptr<Texture<false, Dimension>>
-        instantiateColorTexture(std::string type, const rapidjson::Value &value) const;
+    std::shared_ptr<Texture>    instantiateTexture   (std::string type, const rapidjson::Value &value, bool isScalar) const;
 
     template<typename Instantiator, typename Element>
     void loadObjectList(const rapidjson::Value &container, Instantiator instantiator, std::vector<std::shared_ptr<Element>> &result);
@@ -84,12 +79,8 @@ public:
 
     std::shared_ptr<Medium> fetchMedium(const rapidjson::Value &v) const;
     std::shared_ptr<Bsdf> fetchBsdf(const rapidjson::Value &v) const;
-    template<int Dimension>
-    std::shared_ptr<Texture<true, Dimension>> fetchScalarTexture(const rapidjson::Value &v) const;
-    template<int Dimension>
-    std::shared_ptr<Texture<false, Dimension>> fetchColorTexture(const rapidjson::Value &v) const;
-    std::shared_ptr<TextureRgb> fetchColorMap(const std::string &path) const;
-    std::shared_ptr<TextureA> fetchScalarMap(const std::string &path) const;
+    std::shared_ptr<Texture> fetchTexture(const rapidjson::Value &v, bool isScalar) const;
+    std::shared_ptr<Texture> fetchBitmap(const std::string &path, bool isScalar) const;
 
     const Primitive *findPrimitive(const std::string &name) const;
 

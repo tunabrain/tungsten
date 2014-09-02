@@ -9,7 +9,7 @@ class Scene;
 
 class OrenNayarBsdf : public Bsdf
 {
-    std::shared_ptr<TextureA> _roughness;
+    std::shared_ptr<Texture> _roughness;
 
 public:
     OrenNayarBsdf();
@@ -21,7 +21,7 @@ public:
     Vec3f eval(const SurfaceScatterEvent &event) const override final;
     float pdf(const SurfaceScatterEvent &event) const override final;
 
-    const std::shared_ptr<TextureA> &roughness() const
+    const std::shared_ptr<Texture> &roughness() const
     {
         return _roughness;
     }

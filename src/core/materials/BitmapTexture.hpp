@@ -60,17 +60,12 @@ inline Rgba max(const Rgba &a, const Rgba &b)
     return result;
 }
 
-template<bool Scalar, int Dimension>
-class BitmapTexture : public Texture<Scalar, Dimension>
-{
-};
-
 template<bool Scalar>
-class BitmapTexture<Scalar, 2> : public Texture<Scalar, 2>
+class BitmapTexture : public Texture
 {
 protected:
     typedef JsonSerializable::Allocator Allocator;
-    typedef typename Texture<Scalar, 2>::Value Value;
+    typedef typename std::conditional<Scalar, float, Vec3f>::type Value;
 
     std::string _srcDir;
     std::string _path;
@@ -103,6 +98,16 @@ protected:
         return value.max();
     }
 
+    float avg(float value) const
+    {
+        return value;
+    }
+
+    float avg(const Vec3f &value) const
+    {
+        return value.avg();
+    }
+
     virtual Value get(int x, int y) const = 0;
 
 public:
@@ -118,7 +123,7 @@ public:
     }
 
 
-    void derivativesBad(const Vec2f &uv, Vec<Value, 2> &derivs) const
+    void derivativesBad(const Vec2f &uv, Vec2f &derivs) const
     {
         float u = uv.x()*_w;
         float v = (1.0f - uv.y())*_h;
@@ -131,18 +136,18 @@ public:
         iu = clamp(iu, 0, _w - 2);
         iv = clamp(iv, 0, _h - 2);
 
-        Value p00 = get(iu, iv);
-        Value p10 = get(iu + 1, iv);
-        Value p01 = get(iu, iv + 1);
-        Value p11 =  get(iu + 1, iv + 1);
-        Value tmp = p01 + p10 - p11;
+        float p00 = avg(get(iu, iv));
+        float p10 = avg(get(iu + 1, iv));
+        float p01 = avg(get(iu, iv + 1));
+        float p11 = avg(get(iu + 1, iv + 1));
+        float tmp = p01 + p10 - p11;
         derivs.x() = (p10 + p00*(v - 1.0) - tmp*v)*float(_w);
         derivs.x() = (p01 + p00*(u - 1.0) - tmp*u)*float(_h);
     }
 
-    void derivatives(const Vec2f &uv, Vec<Value, 2> &derivs) const override final
+    void derivatives(const Vec2f &uv, Vec2f &derivs) const override final
     {
-        derivs = Vec<Value, 2>(Value(0.0f));
+        derivs = Vec2f(0.0f);
         float u = uv.x()*_w - 0.5f;
         float v = (1.0f - uv.y())*_h - 0.5f;
         int iu = int(u);
@@ -156,19 +161,19 @@ public:
         if (x0 < 0) x0 = _w - 1;
         if (y0 < 0) y0 = _h - 1;
 
-        Value                    a01 = get(x1, y0), a02 = get(x2, y0);
-        Value a10 = get(x0, y1), a11 = get(x1, y1), a12 = get(x2, y1), a13 = get(x3, y1);
-        Value a20 = get(x0, y2), a21 = get(x1, y2), a22 = get(x2, y2), a23 = get(x3, y2);
-        Value                    a31 = get(x1, y3), a32 = get(x2, y3);
+        float                         a01 = avg(get(x1, y0)), a02 = avg(get(x2, y0));
+        float a10 = avg(get(x0, y1)), a11 = avg(get(x1, y1)), a12 = avg(get(x2, y1)), a13 = avg(get(x3, y1));
+        float a20 = avg(get(x0, y2)), a21 = avg(get(x1, y2)), a22 = avg(get(x2, y2)), a23 = avg(get(x3, y2));
+        float                         a31 = avg(get(x1, y3)), a32 = avg(get(x2, y3));
 
-        Value du11 = a12 - a10, du12 = a13 - a11, du21 = a22 - a20, du22 = a23 - a21;
-        Value dv11 = a21 - a01, dv21 = a31 - a11, dv12 = a22 - a02, dv22 = a32 - a12;
+        float du11 = a12 - a10, du12 = a13 - a11, du21 = a22 - a20, du22 = a23 - a21;
+        float dv11 = a21 - a01, dv21 = a31 - a11, dv12 = a22 - a02, dv22 = a32 - a12;
 
         derivs.x() = lerp(du11, du12, du21, du22, u, v)*float(_w);
         derivs.y() = lerp(dv11, dv12, dv21, dv22, u, v)*float(_h);
     }
 
-    Value operator[](const Vec2f &uv) const override final
+    Vec3f operator[](const Vec2f &uv) const override final
     {
         float u = uv.x()*_w - 0.5f;
         float v = (1.0f - uv.y())*_h - 0.5f;
@@ -181,7 +186,7 @@ public:
         iu = clamp(iu, 0, _w - 2);
         iv = clamp(iv, 0, _h - 2);
 
-        return Value(lerp(
+        return Vec3f(lerp(
             get(iu, iv),
             get(iu + 1, iv),
             get(iu, iv + 1),
@@ -217,19 +222,19 @@ public:
         return false;
     }
 
-    Value average() const override final
+    Vec3f average() const override final
     {
-        return _avg;
+        return Vec3f(_avg);
     }
 
-    Value minimum() const override final
+    Vec3f minimum() const override final
     {
-        return _min;
+        return Vec3f(_min);
     }
 
-    Value maximum() const override final
+    Vec3f maximum() const override final
     {
-        return _max;
+        return Vec3f(_max);
     }
 
     void makeSamplable(TextureMapJacobian jacobian) override final
@@ -281,17 +286,17 @@ public:
 };
 
 template<bool Scalar, typename Texel>
-class HdrBitmapTexture : public BitmapTexture<Scalar, 2>
+class HdrBitmapTexture : public BitmapTexture<Scalar>
 {
-    typedef typename Texture<Scalar, 2>::Value Value;
+    typedef typename std::conditional<Scalar, float, Vec3f>::type Value;
 
-    using BitmapTexture<Scalar, 2>::_srcDir;
-    using BitmapTexture<Scalar, 2>::_path;
-    using BitmapTexture<Scalar, 2>::_w;
-    using BitmapTexture<Scalar, 2>::_h;
-    using BitmapTexture<Scalar, 2>::_min;
-    using BitmapTexture<Scalar, 2>::_max;
-    using BitmapTexture<Scalar, 2>::_avg;
+    using BitmapTexture<Scalar>::_srcDir;
+    using BitmapTexture<Scalar>::_path;
+    using BitmapTexture<Scalar>::_w;
+    using BitmapTexture<Scalar>::_h;
+    using BitmapTexture<Scalar>::_min;
+    using BitmapTexture<Scalar>::_max;
+    using BitmapTexture<Scalar>::_avg;
 
     std::unique_ptr<Texel[]> _texels;
 
@@ -368,17 +373,17 @@ public:
 };
 
 template<bool Scalar, typename Texel>
-class LdrBitmapTexture : public BitmapTexture<Scalar, 2>
+class LdrBitmapTexture : public BitmapTexture<Scalar>
 {
-    typedef typename Texture<Scalar, 2>::Value Value;
+    typedef typename std::conditional<Scalar, float, Vec3f>::type Value;
 
-    using BitmapTexture<Scalar, 2>::_srcDir;
-    using BitmapTexture<Scalar, 2>::_path;
-    using BitmapTexture<Scalar, 2>::_w;
-    using BitmapTexture<Scalar, 2>::_h;
-    using BitmapTexture<Scalar, 2>::_min;
-    using BitmapTexture<Scalar, 2>::_max;
-    using BitmapTexture<Scalar, 2>::_avg;
+    using BitmapTexture<Scalar>::_srcDir;
+    using BitmapTexture<Scalar>::_path;
+    using BitmapTexture<Scalar>::_w;
+    using BitmapTexture<Scalar>::_h;
+    using BitmapTexture<Scalar>::_min;
+    using BitmapTexture<Scalar>::_max;
+    using BitmapTexture<Scalar>::_avg;
 
     Texel *_texels;
     int _channels;
@@ -480,7 +485,7 @@ public:
 namespace BitmapTextureUtils
 {
 
-inline std::shared_ptr<BitmapTexture<false, 2>> loadColorTexture(const std::string &path)
+inline std::shared_ptr<BitmapTexture<false>> loadColorTexture(const std::string &path)
 {
     std::string extension = FileUtils::extractExt(path);
     if (extension == "pfm")
@@ -489,7 +494,7 @@ inline std::shared_ptr<BitmapTexture<false, 2>> loadColorTexture(const std::stri
         return std::make_shared<LdrBitmapTexture<false, Rgba>>(path);
 }
 
-inline std::shared_ptr<BitmapTexture<true, 2>> loadScalarTexture(const std::string &path)
+inline std::shared_ptr<BitmapTexture<true>> loadScalarTexture(const std::string &path)
 {
     std::string extension = FileUtils::extractExt(path);
     if (extension == "pfm")
@@ -500,8 +505,8 @@ inline std::shared_ptr<BitmapTexture<true, 2>> loadScalarTexture(const std::stri
 
 }
 
-typedef BitmapTexture<true, 2> BitmapTextureA;
-typedef BitmapTexture<false, 2> BitmapTextureRgb;
+typedef BitmapTexture<true> BitmapTextureA;
+typedef BitmapTexture<false> BitmapTextureRgb;
 
 }
 

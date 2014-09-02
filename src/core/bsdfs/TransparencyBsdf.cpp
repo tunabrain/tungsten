@@ -10,13 +10,13 @@
 namespace Tungsten {
 
 TransparencyBsdf::TransparencyBsdf()
-: _opacity(std::make_shared<ConstantTextureRgb>(Vec3f(1.0f))),
+: _opacity(std::make_shared<ConstantTexture>(1.0f)),
   _base(std::make_shared<LambertBsdf>())
 {
     _lobes = BsdfLobes(BsdfLobes::ForwardLobe, _base->lobes());
 }
 
-TransparencyBsdf::TransparencyBsdf(std::shared_ptr<TextureRgb> opacity, std::shared_ptr<Bsdf> base)
+TransparencyBsdf::TransparencyBsdf(std::shared_ptr<Texture> opacity, std::shared_ptr<Bsdf> base)
 : _opacity(opacity),
   _base(base)
 {
@@ -30,7 +30,7 @@ void TransparencyBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
 
     const rapidjson::Value::Member *opacity = v.FindMember("opacity");
     if (opacity)
-        _opacity = scene.fetchColorTexture<2>(opacity->value);
+        _opacity = scene.fetchTexture(opacity->value, false);
 
     _lobes = BsdfLobes(BsdfLobes::ForwardLobe, _base->lobes());
 }

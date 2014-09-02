@@ -174,22 +174,20 @@ class SceneXmlWriter
         convert("rgb", name, v);
     }
 
-    template<bool Scalar, int Dimension>
-    void convert(const std::string &name, ConstantTexture<Scalar, Dimension> *c)
+    void convert(const std::string &name, ConstantTexture *c)
     {
         convertSpectrum(name, c->average());
     }
 
-    template<bool Scalar>
-    void convert(const std::string &name, CheckerTexture<Scalar> *c)
+    void convert(const std::string &name, CheckerTexture *c)
     {
         begin("texture");
         if (!name.empty())
             assign("name", name);
         assign("type", "checkerboard");
         beginPost();
-        convertSpectrum("color1", Vec3f(c->offColor()));
-        convertSpectrum("color0", Vec3f(c->onColor()));
+        convertSpectrum("color1", c->offColor());
+        convertSpectrum("color0", c->onColor());
         convert("uoffset", 0.0f);
         convert("voffset", 0.0f);
         convert("uscale", float(c->resU())*0.5f);
@@ -198,7 +196,7 @@ class SceneXmlWriter
     }
 
     template<bool Scalar>
-    void convert(const std::string &name, BitmapTexture<Scalar, 2> *c)
+    void convert(const std::string &name, BitmapTexture<Scalar> *c)
     {
         begin("texture");
         if (!name.empty())
@@ -210,17 +208,15 @@ class SceneXmlWriter
         end();
     }
 
-    template<bool Scalar, int Dimension>
-    void convert(const std::string &name, Texture<Scalar, Dimension> *a)
+    void convert(const std::string &name, Texture *a)
     {
-        if (ConstantTexture<Scalar, Dimension> *a2 =
-                dynamic_cast<ConstantTexture<Scalar, Dimension> *>(a))
+        if (ConstantTexture *a2 = dynamic_cast<ConstantTexture *>(a))
             convert(name, a2);
-        else if (BitmapTexture<Scalar, 2> *a2 =
-                dynamic_cast<BitmapTexture<Scalar, 2> *>(a))
+        else if (BitmapTexture<true> *a2 = dynamic_cast<BitmapTexture<true> *>(a))
             convert(name, a2);
-        else if (CheckerTexture<Scalar> *a2 =
-                dynamic_cast<CheckerTexture<Scalar> *>(a))
+        else if (BitmapTexture<false> *a2 = dynamic_cast<BitmapTexture<false> *>(a))
+            convert(name, a2);
+        else if (CheckerTexture *a2 = dynamic_cast<CheckerTexture *>(a))
             convert(name, a2);
         else
             DBG("Unknown texture type!");

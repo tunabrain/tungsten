@@ -20,7 +20,7 @@ bool MixedBsdf::adjustedRatio(BsdfLobes requestedLobe, Vec2f uv, float &ratio) c
     bool sample1 = requestedLobe.test(_bsdf1->lobes());
 
     if (sample0 && sample1)
-        ratio = (*_ratio)[uv];
+        ratio = (*_ratio)[uv].x();
     else if (sample0)
         ratio = 1.0f;
     else if (sample1)
@@ -33,14 +33,14 @@ bool MixedBsdf::adjustedRatio(BsdfLobes requestedLobe, Vec2f uv, float &ratio) c
 MixedBsdf::MixedBsdf()
 : _bsdf0(std::make_shared<ErrorBsdf>()),
   _bsdf1(_bsdf0),
-  _ratio(std::make_shared<ConstantTextureA>(0.5f))
+  _ratio(std::make_shared<ConstantTexture>(0.5f))
 {
 }
 
 MixedBsdf::MixedBsdf(std::shared_ptr<Bsdf> bsdf0, std::shared_ptr<Bsdf> bsdf1, float ratio)
 : _bsdf0(bsdf0),
   _bsdf1(bsdf1),
-  _ratio(std::make_shared<ConstantTextureA>(ratio))
+  _ratio(std::make_shared<ConstantTexture>(ratio))
 {
     _lobes = BsdfLobes(_bsdf0->lobes(), _bsdf1->lobes());
 }
@@ -55,7 +55,7 @@ void MixedBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
 
     const rapidjson::Value::Member *ratio  = v.FindMember("ratio");
     if (ratio)
-        _ratio = scene.fetchScalarTexture<2>(ratio->value);
+        _ratio = scene.fetchTexture(ratio->value, true);
 }
 
 rapidjson::Value MixedBsdf::toJson(Allocator &allocator) const
@@ -100,7 +100,7 @@ bool MixedBsdf::sample(SurfaceScatterEvent &event) const
 
 Vec3f MixedBsdf::eval(const SurfaceScatterEvent &event) const
 {
-    float ratio = (*_ratio)[event.info->uv];
+    float ratio = (*_ratio)[event.info->uv].x();
     return albedo(event.info)*(_bsdf0->eval(event)*ratio + _bsdf1->eval(event)*(1.0f - ratio));
 }
 

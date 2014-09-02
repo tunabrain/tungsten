@@ -20,7 +20,7 @@ ThinlensCamera::ThinlensCamera()
   _apertureSize(0.001f),
   _chromaticAberration(0.0f),
   _catEye(0.0f),
-  _aperture(std::make_shared<DiskTexture<true>>())
+  _aperture(std::make_shared<DiskTexture>())
 {
     precompute();
 }
@@ -45,7 +45,7 @@ void ThinlensCamera::fromJson(const rapidjson::Value &v, const Scene &scene)
 
     const rapidjson::Value::Member *aperture = v.FindMember("aperture");
     if (aperture)
-        _aperture = scene.fetchScalarTexture<2>(aperture->value);
+        _aperture = scene.fetchTexture(aperture->value, true);
 
     precompute();
 }
@@ -67,7 +67,7 @@ rapidjson::Value ThinlensCamera::toJson(Allocator &allocator) const
 
 float ThinlensCamera::evalApertureThroughput(Vec3f planePos, Vec2f aperturePos) const
 {
-    float aperture = (*_aperture)[aperturePos];
+    float aperture = (*_aperture)[aperturePos].x();
 
     if (_catEye > 0.0f) {
         aperturePos = (aperturePos*2.0f - 1.0f)*_apertureSize;
@@ -77,7 +77,7 @@ float ThinlensCamera::evalApertureThroughput(Vec3f planePos, Vec2f aperturePos) 
         if (diaphragmPos.lengthSq() > sqr(_apertureSize))
             return 0.0f;
     }
-    return aperture/_aperture->maximum();
+    return aperture/_aperture->maximum().x();
 }
 
 Vec3f ThinlensCamera::aberration(const Vec3f &planePos, Vec2u pixel, Vec2f &aperturePos, SampleGenerator &sampler) const

@@ -18,7 +18,7 @@ void RoughConductorBsdf::init()
 RoughConductorBsdf::RoughConductorBsdf()
 : _distributionName("ggx"),
   _materialName("Cu"),
-  _roughness(std::make_shared<ConstantTextureA>(0.1f)),
+  _roughness(std::make_shared<ConstantTexture>(0.1f)),
   _eta(0.200438f, 0.924033f, 1.10221f),
   _k(3.91295f, 2.45285f, 2.14219f)
 {
@@ -41,7 +41,7 @@ void RoughConductorBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
 
     const rapidjson::Value::Member *roughness  = v.FindMember("roughness");
     if (roughness)
-        _roughness = scene.fetchScalarTexture<2>(roughness->value);
+        _roughness = scene.fetchTexture(roughness->value, true);
 
     init();
 }
@@ -70,7 +70,7 @@ bool RoughConductorBsdf::sample(SurfaceScatterEvent &event) const
 
     // TODO Re-enable this?
     //float sampleRoughness = (1.2f - 0.2f*std::sqrt(std::abs(event.wi.z())))*_roughness;
-    float roughness = (*_roughness)[event.info->uv];
+    float roughness = (*_roughness)[event.info->uv].x();
     float sampleRoughness = roughness;
     float alpha = Microfacet::roughnessToAlpha(_distribution, roughness);
     float sampleAlpha = Microfacet::roughnessToAlpha(_distribution, sampleRoughness);
@@ -100,7 +100,7 @@ Vec3f RoughConductorBsdf::eval(const SurfaceScatterEvent &event) const
     if (event.wi.z() <= 0.0f || event.wo.z() <= 0.0f)
         return Vec3f(0.0f);
 
-    float roughness = (*_roughness)[event.info->uv];
+    float roughness = (*_roughness)[event.info->uv].x();
     float alpha = Microfacet::roughnessToAlpha(_distribution, roughness);
 
     Vec3f hr = (event.wi + event.wo).normalized();
@@ -122,7 +122,7 @@ float RoughConductorBsdf::pdf(const SurfaceScatterEvent &event) const
 
     // TODO Re-enable this?
     //float sampleRoughness = (1.2f - 0.2f*std::sqrt(event.wi.z()))*_roughness;
-    float roughness = (*_roughness)[event.info->uv];
+    float roughness = (*_roughness)[event.info->uv].x();
     float sampleRoughness = roughness;
     float sampleAlpha = Microfacet::roughnessToAlpha(_distribution, sampleRoughness);
 

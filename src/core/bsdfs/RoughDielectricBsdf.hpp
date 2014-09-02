@@ -10,7 +10,7 @@ class RoughDielectricBsdf : public Bsdf
 {
     std::string _distributionName;
 
-    std::shared_ptr<TextureA> _roughness;
+    std::shared_ptr<Texture> _roughness;
     float _ior;
     bool _enableT;
 
@@ -42,7 +42,7 @@ public:
         return _ior;
     }
 
-    const std::shared_ptr<TextureA> &roughness() const
+    const std::shared_ptr<Texture> &roughness() const
     {
         return _roughness;
     }

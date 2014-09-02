@@ -62,8 +62,7 @@ class ObjLoader
     void loadMaterialLibrary(const char *path);
     void loadLine(const char *line);
 
-    std::shared_ptr<TextureRgb> fetchColorMap(const std::string &path);
-    std::shared_ptr<TextureA> fetchScalarMap(const std::string &path);
+    std::shared_ptr<Texture> fetchBitmap(const std::string &path, bool isScalar);
 
     std::shared_ptr<Bsdf> convertObjMaterial(const ObjMaterial &mat);
 

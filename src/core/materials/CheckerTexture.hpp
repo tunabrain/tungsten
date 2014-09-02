@@ -7,24 +7,12 @@
 
 namespace Tungsten {
 
-template<bool Scalar>
-class CheckerTexture : public Texture<Scalar, 2>
+class CheckerTexture : public Texture
 {
     typedef JsonSerializable::Allocator Allocator;
-    typedef typename Texture<Scalar, 2>::Value Value;
 
-    Value _onColor, _offColor;
+    Vec3f _onColor, _offColor;
     int _resU, _resV;
-
-    float weight(float value) const
-    {
-        return value;
-    }
-
-    float weight(const Vec3f &value) const
-    {
-        return value.max();
-    }
 
 public:
     CheckerTexture()
@@ -35,27 +23,27 @@ public:
 
     void fromJson(const rapidjson::Value &v, const Scene &scene) override final
     {
-        Texture<Scalar, 2>::fromJson(v, scene);
-        JsonUtils::fromJson(v, "onColor", _onColor);
-        JsonUtils::fromJson(v, "offColor", _offColor);
+        Texture::fromJson(v, scene);
+        scalarOrVecFromJson(v, "onColor",   _onColor);
+        scalarOrVecFromJson(v, "offColor", _offColor);
         JsonUtils::fromJson(v, "resU", _resU);
         JsonUtils::fromJson(v, "resV", _resV);
     }
 
     rapidjson::Value toJson(Allocator &allocator) const override final
     {
-        rapidjson::Value v = Texture<Scalar, 2>::toJson(allocator);
+        rapidjson::Value v = Texture::toJson(allocator);
         v.AddMember("type", "checker", allocator);
-        v.AddMember("onColor",  JsonUtils::toJsonValue(_onColor,  allocator), allocator);
-        v.AddMember("offColor", JsonUtils::toJsonValue(_offColor, allocator), allocator);
+        v.AddMember("onColor",  scalarOrVecToJson( _onColor, allocator), allocator);
+        v.AddMember("offColor", scalarOrVecToJson(_offColor, allocator), allocator);
         v.AddMember("resU", _resU, allocator);
         v.AddMember("resV", _resV, allocator);
         return std::move(v);
     }
 
-    void derivatives(const Vec<float, 2> &/*uv*/, Vec<Value, 2> &derivs) const override final
+    void derivatives(const Vec2f &/*uv*/, Vec2f &derivs) const override final
     {
-        derivs = Vec<Value, 2>(Value(0.0f));
+        derivs = Vec2f(0.0f);
     }
 
     bool isConstant() const override final
@@ -63,22 +51,23 @@ public:
         return false;
     }
 
-    Value average() const override final
+    /* TODO: This is wrong for odd resolutions */
+    Vec3f average() const override final
     {
         return (_onColor + _offColor)*0.5f;
     }
 
-    Value minimum() const override final
+    Vec3f minimum() const override final
     {
         return min(_onColor, _offColor);
     }
 
-    Value maximum() const override final
+    Vec3f maximum() const override final
     {
         return max(_onColor, _offColor);
     }
 
-    Value operator[](const Vec<float, 2> &uv) const override final
+    Vec3f operator[](const Vec2f &uv) const override final
     {
         Vec2i uvI(uv*Vec2f(float(_resU), float(_resV)));
         bool on = (uvI.x() ^ uvI.y()) & 1;
@@ -92,8 +81,8 @@ public:
     /* TODO this is biased for odd resolutions */
     Vec2f sample(const Vec2f &uv) const override final
     {
-        float onWeight = weight(_onColor);
-        float offWeight = weight(_offColor);
+        float  onWeight =  _onColor.max();
+        float offWeight = _offColor.max();
         if (onWeight + offWeight == 0.0f)
             return uv;
         float onProb = onWeight/(onWeight + offWeight);
@@ -120,8 +109,8 @@ public:
 
     float pdf(const Vec2f &uv) const override final
     {
-        float onWeight = weight(_onColor);
-        float offWeight = weight(_offColor);
+        float  onWeight =  _onColor.max();
+        float offWeight = _offColor.max();
         if (onWeight + offWeight == 0.0f)
             return 1.0f;
         Vec2i uvI(uv*Vec2f(float(_resU), float(_resV)));
@@ -129,12 +118,12 @@ public:
         return (on ? onWeight : offWeight)/(onWeight + offWeight);
     }
 
-    Value onColor() const
+    Vec3f onColor() const
     {
         return _onColor;
     }
 
-    Value offColor() const
+    Vec3f offColor() const
     {
         return _offColor;
     }
