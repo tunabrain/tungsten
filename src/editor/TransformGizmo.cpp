@@ -34,8 +34,8 @@ Vec2f TransformGizmo::project(const Vec3f &p) const
 Vec3f TransformGizmo::viewVector(const Vec2f& p) const
 {
     return _view.transformVector(Vec3f(
-        (p.x()*2.0f/_w - 1.0f)/_projection.a11,
-        (1.0f - p.y()*2.0f/_h)/_projection.a22,
+        (p.x()*2.0f/_w - 1.0f)/_projection[0],
+        (1.0f - p.y()*2.0f/_h)/_projection[5],
         1.0f
     )).normalized();
 }
@@ -43,8 +43,8 @@ Vec3f TransformGizmo::viewVector(const Vec2f& p) const
 Vec3f TransformGizmo::unproject(const Vec2f &p, float depth) const
 {
     return _view*Vec3f(
-        (p.x()*2.0f/_w - 1.0f)*depth/_projection.a11,
-        (1.0f - p.y()*2.0f/_h)*depth/_projection.a22,
+        (p.x()*2.0f/_w - 1.0f)*depth/_projection[0],
+        (1.0f - p.y()*2.0f/_h)*depth/_projection[5],
         depth
     );
 }

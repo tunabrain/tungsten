@@ -103,7 +103,7 @@ namespace embree
       }
 
       __forceinline void inc() { activeTasks++; }
-      __forceinline void dec() { 
+      void dec() {
         if (--activeTasks == 0) {
           Event* other = this->other;
           trigger(); // may cause this event to get destroyed

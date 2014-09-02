@@ -130,6 +130,10 @@ public:
     static Mat4f ortho(float l, float r, float b, float t, float near, float far);
     static Mat4f perspective(float aov, float ratio, float near, float far);
     static Mat4f lookAt(const Vec3f &pos, const Vec3f &fwd, const Vec3f &up);
+    
+    friend Mat4f operator*(const Mat4f &a, const Mat4f &b);
+    friend Vec4f operator*(const Mat4f &a, const Vec4f &b);
+    friend Vec3f operator*(const Mat4f &a, const Vec3f &b);
 };
 
 static inline Mat4f operator*(const Mat4f &a, const Mat4f &b)
