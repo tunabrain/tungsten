@@ -382,7 +382,7 @@ public:
         return Vec3f(0.0f);
     }
 
-    virtual Vec3f eval(const VolumeScatterEvent &event) const override final
+    virtual Vec3f phaseEval(const VolumeScatterEvent &event) const override final
     {
         if (_cloudThickness) {
             Vec3f localP = event.p - _pos;

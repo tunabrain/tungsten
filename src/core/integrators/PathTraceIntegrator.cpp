@@ -197,7 +197,7 @@ Vec3f PathTraceIntegrator::volumeLightSample(VolumeScatterEvent &event, const Pr
         return Vec3f(0.0f);
     event.wo = sample.d;
 
-    Vec3f f = medium->eval(event);
+    Vec3f f = medium->phaseEval(event);
     if (f == 0.0f)
         return Vec3f(0.0f);
 
@@ -209,7 +209,7 @@ Vec3f PathTraceIntegrator::volumeLightSample(VolumeScatterEvent &event, const Pr
     Vec3f lightF = f*e/sample.pdf;
 
     if (!light.isDelta() && performMis)
-        lightF *= SampleWarp::powerHeuristic(sample.pdf, medium->pdf(event));
+        lightF *= SampleWarp::powerHeuristic(sample.pdf, medium->phasePdf(event));
 
     return lightF;
 }

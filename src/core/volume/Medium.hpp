@@ -4,7 +4,6 @@
 #include "samplerecords/VolumeScatterEvent.hpp"
 
 #include "io/JsonSerializable.hpp"
-#include "io/JsonUtils.hpp"
 
 #include "PhaseFunction.hpp"
 
@@ -27,7 +26,6 @@ protected:
     }
 
 public:
-
     struct MediumState
     {
         bool firstScatter;
@@ -47,46 +45,24 @@ public:
         }
     };
 
-    Medium()
-    : _phaseFunctionName("isotropic"),
-      _phaseG(0.0f),
-      _maxBounce(1024)
-    {
-        init();
-    }
+    Medium();
 
-    virtual void fromJson(const rapidjson::Value &v, const Scene &scene)
-    {
-        JsonSerializable::fromJson(v, scene);
-        JsonUtils::fromJson(v, "phase_function", _phaseFunctionName);
-        JsonUtils::fromJson(v, "phase_g", _phaseG);
-        JsonUtils::fromJson(v, "max_bounces", _maxBounce);
-        init();
-    }
-
-    virtual rapidjson::Value toJson(Allocator &allocator) const
-    {
-        rapidjson::Value v(JsonSerializable::toJson(allocator));
-        v.AddMember("phase_function", _phaseFunctionName.c_str(), allocator);
-        v.AddMember("phase_g", _phaseG, allocator);
-        v.AddMember("max_bounces", _maxBounce, allocator);
-
-        return std::move(v);
-    }
+    virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
+    virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
     virtual bool isHomogeneous() const = 0;
 
     virtual void prepareForRender() = 0;
     virtual void cleanupAfterRender() = 0;
 
-    virtual bool sampleDistance(VolumeScatterEvent &event, MediumState &data) const = 0;
-    virtual bool absorb(VolumeScatterEvent &event, MediumState &data) const = 0;
+    virtual bool sampleDistance(VolumeScatterEvent &event, MediumState &state) const = 0;
+    virtual bool absorb(VolumeScatterEvent &event, MediumState &state) const = 0;
     virtual bool scatter(VolumeScatterEvent &event) const = 0;
     virtual Vec3f transmittance(const VolumeScatterEvent &event) const = 0;
     virtual Vec3f emission(const VolumeScatterEvent &event) const = 0;
 
-    virtual Vec3f eval(const VolumeScatterEvent &event) const = 0;
-    float pdf(const VolumeScatterEvent &event) const
+    virtual Vec3f phaseEval(const VolumeScatterEvent &event) const = 0;
+    float phasePdf(const VolumeScatterEvent &event) const
     {
         return PhaseFunction::eval(_phaseFunction, event.wi.dot(event.wo), _phaseG);
     }

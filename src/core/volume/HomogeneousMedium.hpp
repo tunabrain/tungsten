@@ -123,7 +123,7 @@ public:
         return Vec3f(0.0f);
     }
 
-    Vec3f eval(const VolumeScatterEvent &event) const
+    Vec3f phaseEval(const VolumeScatterEvent &event) const
     {
         return _sigmaS*PhaseFunction::eval(_phaseFunction, event.wi.dot(event.wo), _phaseG);
     }
