@@ -1,6 +1,12 @@
-/* stbi-1.33 - public domain JPEG/PNG reader - http://nothings.org/stb_image.c
+/* stb_image - v1.46 - public domain JPEG/PNG reader - http://nothings.org/stb_image.c
    when you control the images you're loading
                                      no warranty implied; use at your own risk
+
+   Do this:
+      #define STB_IMAGE_IMPLEMENTATION
+   before you include this file in *one* C or C++ file to create the implementation.
+
+   #define STBI_ASSERT(x) to avoid using assert.h.
 
    QUICK NOTES:
       Primarily of interest to game developers and other people who can
@@ -22,15 +28,18 @@
       - overridable dequantizing-IDCT, YCbCr-to-RGB conversion (define STBI_SIMD)
 
    Latest revisions:
-      1.33 (2011-07-14) minor fixes suggested by Dave Moore
-      1.32 (2011-07-13) info support for all filetypes (SpartanJ)
-      1.31 (2011-06-19) a few more leak fixes, bug in PNG handling (SpartanJ)
-      1.30 (2011-06-11) added ability to load files via io callbacks (Ben Wenger)
-      1.29 (2010-08-16) various warning fixes from Aurelien Pocheville
-      1.28 (2010-08-01) fix bug in GIF palette transparency (SpartanJ)
-      1.27 (2010-08-01) cast-to-uint8 to fix warnings (Laurent Gomila)
-                        allow trailing 0s at end of image data (Laurent Gomila)
-      1.26 (2010-07-24) fix bug in file buffering for PNG reported by SpartanJ
+      1.46 (2014-08-26) fix broken tRNS chunk in non-paletted PNG
+      1.45 (2014-08-16) workaround MSVC-ARM internal compiler error by wrapping malloc
+      1.44 (2014-08-07) warnings
+      1.43 (2014-07-15) fix MSVC-only bug in 1.42
+      1.42 (2014-07-09) no _CRT_SECURE_NO_WARNINGS; error-path fixes; STBI_ASSERT
+      1.41 (2014-06-25) fix search&replace that messed up comments/error messages
+      1.40 (2014-06-22) gcc warning
+      1.39 (2014-06-15) TGA optimization bugfix, multiple BMP fixes
+      1.38 (2014-06-06) suppress MSVC run-time warnings, fix accidental rename of 'skip'
+      1.37 (2014-06-04) remove duplicate typedef
+      1.36 (2014-06-03) converted to header file, allow reading incorrect iphoned-images without iphone flag
+      1.35 (2014-05-27) warnings, bugfixes, TGA optimization, etc
 
    See end of file for full revision history.
 
@@ -40,36 +49,38 @@
 
  ============================    Contributors    =========================
 
- Image formats                                Optimizations & bugfixes
-    Sean Barrett (jpeg, png, bmp)                Fabian "ryg" Giesen
-    Nicolas Schulz (hdr, psd)
-    Jonathan Dummer (tga)                     Bug fixes & warning fixes
-    Jean-Marc Lienher (gif)                      Marc LeBlanc
-    Tom Seddon (pic)                             Christpher Lloyd
-    Thatcher Ulrich (psd)                        Dave Moore
-                                                 Won Chun
-                                                 the Horde3D community
- Extensions, features                            Janez Zemva
-    Jetro Lauha (stbi_info)                      Jonathan Blow
-    James "moose2000" Brown (iPhone PNG)         Laurent Gomila
-    Ben "Disch" Wenger (io callbacks)            Aruelien Pocheville
-    Martin "SpartanJ" Golini                     Ryamond Barbiero
-                                                 David Woo
-
-
- If your name should be here but isn't, let Sean know.
-
+ Image formats                                Bug fixes & warning fixes
+    Sean Barrett (jpeg, png, bmp)                Marc LeBlanc
+    Nicolas Schulz (hdr, psd)                    Christpher Lloyd
+    Jonathan Dummer (tga)                        Dave Moore
+    Jean-Marc Lienher (gif)                      Won Chun
+    Tom Seddon (pic)                             the Horde3D community
+    Thatcher Ulrich (psd)                        Janez Zemva
+                                                 Jonathan Blow
+                                                 Laurent Gomila
+ Extensions, features                            Aruelien Pocheville
+    Jetro Lauha (stbi_info)                      Ryamond Barbiero
+    James "moose2000" Brown (iPhone PNG)         David Woo
+    Ben "Disch" Wenger (io callbacks)            Roy Eltham
+    Martin "SpartanJ" Golini                     Luke Graham
+                                                 Thomas Ruf
+                                                 John Bartholomew
+ Optimizations & bugfixes                        Ken Hamada
+    Fabian "ryg" Giesen                          Cort Stratton
+    Arseny Kapoulkine                            Blazej Dariusz Roszkowski
+                                                 Thibault Reuille
+                                                 Paul Du Bois
+                                                 Guillaume George
+                                                 Jerry Jansson
+  If your name should be here but                Hayaki Saito
+  isn't, let Sean know.                          Johan Duparc
+                                                 Ronny Chevalier
+                                                 Michal Cichon
 */
 
 #ifndef STBI_INCLUDE_STB_IMAGE_H
 #define STBI_INCLUDE_STB_IMAGE_H
 
-// To get a header file for this, either cut and paste the header,
-// or create stb_image.h, #define STBI_HEADER_FILE_ONLY, and
-// then include stb_image.c from it.
-
-////   begin header file  ////////////////////////////////////////////////////
-//
 // Limitations:
 //    - no jpeg progressive support
 //    - non-HDR formats support 8-bit samples only (jpeg, png)
@@ -185,13 +196,8 @@
 
 
 #ifndef STBI_NO_STDIO
-
-#if defined(_MSC_VER) && _MSC_VER >= 0x1400
-#define _CRT_SECURE_NO_WARNINGS // suppress bogus warnings about fopen()
-#endif
-
 #include <stdio.h>
-#endif
+#endif // STBI_NO_STDIO
 
 #define STBI_VERSION 1
 
@@ -211,6 +217,12 @@ typedef unsigned char stbi_uc;
 extern "C" {
 #endif
 
+#ifdef STB_IMAGE_STATIC
+#define STBIDEF static
+#else
+#define STBIDEF extern
+#endif
+
 //////////////////////////////////////////////////////////////////////////////
 //
 // PRIMARY API - works on images of any type
@@ -220,63 +232,63 @@ extern "C" {
 // load image by filename, open file, or memory buffer
 //
 
-extern stbi_uc *stbi_load_from_memory(stbi_uc const *buffer, int len, int *x, int *y, int *comp, int req_comp);
+STBIDEF stbi_uc *stbi_load_from_memory(stbi_uc const *buffer, int len, int *x, int *y, int *comp, int req_comp);
 
 #ifndef STBI_NO_STDIO
-extern stbi_uc *stbi_load            (char const *filename,     int *x, int *y, int *comp, int req_comp);
-extern stbi_uc *stbi_load_from_file  (FILE *f,                  int *x, int *y, int *comp, int req_comp);
+STBIDEF stbi_uc *stbi_load            (char const *filename,     int *x, int *y, int *comp, int req_comp);
+STBIDEF stbi_uc *stbi_load_from_file  (FILE *f,                  int *x, int *y, int *comp, int req_comp);
 // for stbi_load_from_file, file pointer is left pointing immediately after image
 #endif
 
 typedef struct
 {
    int      (*read)  (void *user,char *data,int size);   // fill 'data' with 'size' bytes.  return number of bytes actually read
-   void     (*skip)  (void *user,unsigned n);            // skip the next 'n' bytes
+   void     (*skip)  (void *user,int n);                 // skip the next 'n' bytes, or 'unget' the last -n bytes if negative
    int      (*eof)   (void *user);                       // returns nonzero if we are at end of file/data
 } stbi_io_callbacks;
 
-extern stbi_uc *stbi_load_from_callbacks  (stbi_io_callbacks const *clbk, void *user, int *x, int *y, int *comp, int req_comp);
+STBIDEF stbi_uc *stbi_load_from_callbacks  (stbi_io_callbacks const *clbk, void *user, int *x, int *y, int *comp, int req_comp);
 
 #ifndef STBI_NO_HDR
-   extern float *stbi_loadf_from_memory(stbi_uc const *buffer, int len, int *x, int *y, int *comp, int req_comp);
+   STBIDEF float *stbi_loadf_from_memory(stbi_uc const *buffer, int len, int *x, int *y, int *comp, int req_comp);
 
    #ifndef STBI_NO_STDIO
-   extern float *stbi_loadf            (char const *filename,   int *x, int *y, int *comp, int req_comp);
-   extern float *stbi_loadf_from_file  (FILE *f,                int *x, int *y, int *comp, int req_comp);
+   STBIDEF float *stbi_loadf            (char const *filename,   int *x, int *y, int *comp, int req_comp);
+   STBIDEF float *stbi_loadf_from_file  (FILE *f,                int *x, int *y, int *comp, int req_comp);
    #endif
 
-   extern float *stbi_loadf_from_callbacks  (stbi_io_callbacks const *clbk, void *user, int *x, int *y, int *comp, int req_comp);
+   STBIDEF float *stbi_loadf_from_callbacks  (stbi_io_callbacks const *clbk, void *user, int *x, int *y, int *comp, int req_comp);
 
-   extern void   stbi_hdr_to_ldr_gamma(float gamma);
-   extern void   stbi_hdr_to_ldr_scale(float scale);
+   STBIDEF void   stbi_hdr_to_ldr_gamma(float gamma);
+   STBIDEF void   stbi_hdr_to_ldr_scale(float scale);
 
-   extern void   stbi_ldr_to_hdr_gamma(float gamma);
-   extern void   stbi_ldr_to_hdr_scale(float scale);
+   STBIDEF void   stbi_ldr_to_hdr_gamma(float gamma);
+   STBIDEF void   stbi_ldr_to_hdr_scale(float scale);
 #endif // STBI_NO_HDR
 
 // stbi_is_hdr is always defined
-extern int    stbi_is_hdr_from_callbacks(stbi_io_callbacks const *clbk, void *user);
-extern int    stbi_is_hdr_from_memory(stbi_uc const *buffer, int len);
+STBIDEF int    stbi_is_hdr_from_callbacks(stbi_io_callbacks const *clbk, void *user);
+STBIDEF int    stbi_is_hdr_from_memory(stbi_uc const *buffer, int len);
 #ifndef STBI_NO_STDIO
-extern int      stbi_is_hdr          (char const *filename);
-extern int      stbi_is_hdr_from_file(FILE *f);
+STBIDEF int      stbi_is_hdr          (char const *filename);
+STBIDEF int      stbi_is_hdr_from_file(FILE *f);
 #endif // STBI_NO_STDIO
 
 
 // get a VERY brief reason for failure
 // NOT THREADSAFE
-extern const char *stbi_failure_reason  (void);
+STBIDEF const char *stbi_failure_reason  (void);
 
 // free the loaded image -- this is just free()
-extern void     stbi_image_free      (void *retval_from_stbi_load);
+STBIDEF void     stbi_image_free      (void *retval_from_stbi_load);
 
 // get image dimensions & components without fully decoding
-extern int      stbi_info_from_memory(stbi_uc const *buffer, int len, int *x, int *y, int *comp);
-extern int      stbi_info_from_callbacks(stbi_io_callbacks const *clbk, void *user, int *x, int *y, int *comp);
+STBIDEF int      stbi_info_from_memory(stbi_uc const *buffer, int len, int *x, int *y, int *comp);
+STBIDEF int      stbi_info_from_callbacks(stbi_io_callbacks const *clbk, void *user, int *x, int *y, int *comp);
 
 #ifndef STBI_NO_STDIO
-extern int      stbi_info            (char const *filename,     int *x, int *y, int *comp);
-extern int      stbi_info_from_file  (FILE *f,                  int *x, int *y, int *comp);
+STBIDEF int      stbi_info            (char const *filename,     int *x, int *y, int *comp);
+STBIDEF int      stbi_info_from_file  (FILE *f,                  int *x, int *y, int *comp);
 
 #endif
 
@@ -285,21 +297,22 @@ extern int      stbi_info_from_file  (FILE *f,                  int *x, int *y, 
 // for image formats that explicitly notate that they have premultiplied alpha,
 // we just return the colors as stored in the file. set this flag to force
 // unpremultiplication. results are undefined if the unpremultiply overflow.
-extern void stbi_set_unpremultiply_on_load(int flag_true_if_should_unpremultiply);
+STBIDEF void stbi_set_unpremultiply_on_load(int flag_true_if_should_unpremultiply);
 
 // indicate whether we should process iphone images back to canonical format,
 // or just pass them through "as-is"
-extern void stbi_convert_iphone_png_to_rgb(int flag_true_if_should_convert);
+STBIDEF void stbi_convert_iphone_png_to_rgb(int flag_true_if_should_convert);
 
 
 // ZLIB client - used by PNG, available for other purposes
 
-extern char *stbi_zlib_decode_malloc_guesssize(const char *buffer, int len, int initial_size, int *outlen);
-extern char *stbi_zlib_decode_malloc(const char *buffer, int len, int *outlen);
-extern int   stbi_zlib_decode_buffer(char *obuffer, int olen, const char *ibuffer, int ilen);
+STBIDEF char *stbi_zlib_decode_malloc_guesssize(const char *buffer, int len, int initial_size, int *outlen);
+STBIDEF char *stbi_zlib_decode_malloc_guesssize_headerflag(const char *buffer, int len, int initial_size, int *outlen, int parse_header);
+STBIDEF char *stbi_zlib_decode_malloc(const char *buffer, int len, int *outlen);
+STBIDEF int   stbi_zlib_decode_buffer(char *obuffer, int olen, const char *ibuffer, int ilen);
 
-extern char *stbi_zlib_decode_noheader_malloc(const char *buffer, int len, int *outlen);
-extern int   stbi_zlib_decode_noheader_buffer(char *obuffer, int olen, const char *ibuffer, int ilen);
+STBIDEF char *stbi_zlib_decode_noheader_malloc(const char *buffer, int len, int *outlen);
+STBIDEF int   stbi_zlib_decode_noheader_buffer(char *obuffer, int olen, const char *ibuffer, int ilen);
 
 
 // define faster low-level operations (typically SIMD support)
@@ -317,8 +330,8 @@ typedef void (*stbi_YCbCr_to_RGB_run)(stbi_uc *output, stbi_uc const  *y, stbi_u
 //     cb: Cb input channel; scale/biased to be 0..255
 //     cr: Cr input channel; scale/biased to be 0..255
 
-extern void stbi_install_idct(stbi_idct_8x8 func);
-extern void stbi_install_YCbCr_to_RGB(stbi_YCbCr_to_RGB_run func);
+STBIDEF void stbi_install_idct(stbi_idct_8x8 func);
+STBIDEF void stbi_install_YCbCr_to_RGB(stbi_YCbCr_to_RGB_run func);
 #endif // STBI_SIMD
 
 
