@@ -5,17 +5,11 @@
 
 #include "sampling/Distribution2D.hpp"
 
-#include "extern/stbi/stb_image.h"
-
 #include "math/MathUtil.hpp"
 #include "math/Angle.hpp"
 
 #include "io/FileUtils.hpp"
-
-#include "Debug.hpp"
-
-#include <type_traits>
-#include <iostream>
+#include "io/ImageIO.hpp"
 
 namespace Tungsten {
 
@@ -33,6 +27,11 @@ struct Rgba
     Rgba(uint8 r, uint8 g, uint8 b, uint8 a)
     : c{r, g, b, a}
     {
+    }
+
+    Vec3f normalize() const
+    {
+        return Vec3f(float(c[0]), float(c[1]), float(c[2]))*(1.0f/255.0f);
     }
 
     Rgba operator-(const Rgba &o) const
@@ -61,58 +60,137 @@ inline Rgba max(const Rgba &a, const Rgba &b)
     return result;
 }
 
-template<bool Scalar>
 class BitmapTexture : public Texture
 {
-protected:
+    enum class TexelType : uint32 {
+        SCALAR_LDR = 0,
+        SCALAR_HDR = 1,
+        RGB_LDR    = 2,
+        RGB_HDR    = 3,
+    };
+
     typedef JsonSerializable::Allocator Allocator;
-    typedef typename std::conditional<Scalar, float, Vec3f>::type Value;
 
     std::string _srcDir;
     std::string _path;
 
-    Value _min, _max, _avg;
+    Vec3f _min, _max, _avg;
+    void *_texels;
     int _w;
     int _h;
+    TexelType _texelType;
 
     std::unique_ptr<Distribution2D> _distribution;
 
-    float lerp(float x00, float x01, float x10, float x11, float u, float v) const
+    inline bool isRgb() const
+    {
+        return uint32(_texelType) & 2;
+    }
+
+    inline bool isHdr() const
+    {
+        return uint32(_texelType) & 1;
+    }
+
+    inline float lerp(float x00, float x01, float x10, float x11, float u, float v) const
     {
         return (x00*(1.0f - u) + x01*u)*(1.0f - v) +
                (x10*(1.0f - u) + x11*u)*v;
     }
 
-    Vec3f lerp(Vec3f x00, Vec3f x01, Vec3f x10, Vec3f x11, float u, float v) const
+    inline Vec3f lerp(Vec3f x00, Vec3f x01, Vec3f x10, Vec3f x11, float u, float v) const
     {
         return (x00*(1.0f - u) + x01*u)*(1.0f - v) +
                (x10*(1.0f - u) + x11*u)*v;
     }
 
-    float weight(float value) const
+    template<typename T>
+    inline const T *as() const
     {
-        return value;
+        return reinterpret_cast<const T *>(_texels);
     }
 
-    float weight(const Vec3f &value) const
+    inline float getScalar(int x, int y) const
     {
-        return value.max();
+        if (isHdr())
+            return as<float>()[x + y*_w];
+        else
+            return float(as<uint8>()[x + y*_w])*(1.0f/255.0f);
     }
 
-    float avg(float value) const
+    inline Vec3f getRgb(int x, int y) const
     {
-        return value;
+        if (isHdr())
+            return as<Vec3f>()[x + y*_w];
+        else
+            return as<Rgba>()[x + y*_w].normalize();
     }
 
-    float avg(const Vec3f &value) const
+    inline float weight(int x, int y) const
     {
-        return value.avg();
+        if (isRgb())
+            return getRgb(x, y).max();
+        else
+            return getScalar(x, y);
     }
 
-    virtual Value get(int x, int y) const = 0;
+    static TexelType getTexelType(bool isRgb, bool isHdr)
+    {
+        if (isRgb && isHdr)
+            return TexelType::RGB_HDR;
+        else if (isRgb)
+            return TexelType::RGB_LDR;
+        else if (isHdr)
+            return TexelType::SCALAR_HDR;
+        else
+            return TexelType::SCALAR_LDR;
+    }
 
 public:
-    virtual ~BitmapTexture() {}
+    BitmapTexture(const std::string &path, void *texels, int w, int h, TexelType texelType)
+    : _path(path),
+      _texels(texels),
+      _w(w),
+      _h(h),
+      _texelType(texelType)
+    {
+        if (isRgb()) {
+            _max = _min = getRgb(0, 0);
+            _avg = Vec3f(0.0f);
+
+            for (int y = 0; y < _h; ++y) {
+                for (int x = 0; x < _w; ++x) {
+                    _min = min(_min, getRgb(0, 0));
+                    _max = max(_max, getRgb(0, 0));
+                    _avg += getRgb(0, 0)/float(_w*_h);
+                }
+            }
+        } else {
+            float minT, maxT, avgT = 0.0f;
+            minT = maxT = getScalar(0, 0);
+
+            for (int y = 0; y < _h; ++y) {
+                for (int x = 0; x < _w; ++x) {
+                    minT = min(minT, getScalar(0, 0));
+                    maxT = max(maxT, getScalar(0, 0));
+                    avgT += getScalar(0, 0)/float(_w*_h);
+                }
+            }
+            _min = Vec3f(minT);
+            _max = Vec3f(maxT);
+            _avg = Vec3f(avgT);
+        }
+    }
+
+    ~BitmapTexture()
+    {
+        switch (_texelType) {
+        case TexelType::SCALAR_LDR: delete[] as<uint8>(); break;
+        case TexelType::SCALAR_HDR: delete[] as<float>(); break;
+        case TexelType::RGB_LDR: delete[] as<uint8>(); break;
+        case TexelType::RGB_HDR: delete[] as<Vec3f>(); break;
+        }
+    }
 
     virtual void fromJson(const rapidjson::Value &/*v*/, const Scene &/*scene*/) override final
     {
@@ -121,29 +199,6 @@ public:
     virtual rapidjson::Value toJson(Allocator &allocator) const override final
     {
         return std::move(rapidjson::Value(_path.c_str(), allocator));
-    }
-
-
-    void derivativesBad(const Vec2f &uv, Vec2f &derivs) const
-    {
-        float u = uv.x()*_w;
-        float v = (1.0f - uv.y())*_h;
-        int iu = int(u);
-        int iv = int(v);
-        u -= iu;
-        v -= iv;
-        iu = ((iu % _w) + _w) % _w;
-        iv = ((iv % _h) + _h) % _h;
-        iu = clamp(iu, 0, _w - 2);
-        iv = clamp(iv, 0, _h - 2);
-
-        float p00 = avg(get(iu, iv));
-        float p10 = avg(get(iu + 1, iv));
-        float p01 = avg(get(iu, iv + 1));
-        float p11 = avg(get(iu + 1, iv + 1));
-        float tmp = p01 + p10 - p11;
-        derivs.x() = (p10 + p00*(v - 1.0) - tmp*v)*float(_w);
-        derivs.x() = (p01 + p00*(u - 1.0) - tmp*u)*float(_h);
     }
 
     void derivatives(const Vec2f &uv, Vec2f &derivs) const override final
@@ -162,10 +217,23 @@ public:
         if (x0 < 0) x0 = _w - 1;
         if (y0 < 0) y0 = _h - 1;
 
-        float                         a01 = avg(get(x1, y0)), a02 = avg(get(x2, y0));
-        float a10 = avg(get(x0, y1)), a11 = avg(get(x1, y1)), a12 = avg(get(x2, y1)), a13 = avg(get(x3, y1));
-        float a20 = avg(get(x0, y2)), a21 = avg(get(x1, y2)), a22 = avg(get(x2, y2)), a23 = avg(get(x3, y2));
-        float                         a31 = avg(get(x1, y3)), a32 = avg(get(x2, y3));
+        // Filter footprint
+        float      a01, a02;
+        float a10, a11, a12, a13;
+        float a20, a21, a22, a23;
+        float      a31, a32;
+
+        if (isRgb()) {
+                                        a01 = getRgb(x1, y0).avg(), a02 = getRgb(x2, y0).avg();
+            a10 = getRgb(x0, y1).avg(), a11 = getRgb(x1, y1).avg(), a12 = getRgb(x2, y1).avg(), a13 = getRgb(x3, y1).avg();
+            a20 = getRgb(x0, y2).avg(), a21 = getRgb(x1, y2).avg(), a22 = getRgb(x2, y2).avg(), a23 = getRgb(x3, y2).avg();
+                                        a31 = getRgb(x1, y3).avg(), a32 = getRgb(x2, y3).avg();
+        } else {
+                                     a01 = getScalar(x1, y0), a02 = getScalar(x2, y0);
+            a10 = getScalar(x0, y1), a11 = getScalar(x1, y1), a12 = getScalar(x2, y1), a13 = getScalar(x3, y1);
+            a20 = getScalar(x0, y2), a21 = getScalar(x1, y2), a22 = getScalar(x2, y2), a23 = getScalar(x3, y2);
+                                     a31 = getScalar(x1, y3), a32 = getScalar(x2, y3);
+        }
 
         float du11 = a12 - a10, du12 = a13 - a11, du21 = a22 - a20, du22 = a23 - a21;
         float dv11 = a21 - a01, dv21 = a31 - a11, dv12 = a22 - a02, dv22 = a32 - a12;
@@ -187,14 +255,25 @@ public:
         iu = clamp(iu, 0, _w - 2);
         iv = clamp(iv, 0, _h - 2);
 
-        return Vec3f(lerp(
-            get(iu, iv),
-            get(iu + 1, iv),
-            get(iu, iv + 1),
-            get(iu + 1, iv + 1),
-            u,
-            v
-        ));
+        if (isRgb()) {
+            return lerp(
+                getRgb(iu, iv),
+                getRgb(iu + 1, iv),
+                getRgb(iu, iv + 1),
+                getRgb(iu + 1, iv + 1),
+                u,
+                v
+            );
+        } else {
+            return Vec3f(lerp(
+                getScalar(iu, iv),
+                getScalar(iu + 1, iv),
+                getScalar(iu, iv + 1),
+                getScalar(iu + 1, iv + 1),
+                u,
+                v
+            ));
+        }
     }
 
     void saveData() const
@@ -249,12 +328,11 @@ public:
             if (jacobian == MAP_SPHERICAL)
                 rowWeight *= std::sin((y*PI)/_h);
             for (int x = 0; x < _w; ++x, ++idx) {
-                float w = weight(get(x, y))*4.0f
-                        + weight(get((x + _w - 1) % _w, y))
-                        + weight(get(x, (y + _h - 1) % _h))
-                        + weight(get((x + 1) % _w, y))
-                        + weight(get(x, (y + 1) % _h));
-
+                float w = weight(x, y)*4.0f
+                        + weight((x + _w - 1) % _w, y)
+                        + weight(x, (y + _h - 1) % _h)
+                        + weight((x + 1) % _w, y)
+                        + weight(x, (y + 1) % _h);
 
                 weights[idx] = w*0.125f*rowWeight;
             }
@@ -284,230 +362,25 @@ public:
     {
         return _h;
     }
-};
 
-template<bool Scalar, typename Texel>
-class HdrBitmapTexture : public BitmapTexture<Scalar>
-{
-    typedef typename std::conditional<Scalar, float, Vec3f>::type Value;
-
-    using BitmapTexture<Scalar>::_srcDir;
-    using BitmapTexture<Scalar>::_path;
-    using BitmapTexture<Scalar>::_w;
-    using BitmapTexture<Scalar>::_h;
-    using BitmapTexture<Scalar>::_min;
-    using BitmapTexture<Scalar>::_max;
-    using BitmapTexture<Scalar>::_avg;
-
-    std::unique_ptr<Texel[]> _texels;
-
-    bool loadPfm(const std::string &filename)
+    static std::shared_ptr<BitmapTexture> loadTexture(const std::string &path, TexelConversion conversion)
     {
-        std::ifstream in(filename, std::ios_base::in | std::ios_base::binary);
-        if (!in.good())
-            return false;
+        bool isRgb = conversion == TexelConversion::REQUEST_RGB;
+        bool isHdr = ImageIO::isHdr(path);
 
-        std::string ident;
-        in >> ident;
-        int channels;
-        if (ident == "Pf")
-            channels = 1;
-        else if (ident == "PF")
-            channels = 3;
+        int w, h;
+        void *pixels;
+        if (isHdr)
+            pixels = ImageIO::loadHdr(path, conversion, w, h).release();
         else
-            return false;
+            pixels = ImageIO::loadLdr(path, conversion, w, h).release();
 
-        in >> _w >> _h;
-        double s;
-        in >> s;
-        std::string tmp;
-        std::getline(in, tmp);
+        if (!pixels)
+            return nullptr;
 
-        std::unique_ptr<float[]> img(new float[_w*_h*channels]);
-        in.read(reinterpret_cast<char *>(img.get()), _w*_h*channels*sizeof(float));
-        in.close();
-
-        _texels.reset(new Value[_w*_h]);
-        if ((channels == 1) == Scalar) {
-            std::memcpy(_texels.get(), img.get(), _w*_h*sizeof(Value));
-        } else {
-
-            if (Scalar)
-                for (int i = 0, idx = 0; i < _w*_h; ++i, idx += 3)
-                    _texels[i] = Value((img[idx] + img[idx + 1] + img[idx + 2])*(1.0f/3.0f));
-            else
-                for (int i = 0; i < _w*_h; ++i)
-                    _texels[i] = Value(img[i]);
-        }
-
-        Value minV(1e30f), maxV(-1e30f), avgV(0.0f);
-        for (int i = 0; i < _w*_h; ++i) {
-            minV = min(minV, _texels[i]);
-            maxV = max(maxV, _texels[i]);
-            avgV += _texels[i]/float(_w*_h);
-        }
-        _min = minV;
-        _max = maxV;
-        _avg = avgV;
-
-        return true;
-    }
-
-protected:
-    inline Value get(int x, int y) const override final
-    {
-        return _texels[x + y*_w];
-    }
-
-public:
-    HdrBitmapTexture(const std::string &path)
-    {
-        _srcDir = FileUtils::getCurrentDir();
-        _path = path;
-
-        if (!loadPfm(path)) {
-            _texels.reset(new Value[4]);
-            _texels[0] = _texels[3] = Value(1.0f);
-            _texels[1] = _texels[2] = Value(0.0f);
-        }
+        return std::make_shared<BitmapTexture>(path, pixels, w, h, getTexelType(isRgb, isHdr));
     }
 };
-
-template<bool Scalar, typename Texel>
-class LdrBitmapTexture : public BitmapTexture<Scalar>
-{
-    typedef typename std::conditional<Scalar, float, Vec3f>::type Value;
-
-    using BitmapTexture<Scalar>::_srcDir;
-    using BitmapTexture<Scalar>::_path;
-    using BitmapTexture<Scalar>::_w;
-    using BitmapTexture<Scalar>::_h;
-    using BitmapTexture<Scalar>::_min;
-    using BitmapTexture<Scalar>::_max;
-    using BitmapTexture<Scalar>::_avg;
-
-    Texel *_texels;
-    int _channels;
-    bool _invalid;
-
-    Vec3f normalize(Rgba x) const
-    {
-        return Vec3f(
-            x.c[0]*(1.0f/256.0f),
-            x.c[1]*(1.0f/256.0f),
-            x.c[2]*(1.0f/256.0f)
-        );
-    }
-
-    Vec3f lerp(Rgba x00, Rgba x01, Rgba x10, Rgba x11, float u, float v) const
-    {
-        return (normalize(x00)*(1.0f - u) + normalize(x01)*u)*(1.0f - v) +
-               (normalize(x10)*(1.0f - u) + normalize(x11)*u)*v;
-    }
-
-    float lerp(uint8 x00, uint8 x01, uint8 x10, uint8 x11, float u, float v) const
-    {
-        return ((x00*(1.0f/256.0f))*(1.0f - u) + (x01*(1.0f/256.0f))*u)*(1.0f - v) +
-               ((x10*(1.0f/256.0f))*(1.0f - u) + (x11*(1.0f/256.0f))*u)*v;
-    }
-
-    float convert(uint8 c) const
-    {
-        return c*1.0f/256.0f;
-    }
-
-    Vec3f convert(Rgba x) const
-    {
-        return normalize(x);
-    }
-
-protected:
-    inline Value get(int x, int y) const override final
-    {
-        return convert(_texels[x + y*_w]);
-    }
-
-public:
-    explicit LdrBitmapTexture(const std::string &path)
-    : _invalid(true)
-    {
-        _srcDir = FileUtils::getCurrentDir();
-        _path = path;
-
-        if (Scalar) {
-            uint8 *tmp = stbi_load(path.c_str(), &_w, &_h, &_channels, 0);
-
-            if (_channels == 4) {
-                _texels = reinterpret_cast<Texel *>(tmp);
-                for (int i = 0; i < _w*_h; ++i)
-                    _texels[i] = Texel(tmp[i*4 + 3]);
-            } else {
-                stbi_image_free(tmp);
-                _texels = reinterpret_cast<Texel *>(stbi_load(path.c_str(), &_w, &_h, &_channels, 1));
-            }
-        } else
-            _texels = reinterpret_cast<Texel *>(stbi_load(path.c_str(), &_w, &_h, &_channels, 4));
-
-        if (!_texels) {
-            DBG("Unable to load texture at '%s' (current dir '%s')", path, FileUtils::getCurrentDir());
-            _invalid = true;
-            _texels = new Texel[2*2];
-            _w = 2;
-            _h = 2;
-            _channels = Scalar ? 1 : 3;
-            _texels[0] = _texels[3] = Texel(255);
-            _texels[1] = _texels[2] = Texel(0);
-        } else {
-            Texel minT(_texels[0]);
-            Texel maxT(_texels[0]);
-            Value avgT(convert(_texels[0]));
-
-            for (int i = 1; i < _w*_h; ++i) {
-                minT = min(minT, _texels[i]);
-                maxT = max(maxT, _texels[i]);
-                avgT += convert(_texels[i]);
-            }
-
-            _min = convert(minT);
-            _max = convert(maxT);
-            _avg = avgT/Value(float(_w*_h));
-        }
-    }
-
-    ~LdrBitmapTexture()
-    {
-        if (_invalid)
-            delete[] _texels;
-        else
-            stbi_image_free(_texels);
-    }
-};
-
-namespace BitmapTextureUtils
-{
-
-inline std::shared_ptr<BitmapTexture<false>> loadColorTexture(const std::string &path)
-{
-    std::string extension = FileUtils::extractExt(path);
-    if (extension == "pfm")
-        return std::make_shared<HdrBitmapTexture<false, Vec3f>>(path);
-    else
-        return std::make_shared<LdrBitmapTexture<false, Rgba>>(path);
-}
-
-inline std::shared_ptr<BitmapTexture<true>> loadScalarTexture(const std::string &path)
-{
-    std::string extension = FileUtils::extractExt(path);
-    if (extension == "pfm")
-        return std::make_shared<HdrBitmapTexture<true, float>>(path);
-    else
-        return std::make_shared<LdrBitmapTexture<true, uint8>>(path);
-}
-
-}
-
-typedef BitmapTexture<true> BitmapTextureA;
-typedef BitmapTexture<false> BitmapTextureRgb;
 
 }
 

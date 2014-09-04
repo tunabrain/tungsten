@@ -52,6 +52,30 @@
 
 namespace Tungsten {
 
+
+std::shared_ptr<Texture> Scene::fetchBitmap(const std::string &path, TexelConversion conversion) const
+{
+    // TODO: Replace this with a more generic texture cache
+    bool isScalar = (conversion == TexelConversion::REQUEST_RGB);
+    if (isScalar) {
+        if (_scalarMaps.count(path))
+            return _scalarMaps[path];
+
+        std::shared_ptr<BitmapTexture> tex(BitmapTexture::loadTexture(path, conversion));
+        _scalarMaps[path] = tex;
+
+        return tex;
+    } else {
+        if (_colorMaps.count(path))
+            return _colorMaps[path];
+
+        std::shared_ptr<BitmapTexture> tex(BitmapTexture::loadTexture(path, conversion));
+        _colorMaps[path] = tex;
+
+        return tex;
+    }
+}
+
 std::shared_ptr<Medium> Scene::instantiateMedium(std::string type, const rapidjson::Value &value) const
 {
     std::shared_ptr<Medium> result;
@@ -160,11 +184,11 @@ std::shared_ptr<Integrator> Scene::instantiateIntegrator(std::string type, const
     return result;
 }
 
-std::shared_ptr<Texture> Scene::instantiateTexture(std::string type, const rapidjson::Value &value, bool isScalar) const
+std::shared_ptr<Texture> Scene::instantiateTexture(std::string type, const rapidjson::Value &value, TexelConversion conversion) const
 {
     std::shared_ptr<Texture> result;
     if (type == "bitmap")
-        return fetchBitmap(JsonUtils::as<std::string>(value, "path"), isScalar);
+        return fetchBitmap(JsonUtils::as<std::string>(value, "path"), conversion);
     else if (type == "constant")
         result = std::make_shared<ConstantTexture>();
     else if (type == "checker")
@@ -226,42 +250,23 @@ std::shared_ptr<Bsdf> Scene::fetchBsdf(const rapidjson::Value &v) const
     return fetchObject(_bsdfs, v, std::bind(&Scene::instantiateBsdf, this, _1, _2));
 }
 
-std::shared_ptr<Texture> Scene::fetchTexture(const rapidjson::Value &v, bool isScalar) const
+std::shared_ptr<Texture> Scene::fetchTexture(const rapidjson::Value &v, TexelConversion conversion) const
 {
+    // Note: TexelConversions are only honored by BitmapTexture.
+    // This is inconsistent, but conversions do not really make sense for other textures,
+    // unless the user expects e.g. a ConstantTexture with Vec3 argument to select the green
+    // channel when used in a TransparencyBsdf.
     if (v.IsString())
-        return fetchBitmap(v.GetString(), isScalar);
+        return fetchBitmap(v.GetString(), conversion);
     else if (v.IsNumber())
         return std::make_shared<ConstantTexture>(JsonUtils::as<float>(v));
-    else if (v.IsArray() && isScalar)
-        return std::make_shared<ConstantTexture>(JsonUtils::as<Vec3f>(v).avg());
-    else if (v.IsArray() && !isScalar)
+    else if (v.IsArray())
         return std::make_shared<ConstantTexture>(JsonUtils::as<Vec3f>(v));
     else if (v.IsObject())
-        return instantiateTexture(JsonUtils::as<std::string>(v, "type"), v, isScalar);
+        return instantiateTexture(JsonUtils::as<std::string>(v, "type"), v, conversion);
     else
         FAIL("Cannot instantiate texture from unknown value type");
     return nullptr;
-}
-
-std::shared_ptr<Texture> Scene::fetchBitmap(const std::string &path, bool isScalar) const
-{
-    if (isScalar) {
-        if (_scalarMaps.count(path))
-            return _scalarMaps[path];
-
-        std::shared_ptr<BitmapTextureA> tex(BitmapTextureUtils::loadScalarTexture(path));
-        _scalarMaps[path] = tex;
-
-        return tex;
-    } else {
-        if (_colorMaps.count(path))
-            return _colorMaps[path];
-
-        std::shared_ptr<BitmapTextureRgb> tex(BitmapTextureUtils::loadColorTexture(path));
-        _colorMaps[path] = tex;
-
-        return tex;
-    }
 }
 
 const Primitive *Scene::findPrimitive(const std::string &name) const

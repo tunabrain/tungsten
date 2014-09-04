@@ -190,7 +190,7 @@ public:
 
         const rapidjson::Value::Member *cloudThickness = v.FindMember("cloud_thickness");
         if (cloudThickness) {
-            _cloudThickness = scene.fetchTexture(cloudThickness->value, true);
+            _cloudThickness = scene.fetchTexture(cloudThickness->value, TexelConversion::REQUEST_AVERAGE);
 
             if (!JsonUtils::fromJson(v, "cloud_min_radius", _cloudMinR) ||
                 !JsonUtils::fromJson(v, "cloud_max_radius", _cloudMaxR)) {

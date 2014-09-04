@@ -45,7 +45,7 @@ void ThinlensCamera::fromJson(const rapidjson::Value &v, const Scene &scene)
 
     const rapidjson::Value::Member *aperture = v.FindMember("aperture");
     if (aperture)
-        _aperture = scene.fetchTexture(aperture->value, true);
+        _aperture = scene.fetchTexture(aperture->value, TexelConversion::REQUEST_AVERAGE);
 
     precompute();
 }

@@ -37,7 +37,7 @@ void ThinSheetBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
 
     const rapidjson::Value::Member *thickness = v.FindMember("thickness");
     if (thickness)
-        _thickness = scene.fetchTexture(thickness->value, true);
+        _thickness = scene.fetchTexture(thickness->value, TexelConversion::REQUEST_AVERAGE);
 }
 
 rapidjson::Value ThinSheetBsdf::toJson(Allocator &allocator) const

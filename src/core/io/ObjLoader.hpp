@@ -19,6 +19,8 @@
 #include "math/Vec.hpp"
 #include "math/Box.hpp"
 
+#include "ImageIO.hpp"
+
 namespace Tungsten {
 
 class Primitive;
@@ -31,8 +33,8 @@ class ObjLoader
     std::vector<ObjMaterial> _materials;
     std::map<std::string, uint32> _materialToIndex;
     std::vector<std::shared_ptr<Bsdf>> _convertedMaterials;
-    std::map<std::string, std::shared_ptr<BitmapTextureRgb>> _colorMaps;
-    std::map<std::string, std::shared_ptr<BitmapTextureA>> _scalarMaps;
+    std::map<std::string, std::shared_ptr<BitmapTexture>> _colorMaps;
+    std::map<std::string, std::shared_ptr<BitmapTexture>> _scalarMaps;
     int32 _currentMaterial;
 
     std::vector<Vec3f> _pos;
@@ -62,7 +64,7 @@ class ObjLoader
     void loadMaterialLibrary(const char *path);
     void loadLine(const char *line);
 
-    std::shared_ptr<Texture> fetchBitmap(const std::string &path, bool isScalar);
+    std::shared_ptr<Texture> fetchBitmap(const std::string &path, TexelConversion request);
 
     std::shared_ptr<Bsdf> convertObjMaterial(const ObjMaterial &mat);
 

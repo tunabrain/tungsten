@@ -21,6 +21,8 @@
 
 #include "bsdfs/Bsdf.hpp"
 
+#include "ImageIO.hpp"
+
 #include "RendererSettings.hpp"
 #include "TraceableScene.hpp"
 
@@ -34,19 +36,21 @@ class Scene : public JsonSerializable
     std::vector<std::shared_ptr<Primitive>> _primitives;
     std::vector<std::shared_ptr<Medium>> _media;
     std::vector<std::shared_ptr<Bsdf>> _bsdfs;
-    mutable std::map<std::string, std::shared_ptr<BitmapTextureRgb>> _colorMaps;
-    mutable std::map<std::string, std::shared_ptr<BitmapTextureA>> _scalarMaps;
+    mutable std::map<std::string, std::shared_ptr<BitmapTexture>> _colorMaps;
+    mutable std::map<std::string, std::shared_ptr<BitmapTexture>> _scalarMaps;
     std::shared_ptr<Camera> _camera;
     std::shared_ptr<Integrator> _integrator;
 
     RendererSettings _rendererSettings;
+
+    std::shared_ptr<Texture> fetchBitmap(const std::string &path, TexelConversion conversion) const;
 
     std::shared_ptr<Medium>     instantiateMedium    (std::string type, const rapidjson::Value &value) const;
     std::shared_ptr<Bsdf>       instantiateBsdf      (std::string type, const rapidjson::Value &value) const;
     std::shared_ptr<Primitive>  instantiatePrimitive (std::string type, const rapidjson::Value &value) const;
     std::shared_ptr<Camera>     instantiateCamera    (std::string type, const rapidjson::Value &value) const;
     std::shared_ptr<Integrator> instantiateIntegrator(std::string type, const rapidjson::Value &value) const;
-    std::shared_ptr<Texture>    instantiateTexture   (std::string type, const rapidjson::Value &value, bool isScalar) const;
+    std::shared_ptr<Texture>    instantiateTexture   (std::string type, const rapidjson::Value &value, TexelConversion conversion) const;
 
     template<typename Instantiator, typename Element>
     void loadObjectList(const rapidjson::Value &container, Instantiator instantiator, std::vector<std::shared_ptr<Element>> &result);
@@ -79,8 +83,7 @@ public:
 
     std::shared_ptr<Medium> fetchMedium(const rapidjson::Value &v) const;
     std::shared_ptr<Bsdf> fetchBsdf(const rapidjson::Value &v) const;
-    std::shared_ptr<Texture> fetchTexture(const rapidjson::Value &v, bool isScalar) const;
-    std::shared_ptr<Texture> fetchBitmap(const std::string &path, bool isScalar) const;
+    std::shared_ptr<Texture> fetchTexture(const rapidjson::Value &v, TexelConversion conversion) const;
 
     const Primitive *findPrimitive(const std::string &name) const;
 

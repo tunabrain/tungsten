@@ -41,7 +41,7 @@ void RoughCoatBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
 
     const rapidjson::Value::Member *roughness  = v.FindMember("roughness");
     if (roughness)
-        _roughness = scene.fetchTexture(roughness->value, true);
+        _roughness = scene.fetchTexture(roughness->value, TexelConversion::REQUEST_AVERAGE);
 
     _lobes = BsdfLobes(BsdfLobes::GlossyReflectionLobe, _substrate->lobes());
     init();

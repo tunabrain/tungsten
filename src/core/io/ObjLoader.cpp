@@ -235,23 +235,25 @@ void ObjLoader::loadLine(const char *line)
     }
 }
 
-std::shared_ptr<Texture> ObjLoader::fetchBitmap(const std::string &path, bool isScalar)
+std::shared_ptr<Texture> ObjLoader::fetchBitmap(const std::string &path, TexelConversion request)
 {
     if (path.empty())
         return nullptr;
 
+    // TODO: Replace this with a more generic texture cache
+    bool isScalar = (request == TexelConversion::REQUEST_RGB);
     if (isScalar) {
         if (_scalarMaps.count(path))
             return _scalarMaps[path];
 
-        std::shared_ptr<BitmapTextureA> tex(BitmapTextureUtils::loadScalarTexture(path));
+        std::shared_ptr<BitmapTexture> tex(BitmapTexture::loadTexture(path, request));
         _scalarMaps[path] = tex;
         return tex;
     } else {
         if (_colorMaps.count(path))
             return _colorMaps[path];
 
-        std::shared_ptr<BitmapTextureRgb> tex(BitmapTextureUtils::loadColorTexture(path));
+        std::shared_ptr<BitmapTexture> tex(BitmapTexture::loadTexture(path, request));
         _colorMaps[path] = tex;
         return tex;
     }
@@ -296,9 +298,9 @@ std::shared_ptr<Bsdf> ObjLoader::convertObjMaterial(const ObjMaterial &mat)
 //  if (mat.hasBumpMap())
 //      result->setBump(fetchBitmap(mat.bumpMap, true));
     if (mat.hasDiffuseMap())
-        result->setAlbedo(fetchBitmap(mat.diffuseMap, false));
+        result->setAlbedo(fetchBitmap(mat.diffuseMap, TexelConversion::REQUEST_RGB));
     if (mat.hasAlphaMap())
-        result = std::make_shared<TransparencyBsdf>(fetchBitmap(mat.alphaMap, false), result);
+        result = std::make_shared<TransparencyBsdf>(fetchBitmap(mat.alphaMap, TexelConversion::REQUEST_AUTO), result);
 
     result->setName(mat.name);
 

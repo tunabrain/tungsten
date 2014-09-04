@@ -57,7 +57,7 @@ void MixedBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
 
     const rapidjson::Value::Member *ratio  = v.FindMember("ratio");
     if (ratio)
-        _ratio = scene.fetchTexture(ratio->value, true);
+        _ratio = scene.fetchTexture(ratio->value, TexelConversion::REQUEST_AVERAGE);
 }
 
 rapidjson::Value MixedBsdf::toJson(Allocator &allocator) const
