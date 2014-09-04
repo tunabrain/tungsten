@@ -25,6 +25,8 @@ void RoughPlasticBsdf::init()
     _scaledSigmaA = _thickness*_sigmaA;
     _avgTransmittance = std::exp(-2.0f*_scaledSigmaA.avg());
 
+    _distribution = Microfacet::stringToType(_distributionName);
+
     _diffuseFresnel = Fresnel::computeDiffuseFresnel(_ior, 1000000);
 }
 
