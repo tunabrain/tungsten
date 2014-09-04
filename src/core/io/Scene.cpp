@@ -22,7 +22,6 @@
 #include "materials/BladeTexture.hpp"
 #include "materials/DiskTexture.hpp"
 
-#include "volume/HeterogeneousMedium.hpp"
 #include "volume/HomogeneousMedium.hpp"
 #include "volume/AtmosphericMedium.hpp"
 
@@ -81,8 +80,6 @@ std::shared_ptr<Medium> Scene::instantiateMedium(std::string type, const rapidjs
     std::shared_ptr<Medium> result;
     if (type == "homogeneous")
         result = std::make_shared<HomogeneousMedium>();
-    else if (type == "heterogeneous")
-        result = std::make_shared<HeterogeneousMedium>();
     else if (type == "atmosphere")
         result = std::make_shared<AtmosphericMedium>();
     else
