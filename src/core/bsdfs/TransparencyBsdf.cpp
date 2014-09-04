@@ -30,7 +30,7 @@ void TransparencyBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
 
     const rapidjson::Value::Member *opacity = v.FindMember("opacity");
     if (opacity)
-        _opacity = scene.fetchTexture(opacity->value, false);
+        _opacity = scene.fetchTexture(opacity->value, true);
 
     _lobes = BsdfLobes(BsdfLobes::ForwardLobe, _base->lobes());
 }
@@ -54,7 +54,7 @@ bool TransparencyBsdf::sample(SurfaceScatterEvent &event) const
 Vec3f TransparencyBsdf::eval(const SurfaceScatterEvent &event) const
 {
     if (event.requestedLobe.isForward())
-        return (-event.wi == event.wo) ? 1.0f - (*_opacity)[event.info->uv] : Vec3f(0.0f);
+        return (-event.wi == event.wo) ? Vec3f(1.0f - (*_opacity)[event.info->uv].x()) : Vec3f(0.0f);
     else
         return _base->eval(event);
 }
