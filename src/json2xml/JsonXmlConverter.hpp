@@ -13,7 +13,6 @@
 #include "cameras/ThinlensCamera.hpp"
 #include "cameras/PinholeCamera.hpp"
 
-#include "volume/HeterogeneousMedium.hpp"
 #include "volume/HomogeneousMedium.hpp"
 #include "volume/Medium.hpp"
 
@@ -34,6 +33,7 @@
 #include "bsdfs/MixedBsdf.hpp"
 #include "bsdfs/Bsdf.hpp"
 
+#include "io/FileUtils.hpp"
 #include "io/Scene.hpp"
 
 #include "Debug.hpp"
@@ -196,8 +196,7 @@ class SceneXmlWriter
         end();
     }
 
-    template<bool Scalar>
-    void convert(const std::string &name, BitmapTexture<Scalar> *c)
+    void convert(const std::string &name, BitmapTexture *c)
     {
         begin("texture");
         if (!name.empty())
@@ -213,9 +212,7 @@ class SceneXmlWriter
     {
         if (ConstantTexture *a2 = dynamic_cast<ConstantTexture *>(a))
             convert(name, a2);
-        else if (BitmapTexture<true> *a2 = dynamic_cast<BitmapTexture<true> *>(a))
-            convert(name, a2);
-        else if (BitmapTexture<false> *a2 = dynamic_cast<BitmapTexture<false> *>(a))
+        else if (BitmapTexture *a2 = dynamic_cast<BitmapTexture *>(a))
             convert(name, a2);
         else if (CheckerTexture *a2 = dynamic_cast<CheckerTexture *>(a))
             convert(name, a2);
@@ -240,8 +237,6 @@ class SceneXmlWriter
     void convert(Medium *med)
     {
         if (HomogeneousMedium *med2 = dynamic_cast<HomogeneousMedium *>(med))
-            convert(med2);
-        else if (HeterogeneousMedium *med2 = dynamic_cast<HeterogeneousMedium *>(med))
             convert(med2);
         else
             DBG("Unknown medium type!");
@@ -587,7 +582,7 @@ class SceneXmlWriter
             beginPost();
             convertSpectrum("radiance", prim->emission()->average());
             end();
-        } else if (BitmapTextureRgb *tex = dynamic_cast<BitmapTextureRgb *>(prim->emission().get())) {
+        } else if (BitmapTexture *tex = dynamic_cast<BitmapTexture *>(prim->emission().get())) {
             begin("emitter");
             assign("type", "envmap");
             beginPost();
