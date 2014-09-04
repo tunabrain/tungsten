@@ -76,13 +76,6 @@ public:
 
     virtual bool isHomogeneous() const = 0;
 
-//  virtual Vec3f avgSigmaA() const = 0;
-//  virtual Vec3f avgSigmaS() const = 0;
-//  virtual Vec3f minSigmaA() const = 0;
-//  virtual Vec3f minSigmaS() const = 0;
-//  virtual Vec3f maxSigmaA() const = 0;
-//  virtual Vec3f maxSigmaS() const = 0;
-
     virtual void prepareForRender() = 0;
     virtual void cleanupAfterRender() = 0;
 

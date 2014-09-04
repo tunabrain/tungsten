@@ -68,12 +68,6 @@ public:
 
     Vec3f sigmaA() const { return _sigmaA; }
     Vec3f sigmaS() const { return _sigmaS; }
-//  Vec3f avgSigmaA() const override { return _sigmaA; }
-//  Vec3f avgSigmaS() const override { return _sigmaS; }
-//  Vec3f minSigmaA() const override { return _sigmaA; }
-//  Vec3f minSigmaS() const override { return _sigmaS; }
-//  Vec3f maxSigmaA() const override { return _sigmaA; }
-//  Vec3f maxSigmaS() const override { return _sigmaS; }
 
     bool sampleDistance(VolumeScatterEvent &event, MediumState &state) const override
     {
