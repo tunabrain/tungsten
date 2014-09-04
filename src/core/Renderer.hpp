@@ -3,6 +3,7 @@
 
 #include <tbb/concurrent_queue.h>
 #include <tbb/parallel_for.h>
+#include <algorithm>
 #include <thread>
 #include <memory>
 #include <atomic>
