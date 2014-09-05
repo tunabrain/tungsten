@@ -62,16 +62,10 @@ public:
             cosTheta = (1.0f + g*g - sqr((1.0f - g*g)/(1.0f + g*(sample.y()*2.0f - 1.0f))))/(2.0f*g);
             break;
         case Rayleigh: {
-#if 1
             float z = sample.y()*4.0f - 2.0f;
             float invZ = std::sqrt(z*z + 1.0f);
-            cosTheta = std::cbrt(z + invZ) + std::cbrt(z - invZ);
-#else
-            float z = sample.y()*4.0f - 2.0f;
-            float invZ = std::sqrt(z*z + 1.0f);
-            float u = -std::cbrt(z + invZ);
+            float u = std::cbrt(z + invZ);
             cosTheta = u - 1.0f/u;
-#endif
         }}
         float sinTheta = std::sqrt(max(1.0f - cosTheta*cosTheta, 0.0f));
         return Vec3f(
