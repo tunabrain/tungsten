@@ -75,6 +75,12 @@ T lerp(T a, T b, T ratio)
     return a*(T(1) - ratio) + b*ratio;
 }
 
+template<typename ElementType, unsigned Size>
+Vec<ElementType, Size> lerp(const Vec<ElementType, Size> &a, const Vec<ElementType, Size> &b, ElementType ratio)
+{
+    return a*(ElementType(1) - ratio) + b*ratio;
+}
+
 template<typename T>
 T smoothStep(T edge0, T edge1, T x) {
     x = clamp((x - edge0)/(edge1 - edge0), T(0), T(1));
