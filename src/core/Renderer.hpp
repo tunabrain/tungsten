@@ -1,6 +1,7 @@
 #ifndef RENDERER_HPP_
 #define RENDERER_HPP_
 
+#include <functional>
 #include <algorithm>
 #include <thread>
 #include <memory>
@@ -24,82 +25,85 @@
 
 namespace Tungsten {
 
+struct SampleRecord
+{
+    uint32 sampleCount, nextSampleCount, sampleIndex;
+    float adaptiveWeight;
+    float mean, runningVariance;
+
+    SampleRecord()
+    : sampleCount(0), nextSampleCount(0), sampleIndex(0),
+      adaptiveWeight(0.0f),
+      mean(0.0f), runningVariance(0.0f)
+    {
+    }
+
+    inline void addSample(float x)
+    {
+        sampleCount++;
+        float delta = x - mean;
+        mean += delta/sampleCount;
+        runningVariance += delta*(x - mean);
+    }
+
+    inline void addSample(const Vec3f &x)
+    {
+        addSample(x.luminance());
+    }
+
+    inline float variance() const
+    {
+        return runningVariance/(sampleCount - 1);
+    }
+
+    inline float errorEstimate() const
+    {
+        return variance()/(sampleCount*max(sqr(mean), 1e-3f));
+    }
+};
+
+struct ImageTile
+{
+    uint32 x, y, w, h;
+    std::unique_ptr<SampleGenerator> sampler;
+    std::unique_ptr<UniformSampler> supplementalSampler;
+
+    ImageTile(uint32 x_, uint32 y_, uint32 w_, uint32 h_,
+            std::unique_ptr<SampleGenerator> sampler_,
+            std::unique_ptr<UniformSampler> supplementalSampler_)
+    :   x(x_), y(y_), w(w_), h(h_),
+        sampler(std::move(sampler_)),
+        supplementalSampler(std::move(supplementalSampler_))
+    {
+    }
+};
+
 class Renderer
 {
     static constexpr uint32 TileSize = 16;
     static constexpr uint32 VarianceTileSize = 4;
-
-    struct SampleRecord
-    {
-        uint32 sampleCount, nextSampleCount, sampleIndex;
-        float adaptiveWeight;
-        float mean, runningVariance;
-
-        SampleRecord()
-        : sampleCount(0), nextSampleCount(0), sampleIndex(0),
-          adaptiveWeight(0.0f),
-          mean(0.0f), runningVariance(0.0f)
-        {
-        }
-
-        inline void addSample(float x)
-        {
-            sampleCount++;
-            float delta = x - mean;
-            mean += delta/sampleCount;
-            runningVariance += delta*(x - mean);
-        }
-
-        inline void addSample(const Vec3f &x)
-        {
-            addSample(x.luminance());
-        }
-
-        inline float variance() const
-        {
-            return runningVariance/(sampleCount - 1);
-        }
-
-        inline float errorEstimate() const
-        {
-            return variance()/(sampleCount*max(sqr(mean), 1e-3f));
-        }
-    };
-
-    struct ImageTile
-    {
-        uint32 x, y, w, h;
-        std::unique_ptr<SampleGenerator> sampler;
-        std::unique_ptr<UniformSampler> supplementalSampler;
-
-        ImageTile(uint32 x_, uint32 y_, uint32 w_, uint32 h_,
-                std::unique_ptr<SampleGenerator> sampler_,
-                std::unique_ptr<UniformSampler> supplementalSampler_)
-        :   x(x_), y(y_), w(w_), h(h_),
-            sampler(std::move(sampler_)),
-            supplementalSampler(std::move(supplementalSampler_))
-        {
-        }
-    };
+    static constexpr uint32 AdaptiveThreshold = 16;
 
     ThreadPool _threadPool;
-    UniformSampler _sampler;
-    const TraceableScene &_scene;
+
+    std::atomic<bool> _abortRender;
+    std::atomic<int> _inFlightCount;
+
+    std::mutex _completionMutex;
+    std::condition_variable _completionCond;
+    std::function<void()> _completionCallback;
+
     uint32 _w;
     uint32 _h;
     uint32 _varianceW;
     uint32 _varianceH;
-    bool _adaptiveStep;
 
-    volatile bool _abortRender;
-
-    std::atomic<int> _workerCount;
+    UniformSampler _sampler;
+    const TraceableScene &_scene;
     std::vector<std::unique_ptr<Integrator>> _integrators;
+
     std::vector<SampleRecord> _samples;
     std::vector<ImageTile> _tiles;
-
-    std::mutex _finishMutex;
-    std::condition_variable _finishCond;
 
     void diceTiles()
     {
@@ -145,75 +149,78 @@ class Renderer
         }
     }
 
+    float errorPercentile95() const
+    {
+        std::vector<float> errors;
+        errors.reserve(_samples.size());
+
+        for (size_t i = 0; i < _samples.size(); ++i) {
+            _samples[i].adaptiveWeight = _samples[i].errorEstimate();
+            if (_samples[i].adaptiveWeight > 0.0f)
+                errors.push_back(_samples[i].adaptiveWeight);
+        }
+        if (errors.empty())
+            return 0.0f;
+        std::sort(errors.begin(), errors.end());
+
+        return errors[(errors.size()*95)/100];
+    }
+
+    void distributeAdaptiveSamples(int spp)
+    {
+        double totalWeight = 0.0;
+        for (SampleRecord &record : _samples)
+            totalWeight += record.adaptiveWeight;
+
+        int adaptiveBudget = (spp - 1)*_w*_h;
+        int budgetPerTile = adaptiveBudget/(VarianceTileSize*VarianceTileSize);
+        float weightToSampleFactor = double(budgetPerTile)/totalWeight;
+
+        float pixelPdf = 0.0f;
+        for (SampleRecord &record : _samples) {
+            float fractionalSamples = record.adaptiveWeight*weightToSampleFactor;
+            int adaptiveSamples = int(fractionalSamples);
+            pixelPdf += fractionalSamples - float(adaptiveSamples);
+            if (_sampler.next1D() < pixelPdf) {
+                adaptiveSamples++;
+                pixelPdf -= 1.0f;
+            }
+            record.nextSampleCount = adaptiveSamples + 1;
+        }
+    }
+
     bool generateWork(uint32 sppFrom, uint32 sppTo)
     {
         for (SampleRecord &record : _samples)
             record.sampleIndex += record.nextSampleCount;
 
-        if (sppFrom < 16 || !_scene.rendererSettings().useAdaptiveSampling())
-            _adaptiveStep = false;
-        else
-            _adaptiveStep = true;//!_adaptiveStep;
+        int sppCount = sppTo - sppFrom;
+        bool enableAdaptive = _scene.rendererSettings().useAdaptiveSampling();
 
-        int sampleBudget = (sppTo - sppFrom)*_w*_h;
-        int spentSamples = 0;
-        uint32 maxSamples = 0;
-        if (!_adaptiveStep) {
-            for (SampleRecord &record : _samples)
-                record.nextSampleCount = sppTo - sppFrom;
-            spentSamples = sampleBudget;
-            maxSamples = sppTo - sppFrom;
-        } else {
-            std::vector<float> errors;
-            errors.reserve(_samples.size());
-            for (size_t i = 0; i < _samples.size(); ++i) {
-                _samples[i].adaptiveWeight = _samples[i].errorEstimate();
-                if (_samples[i].adaptiveWeight > 0.0f)
-                    errors.push_back(_samples[i].adaptiveWeight);
-            }
-            if (errors.empty())
+        if (enableAdaptive && sppFrom >= AdaptiveThreshold) {
+            float maxError = errorPercentile95();
+            if (maxError == 0.0f)
                 return false;
-            std::sort(errors.begin(), errors.end());
-            float maxError = errors[(errors.size()*95)/100];
+
             for (SampleRecord &record : _samples)
                 record.adaptiveWeight = min(record.adaptiveWeight, maxError);
 
             dilateAdaptiveWeights();
-
-            double sum = 0.0;
+            distributeAdaptiveSamples(sppCount);
+        } else {
             for (SampleRecord &record : _samples)
-                sum += record.adaptiveWeight;
-            if (sum == 0.0f)
-                return false;
-            float sampleFactor = double((sampleBudget - _w*_h)/(VarianceTileSize*VarianceTileSize))/sum;
-            float pixelPdf = 0.0f;
-            for (SampleRecord &record : _samples) {
-                float fractionalSamples = record.adaptiveWeight*sampleFactor;
-                int adaptiveSamples = int(fractionalSamples);
-                pixelPdf += fractionalSamples - float(adaptiveSamples);
-                if (_sampler.next1D() < pixelPdf) {
-                    adaptiveSamples++;
-                    pixelPdf -= 1.0f;
-                }
-                record.nextSampleCount = adaptiveSamples + 1;
-                maxSamples = max(maxSamples, record.nextSampleCount);
-                spentSamples += record.nextSampleCount;
-            }
-            spentSamples *= VarianceTileSize*VarianceTileSize;
+                record.nextSampleCount = sppCount;
         }
-//      std::cout << "Spent " << spentSamples << " out of " << sampleBudget
-//                << " (difference: " << sampleBudget - spentSamples << ")" << std::endl;
-//      std::cout << "Most samples spent on a single pixel: " << maxSamples << std::endl;
 
         return true;
     }
 
-    template<typename FinishCallback>
-    void renderTile(uint32 id, FinishCallback finishCallback, ImageTile *tile)
+    void renderTile(uint32 id, uint32 tileId)
     {
-        for (uint32 y = 0; y < tile->h; ++y) {
-            for (uint32 x = 0; x < tile->w; ++x) {
-                Vec2u pixel(tile->x + x, tile->y + y);
+        ImageTile &tile = _tiles[tileId];
+        for (uint32 y = 0; y < tile.h; ++y) {
+            for (uint32 x = 0; x < tile.w; ++x) {
+                Vec2u pixel(tile.x + x, tile.y + y);
                 uint32 pixelIndex = pixel.x() + pixel.y()*_w;
                 uint32 variancePixelIndex = pixel.x()/VarianceTileSize + pixel.y()/VarianceTileSize*_varianceW;
 
@@ -221,22 +228,22 @@ class Renderer
                 int spp = record.nextSampleCount;
                 Vec3f c(0.0f);
                 for (int i = 0; i < spp; ++i) {
-                    tile->sampler->setup(pixelIndex, record.sampleIndex + i);
-                    Vec3f s(_integrators[id]->traceSample(pixel, *tile->sampler, *tile->supplementalSampler));
+                    tile.sampler->setup(pixelIndex, record.sampleIndex + i);
+                    Vec3f s(_integrators[id]->traceSample(pixel, *tile.sampler, *tile.supplementalSampler));
 
                     record.addSample(s);
                     c += s;
                 }
 
-                _scene.cam().addSamples(x + tile->x, y + tile->y, c, spp);
+                _scene.cam().addSamples(x + tile.x, y + tile.y, c, spp);
             }
         }
 
-        if (--_workerCount == 0 && !_abortRender) {
-            finishCallback();
+        if ((--_inFlightCount) == 0 && !_abortRender) {
+            _completionCallback();
 
-            std::unique_lock<std::mutex> lock(_finishMutex);
-            _finishCond.notify_all();
+            std::unique_lock<std::mutex> lock(_completionMutex);
+            _completionCond.notify_all();
         }
     }
 
@@ -263,27 +270,27 @@ public:
         abortRender();
     }
 
-    template<typename FinishCallback>
-    void startRender(FinishCallback finishCallback, uint32 sppFrom, uint32 sppTo)
+    void startRender(std::function<void()> completionCallback, uint32 sppFrom, uint32 sppTo)
     {
-        _workerCount = 0;
+        _completionCallback = std::move(completionCallback);
+        _inFlightCount = 0;
         _abortRender = false;
         if (!generateWork(sppFrom, sppTo)) {
-            finishCallback();
+            completionCallback();
             return;
         }
 
-        _workerCount = _tiles.size();
+        _inFlightCount = _tiles.size();
 
         using namespace std::placeholders;
-        for (ImageTile &tile : _tiles)
-            _threadPool.enqueue(std::bind(&Renderer::renderTile<FinishCallback>, this, _1, finishCallback, &tile));
+        for (uint32 i = 0; i < _tiles.size(); ++i)
+            _threadPool.enqueue(std::bind(&Renderer::renderTile, this, _1, i));
     }
 
     void waitForCompletion()
     {
-        std::unique_lock<std::mutex> lock(_finishMutex);
-        _finishCond.wait(lock, [this]{return _workerCount == 0;});
+        std::unique_lock<std::mutex> lock(_completionMutex);
+        _completionCond.wait(lock, [this]{return _inFlightCount == 0;});
     }
 
     void abortRender()
@@ -294,18 +301,12 @@ public:
 
     void saveVariance(const std::string &path) const
     {
-        std::vector<float> errors(_samples.size());
+        float maxError = max(errorPercentile95(), 1e-5f);
+        std::vector<Vec3c> image(_varianceW*_varianceH);
         for (size_t i = 0; i < _samples.size(); ++i)
-            errors[i] = _samples[i].errorEstimate();
-        std::sort(errors.begin(), errors.end());
-        float maxError = errors[(errors.size()*95)/100];
+            image[i] = Vec3c(min(int(_samples[i].errorEstimate()/maxError*256.0f), 255));
 
-        std::vector<uint8> image(_varianceW*_varianceH*3);
-        for (size_t i = 0; i < _samples.size(); ++i)
-            image[i*3] = image[i*3 + 1] = image[i*3 + 2] =
-                min(int(_samples[i].errorEstimate()/maxError*256.0f), 255);
-
-        lodepng_encode24_file(path.c_str(), &image[0], _varianceW, _varianceH);
+        lodepng_encode24_file(path.c_str(), &image[0].x(), _varianceW, _varianceH);
     }
 };
 
