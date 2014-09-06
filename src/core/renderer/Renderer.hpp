@@ -1,6 +1,9 @@
 #ifndef RENDERER_HPP_
 #define RENDERER_HPP_
 
+#include "SampleRecord.hpp"
+#include "ImageTile.hpp"
+
 #include "sampling/SampleGenerator.hpp"
 #include "sampling/UniformSampler.hpp"
 
@@ -18,59 +21,6 @@ namespace Tungsten {
 
 class TraceableScene;
 class Integrator;
-
-struct SampleRecord
-{
-    uint32 sampleCount, nextSampleCount, sampleIndex;
-    float adaptiveWeight;
-    float mean, runningVariance;
-
-    SampleRecord()
-    : sampleCount(0), nextSampleCount(0), sampleIndex(0),
-      adaptiveWeight(0.0f),
-      mean(0.0f), runningVariance(0.0f)
-    {
-    }
-
-    inline void addSample(float x)
-    {
-        sampleCount++;
-        float delta = x - mean;
-        mean += delta/sampleCount;
-        runningVariance += delta*(x - mean);
-    }
-
-    inline void addSample(const Vec3f &x)
-    {
-        addSample(x.luminance());
-    }
-
-    inline float variance() const
-    {
-        return runningVariance/(sampleCount - 1);
-    }
-
-    inline float errorEstimate() const
-    {
-        return variance()/(sampleCount*max(mean*mean, 1e-3f));
-    }
-};
-
-struct ImageTile
-{
-    uint32 x, y, w, h;
-    std::unique_ptr<SampleGenerator> sampler;
-    std::unique_ptr<UniformSampler> supplementalSampler;
-
-    ImageTile(uint32 x_, uint32 y_, uint32 w_, uint32 h_,
-            std::unique_ptr<SampleGenerator> sampler_,
-            std::unique_ptr<UniformSampler> supplementalSampler_)
-    :   x(x_), y(y_), w(w_), h(h_),
-        sampler(std::move(sampler_)),
-        supplementalSampler(std::move(supplementalSampler_))
-    {
-    }
-};
 
 class Renderer
 {
