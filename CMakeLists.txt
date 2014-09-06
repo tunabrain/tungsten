@@ -45,7 +45,7 @@ add_library(extern STATIC
 
 set(CXX_WARNINGS "-Wall -Wextra -Wpointer-arith -Wcast-align -fstrict-aliasing -Wno-unused-local-typedefs")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_WARNINGS} -fvisibility-inlines-hidden")
-set(core_libs core extern embree tbb)
+set(core_libs core extern embree)
 
 include_directories(src/core src/extern src/extern/embree src)
 

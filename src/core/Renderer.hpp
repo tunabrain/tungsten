@@ -1,8 +1,6 @@
 #ifndef RENDERER_HPP_
 #define RENDERER_HPP_
 
-#include <tbb/concurrent_queue.h>
-#include <tbb/parallel_for.h>
 #include <algorithm>
 #include <thread>
 #include <memory>
@@ -19,6 +17,7 @@
 #include "math/MathUtil.hpp"
 
 #include "TraceableScene.hpp"
+#include "ThreadPool.hpp"
 #include "IntTypes.hpp"
 
 #include "extern/lodepng/lodepng.h"
@@ -83,9 +82,9 @@ class Renderer
         }
     };
 
+    ThreadPool _threadPool;
     UniformSampler _sampler;
     const TraceableScene &_scene;
-    uint32 _threadCount;
     uint32 _w;
     uint32 _h;
     uint32 _varianceW;
@@ -95,11 +94,12 @@ class Renderer
     volatile bool _abortRender;
 
     std::atomic<int> _workerCount;
-    std::vector<std::thread> _workerThreads;
     std::vector<std::unique_ptr<Integrator>> _integrators;
     std::vector<SampleRecord> _samples;
     std::vector<ImageTile> _tiles;
-    tbb::concurrent_queue<ImageTile *> _tileQueue;
+
+    std::mutex _finishMutex;
+    std::condition_variable _finishCond;
 
     void diceTiles()
     {
@@ -205,53 +205,46 @@ class Renderer
 //                << " (difference: " << sampleBudget - spentSamples << ")" << std::endl;
 //      std::cout << "Most samples spent on a single pixel: " << maxSamples << std::endl;
 
-        for (ImageTile &tile : _tiles)
-            _tileQueue.push(&tile);
-
         return true;
     }
 
     template<typename FinishCallback>
-    void renderTiles(FinishCallback finishCallback, Integrator &integrator)
+    void renderTile(uint32 id, FinishCallback finishCallback, ImageTile *tile)
     {
-        Camera &cam = _scene.cam();
+        for (uint32 y = 0; y < tile->h; ++y) {
+            for (uint32 x = 0; x < tile->w; ++x) {
+                Vec2u pixel(tile->x + x, tile->y + y);
+                uint32 pixelIndex = pixel.x() + pixel.y()*_w;
+                uint32 variancePixelIndex = pixel.x()/VarianceTileSize + pixel.y()/VarianceTileSize*_varianceW;
 
-        _workerCount++;
+                SampleRecord &record = _samples[variancePixelIndex];
+                int spp = record.nextSampleCount;
+                Vec3f c(0.0f);
+                for (int i = 0; i < spp; ++i) {
+                    tile->sampler->setup(pixelIndex, record.sampleIndex + i);
+                    Vec3f s(_integrators[id]->traceSample(pixel, *tile->sampler, *tile->supplementalSampler));
 
-        ImageTile *tile;
-        std::vector<float> sampleDist(TileSize*TileSize);
-        while (_tileQueue.try_pop(tile) && !_abortRender) {
-            for (uint32 y = 0; y < tile->h; ++y) {
-                for (uint32 x = 0; x < tile->w; ++x) {
-                    Vec2u pixel(tile->x + x, tile->y + y);
-                    uint32 pixelIndex = pixel.x() + pixel.y()*_w;
-                    uint32 variancePixelIndex = pixel.x()/VarianceTileSize + pixel.y()/VarianceTileSize*_varianceW;
-
-                    SampleRecord &record = _samples[variancePixelIndex];
-                    int spp = record.nextSampleCount;
-                    Vec3f c(0.0f);
-                    for (int i = 0; i < spp; ++i) {
-                        tile->sampler->setup(pixelIndex, record.sampleIndex + i);
-                        Vec3f s(integrator.traceSample(pixel, *tile->sampler, *tile->supplementalSampler));
-
-                        record.addSample(s);
-                        c += s;
-                    }
-
-                    cam.addSamples(x + tile->x, y + tile->y, c, spp);
+                    record.addSample(s);
+                    c += s;
                 }
+
+                _scene.cam().addSamples(x + tile->x, y + tile->y, c, spp);
             }
         }
 
-        if (--_workerCount == 0 && !_abortRender)
+        if (--_workerCount == 0 && !_abortRender) {
             finishCallback();
+
+            std::unique_lock<std::mutex> lock(_finishMutex);
+            _finishCond.notify_all();
+        }
     }
 
 public:
     Renderer(const TraceableScene &scene, uint32 threadCount)
-    : _sampler(0xBA5EBA11),
+    : _threadPool(threadCount),
+      _sampler(0xBA5EBA11),
       _scene(scene),
-      _threadCount(threadCount),
       _abortRender(false)
     {
         for (uint32 i = 0; i < threadCount; ++i)
@@ -261,7 +254,6 @@ public:
         _h = scene.cam().resolution().y();
         _varianceW = (_w + VarianceTileSize - 1)/VarianceTileSize;
         _varianceH = (_h + VarianceTileSize - 1)/VarianceTileSize;
-        _adaptiveStep = false;
         diceTiles();
         _samples.resize(_varianceW*_varianceH);
     }
@@ -281,24 +273,23 @@ public:
             return;
         }
 
-        for (uint32 i = 0; i < _threadCount; ++i)
-            _workerThreads.emplace_back(&Renderer::renderTiles<FinishCallback>, this,
-                    finishCallback, std::ref(*_integrators[i]));
+        _workerCount = _tiles.size();
+
+        using namespace std::placeholders;
+        for (ImageTile &tile : _tiles)
+            _threadPool.enqueue(std::bind(&Renderer::renderTile<FinishCallback>, this, _1, finishCallback, &tile));
     }
 
     void waitForCompletion()
     {
-        for (std::thread &t : _workerThreads)
-            t.join();
-        _workerThreads.clear();
+        std::unique_lock<std::mutex> lock(_finishMutex);
+        _finishCond.wait(lock, [this]{return _workerCount == 0;});
     }
 
     void abortRender()
     {
         _abortRender = true;
-        ImageTile *tile;
-        while (_tileQueue.try_pop(tile));
-        waitForCompletion();
+        _threadPool.reset();
     }
 
     void saveVariance(const std::string &path) const
