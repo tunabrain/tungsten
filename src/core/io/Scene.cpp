@@ -208,7 +208,7 @@ void Scene::loadObjectList(const rapidjson::Value &container, Instantiator insta
         if (container[i].IsObject())
             result.push_back(instantiator(JsonUtils::as<std::string>(container[i], "type"), container[i]));
         else
-            LOG("Scene", WARN, "Don't know what to do with non-object");
+            DBG("Don't know what to do with non-object in object list");
     }
 }
 
@@ -375,9 +375,9 @@ void Scene::fromJson(const rapidjson::Value &v, const Scene &scene)
     const rapidjson::Value::Member *integrator = v.FindMember("integrator");
     const rapidjson::Value::Member *renderer   = v.FindMember("renderer");
 
-    SOFT_ASSERT(primitives != nullptr, "Scene file must contain 'primitives' array");
-    SOFT_ASSERT(bsdfs      != nullptr, "Scene file must contain 'bsdfs' array");
-    SOFT_ASSERT(camera     != nullptr && camera->value.IsObject(), "Scene file must contain 'camera' object");
+    ASSERT(primitives != nullptr, "Scene file must contain 'primitives' array");
+    ASSERT(bsdfs      != nullptr, "Scene file must contain 'bsdfs' array");
+    ASSERT(camera     != nullptr && camera->value.IsObject(), "Scene file must contain 'camera' object");
 
     if (media)
         loadObjectList( media->value, std::bind(&Scene::instantiateMedium,    this, _1, _2), _media);
@@ -470,7 +470,7 @@ Scene *Scene::load(const std::string &path)
     rapidjson::Document document;
     document.Parse<0>(json.c_str());
     if (document.HasParseError()) {
-        LOG("Scene::load", WARN, "JSON parse error: %s", document.GetParseError());
+        DBG("JSON parse error: %s", document.GetParseError());
         return nullptr;
     }
 

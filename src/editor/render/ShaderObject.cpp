@@ -136,7 +136,7 @@ void ShaderObject::check()
         GLchar *src = (GLchar *)malloc(src_length*sizeof(GLchar));
         glGetShaderSource(obj, src_length, NULL, src);
 
-        LOG("shader", WARN, "---------------------------\n");
+        DBG("---------------------------\n");
         int line = 1;
         GLchar *src2 = src;
         for (int i = 0; i < src_length; i++, src2++) {
@@ -144,17 +144,17 @@ void ShaderObject::check()
                 memcpy(tmp, src, src2 - src);
                 tmp[src2 - src] = '\0';
 
-                LOG("shader", WARN, "%4d | %s\n", line, tmp);
+                DBG("%4d | %s\n", line, tmp);
                 src = src2 + 1;
                 line++;
             }
         }
-        LOG("shader", WARN, "%4d | %s\n", line, src);
-        LOG("shader", WARN, "---------------------------\n");
-        LOG("shader", WARN, "%s\n", log);
+        DBG("%4d | %s\n", line, src);
+        DBG("---------------------------\n");
+        DBG("%s\n", log);
         FAIL("Unable to compile shader\n");
     } else if (length > 1) {
-        LOG("shader", WARN, "%s\n", log);
+        DBG("Shader info log: %s\n", log);
     }
 }
 

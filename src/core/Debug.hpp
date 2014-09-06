@@ -7,22 +7,15 @@
 
 namespace Tungsten {
 
-#define DEBUG_LEVEL DEBUG
-#undef NDEBUG
-
-enum DebugLevel {
-    WARN,
-    INFO,
-    DEBUG
-};
-
-class DebugUtils
+namespace DebugUtils
 {
-public:
-    static void debugLog(const char *module, DebugLevel level, const char *format, ...);
-    static void debug(const std::string &message);
-};
-#ifndef NDEBUG
+
+void debugLog(const std::string &message);
+
+}
+
+// Can be enabled for a little bit more speed, but generally not recommended
+#ifdef NO_DEBUG_MACROS
 #define DEBUG_BEGIN
 #define DEBUG_END
 #else
@@ -31,9 +24,7 @@ public:
 #endif
 
 # define FAIL(...) throw std::runtime_error(tfm::format("PROGRAM FAILURE in %s:%d: " FIRST(__VA_ARGS__), __FILE__, __LINE__ REST(__VA_ARGS__)))
-# define SOFT_FAIL(...) FAIL(__VA_ARGS__)
-# define LOG(MODULE, LEVEL, ...) do { DEBUG_BEGIN if (LEVEL <= DEBUG_LEVEL) DebugUtils::debugLog(MODULE, LEVEL, __VA_ARGS__); DEBUG_END } while(false)
-# define DBG(...) do { DEBUG_BEGIN DebugUtils::debug(tfm::format("%s:%d: " FIRST(__VA_ARGS__), __FILE__, __LINE__ REST(__VA_ARGS__))); DEBUG_END } while(false)
+# define DBG(...) do { DEBUG_BEGIN DebugUtils::debugLog(tfm::format("%s:%d: " FIRST(__VA_ARGS__), __FILE__, __LINE__ REST(__VA_ARGS__))); DEBUG_END } while(false)
 # define ASSERT(EXP, ...) do { \
     DEBUG_BEGIN \
     if (!bool(EXP)) \
@@ -41,7 +32,6 @@ public:
     DEBUG_END \
     } while(false);
 
-# define SOFT_ASSERT(EXP, ...) ASSERT(EXP, __VA_ARGS__)
 
 /* See http://stackoverflow.com/questions/5588855/standard-alternative-to-gccs-va-args-trick */
 /* expands to the first argument */

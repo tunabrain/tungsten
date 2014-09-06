@@ -19,7 +19,7 @@ public:
     static inline const rapidjson::Value &fetchMember(const rapidjson::Value &v, const char *name)
     {
         const rapidjson::Value::Member *member = v.FindMember(name);
-        SOFT_ASSERT(member, "Json value is missing mandatory member '%s'", name);
+        ASSERT(member, "Json value is missing mandatory member '%s'", name);
         return member->value;
     }
 
@@ -31,7 +31,7 @@ public:
     {
         T result;
         if (!fromJson(v, result)) {
-            SOFT_FAIL("Conversion from JSON datatype failed");
+            FAIL("Conversion from JSON datatype failed");
             return T();
         }
         return result;
@@ -48,7 +48,7 @@ public:
     {
         if (!v.IsArray())
             return false;
-        SOFT_ASSERT(v.Size() == 1 || v.Size() == Size,
+        ASSERT(v.Size() == 1 || v.Size() == Size,
             "Cannot convert Json Array to vector: Invalid size. Expected 1 or %d, received %d", Size, v.Size());
 
         if (v.Size() == 1)

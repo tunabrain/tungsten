@@ -80,7 +80,7 @@ bool JsonUtils::fromJson<Mat4f>(const rapidjson::Value &v, Mat4f &dst)
 {
     if (!v.IsArray())
         return false;
-    SOFT_ASSERT(v.Size() == 16, "Cannot convert Json Array to 4x4 Matrix: Invalid size");
+    ASSERT(v.Size() == 16, "Cannot convert Json Array to 4x4 Matrix: Invalid size");
 
     for (unsigned i = 0; i < 16; ++i)
         dst[i] = as<float>(v[i]);

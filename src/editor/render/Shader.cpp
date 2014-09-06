@@ -181,7 +181,7 @@ void Shader::check()
         log = (GLchar *)malloc(length*sizeof(GLchar));
         glGetProgramInfoLog(obj, length, NULL, log);
 
-        LOG("shader", WARN, "%s\n", log);
+        DBG("Shader program log: %s\n", log);
     }
 }
 
