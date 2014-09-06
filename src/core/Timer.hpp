@@ -25,7 +25,9 @@ class Timer
 public:
     Timer()
     {
+#if _WIN32
         QueryPerformanceFrequency(&_pfFrequency);
+#endif
         start();
     }
 
