@@ -36,6 +36,7 @@ endif()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SIMD_FLAGS}")
 
 add_subdirectory(src/extern/embree)
+add_definitions(-DLODEPNG_NO_COMPILE_DECODER=1)
 add_library(extern STATIC
 		src/extern/lodepng/lodepng.cpp
 		src/extern/sobol/sobol.cpp
