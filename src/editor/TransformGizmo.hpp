@@ -1,10 +1,3 @@
-/*
- * TransformGizmo.hpp
- *
- *  Created on: Jan 20, 2014
- *      Author: Tuna brain
- */
-
 #ifndef TRANSFORMGIZMO_HPP_
 #define TRANSFORMGIZMO_HPP_
 
