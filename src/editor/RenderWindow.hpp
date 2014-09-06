@@ -5,8 +5,8 @@
 #include <QPixmap>
 #include <memory>
 
-#include "TraceableScene.hpp"
-#include "Renderer.hpp"
+#include "renderer/TraceableScene.hpp"
+#include "renderer/Renderer.hpp"
 
 class QStatusBar;
 class QLabel;

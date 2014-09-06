@@ -15,9 +15,9 @@ namespace Tungsten {
 
 Renderer::Renderer(const TraceableScene &scene, uint32 threadCount)
 : _threadPool(threadCount),
+  _abortRender(false),
   _sampler(0xBA5EBA11),
-  _scene(scene),
-  _abortRender(false)
+  _scene(scene)
 {
     for (uint32 i = 0; i < threadCount; ++i)
         _integrators.emplace_back(scene.cloneThreadSafeIntegrator(i));
@@ -53,7 +53,7 @@ void Renderer::diceTiles()
     }
 }
 
-float Renderer::errorPercentile95() const
+float Renderer::errorPercentile95()
 {
     std::vector<float> errors;
     errors.reserve(_samples.size());
@@ -206,7 +206,7 @@ void Renderer::abortRender()
     _threadPool.reset();
 }
 
-void Renderer::saveVariance(const std::string &path) const
+void Renderer::saveVariance(const std::string &path)
 {
     float maxError = max(errorPercentile95(), 1e-5f);
     std::vector<Vec3c> image(_varianceW*_varianceH);

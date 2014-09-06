@@ -15,6 +15,9 @@
 
 #include "materials/BitmapTexture.hpp"
 
+#include "renderer/RendererSettings.hpp"
+#include "renderer/TraceableScene.hpp"
+
 #include "cameras/Camera.hpp"
 
 #include "volume/Medium.hpp"
@@ -22,9 +25,6 @@
 #include "bsdfs/Bsdf.hpp"
 
 #include "ImageIO.hpp"
-
-#include "RendererSettings.hpp"
-#include "TraceableScene.hpp"
 
 namespace Tungsten {
 

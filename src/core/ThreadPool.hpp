@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <atomic>
 #include <memory>
+#include <thread>
 #include <vector>
 #include <deque>
 #include <mutex>

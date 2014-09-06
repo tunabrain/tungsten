@@ -11,6 +11,8 @@
 #include "sampling/UniformSampler.hpp"
 #include "sampling/SampleWarp.hpp"
 
+#include "renderer/TraceableScene.hpp"
+
 #include "cameras/Camera.hpp"
 
 #include "volume/Medium.hpp"
@@ -20,8 +22,6 @@
 #include "math/Angle.hpp"
 
 #include "bsdfs/Bsdf.hpp"
-
-#include "TraceableScene.hpp"
 
 #include <vector>
 #include <memory>

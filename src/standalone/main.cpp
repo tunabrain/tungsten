@@ -1,12 +1,12 @@
 #include "Timer.hpp"
 
+#include "renderer/TraceableScene.hpp"
+#include "renderer/Renderer.hpp"
+
 #include "cameras/Camera.hpp"
 
 #include "io/FileUtils.hpp"
 #include "io/Scene.hpp"
-
-#include "TraceableScene.hpp"
-#include "Renderer.hpp"
 
 #include "extern/tinyformat/tinyformat.hpp"
 #include "extern/embree/include/embree.h"

@@ -16,6 +16,7 @@
 
 namespace Tungsten {
 
+class TraceableScene;
 class Integrator;
 
 struct SampleRecord
@@ -100,7 +101,7 @@ class Renderer
 
     void diceTiles();
 
-    float errorPercentile95() const;
+    float errorPercentile95();
     void dilateAdaptiveWeights();
     void distributeAdaptiveSamples(int spp);
     bool generateWork(uint32 sppFrom, uint32 sppTo);
@@ -115,7 +116,7 @@ public:
     void waitForCompletion();
     void abortRender();
 
-    void saveVariance(const std::string &path) const;
+    void saveVariance(const std::string &path);
 };
 
 }
