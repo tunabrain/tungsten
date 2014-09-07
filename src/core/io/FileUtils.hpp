@@ -34,7 +34,7 @@ std::string getCurrentDir();
 bool fileExists(const std::string &path);
 bool createDirectory(const std::string &path, bool recursive = true);
 
-std::string loadText(const char *path);
+std::string loadText(const std::string &path);
 
 bool copyFile(const std::string &src, const std::string &dst, bool createDstDir);
 

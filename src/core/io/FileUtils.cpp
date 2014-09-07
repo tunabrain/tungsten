@@ -320,7 +320,7 @@ bool createDirectory(const std::string &path, bool recursive)
     }
 }
 
-std::string loadText(const char *path)
+std::string loadText(const std::string &path)
 {
     std::ifstream in(path, std::ios_base::in | std::ios_base::binary);
 
