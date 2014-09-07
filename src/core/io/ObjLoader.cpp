@@ -235,30 +235,6 @@ void ObjLoader::loadLine(const char *line)
     }
 }
 
-std::shared_ptr<Texture> ObjLoader::fetchBitmap(const std::string &path, TexelConversion request)
-{
-    if (path.empty())
-        return nullptr;
-
-    // TODO: Replace this with a more generic texture cache
-    bool isScalar = (request == TexelConversion::REQUEST_RGB);
-    if (isScalar) {
-        if (_scalarMaps.count(path))
-            return _scalarMaps[path];
-
-        std::shared_ptr<BitmapTexture> tex(BitmapTexture::loadTexture(path, request));
-        _scalarMaps[path] = tex;
-        return tex;
-    } else {
-        if (_colorMaps.count(path))
-            return _colorMaps[path];
-
-        std::shared_ptr<BitmapTexture> tex(BitmapTexture::loadTexture(path, request));
-        _colorMaps[path] = tex;
-        return tex;
-    }
-}
-
 std::shared_ptr<Bsdf> ObjLoader::convertObjMaterial(const ObjMaterial &mat)
 {
     std::shared_ptr<Bsdf> result = nullptr;
@@ -297,10 +273,16 @@ std::shared_ptr<Bsdf> ObjLoader::convertObjMaterial(const ObjMaterial &mat)
     // the primitive when the bsdf is applied
 //  if (mat.hasBumpMap())
 //      result->setBump(fetchBitmap(mat.bumpMap, true));
-    if (mat.hasDiffuseMap())
-        result->setAlbedo(fetchBitmap(mat.diffuseMap, TexelConversion::REQUEST_RGB));
-    if (mat.hasAlphaMap())
-        result = std::make_shared<TransparencyBsdf>(fetchBitmap(mat.alphaMap, TexelConversion::REQUEST_AUTO), result);
+    if (mat.hasDiffuseMap()) {
+        auto texture = _textureCache->fetchTexture(mat.diffuseMap, TexelConversion::REQUEST_RGB);
+        if (texture)
+            result->setAlbedo(texture);
+    }
+    if (mat.hasAlphaMap()) {
+        auto texture = _textureCache->fetchTexture(mat.alphaMap, TexelConversion::REQUEST_AUTO);
+        if (texture)
+            result = std::make_shared<TransparencyBsdf>(texture, result);
+    }
 
     result->setName(mat.name);
 
@@ -377,8 +359,9 @@ std::shared_ptr<Primitive> ObjLoader::finalizeMesh()
     return prim;
 }
 
-ObjLoader::ObjLoader(std::ifstream &in, const char *path)
+ObjLoader::ObjLoader(std::ifstream &in, const char *path, std::shared_ptr<TextureCache> cache)
 : _errorMaterial(std::make_shared<ErrorBsdf>()),
+  _textureCache(std::move(cache)),
   _currentMaterial(-1),
   _meshSmoothed(false)
 {
@@ -405,12 +388,15 @@ ObjLoader::ObjLoader(std::ifstream &in, const char *path)
     FileUtils::changeCurrentDir(previousDir);
 }
 
-Scene *ObjLoader::load(const char *path)
+Scene *ObjLoader::load(const char *path, std::shared_ptr<TextureCache> cache)
 {
     std::ifstream file(path, std::ios::in | std::ios::binary);
 
     if (file.good()) {
-        ObjLoader loader(file, path);
+        if (!cache)
+            cache = std::make_shared<TextureCache>();
+
+        ObjLoader loader(file, path, cache);
 
         std::shared_ptr<Camera> cam(std::make_shared<PinholeCamera>());
         cam->setLookAt(loader._bounds.center());
@@ -420,6 +406,7 @@ Scene *ObjLoader::load(const char *path)
             FileUtils::extractParent(path),
             std::move(loader._meshes),
             std::vector<std::shared_ptr<Bsdf>>(),
+            std::move(cache),
             cam
         );
     } else {

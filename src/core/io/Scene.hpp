@@ -8,6 +8,8 @@
 #include <map>
 
 #include "JsonSerializable.hpp"
+#include "TextureCache.hpp"
+#include "ImageIO.hpp"
 
 #include "integrators/Integrator.hpp"
 
@@ -24,7 +26,6 @@
 
 #include "bsdfs/Bsdf.hpp"
 
-#include "ImageIO.hpp"
 
 namespace Tungsten {
 
@@ -36,14 +37,11 @@ class Scene : public JsonSerializable
     std::vector<std::shared_ptr<Primitive>> _primitives;
     std::vector<std::shared_ptr<Medium>> _media;
     std::vector<std::shared_ptr<Bsdf>> _bsdfs;
-    mutable std::map<std::string, std::shared_ptr<BitmapTexture>> _colorMaps;
-    mutable std::map<std::string, std::shared_ptr<BitmapTexture>> _scalarMaps;
+    std::shared_ptr<TextureCache> _textureCache;
     std::shared_ptr<Camera> _camera;
     std::shared_ptr<Integrator> _integrator;
 
     RendererSettings _rendererSettings;
-
-    std::shared_ptr<Texture> fetchBitmap(const std::string &path, TexelConversion conversion) const;
 
     std::shared_ptr<Medium>     instantiateMedium    (std::string type, const rapidjson::Value &value) const;
     std::shared_ptr<Bsdf>       instantiateBsdf      (std::string type, const rapidjson::Value &value) const;
@@ -64,17 +62,15 @@ class Scene : public JsonSerializable
     template<typename T>
     bool addUnique(const std::shared_ptr<T> &o, std::vector<std::shared_ptr<T>> &list);
 
-    template<typename T1, typename T2>
-    void addTexture(std::shared_ptr<T1> &t, std::map<std::string, std::shared_ptr<T2>> &maps);
-
 public:
     Scene();
 
-    Scene(const std::string &srcDir);
+    Scene(const std::string &srcDir, std::shared_ptr<TextureCache> cache);
 
     Scene(const std::string &srcDir,
           std::vector<std::shared_ptr<Primitive>> primitives,
           std::vector<std::shared_ptr<Bsdf>> bsdfs,
+          std::shared_ptr<TextureCache> cache,
           std::shared_ptr<Camera> camera);
 
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene);
@@ -121,6 +117,11 @@ public:
         return _camera;
     }
 
+    const std::shared_ptr<TextureCache> textureCache() const
+    {
+        return _textureCache;
+    }
+
     const std::shared_ptr<Camera> camera() const
     {
         return _camera;
@@ -141,7 +142,7 @@ public:
         return _rendererSettings;
     }
 
-    static Scene *load(const std::string &path);
+    static Scene *load(const std::string &path, std::shared_ptr<TextureCache> cache = nullptr);
     static void save(const std::string &path, const Scene &scene, bool includeData);
 };
 

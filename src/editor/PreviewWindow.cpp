@@ -429,9 +429,9 @@ void PreviewWindow::addModel()
 
         Scene *scene = nullptr;
         if (ext == "obj")
-            scene = ObjLoader::load(p.c_str());
+            scene = ObjLoader::load(p.c_str(), _scene->textureCache());
         else if (ext == "json")
-            scene = Scene::load(p);
+            scene = Scene::load(p, _scene->textureCache());
         if (!scene)
             return;
 

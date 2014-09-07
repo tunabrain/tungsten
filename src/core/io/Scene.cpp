@@ -51,30 +51,6 @@
 
 namespace Tungsten {
 
-
-std::shared_ptr<Texture> Scene::fetchBitmap(const std::string &path, TexelConversion conversion) const
-{
-    // TODO: Replace this with a more generic texture cache
-    bool isScalar = (conversion == TexelConversion::REQUEST_RGB);
-    if (isScalar) {
-        if (_scalarMaps.count(path))
-            return _scalarMaps[path];
-
-        std::shared_ptr<BitmapTexture> tex(BitmapTexture::loadTexture(path, conversion));
-        _scalarMaps[path] = tex;
-
-        return tex;
-    } else {
-        if (_colorMaps.count(path))
-            return _colorMaps[path];
-
-        std::shared_ptr<BitmapTexture> tex(BitmapTexture::loadTexture(path, conversion));
-        _colorMaps[path] = tex;
-
-        return tex;
-    }
-}
-
 std::shared_ptr<Medium> Scene::instantiateMedium(std::string type, const rapidjson::Value &value) const
 {
     std::shared_ptr<Medium> result;
@@ -185,7 +161,7 @@ std::shared_ptr<Texture> Scene::instantiateTexture(std::string type, const rapid
 {
     std::shared_ptr<Texture> result;
     if (type == "bitmap")
-        return fetchBitmap(JsonUtils::as<std::string>(value, "path"), conversion);
+        return _textureCache->fetchTexture(JsonUtils::as<std::string>(value, "path"), conversion);
     else if (type == "constant")
         result = std::make_shared<ConstantTexture>();
     else if (type == "checker")
@@ -254,7 +230,7 @@ std::shared_ptr<Texture> Scene::fetchTexture(const rapidjson::Value &v, TexelCon
     // unless the user expects e.g. a ConstantTexture with Vec3 argument to select the green
     // channel when used in a TransparencyBsdf.
     if (v.IsString())
-        return fetchBitmap(v.GetString(), conversion);
+        return _textureCache->fetchTexture(v.GetString(), conversion);
     else if (v.IsNumber())
         return std::make_shared<ConstantTexture>(JsonUtils::as<float>(v));
     else if (v.IsArray())
@@ -304,33 +280,10 @@ bool Scene::addUnique(const std::shared_ptr<T> &o, std::vector<std::shared_ptr<T
     return true;
 }
 
-template<typename T1, typename T2>
-void Scene::addTexture(std::shared_ptr<T1> &t, std::map<std::string, std::shared_ptr<T2>> &maps)
-{
-    std::shared_ptr<T2> downCast = std::dynamic_pointer_cast<T2>(t);
-    if (!downCast)
-        return;
-    if (maps.count(downCast->path())) {
-        if (maps[downCast->path()]->fullPath() == downCast->fullPath()) {
-            t = maps[downCast->path()];
-        } else {
-            int i = 1;
-            std::string newPath = downCast->path();
-            while (maps.count(newPath))
-                newPath = tfm::format("%s%d.%s", FileUtils::stripExt(downCast->path()), i++, FileUtils::extractExt(downCast->path()));
-            downCast->setPath(newPath);
-        }
-    }
-
-    maps.insert(std::make_pair(downCast->path(), downCast));
-}
-
 void Scene::addPrimitive(const std::shared_ptr<Primitive> &mesh)
 {
-    if (addUnique(mesh, _primitives)) {
+    if (addUnique(mesh, _primitives))
         addBsdf(mesh->bsdf());
-        addTexture(mesh->bump(), _scalarMaps);
-    }
 }
 
 void Scene::addBsdf(const std::shared_ptr<Bsdf> &bsdf)
@@ -340,8 +293,6 @@ void Scene::addBsdf(const std::shared_ptr<Bsdf> &bsdf)
             addUnique(bsdf->intMedium(), _media);
         if (bsdf->extMedium())
             addUnique(bsdf->extMedium(), _media);
-        // TODO: This doesn't nearly capture all textures. Need to rethink this.
-        addTexture(bsdf->albedo(), _colorMaps);
     }
 }
 
@@ -356,8 +307,9 @@ Scene::Scene()
 {
 }
 
-Scene::Scene(const std::string &srcDir)
+Scene::Scene(const std::string &srcDir, std::shared_ptr<TextureCache> cache)
 : _srcDir(srcDir),
+  _textureCache(std::move(cache)),
   _integrator(std::make_shared<PathTraceIntegrator>())
 {
 }
@@ -395,10 +347,12 @@ void Scene::fromJson(const rapidjson::Value &v, const Scene &scene)
 Scene::Scene(const std::string &srcDir,
       std::vector<std::shared_ptr<Primitive>> primitives,
       std::vector<std::shared_ptr<Bsdf>> bsdfs,
+      std::shared_ptr<TextureCache> cache,
       std::shared_ptr<Camera> camera)
 : _srcDir(srcDir),
   _primitives(std::move(primitives)),
   _bsdfs(std::move(bsdfs)),
+  _textureCache(std::move(cache)),
   _camera(camera),
   _integrator(std::make_shared<PathTraceIntegrator>())
 {
@@ -438,9 +392,7 @@ void Scene::saveData(const std::string &dst) const
     for (const std::shared_ptr<Primitive> &m : _primitives)
         m->saveData();
 
-    for (const auto &p : _colorMaps)
-        p.second->saveData();
-    for (const auto &p : _scalarMaps)
+    for (const auto &p : _textureCache->textures())
         p.second->saveData();
 
     FileUtils::changeCurrentDir(previousDir);
@@ -463,7 +415,7 @@ TraceableScene *Scene::makeTraceable()
     return new TraceableScene(*_camera, *_integrator, _primitives, _media, _rendererSettings);
 }
 
-Scene *Scene::load(const std::string &path)
+Scene *Scene::load(const std::string &path, std::shared_ptr<TextureCache> cache)
 {
     std::string json;
     try {
@@ -482,7 +434,10 @@ Scene *Scene::load(const std::string &path)
     std::string previousDir = FileUtils::getCurrentDir();
     FileUtils::changeCurrentDir(FileUtils::extractParent(std::string(path)));
 
-    Scene *scene = new Scene(FileUtils::extractParent(path));
+    if (!cache)
+        cache = std::make_shared<TextureCache>();
+
+    Scene *scene = new Scene(FileUtils::extractParent(path), std::move(cache));
     scene->fromJson(document, *scene);
 
     FileUtils::changeCurrentDir(previousDir);
