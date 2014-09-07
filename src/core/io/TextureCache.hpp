@@ -14,13 +14,25 @@ class BitmapTexture;
 
 class TextureCache
 {
-    std::map<std::pair<std::string, TexelConversion>, std::shared_ptr<BitmapTexture>> _textures;
+    typedef std::pair<std::string, TexelConversion> KeyType;
+
+    std::map<KeyType, std::shared_ptr<BitmapTexture>> _textures;
 public:
     TextureCache() = default;
 
     std::shared_ptr<BitmapTexture> &fetchTexture(const std::string &path, TexelConversion conversion);
 
     void prune();
+
+    const std::map<KeyType, std::shared_ptr<BitmapTexture>> &textures() const
+    {
+        return _textures;
+    }
+
+    std::map<KeyType, std::shared_ptr<BitmapTexture>> &textures()
+    {
+        return _textures;
+    }
 };
 
 }
