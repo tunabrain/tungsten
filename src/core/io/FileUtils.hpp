@@ -9,50 +9,59 @@
 
 namespace Tungsten {
 
-class FileUtils
+// WARNING: Do not assume any functions operating on paths to be thread-safe or re-entrant.
+// The underlying operating system API as well as the implementation here do not make this safe.
+namespace FileUtils {
+
+bool isRootDirectory(const std::string &path);
+bool isRelativePath(const std::string &path);
+
+std::string addSeparator(std::string path);
+std::string stripSeparator(std::string path);
+
+std::string stripExt(std::string path);
+std::string stripParent(std::string path);
+
+std::string extractExt(std::string path);
+std::string extractParent(std::string path);
+std::string extractBase(std::string path);
+
+std::string toAbsolutePath(const std::string &path);
+
+bool changeCurrentDir(const std::string &dir);
+std::string getCurrentDir();
+
+bool fileExists(const std::string &path);
+bool createDirectory(const std::string &path, bool recursive = true);
+
+std::string loadText(const char *path);
+
+bool copyFile(const std::string &src, const std::string &dst, bool createDstDir);
+
+template<typename T>
+inline void streamRead(std::istream &in, T &dst)
 {
-public:
-    static std::string loadText(const char *path);
+    in.read(reinterpret_cast<char *>(&dst), sizeof(T));
+}
 
-    static void changeCurrentDir(const std::string &dir);
-    static std::string getCurrentDir();
+template<typename T>
+inline void streamRead(std::istream &in, std::vector<T> &dst)
+{
+    in.read(reinterpret_cast<char *>(&dst[0]), dst.size()*sizeof(T));
+}
 
-    static bool fileExists(const std::string &path);
-    static bool createDirectory(const std::string &path);
+template<typename T>
+inline void streamWrite(std::ostream &out, const T &src)
+{
+    out.write(reinterpret_cast<const char *>(&src), sizeof(T));
+}
 
-    static bool copyFile(const std::string &src, const std::string &dst, bool createDstDir);
+template<typename T>
+inline void streamWrite(std::ostream &out, const std::vector<T> &src)
+{
+    out.write(reinterpret_cast<const char *>(&src[0]), src.size()*sizeof(T));
+}
 
-    static std::string addSlash(std::string s);
-    static std::string stripSlash(std::string s);
-    static std::string stripExt(std::string s);
-    static std::string extractExt(std::string s);
-    static std::string stripDir(std::string s);
-    static std::string extractDir(std::string s);
-    static std::string extractFile(std::string s);
-
-    template<typename T>
-    static inline void streamRead(std::istream &in, T &dst)
-    {
-        in.read(reinterpret_cast<char *>(&dst), sizeof(T));
-    }
-
-    template<typename T>
-    static inline void streamRead(std::istream &in, std::vector<T> &dst)
-    {
-        in.read(reinterpret_cast<char *>(&dst[0]), dst.size()*sizeof(T));
-    }
-
-    template<typename T>
-    static inline void streamWrite(std::ostream &out, const T &src)
-    {
-        out.write(reinterpret_cast<const char *>(&src), sizeof(T));
-    }
-
-    template<typename T>
-    static inline void streamWrite(std::ostream &out, const std::vector<T> &src)
-    {
-        out.write(reinterpret_cast<const char *>(&src[0]), src.size()*sizeof(T));
-    }
 };
 
 }

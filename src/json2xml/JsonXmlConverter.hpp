@@ -543,7 +543,7 @@ class SceneXmlWriter
             fullObjFile = objFile;
         else {
             fullObjFile = _folder + "/" + objFile;
-            if (!FileUtils::createDirectory(FileUtils::extractDir(fullObjFile)))
+            if (!FileUtils::createDirectory(FileUtils::extractParent(fullObjFile)))
                 DBG("Unable to create target folder for obj at: '%s'", fullObjFile);
         }
         std::ofstream out(fullObjFile, std::ios_base::out | std::ios_base::binary);
@@ -669,7 +669,7 @@ class SceneXmlWriter
 
 public:
     SceneXmlWriter(const std::string &folder, Scene &scene, std::ostream &stream)
-    : _folder(FileUtils::stripSlash(folder)),
+    : _folder(FileUtils::stripSeparator(folder)),
       _stream(stream),
       _scene(scene)
     {

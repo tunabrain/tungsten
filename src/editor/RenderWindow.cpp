@@ -190,7 +190,7 @@ void RenderWindow::finishRender()
         startRender();
     else {
         if (_scene) {
-            std::string dst = FileUtils::addSlash(FileUtils::extractDir(_scene->path())) + _scene->camera()->outputFile();
+            std::string dst = FileUtils::addSeparator(FileUtils::extractParent(_scene->path())) + _scene->camera()->outputFile();
             std::string basename = FileUtils::stripExt(dst);
             std::string extension = FileUtils::extractExt(dst);
             int index = 0;

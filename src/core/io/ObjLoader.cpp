@@ -384,7 +384,7 @@ ObjLoader::ObjLoader(std::ifstream &in, const char *path)
 {
     std::string previousDir = FileUtils::getCurrentDir();
 
-    _folder = FileUtils::extractDir(std::string(path));
+    _folder = FileUtils::extractParent(std::string(path));
     if (!_folder.empty()) {
         FileUtils::changeCurrentDir(_folder);
         _folder.append("/");
@@ -417,7 +417,7 @@ Scene *ObjLoader::load(const char *path)
         cam->setPos(loader._bounds.center() - Vec3f(0.0f, 0.0f, loader._bounds.diagonal().z()));
 
         return new Scene(
-            FileUtils::extractDir(path),
+            FileUtils::extractParent(path),
             std::move(loader._meshes),
             std::vector<std::shared_ptr<Bsdf>>(),
             cam

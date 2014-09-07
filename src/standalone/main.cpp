@@ -19,7 +19,7 @@ std::string incrementalFilename(const std::string &relFile,
                                 const std::string &suffix)
 {
     std::string fileName = FileUtils::stripExt(dstFile) + suffix + "." + FileUtils::extractExt(dstFile);
-    std::string dst = FileUtils::addSlash(FileUtils::extractDir(relFile)) + fileName;
+    std::string dst = FileUtils::addSeparator(FileUtils::extractParent(relFile)) + fileName;
     std::string basename = FileUtils::stripExt(dst);
     std::string extension = FileUtils::extractExt(dst);
     int index = 0;
@@ -49,7 +49,7 @@ void saveFrameAndVariance(Renderer &renderer, Scene &scene, Camera &camera, cons
         }
     }
 
-    FileUtils::createDirectory(FileUtils::extractDir(dst));
+    FileUtils::createDirectory(FileUtils::extractParent(dst));
 
     lodepng_encode24_file(dst.c_str(), ldr.get(), w, h);
     renderer.saveVariance(dstVariance);

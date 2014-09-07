@@ -271,12 +271,12 @@ float BitmapTexture::pdf(const Vec2f &uv) const
 void BitmapTexture::saveData() const
 {
     if (FileUtils::getCurrentDir() != _srcDir)
-        FileUtils::copyFile(FileUtils::addSlash(_srcDir) + _path, _path, true);
+        FileUtils::copyFile(FileUtils::addSeparator(_srcDir) + _path, _path, true);
 }
 
 std::string BitmapTexture::fullPath() const
 {
-    return std::move(FileUtils::addSlash(_srcDir) + _path);
+    return std::move(FileUtils::addSeparator(_srcDir) + _path);
 }
 
 std::shared_ptr<BitmapTexture> BitmapTexture::loadTexture(const std::string &path, TexelConversion conversion)

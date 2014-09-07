@@ -10,7 +10,7 @@ using namespace Tungsten;
 
 bool convert(const std::string &src, const std::string &dst)
 {
-    std::string dstDir(FileUtils::extractDir(dst));
+    std::string dstDir(FileUtils::extractParent(dst));
     if (!dstDir.empty() && !FileUtils::createDirectory(dstDir)) {
         std::cerr << "Unable to create target directory '" << dstDir <<"'\n";
         return false;

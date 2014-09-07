@@ -465,7 +465,12 @@ TraceableScene *Scene::makeTraceable()
 
 Scene *Scene::load(const std::string &path)
 {
-    std::string json = FileUtils::loadText(path.c_str());
+    std::string json;
+    try {
+        json = FileUtils::loadText(path.c_str());
+    } catch (const std::runtime_error &) {
+        return nullptr;
+    }
 
     rapidjson::Document document;
     document.Parse<0>(json.c_str());
@@ -475,9 +480,9 @@ Scene *Scene::load(const std::string &path)
     }
 
     std::string previousDir = FileUtils::getCurrentDir();
-    FileUtils::changeCurrentDir(FileUtils::extractDir(std::string(path)));
+    FileUtils::changeCurrentDir(FileUtils::extractParent(std::string(path)));
 
-    Scene *scene = new Scene(FileUtils::extractDir(path));
+    Scene *scene = new Scene(FileUtils::extractParent(path));
     scene->fromJson(document, *scene);
 
     FileUtils::changeCurrentDir(previousDir);
@@ -503,7 +508,7 @@ void Scene::save(const std::string &path, const Scene &scene, bool includeData)
     fclose(fp);
 
     if (includeData)
-        scene.saveData(FileUtils::extractDir(path));
+        scene.saveData(FileUtils::extractParent(path));
 }
 
 }
