@@ -22,24 +22,11 @@ protected:
     typedef rapidjson::Document::AllocatorType Allocator;
 
 public:
-    JsonSerializable()
-    {
-    }
-
-    JsonSerializable(const std::string &name)
-    : _name(name)
-    {
-    }
+    JsonSerializable() = default;
+    JsonSerializable(const std::string &name);
 
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene);
-
-    virtual rapidjson::Value toJson(Allocator &allocator) const
-    {
-        rapidjson::Value v(rapidjson::kObjectType);
-        if (!unnamed())
-            v.AddMember("name", _name.c_str(), allocator);
-        return std::move(v);
-    }
+    virtual rapidjson::Value toJson(Allocator &allocator) const;
 
     void setName(const std::string &name)
     {
