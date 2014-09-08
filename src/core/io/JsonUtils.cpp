@@ -2,8 +2,16 @@
 
 namespace Tungsten {
 
-template<>
-bool JsonUtils::fromJson<bool>(const rapidjson::Value &v, bool &dst)
+namespace JsonUtils {
+
+const rapidjson::Value &fetchMember(const rapidjson::Value &v, const char *name)
+{
+    const rapidjson::Value::Member *member = v.FindMember(name);
+    ASSERT(member, "Json value is missing mandatory member '%s'", name);
+    return member->value;
+}
+
+bool fromJson(const rapidjson::Value &v, bool &dst)
 {
     if (v.IsBool()) {
         dst = v.GetBool();
@@ -29,44 +37,37 @@ bool getJsonNumber(const rapidjson::Value &v, T &dst) {
     return true;
 }
 
-template<>
-bool JsonUtils::fromJson<float>(const rapidjson::Value &v, float &dst)
+bool fromJson(const rapidjson::Value &v, float &dst)
 {
     return getJsonNumber(v, dst);
 }
 
-template<>
-bool JsonUtils::fromJson<double>(const rapidjson::Value &v, double &dst)
+bool fromJson(const rapidjson::Value &v, double &dst)
 {
     return getJsonNumber(v, dst);
 }
 
-template<>
-bool JsonUtils::fromJson<uint32>(const rapidjson::Value &v, uint32 &dst)
+bool fromJson(const rapidjson::Value &v, uint32 &dst)
 {
     return getJsonNumber(v, dst);
 }
 
-template<>
-bool JsonUtils::fromJson<int32>(const rapidjson::Value &v, int32 &dst)
+bool fromJson(const rapidjson::Value &v, int32 &dst)
 {
     return getJsonNumber(v, dst);
 }
 
-template<>
-bool JsonUtils::fromJson<uint64>(const rapidjson::Value &v, uint64 &dst)
+bool fromJson(const rapidjson::Value &v, uint64 &dst)
 {
     return getJsonNumber(v, dst);
 }
 
-template<>
-bool JsonUtils::fromJson<int64>(const rapidjson::Value &v, int64 &dst)
+bool fromJson(const rapidjson::Value &v, int64 &dst)
 {
     return getJsonNumber(v, dst);
 }
 
-template<>
-bool JsonUtils::fromJson<std::string>(const rapidjson::Value &v, std::string &dst)
+bool fromJson(const rapidjson::Value &v, std::string &dst)
 {
     if (v.IsString()) {
         dst = std::move(std::string(v.GetString()));
@@ -75,8 +76,7 @@ bool JsonUtils::fromJson<std::string>(const rapidjson::Value &v, std::string &ds
     return false;
 }
 
-template<>
-bool JsonUtils::fromJson<Mat4f>(const rapidjson::Value &v, Mat4f &dst)
+bool fromJson(const rapidjson::Value &v, Mat4f &dst)
 {
     if (!v.IsArray())
         return false;
@@ -87,5 +87,29 @@ bool JsonUtils::fromJson<Mat4f>(const rapidjson::Value &v, Mat4f &dst)
     return true;
 }
 
+rapidjson::Value toJsonValue(float value, rapidjson::Document::AllocatorType &/*allocator*/)
+{
+    return std::move(rapidjson::Value(double(value)));
+}
+
+rapidjson::Value toJsonValue(const Mat4f &value, rapidjson::Document::AllocatorType &allocator)
+{
+    rapidjson::Value a(rapidjson::kArrayType);
+    for (unsigned i = 0; i < 16; ++i)
+        a.PushBack(value[i], allocator);
+
+    return std::move(a);
+}
+
+void addObjectMember(rapidjson::Value &v, const char *name, const JsonSerializable &o,
+        rapidjson::Document::AllocatorType &allocator)
+{
+    if (o.unnamed())
+        v.AddMember(name, o.toJson(allocator), allocator);
+    else
+        v.AddMember(name, o.name().c_str(), allocator);
+}
+
+}
 
 }
