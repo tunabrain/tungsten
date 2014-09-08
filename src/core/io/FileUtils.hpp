@@ -62,7 +62,7 @@ inline void streamWrite(std::ostream &out, const std::vector<T> &src)
     out.write(reinterpret_cast<const char *>(&src[0]), src.size()*sizeof(T));
 }
 
-};
+}
 
 }
 
