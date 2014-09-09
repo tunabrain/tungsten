@@ -1,15 +1,15 @@
 #ifndef JSONUTILS_HPP_
 #define JSONUTILS_HPP_
 
-#include <rapidjson/document.h>
-#include <string>
-
 #include "JsonSerializable.hpp"
 
 #include "Debug.hpp"
 
 #include "math/Mat4f.hpp"
 #include "math/Vec.hpp"
+
+#include <rapidjson/document.h>
+#include <string>
 
 namespace Tungsten {
 
