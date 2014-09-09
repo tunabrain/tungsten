@@ -26,6 +26,8 @@ std::string extractExt(std::string path);
 std::string extractParent(std::string path);
 std::string extractBase(std::string path);
 
+bool testExtension(const std::string &path, const std::string &ext);
+
 std::string toAbsolutePath(const std::string &path);
 
 bool changeCurrentDir(const std::string &dir);

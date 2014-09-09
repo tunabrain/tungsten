@@ -231,6 +231,21 @@ std::string extractBase(std::string s)
     return stripExt(stripParent(std::move(s)));
 }
 
+bool testExtension(const std::string &path, const std::string &ext)
+{
+    std::string pathExt = extractExt(path);
+
+    if (pathExt.size() != ext.size())
+        return false;
+
+    // Sinze extensions don't normally contain localized characters, this should work fine
+    for (size_t i = 0; i < pathExt.size(); ++i)
+        if (std::toupper(pathExt[i]) != std::toupper(ext[i]))
+            return false;
+
+    return true;
+}
+
 std::string toAbsolutePath(const std::string &path)
 {
 #if _WIN32
