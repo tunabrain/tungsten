@@ -32,7 +32,6 @@ MainWindow::MainWindow()
 
     setCentralWidget(_stackWidget);
 
-
     _previewWindow->addStatusWidgets(statusBar());
      _renderWindow->addStatusWidgets(statusBar());
 
@@ -88,9 +87,8 @@ void MainWindow::openScene()
         "Scene files (*.json)"
     );
 
-    if (!file.isEmpty()) {
+    if (!file.isEmpty())
         openScene(file);
-    }
 }
 
 void MainWindow::reloadScene()
@@ -101,7 +99,16 @@ void MainWindow::reloadScene()
 
 void MainWindow::openScene(const QString &path)
 {
-    Scene *newScene = Scene::load(path.toStdString());
+    Scene *newScene = nullptr;
+    try {
+        newScene = Scene::load(path.toStdString());
+    } catch (const std::runtime_error &e) {
+        QMessageBox::warning(
+            this,
+            "Loading scene failed",
+            QString::fromStdString(tfm::format("Encountered an error while loading scene file:\n\n%s", e.what()))
+        );
+    }
 
     if (newScene) {
         _scene.reset(newScene);
