@@ -3,7 +3,7 @@
 
 #include "IntTypes.hpp"
 
-#include "extern/tinyformat/tinyformat.hpp"
+#include <tinyformat/tinyformat.hpp>
 
 #include <chrono>
 #if _WIN32

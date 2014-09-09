@@ -8,9 +8,9 @@
 #include "io/FileUtils.hpp"
 #include "io/Scene.hpp"
 
-#include "extern/tinyformat/tinyformat.hpp"
-#include "extern/embree/include/embree.h"
-#include "extern/lodepng/lodepng.h"
+#include <tinyformat/tinyformat.hpp>
+#include <embree/include/embree.h>
+#include <lodepng/lodepng.h>
 
 using namespace Tungsten;
 

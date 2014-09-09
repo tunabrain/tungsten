@@ -7,8 +7,7 @@
 
 #include "cameras/Camera.hpp"
 
-#include "extern/lodepng/lodepng.h"
-
+#include <lodepng/lodepng.h>
 #include <algorithm>
 
 namespace Tungsten {

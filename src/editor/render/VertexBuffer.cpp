@@ -3,7 +3,7 @@
 #include "VertexBuffer.hpp"
 #include "Shader.hpp"
 
-#include "extern/tinyformat/tinyformat.hpp"
+#include <tinyformat/tinyformat.hpp>
 
 #include "GLDebug.hpp"
 

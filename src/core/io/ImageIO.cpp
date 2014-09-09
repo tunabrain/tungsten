@@ -2,7 +2,7 @@
 
 #include "FileUtils.hpp"
 
-#include <extern/stbi/stb_image.h>
+#include <stbi/stb_image.h>
 #include <cstring>
 
 namespace Tungsten {

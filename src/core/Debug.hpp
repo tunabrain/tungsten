@@ -3,7 +3,7 @@
 
 #include <stdexcept>
 
-#include "extern/tinyformat/tinyformat.hpp"
+#include <tinyformat/tinyformat.hpp>
 
 namespace Tungsten {
 

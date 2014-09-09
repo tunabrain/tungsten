@@ -3,7 +3,7 @@
 
 #include "SampleGenerator.hpp"
 
-#include "extern/SFMT/SFMT.h"
+#include <SFMT/SFMT.h>
 
 namespace Tungsten {
 

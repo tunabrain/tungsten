@@ -5,7 +5,7 @@
 
 #include "Debug.hpp"
 
-#include "extern/sobol/sobol.h"
+#include <sobol/sobol.h>
 
 namespace Tungsten {
 
