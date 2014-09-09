@@ -10,6 +10,7 @@ class Scene;
 class DielectricBsdf : public Bsdf
 {
     float _ior;
+    bool _enableT;
 
 public:
     DielectricBsdf();
