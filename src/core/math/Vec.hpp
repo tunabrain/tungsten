@@ -485,15 +485,28 @@ static_assert(std::is_pod<Vec2c>::value, "Vec2c is not a pod!");
 
 namespace std {
 
-template<typename ElementType, unsigned Size>
-class hash<Tungsten::Vec<ElementType, Size>>
+template<unsigned Size>
+class hash<Tungsten::Vec<float, Size>>
 {
 public:
-    std::size_t operator()(const Tungsten::Vec<ElementType, Size> &v) const {
+    std::size_t operator()(const Tungsten::Vec<float, Size> &v) const {
         // See http://www.boost.org/doc/libs/1_33_1/doc/html/hash_combine.html
         Tungsten::uint32 result = 0;
         for (unsigned i = 0; i < Size; ++i)
             result ^= Tungsten::BitManip::floatBitsToUint(v[i]) + 0x9E3779B9 + (result << 6) + (result >> 2);
+        return result;
+    }
+};
+
+template<unsigned Size>
+class hash<Tungsten::Vec<Tungsten::int32, Size>>
+{
+public:
+    std::size_t operator()(const Tungsten::Vec<Tungsten::int32, Size> &v) const {
+        // See http://www.boost.org/doc/libs/1_33_1/doc/html/hash_combine.html
+        Tungsten::uint32 result = 0;
+        for (unsigned i = 0; i < Size; ++i)
+            result ^= v[i] + 0x9E3779B9 + (result << 6) + (result >> 2);
         return result;
     }
 };
