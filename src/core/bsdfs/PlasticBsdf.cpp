@@ -24,7 +24,7 @@ void PlasticBsdf::init() {
 }
 
 PlasticBsdf::PlasticBsdf()
-: _ior(2.5f),
+: _ior(1.5f),
   _thickness(0.0f),
   _sigmaA(0.0f)
 {
