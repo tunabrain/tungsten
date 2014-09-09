@@ -75,7 +75,6 @@ public:
 
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene);
     virtual rapidjson::Value toJson(Allocator &allocator) const;
-    void saveData(const std::string &dst) const;
 
     std::shared_ptr<Medium> fetchMedium(const rapidjson::Value &v) const;
     std::shared_ptr<Bsdf> fetchBsdf(const rapidjson::Value &v) const;
@@ -143,7 +142,7 @@ public:
     }
 
     static Scene *load(const std::string &path, std::shared_ptr<TextureCache> cache = nullptr);
-    static void save(const std::string &path, const Scene &scene, bool includeData);
+    static void save(const std::string &path, const Scene &scene);
 };
 
 }

@@ -1,11 +1,7 @@
-#include <functional>
-#include <rapidjson/document.h>
-#include <rapidjson/prettywriter.h>
-#include <rapidjson/filewritestream.h>
-
+#include "Scene.hpp"
+#include "DirectoryChange.hpp"
 #include "JsonUtils.hpp"
 #include "FileUtils.hpp"
-#include "Scene.hpp"
 
 #include "integrators/PathTraceIntegrator.hpp"
 
@@ -21,6 +17,9 @@
 #include "materials/CheckerTexture.hpp"
 #include "materials/BladeTexture.hpp"
 #include "materials/DiskTexture.hpp"
+
+#include "cameras/ThinlensCamera.hpp"
+#include "cameras/PinholeCamera.hpp"
 
 #include "volume/HomogeneousMedium.hpp"
 #include "volume/AtmosphericMedium.hpp"
@@ -44,12 +43,42 @@
 #include "bsdfs/NullBsdf.hpp"
 #include "bsdfs/Bsdf.hpp"
 
-#include "cameras/ThinlensCamera.hpp"
-#include "cameras/PinholeCamera.hpp"
-
 #include "Debug.hpp"
 
+#include <rapidjson/filewritestream.h>
+#include <rapidjson/prettywriter.h>
+#include <rapidjson/document.h>
+#include <functional>
+
 namespace Tungsten {
+
+Scene::Scene()
+: _camera(std::make_shared<PinholeCamera>()),
+  _integrator(std::make_shared<PathTraceIntegrator>())
+{
+}
+
+Scene::Scene(const std::string &srcDir, std::shared_ptr<TextureCache> cache)
+: _srcDir(srcDir),
+  _textureCache(std::move(cache)),
+  _camera(std::make_shared<PinholeCamera>()),
+  _integrator(std::make_shared<PathTraceIntegrator>())
+{
+}
+
+Scene::Scene(const std::string &srcDir,
+      std::vector<std::shared_ptr<Primitive>> primitives,
+      std::vector<std::shared_ptr<Bsdf>> bsdfs,
+      std::shared_ptr<TextureCache> cache,
+      std::shared_ptr<Camera> camera)
+: _srcDir(srcDir),
+  _primitives(std::move(primitives)),
+  _bsdfs(std::move(bsdfs)),
+  _textureCache(std::move(cache)),
+  _camera(std::move(camera)),
+  _integrator(std::make_shared<PathTraceIntegrator>())
+{
+}
 
 std::shared_ptr<Medium> Scene::instantiateMedium(std::string type, const rapidjson::Value &value) const
 {
@@ -302,69 +331,41 @@ void Scene::merge(Scene scene)
         addPrimitive(m);
 }
 
-Scene::Scene()
-: _integrator(std::make_shared<PathTraceIntegrator>())
-{
-}
-
-Scene::Scene(const std::string &srcDir, std::shared_ptr<TextureCache> cache)
-: _srcDir(srcDir),
-  _textureCache(std::move(cache)),
-  _integrator(std::make_shared<PathTraceIntegrator>())
-{
-}
-
 void Scene::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     JsonSerializable::fromJson(v, scene);
 
     using namespace std::placeholders;
 
-    const rapidjson::Value::Member *primitives = v.FindMember("primitives");
     const rapidjson::Value::Member *media      = v.FindMember("media");
     const rapidjson::Value::Member *bsdfs      = v.FindMember("bsdfs");
+    const rapidjson::Value::Member *primitives = v.FindMember("primitives");
     const rapidjson::Value::Member *camera     = v.FindMember("camera");
     const rapidjson::Value::Member *integrator = v.FindMember("integrator");
     const rapidjson::Value::Member *renderer   = v.FindMember("renderer");
 
-    ASSERT(primitives != nullptr, "Scene file must contain 'primitives' array");
-    ASSERT(bsdfs      != nullptr, "Scene file must contain 'bsdfs' array");
-    ASSERT(camera     != nullptr && camera->value.IsObject(), "Scene file must contain 'camera' object");
+    if (media && media->value.IsArray())
+        loadObjectList(media->value, std::bind(&Scene::instantiateMedium, this, _1, _2), _media);
 
-    if (media)
-        loadObjectList( media->value, std::bind(&Scene::instantiateMedium,    this, _1, _2), _media);
-    loadObjectList(     bsdfs->value, std::bind(&Scene::instantiateBsdf,      this, _1, _2), _bsdfs);
-    loadObjectList(primitives->value, std::bind(&Scene::instantiatePrimitive, this, _1, _2), _primitives);
+    if (bsdfs && bsdfs->value.IsArray())
+        loadObjectList(bsdfs->value, std::bind(&Scene::instantiateBsdf, this, _1, _2), _bsdfs);
 
-    _camera = instantiateCamera(JsonUtils::as<std::string>(camera->value, "type"), camera->value);
+    if (primitives && primitives->value.IsArray())
+        loadObjectList(primitives->value, std::bind(&Scene::instantiatePrimitive, this, _1, _2), _primitives);
 
-    if (integrator)
+    if (camera && camera->value.IsObject())
+        _camera = instantiateCamera(JsonUtils::as<std::string>(camera->value, "type"), camera->value);
+
+    if (integrator && integrator->value.IsObject())
         _integrator = instantiateIntegrator(JsonUtils::as<std::string>(integrator->value, "type"), integrator->value);
-    if (renderer)
-        _rendererSettings.fromJson(renderer->value, *this);
-}
 
-Scene::Scene(const std::string &srcDir,
-      std::vector<std::shared_ptr<Primitive>> primitives,
-      std::vector<std::shared_ptr<Bsdf>> bsdfs,
-      std::shared_ptr<TextureCache> cache,
-      std::shared_ptr<Camera> camera)
-: _srcDir(srcDir),
-  _primitives(std::move(primitives)),
-  _bsdfs(std::move(bsdfs)),
-  _textureCache(std::move(cache)),
-  _camera(camera),
-  _integrator(std::make_shared<PathTraceIntegrator>())
-{
+    if (renderer && renderer->value.IsObject())
+        _rendererSettings.fromJson(renderer->value, *this);
 }
 
 rapidjson::Value Scene::toJson(Allocator &allocator) const
 {
     rapidjson::Value v = JsonSerializable::toJson(allocator);
-
-    rapidjson::Value primitives(rapidjson::kArrayType);
-    for (const std::shared_ptr<Primitive> &t : _primitives)
-        primitives.PushBack(t->toJson(allocator), allocator);
 
     rapidjson::Value media(rapidjson::kArrayType);
     for (const std::shared_ptr<Medium> &b : _media)
@@ -374,6 +375,10 @@ rapidjson::Value Scene::toJson(Allocator &allocator) const
     for (const std::shared_ptr<Bsdf> &b : _bsdfs)
         bsdfs.PushBack(b->toJson(allocator), allocator);
 
+    rapidjson::Value primitives(rapidjson::kArrayType);
+    for (const std::shared_ptr<Primitive> &t : _primitives)
+        primitives.PushBack(t->toJson(allocator), allocator);
+
     v.AddMember("media", media, allocator);
     v.AddMember("bsdfs", bsdfs, allocator);
     v.AddMember("primitives", primitives, allocator);
@@ -382,20 +387,6 @@ rapidjson::Value Scene::toJson(Allocator &allocator) const
     v.AddMember("renderer", _rendererSettings.toJson(allocator), allocator);
 
     return std::move(v);
-}
-
-void Scene::saveData(const std::string &dst) const
-{
-    std::string previousDir = FileUtils::getCurrentDir();
-    FileUtils::changeCurrentDir(dst);
-
-    for (const std::shared_ptr<Primitive> &m : _primitives)
-        m->saveData();
-
-    for (const auto &p : _textureCache->textures())
-        p.second->saveData();
-
-    FileUtils::changeCurrentDir(previousDir);
 }
 
 void Scene::deletePrimitives(const std::unordered_set<Primitive *> &primitives)
@@ -421,49 +412,40 @@ Scene *Scene::load(const std::string &path, std::shared_ptr<TextureCache> cache)
     try {
         json = FileUtils::loadText(path.c_str());
     } catch (const std::runtime_error &) {
-        return nullptr;
+        throw std::runtime_error(tfm::format("Unable to open file at '%s'", path));
     }
 
     rapidjson::Document document;
     document.Parse<0>(json.c_str());
-    if (document.HasParseError()) {
-        DBG("JSON parse error: %s", document.GetParseError());
-        return nullptr;
-    }
+    if (document.HasParseError())
+        throw std::runtime_error(tfm::format("JSON parse error: %s", document.GetParseError()));
 
-    std::string previousDir = FileUtils::getCurrentDir();
-    FileUtils::changeCurrentDir(FileUtils::extractParent(std::string(path)));
+    DirectoryChange context(FileUtils::extractParent(path));
 
     if (!cache)
         cache = std::make_shared<TextureCache>();
 
     Scene *scene = new Scene(FileUtils::extractParent(path), std::move(cache));
     scene->fromJson(document, *scene);
-
-    FileUtils::changeCurrentDir(previousDir);
-
     scene->setPath(path);
 
     return scene;
 }
 
-void Scene::save(const std::string &path, const Scene &scene, bool includeData)
+void Scene::save(const std::string &path, const Scene &scene)
 {
     rapidjson::Document document;
     document.SetObject();
 
     *(static_cast<rapidjson::Value *>(&document)) = scene.toJson(document.GetAllocator());
 
-    char buffer[4*1024];
+    std::unique_ptr<char[]> buffer(new char[4*1024]);
     FILE *fp = fopen(path.c_str(), "wb");
-    rapidjson::FileWriteStream out(fp, buffer, sizeof(buffer));
+    rapidjson::FileWriteStream out(fp, buffer.get(), 4*1024);
 
     rapidjson::PrettyWriter<rapidjson::FileWriteStream> writer(out);
     document.Accept(writer);
     fclose(fp);
-
-    if (includeData)
-        scene.saveData(FileUtils::extractParent(path));
 }
 
 }

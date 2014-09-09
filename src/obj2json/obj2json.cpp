@@ -27,7 +27,7 @@ int main(int argc, const char *argv[])
         return 1;
     }
 
-    Scene::save(dst, *scene, true);
+    Scene::save(dst, *scene);
 
     return 0;
 }

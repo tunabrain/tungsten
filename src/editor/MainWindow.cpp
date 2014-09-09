@@ -121,7 +121,7 @@ void MainWindow::saveScene()
         if (_scene->path().empty())
             saveSceneAs();
         else
-            Scene::save(_scene->path(), *_scene, true);
+            Scene::save(_scene->path(), *_scene);
     }
 }
 
