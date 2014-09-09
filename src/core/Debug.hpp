@@ -15,7 +15,7 @@ void debugLog(const std::string &message);
 }
 
 // Can be enabled for a little bit more speed, but generally not recommended
-#ifdef NO_DEBUG_MACROS
+#ifndef NO_DEBUG_MACROS
 #define DEBUG_BEGIN
 #define DEBUG_END
 #else
