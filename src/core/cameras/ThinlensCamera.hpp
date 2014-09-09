@@ -26,22 +26,22 @@ class ThinlensCamera : public Camera
 
     void precompute();
 
-public:
-    ThinlensCamera();
-
-    void fromJson(const rapidjson::Value &v, const Scene &scene) override;
-    virtual rapidjson::Value toJson(Allocator &allocator) const override;
-
     float evalApertureThroughput(Vec3f planePos, Vec2f aperturePos) const;
     Vec3f aberration(const Vec3f &planePos, Vec2u pixel, Vec2f &aperturePos, SampleGenerator &sampler) const;
 
-    bool generateSample(Vec2u pixel, SampleGenerator &sampler, Vec3f &throughput, Ray &ray) const override final;
+public:
+    ThinlensCamera();
 
-    void prepareForRender() override final;
+    virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
+    virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
-    Mat4f approximateProjectionMatrix(int width, int height) const override final;
+    virtual bool generateSample(Vec2u pixel, SampleGenerator &sampler, Vec3f &throughput, Ray &ray) const override;
 
-    float approximateFov() const override final
+    virtual void prepareForRender() override;
+
+    virtual Mat4f approximateProjectionMatrix(int width, int height) const override;
+
+    virtual float approximateFov() const override
     {
         return _fovRad;
     }

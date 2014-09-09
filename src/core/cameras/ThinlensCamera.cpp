@@ -32,39 +32,6 @@ void ThinlensCamera::precompute()
     _aperture->makeSamplable(MAP_UNIFORM);
 }
 
-void ThinlensCamera::fromJson(const rapidjson::Value &v, const Scene &scene)
-{
-    _scene = &scene;
-    Camera::fromJson(v, scene);
-    JsonUtils::fromJson(v, "fov", _fovDeg);
-    JsonUtils::fromJson(v, "focus_distance", _focusDist);
-    JsonUtils::fromJson(v, "aperture_size", _apertureSize);
-    JsonUtils::fromJson(v, "aberration", _chromaticAberration);
-    JsonUtils::fromJson(v, "cateye", _catEye);
-    JsonUtils::fromJson(v, "focus_pivot", _focusPivot);
-
-    const rapidjson::Value::Member *aperture = v.FindMember("aperture");
-    if (aperture)
-        _aperture = scene.fetchTexture(aperture->value, TexelConversion::REQUEST_AVERAGE);
-
-    precompute();
-}
-
-rapidjson::Value ThinlensCamera::toJson(Allocator &allocator) const
-{
-    rapidjson::Value v = Camera::toJson(allocator);
-    v.AddMember("type", "thinlens", allocator);
-    v.AddMember("fov", _fovDeg, allocator);
-    v.AddMember("focus_distance", _focusDist, allocator);
-    v.AddMember("aperture_size", _apertureSize, allocator);
-    v.AddMember("aberration", _chromaticAberration, allocator);
-    v.AddMember("cateye", _catEye, allocator);
-    if (!_focusPivot.empty())
-        v.AddMember("focus_pivot", _focusPivot.c_str(), allocator);
-    JsonUtils::addObjectMember(v, "aperture", *_aperture, allocator);
-    return std::move(v);
-}
-
 float ThinlensCamera::evalApertureThroughput(Vec3f planePos, Vec2f aperturePos) const
 {
     float aperture = (*_aperture)[aperturePos].x();
@@ -104,6 +71,39 @@ Vec3f ThinlensCamera::aberration(const Vec3f &planePos, Vec2u pixel, Vec2f &aper
         evalApertureThroughput(planePos, greenShift),
         evalApertureThroughput(planePos, blueShift)
     );
+}
+
+void ThinlensCamera::fromJson(const rapidjson::Value &v, const Scene &scene)
+{
+    _scene = &scene;
+    Camera::fromJson(v, scene);
+    JsonUtils::fromJson(v, "fov", _fovDeg);
+    JsonUtils::fromJson(v, "focus_distance", _focusDist);
+    JsonUtils::fromJson(v, "aperture_size", _apertureSize);
+    JsonUtils::fromJson(v, "aberration", _chromaticAberration);
+    JsonUtils::fromJson(v, "cateye", _catEye);
+    JsonUtils::fromJson(v, "focus_pivot", _focusPivot);
+
+    const rapidjson::Value::Member *aperture = v.FindMember("aperture");
+    if (aperture)
+        _aperture = scene.fetchTexture(aperture->value, TexelConversion::REQUEST_AVERAGE);
+
+    precompute();
+}
+
+rapidjson::Value ThinlensCamera::toJson(Allocator &allocator) const
+{
+    rapidjson::Value v = Camera::toJson(allocator);
+    v.AddMember("type", "thinlens", allocator);
+    v.AddMember("fov", _fovDeg, allocator);
+    v.AddMember("focus_distance", _focusDist, allocator);
+    v.AddMember("aperture_size", _apertureSize, allocator);
+    v.AddMember("aberration", _chromaticAberration, allocator);
+    v.AddMember("cateye", _catEye, allocator);
+    if (!_focusPivot.empty())
+        v.AddMember("focus_pivot", _focusPivot.c_str(), allocator);
+    JsonUtils::addObjectMember(v, "aperture", *_aperture, allocator);
+    return std::move(v);
 }
 
 bool ThinlensCamera::generateSample(Vec2u pixel, SampleGenerator &sampler, Vec3f &throughput, Ray &ray) const
