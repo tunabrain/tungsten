@@ -13,6 +13,9 @@ std::shared_ptr<BitmapTexture> &TextureCache::fetchTexture(const std::string &pa
     if (iter == _textures.end())
         iter = _textures.insert(std::make_pair(key, BitmapTexture::loadTexture(path, conversion))).first;
 
+    if (!iter->second)
+        DBG("Unable to load texture at '%s'", path);
+
     return iter->second;
 }
 
