@@ -18,7 +18,7 @@ class PhongBsdf : public Bsdf
     void init();
 
 public:
-    PhongBsdf(float exponent = 64.0f);
+    PhongBsdf(float exponent = 64.0f, float diffuseRatio = 0.2f);
 
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const;

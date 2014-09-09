@@ -15,9 +15,9 @@
 
 namespace Tungsten {
 
-PhongBsdf::PhongBsdf(float exponent)
+PhongBsdf::PhongBsdf(float exponent, float diffuseRatio)
 : _exponent(exponent),
-  _diffuseRatio(0.2f)
+  _diffuseRatio(diffuseRatio)
 {
     init();
 }
