@@ -48,7 +48,7 @@ public:
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
-    virtual void saveData() const override;
+    void saveData() const;
     void saveAsObj(std::ostream &out) const;
     void calcSmoothVertexNormals();
     void computeBounds();
@@ -82,7 +82,7 @@ public:
     virtual void prepareForRender() override;
     virtual void cleanupAfterRender() override;
 
-    virtual Primitive *clone();
+    virtual Primitive *clone() override;
 
     const std::vector<TriangleI>& tris() const
     {

@@ -20,7 +20,6 @@ class BitmapTexture : public Texture
 
     typedef JsonSerializable::Allocator Allocator;
 
-    std::string _srcDir;
     std::string _path;
 
     Vec3f _min, _max, _avg;
@@ -66,17 +65,9 @@ public:
     virtual Vec2f sample(const Vec2f &uv) const override;
     virtual float pdf(const Vec2f &uv) const override;
 
-    void saveData() const;
-    std::string fullPath() const;
-
     const std::string &path() const
     {
         return _path;
-    }
-
-    void setPath(const std::string &s)
-    {
-        _path = s;
     }
 
     int w() const

@@ -5,8 +5,6 @@
 #include "math/MathUtil.hpp"
 #include "math/Angle.hpp"
 
-#include "io/FileUtils.hpp"
-
 namespace Tungsten {
 
 struct Rgba
@@ -266,17 +264,6 @@ Vec2f BitmapTexture::sample(const Vec2f &uv) const
 float BitmapTexture::pdf(const Vec2f &uv) const
 {
     return _distribution->pdf(int((1.0f - uv.y())*_h), int(uv.x()*_w))*_w*_h;
-}
-
-void BitmapTexture::saveData() const
-{
-    if (FileUtils::getCurrentDir() != _srcDir)
-        FileUtils::copyFile(FileUtils::addSeparator(_srcDir) + _path, _path, true);
-}
-
-std::string BitmapTexture::fullPath() const
-{
-    return std::move(FileUtils::addSeparator(_srcDir) + _path);
 }
 
 std::shared_ptr<BitmapTexture> BitmapTexture::loadTexture(const std::string &path, TexelConversion conversion)
