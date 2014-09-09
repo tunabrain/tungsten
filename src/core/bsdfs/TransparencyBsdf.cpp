@@ -28,9 +28,7 @@ void TransparencyBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
     Bsdf::fromJson(v, scene);
     _base = scene.fetchBsdf(JsonUtils::fetchMember(v, "base"));
 
-    const rapidjson::Value::Member *opacity = v.FindMember("opacity");
-    if (opacity)
-        _opacity = scene.fetchTexture(opacity->value, TexelConversion::REQUEST_AUTO);
+    scene.textureFromJsonMember(v, "alpha", TexelConversion::REQUEST_AUTO, _opacity);
 
     _lobes = BsdfLobes(BsdfLobes::ForwardLobe, _base->lobes());
 }

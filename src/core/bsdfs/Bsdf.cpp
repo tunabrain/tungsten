@@ -17,17 +17,15 @@ void Bsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     JsonSerializable::fromJson(v, scene);
 
+    scene.textureFromJsonMember(v, "albedo", TexelConversion::REQUEST_RGB, _albedo);
+
     const rapidjson::Value::Member *intMedium = v.FindMember("int_medium");
     const rapidjson::Value::Member *extMedium = v.FindMember("ext_medium");
-
-    const rapidjson::Value::Member *base  = v.FindMember("albedo");
 
     if (intMedium)
         _intMedium = scene.fetchMedium(intMedium->value);
     if (extMedium)
         _extMedium = scene.fetchMedium(extMedium->value);
-    if (base)
-        _albedo = scene.fetchTexture(base->value, TexelConversion::REQUEST_RGB);
 }
 
 rapidjson::Value Bsdf::toJson(Allocator &allocator) const

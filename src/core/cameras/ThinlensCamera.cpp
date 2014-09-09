@@ -83,10 +83,7 @@ void ThinlensCamera::fromJson(const rapidjson::Value &v, const Scene &scene)
     JsonUtils::fromJson(v, "aberration", _chromaticAberration);
     JsonUtils::fromJson(v, "cateye", _catEye);
     JsonUtils::fromJson(v, "focus_pivot", _focusPivot);
-
-    const rapidjson::Value::Member *aperture = v.FindMember("aperture");
-    if (aperture)
-        _aperture = scene.fetchTexture(aperture->value, TexelConversion::REQUEST_AVERAGE);
+    scene.textureFromJsonMember(v, "aperture", TexelConversion::REQUEST_AVERAGE, _aperture);
 
     precompute();
 }

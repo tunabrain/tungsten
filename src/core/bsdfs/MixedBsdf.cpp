@@ -54,10 +54,7 @@ void MixedBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
     _bsdf0 = scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf0"));
     _bsdf1 = scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf1"));
     _lobes = BsdfLobes(_bsdf0->lobes(), _bsdf1->lobes());
-
-    const rapidjson::Value::Member *ratio  = v.FindMember("ratio");
-    if (ratio)
-        _ratio = scene.fetchTexture(ratio->value, TexelConversion::REQUEST_AVERAGE);
+    scene.textureFromJsonMember(v, "ratio", TexelConversion::REQUEST_AVERAGE, _ratio);
 }
 
 rapidjson::Value MixedBsdf::toJson(Allocator &allocator) const

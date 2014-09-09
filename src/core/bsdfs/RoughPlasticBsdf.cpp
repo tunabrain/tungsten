@@ -48,10 +48,7 @@ void RoughPlasticBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
     JsonUtils::fromJson(v, "distribution", _distributionName);
     JsonUtils::fromJson(v, "thickness", _thickness);
     JsonUtils::fromJson(v, "sigmaA", _sigmaA);
-
-    const rapidjson::Value::Member *roughness  = v.FindMember("roughness");
-    if (roughness)
-        _roughness = scene.fetchTexture(roughness->value, TexelConversion::REQUEST_AVERAGE);
+    scene.textureFromJsonMember(v, "roughness", TexelConversion::REQUEST_AVERAGE, _roughness);
 
     init();
 }

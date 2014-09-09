@@ -271,6 +271,21 @@ std::shared_ptr<Texture> Scene::fetchTexture(const rapidjson::Value &v, TexelCon
     return nullptr;
 }
 
+bool Scene::textureFromJsonMember(const rapidjson::Value &v, const char *field, TexelConversion conversion,
+        std::shared_ptr<Texture> &dst) const
+{
+    const rapidjson::Value::Member *member = v.FindMember(field);
+    if (!member)
+        return false;
+
+    std::shared_ptr<Texture> tex = fetchTexture(member->value, conversion);
+    if (!tex)
+        return false;
+
+    dst = std::move(tex);
+    return true;
+}
+
 const Primitive *Scene::findPrimitive(const std::string &name) const
 {
     for (const std::shared_ptr<Primitive> &m : _primitives)

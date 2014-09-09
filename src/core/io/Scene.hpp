@@ -79,6 +79,8 @@ public:
     std::shared_ptr<Medium> fetchMedium(const rapidjson::Value &v) const;
     std::shared_ptr<Bsdf> fetchBsdf(const rapidjson::Value &v) const;
     std::shared_ptr<Texture> fetchTexture(const rapidjson::Value &v, TexelConversion conversion) const;
+    bool textureFromJsonMember(const rapidjson::Value &v, const char *field, TexelConversion conversion,
+            std::shared_ptr<Texture> &dst) const;
 
     const Primitive *findPrimitive(const std::string &name) const;
 

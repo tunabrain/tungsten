@@ -38,9 +38,7 @@ void RoughDielectricBsdf::fromJson(const rapidjson::Value &v, const Scene &scene
     JsonUtils::fromJson(v, "distribution", _distributionName);
     JsonUtils::fromJson(v, "enable_refraction", _enableT);
 
-    const rapidjson::Value::Member *roughness  = v.FindMember("roughness");
-    if (roughness)
-        _roughness = scene.fetchTexture(roughness->value, TexelConversion::REQUEST_AVERAGE);
+    scene.textureFromJsonMember(v, "roughness", TexelConversion::REQUEST_AVERAGE, _roughness);
 
     if (_enableT)
         _lobes = BsdfLobes(BsdfLobes::GlossyReflectionLobe | BsdfLobes::GlossyTransmissionLobe);
