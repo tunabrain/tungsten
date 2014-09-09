@@ -2,6 +2,7 @@
 
 #include "FileUtils.hpp"
 
+#include <lodepng/lodepng.h>
 #include <stbi/stb_image.h>
 #include <cstring>
 
@@ -11,11 +12,7 @@ namespace ImageIO {
 
 bool isHdr(const std::string &file)
 {
-    std::string ext = FileUtils::extractExt(file);
-
-    // The std::string equivalent of strcasecmp is completely ridiculous,
-    // so C strings will have to do.
-    return strcasecmp(ext.c_str(), "pfm") == 0 || stbi_is_hdr(file.c_str());
+    return FileUtils::testExtension(file, "pfm") || stbi_is_hdr(file.c_str());
 }
 
 template<typename T>
@@ -101,9 +98,7 @@ std::unique_ptr<float[]> loadStbiHdr(const std::string &file, TexelConversion re
 
 std::unique_ptr<float[]> loadHdr(const std::string &file, TexelConversion request, int &w, int &h)
 {
-    std::string ext = FileUtils::extractExt(file);
-
-    if (strcasecmp(ext.c_str(), "pfm") == 0)
+    if (FileUtils::testExtension(file, "pfm"))
         return std::move(loadPfm(file, request, w, h));
     else
         return std::move(loadStbiHdr(file, request, w, h));
@@ -128,6 +123,48 @@ std::unique_ptr<uint8[]> loadLdr(const std::string &file, TexelConversion reques
     }
 
     return std::move(texels);
+}
+
+bool savePfm(const std::string &file, const float *img, int w, int h, int channels)
+{
+    if (channels != 1 && channels != 3)
+        return false;
+
+    std::ofstream out(file, std::ios_base::out | std::ios_base::binary);
+    if (!out.good())
+        return false;
+
+    out << ((channels == 1) ? "Pf" : "PF") << '\n';
+    out << w << " " << h << '\n';
+    out << -1.0 << '\n';
+    out.write(reinterpret_cast<const char *>(img), w*h*sizeof(float)*channels);
+
+    return true;
+}
+
+bool savePng(const std::string &file, const uint8 *img, int w, int h, int channels)
+{
+    if (channels <= 0 || channels > 4)
+        return false;
+
+    LodePNGColorType types[] = {LCT_GREY, LCT_GREY_ALPHA, LCT_RGB, LCT_RGBA};
+    return lodepng_encode_file(file.c_str(), img, w, h, types[channels], 8) == 0;
+}
+
+bool saveHdr(const std::string &file, const float *img, int w, int h, int channels)
+{
+    if (FileUtils::testExtension(file, "pfm"))
+        return savePfm(file, img, w, h, channels);
+
+    return false;
+}
+
+bool saveLdr(const std::string &file, const uint8 *img, int w, int h, int channels)
+{
+    if (FileUtils::testExtension(file, "png"))
+        return savePng(file, img, w, h, channels);
+
+    return false;
 }
 
 }
