@@ -39,7 +39,7 @@ rapidjson::Value TransparencyBsdf::toJson(Allocator &allocator) const
 
     v.AddMember("type", "transparency", allocator);
     JsonUtils::addObjectMember(v, "base", *_base,  allocator);
-    JsonUtils::addObjectMember(v, "opacity", *_opacity,  allocator);
+    JsonUtils::addObjectMember(v, "alpha", *_opacity,  allocator);
 
     return std::move(v);
 }
