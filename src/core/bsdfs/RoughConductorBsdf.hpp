@@ -22,11 +22,11 @@ public:
     RoughConductorBsdf();
 
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
-    virtual rapidjson::Value toJson(Allocator &allocator) const;
+    virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
-    bool sample(SurfaceScatterEvent &event) const override final;
-    Vec3f eval(const SurfaceScatterEvent &event) const override final;
-    float pdf(const SurfaceScatterEvent &event) const override final;
+    virtual bool sample(SurfaceScatterEvent &event) const override;
+    virtual Vec3f eval(const SurfaceScatterEvent &event) const override;
+    virtual float pdf(const SurfaceScatterEvent &event) const override;
 
     const Vec3f& eta() const {
         return _eta;

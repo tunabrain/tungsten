@@ -20,8 +20,8 @@ class HomogeneousMedium : public Medium
 public:
     HomogeneousMedium();
 
-    virtual void fromJson(const rapidjson::Value &v, const Scene &scene);
-    virtual rapidjson::Value toJson(Allocator &allocator) const;
+    virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
+    virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
     virtual bool isHomogeneous() const override;
 
@@ -29,12 +29,12 @@ public:
     virtual void cleanupAfterRender() override;
 
     virtual bool sampleDistance(VolumeScatterEvent &event, MediumState &state) const override;
-    virtual bool absorb(VolumeScatterEvent &event, MediumState &/*state*/) const;
-    virtual bool scatter(VolumeScatterEvent &event) const;
-    virtual Vec3f transmittance(const VolumeScatterEvent &event) const;
-    virtual Vec3f emission(const VolumeScatterEvent &/*event*/) const;
+    virtual bool absorb(VolumeScatterEvent &event, MediumState &state) const override;
+    virtual bool scatter(VolumeScatterEvent &event) const override;
+    virtual Vec3f transmittance(const VolumeScatterEvent &event) const override;
+    virtual Vec3f emission(const VolumeScatterEvent &event) const override;
 
-    virtual Vec3f phaseEval(const VolumeScatterEvent &event) const;
+    virtual Vec3f phaseEval(const VolumeScatterEvent &event) const override;
 
     Vec3f sigmaA() const { return _sigmaA; }
     Vec3f sigmaS() const { return _sigmaS; }

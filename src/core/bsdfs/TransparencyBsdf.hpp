@@ -14,12 +14,12 @@ public:
     TransparencyBsdf();
     TransparencyBsdf(std::shared_ptr<Texture> opacity, std::shared_ptr<Bsdf> base);
 
-    void fromJson(const rapidjson::Value &v, const Scene &scene) override;
-    rapidjson::Value toJson(Allocator &allocator) const override;
+    virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
+    virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
-    bool sample(SurfaceScatterEvent &event) const final override;
-    Vec3f eval(const SurfaceScatterEvent &event) const final override;
-    float pdf(const SurfaceScatterEvent &event) const final override;
+    virtual bool sample(SurfaceScatterEvent &event) const override;
+    virtual Vec3f eval(const SurfaceScatterEvent &event) const override;
+    virtual float pdf(const SurfaceScatterEvent &event) const override;
 
     const std::shared_ptr<Texture> &opacity() const
     {

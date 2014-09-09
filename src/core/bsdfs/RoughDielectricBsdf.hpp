@@ -23,7 +23,7 @@ public:
     RoughDielectricBsdf();
 
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
-    virtual rapidjson::Value toJson(Allocator &allocator) const;
+    virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
     static bool sampleBase(SurfaceScatterEvent &event, bool sampleR, bool sampleT,
             float roughness, float ior, Microfacet::Distribution distribution);
@@ -34,9 +34,9 @@ public:
     static float pdfBase(const SurfaceScatterEvent &event, bool sampleR, bool sampleT,
             float roughness, float ior, Microfacet::Distribution distribution);
 
-    bool sample(SurfaceScatterEvent &event) const override final;
-    Vec3f eval(const SurfaceScatterEvent &event) const override final;
-    float pdf(const SurfaceScatterEvent &event) const override final;
+    virtual bool sample(SurfaceScatterEvent &event) const override;
+    virtual Vec3f eval(const SurfaceScatterEvent &event) const override;
+    virtual float pdf(const SurfaceScatterEvent &event) const override;
 
     float ior() const {
         return _ior;

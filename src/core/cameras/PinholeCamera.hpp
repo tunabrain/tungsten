@@ -19,14 +19,14 @@ public:
     PinholeCamera();
     PinholeCamera(const Mat4f &transform, const Vec2u &res, float fov, uint32 spp);
 
-    void fromJson(const rapidjson::Value &v, const Scene &scene) override;
+    virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
-    bool generateSample(Vec2u pixel, SampleGenerator &sampler, Vec3f &throughput, Ray &ray) const override final;
+    virtual bool generateSample(Vec2u pixel, SampleGenerator &sampler, Vec3f &throughput, Ray &ray) const override;
 
-    Mat4f approximateProjectionMatrix(int width, int height) const override final;
+    virtual Mat4f approximateProjectionMatrix(int width, int height) const override;
 
-    float approximateFov() const override final
+    virtual float approximateFov() const override
     {
         return _fovRad;
     }
