@@ -37,6 +37,8 @@ class PathTraceIntegrator : public Integrator
 
     bool _enableLightSampling;
     bool _enableVolumeLightSampling;
+    bool _enableConsistencyChecks;
+    bool _enableTwoSidedShading;
     int _minBounces;
     int _maxBounces;
     std::vector<float> _lightPdf;

@@ -6,6 +6,8 @@ PathTraceIntegrator::PathTraceIntegrator()
 : _scene(nullptr),
   _enableLightSampling(true),
   _enableVolumeLightSampling(true),
+  _enableConsistencyChecks(false),
+  _enableTwoSidedShading(true),
   _minBounces(0),
   _maxBounces(64)
 {
@@ -17,14 +19,17 @@ SurfaceScatterEvent PathTraceIntegrator::makeLocalScatterEvent(IntersectionTempo
     TangentFrame frame;
     info.primitive->setupTangentFrame(data, info, frame);
 
-    bool flippedFrame = false;
-    if (frame.normal.dot(ray.dir()) > 0.0f && !info.primitive->bsdf()->lobes().isTransmissive()) {
+    bool hitBackside = frame.normal.dot(ray.dir()) > 0.0f;
+    bool isTransmissive = info.primitive->bsdf()->lobes().isTransmissive();
+
+    bool flipFrame = _enableTwoSidedShading && hitBackside && !isTransmissive;
+
+    if (flipFrame) {
         // TODO: Should we flip info.Ns here too? It doesn't seem to be used at the moment,
         // but it may be in the future. Modifying the intersection info itself could be a bad
         // idea though
         frame.normal = -frame.normal;
         frame.tangent = -frame.tangent;
-        flippedFrame = true;
     }
 
     return SurfaceScatterEvent(
@@ -34,7 +39,7 @@ SurfaceScatterEvent PathTraceIntegrator::makeLocalScatterEvent(IntersectionTempo
         frame,
         frame.toLocal(-ray.dir()),
         BsdfLobes::AllLobes,
-        flippedFrame
+        flipFrame
     );
 }
 
@@ -453,6 +458,8 @@ void PathTraceIntegrator::fromJson(const rapidjson::Value &v, const Scene &/*sce
     JsonUtils::fromJson(v, "max_bounces", _maxBounces);
     JsonUtils::fromJson(v, "enable_light_sampling", _enableLightSampling);
     JsonUtils::fromJson(v, "enable_volume_light_sampling", _enableVolumeLightSampling);
+    JsonUtils::fromJson(v, "enable_consistency_checks", _enableConsistencyChecks);
+    JsonUtils::fromJson(v, "enable_two_sided_shading", _enableTwoSidedShading);
 }
 
 rapidjson::Value PathTraceIntegrator::toJson(Allocator &allocator) const
@@ -463,6 +470,8 @@ rapidjson::Value PathTraceIntegrator::toJson(Allocator &allocator) const
     v.AddMember("max_bounces", _maxBounces, allocator);
     v.AddMember("enable_light_sampling", _enableLightSampling, allocator);
     v.AddMember("enable_volume_light_sampling", _enableVolumeLightSampling, allocator);
+    v.AddMember("enable_consistency_checks", _enableConsistencyChecks, allocator);
+    v.AddMember("enable_two_sided_shading", _enableTwoSidedShading, allocator);
     return std::move(v);
 }
 
