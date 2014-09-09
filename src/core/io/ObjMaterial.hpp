@@ -1,9 +1,9 @@
 #ifndef OBJMATERIAL_HPP_
 #define OBJMATERIAL_HPP_
 
-#include <string>
-
 #include "math/Vec.hpp"
+
+#include <string>
 
 namespace Tungsten {
 
@@ -11,23 +11,18 @@ struct ObjMaterial
 {
     std::string name;
 
-    Vec3f diffuse;
-    Vec3f specular;
-    Vec3f emission;
-    Vec3f opacity;
-    float hardness;
-    float ior;
+    Vec3f diffuse = Vec3f(0.0f);
+    Vec3f specular = Vec3f(0.0f);
+    Vec3f emission = Vec3f(0.0f);
+    Vec3f opacity = Vec3f(1.0f);
+    float hardness = 0.0f;
+    float ior = 1.0f;
     std::string diffuseMap;
     std::string alphaMap;
     std::string bumpMap;
 
-    ObjMaterial()
-    : opacity(1.0f), hardness(0.0f), ior(1.0f)
-    {
-    }
-
     ObjMaterial(const std::string &name_)
-    : name(name_), opacity(1.0f), hardness(0.0f), ior(1.0f)
+    : name(name_)
     {
     }
 
