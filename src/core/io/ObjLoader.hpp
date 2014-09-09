@@ -1,25 +1,22 @@
 #ifndef OBJLOADER_HPP_
 #define OBJLOADER_HPP_
 
-#include <fstream>
-#include <string>
-#include <vector>
-#include <memory>
-#include <map>
-
 #include "TextureCache.hpp"
 #include "ObjMaterial.hpp"
-#include "ImageIO.hpp"
 
 #include "primitives/Triangle.hpp"
 #include "primitives/Vertex.hpp"
-
-#include "materials/BitmapTexture.hpp"
 
 #include "bsdfs/Bsdf.hpp"
 
 #include "math/Vec.hpp"
 #include "math/Box.hpp"
+
+#include <unordered_map>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <memory>
 
 namespace Tungsten {
 
@@ -27,11 +24,9 @@ class Primitive;
 
 class ObjLoader
 {
-    std::string _folder;
-
     std::shared_ptr<Bsdf> _errorMaterial;
     std::vector<ObjMaterial> _materials;
-    std::map<std::string, uint32> _materialToIndex;
+    std::unordered_map<std::string, uint32> _materialToIndex;
     std::vector<std::shared_ptr<Bsdf>> _convertedMaterials;
     std::shared_ptr<TextureCache> _textureCache;
     int32 _currentMaterial;
@@ -42,7 +37,8 @@ class ObjLoader
 
     std::string _meshName;
     bool _meshSmoothed;
-    std::map<uint64, uint32> _indices;
+
+    std::unordered_map<Vec3i, uint32> _indices;
     std::vector<TriangleI> _tris;
     std::vector<Vertex> _verts;
     Box3f _bounds;
@@ -51,14 +47,13 @@ class ObjLoader
 
     void skipWhitespace(const char *&s);
     bool hasPrefix(const char *s, const char *pre);
-    int32 addVertex(int32 pos, int32 normal, int32 uv);
+    uint32 fetchVertex(int32 pos, int32 normal, int32 uv);
 
     std::string extractString(const char *line);
     std::string extractPath(const char *line);
 
     template<unsigned Size>
     Vec<float, Size> loadVector(const char *s);
-
     void loadFace(const char *line);
     void loadMaterialLibrary(const char *path);
     void loadLine(const char *line);
@@ -67,6 +62,9 @@ class ObjLoader
 
     std::string generateDummyName() const;
     void clearPerMeshData();
+
+    std::shared_ptr<Primitive> tryInstantiateSphere(const std::string &name, std::shared_ptr<Bsdf> &bsdf);
+    std::shared_ptr<Primitive> tryInstantiateQuad(const std::string &name, std::shared_ptr<Bsdf> &bsdf);
     std::shared_ptr<Primitive> finalizeMesh();
 
     ObjLoader(std::ifstream &in, const char *path, std::shared_ptr<TextureCache> cache);

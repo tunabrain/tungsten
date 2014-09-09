@@ -1,9 +1,5 @@
-#include <algorithm>
-#include <iostream>
-#include <sstream>
-#include <cctype>
-
 #include "ObjLoader.hpp"
+#include "DirectoryChange.hpp"
 #include "FileUtils.hpp"
 #include "Scene.hpp"
 
@@ -21,11 +17,13 @@
 #include "bsdfs/DielectricBsdf.hpp"
 #include "bsdfs/OrenNayarBsdf.hpp"
 #include "bsdfs/ThinSheetBsdf.hpp"
-#include "bsdfs/LambertBsdf.hpp"
 #include "bsdfs/MirrorBsdf.hpp"
 #include "bsdfs/PhongBsdf.hpp"
-#include "bsdfs/MixedBsdf.hpp"
 #include "bsdfs/ErrorBsdf.hpp"
+
+#include <tinyformat/tinyformat.hpp>
+#include <algorithm>
+#include <cctype>
 
 namespace Tungsten {
 
@@ -54,7 +52,7 @@ bool ObjLoader::hasPrefix(const char *s, const char *pre)
     return *pre == '\0' && (isspace(*s) || *s == '\0');
 }
 
-int32 ObjLoader::addVertex(int32 pos, int32 normal, int32 uv)
+uint32 ObjLoader::fetchVertex(int32 pos, int32 normal, int32 uv)
 {
     if (pos < 0)
         pos += _pos.size() + 1;
@@ -63,14 +61,12 @@ int32 ObjLoader::addVertex(int32 pos, int32 normal, int32 uv)
     if (uv < 0)
         uv += _uv.size() + 1;
 
-    // Absolutely bullet proof. I promise.
-    uint64 hash = (uint64(pos) << 32) ^ (uint64(normal) << 16) ^ uint64(uv);
-
-    /*if (_indices.count(hash)) {
-        return _indices[hash];
-    } else {*/
-        Vec3f p, n;
-        Vec2f u;
+    auto iter = _indices.find(Vec3i(pos, normal, uv));
+    if (iter != _indices.end()) {
+        return iter->second;
+    } else {
+        Vec3f p(0.0f), n(0.0f, 1.0f, 0.0f);
+        Vec2f u(0.0f);
 
         if (pos)
             p = _pos[pos - 1];
@@ -84,14 +80,15 @@ int32 ObjLoader::addVertex(int32 pos, int32 normal, int32 uv)
         uint32 index = _verts.size();
         _verts.emplace_back(p, n, u);
 
-        _indices[hash] = index;
+        _indices.insert(std::make_pair(Vec3i(pos, normal, uv), index));
         return index;
-    //}
+    }
 }
 
 void ObjLoader::loadFace(const char *line)
 {
-    int32 first = -1, current = -1;
+    uint32 first, current;
+    int vertexCount = 0;
 
     std::istringstream ss(line);
     while (!ss.fail() && !ss.eof()) {
@@ -99,18 +96,17 @@ void ObjLoader::loadFace(const char *line)
         for (int i = 0; i < 3; ++i) {
             if (ss.peek() != '/')
                 ss >> indices[i];
-            if (ss.peek() == '/') {
+            if (ss.peek() == '/')
                 ss.get();
-            } else {
+            else
                 break;
-            }
         }
         if (indices[0] == 0)
             break;
 
-        int32 vert = addVertex(indices[0], indices[2], indices[1]);
+        uint32 vert = fetchVertex(indices[0], indices[2], indices[1]);
 
-        if (first != -1)
+        if (++vertexCount >= 3)
             _tris.emplace_back(first, current, vert, _currentMaterial);
         else
             first = current;
@@ -120,7 +116,7 @@ void ObjLoader::loadFace(const char *line)
 
 std::string ObjLoader::extractString(const char *line)
 {
-    std::string str(line); /* TODO */
+    std::string str(line);
     auto pos = str.find_first_of("\r\n\t");
     if (pos != std::string::npos)
         str.erase(pos);
@@ -156,15 +152,13 @@ void ObjLoader::loadMaterialLibrary(const char *path)
             if (hasPrefix(line, "newmtl")) {
                 matIndex = _materials.size();
                 std::string name = extractString(line + 7);
-                _materialToIndex[name] = matIndex;
+                _materialToIndex.insert(std::make_pair(name, matIndex));
                 _materials.push_back(ObjMaterial(name));
                 DBG("Loaded material %s", name);
             } else if (hasPrefix(line, "Kd")) {
                 _materials[matIndex].diffuse = loadVector<3>(line + 3);
-                //std::cout << "Diffuse: " << _materials[matIndex].diffuse << std::endl;
             } else if (hasPrefix(line, "Ks")) {
                 _materials[matIndex].specular = loadVector<3>(line + 3);
-                //std::cout << "Specular: " << _materials[matIndex].specular << std::endl;
             } else if (hasPrefix(line, "Ke")) {
                 _materials[matIndex].emission = loadVector<3>(line + 3);
             } else if (hasPrefix(line, "Tf")) {
@@ -185,7 +179,7 @@ void ObjLoader::loadMaterialLibrary(const char *path)
         for (size_t i = previousTop; i < _materials.size(); ++i)
             _convertedMaterials.emplace_back(convertObjMaterial(_materials[i]));
     } else {
-        std::cerr << "Unable to load material library at '" << mtlPath << "'" << std::endl;
+        DBG("Unable to load material library at '%s'", mtlPath);
     }
 }
 
@@ -196,7 +190,6 @@ void ObjLoader::loadLine(const char *line)
             || hasPrefix(line, "g")
             || hasPrefix(line, "o")
             || hasPrefix(line, "s");
-    //bool meshBoundary = hasPrefix(line, "o");
 
     if (meshBoundary && !_tris.empty()) {
         _meshes.emplace_back(finalizeMesh());
@@ -215,19 +208,17 @@ void ObjLoader::loadLine(const char *line)
     else if (hasPrefix(line, "mtllib"))
         loadMaterialLibrary(line + 7);
     else if (hasPrefix(line, "usemtl")) {
-        meshBoundary = true;
         std::string mtlName = extractString(line + 7);
-        if (_materialToIndex.count(mtlName))
-            _currentMaterial = _materialToIndex[mtlName];
+        auto iter = _materialToIndex.find(mtlName);
+        if (iter != _materialToIndex.end())
+            _currentMaterial = iter->second;
         else {
             DBG("Could not load material %s", mtlName);
             _currentMaterial = -1;
         }
     } else if (hasPrefix(line, "g") || hasPrefix(line, "o")) {
-        meshBoundary = true;
         _meshName = extractString(line + 2);
     } else if (hasPrefix(line, "s")) {
-        meshBoundary = true;
         if (extractString(line + 2) == "off")
             _meshSmoothed = false;
         else
@@ -255,24 +246,15 @@ std::shared_ptr<Bsdf> ObjLoader::convertObjMaterial(const ObjMaterial &mat)
             result = std::make_shared<MirrorBsdf>();
             result->setAlbedo(std::make_shared<ConstantTexture>(mat.specular));
         } else {
-            std::shared_ptr<Bsdf> lambert = std::make_shared<LambertBsdf>();
-            std::shared_ptr<Bsdf> phong = std::make_shared<PhongBsdf>(int(mat.hardness));
-            lambert->setAlbedo(std::make_shared<ConstantTexture>(mat.diffuse));
-            phong->setAlbedo(std::make_shared<ConstantTexture>(mat.specular));
-            float ratio = mat.diffuse.max()/(mat.specular.max() + mat.diffuse.max());
-            result = std::make_shared<MixedBsdf>(lambert, phong, ratio);
-        }
+            float diffuseRatio = mat.diffuse.max()/(mat.specular.max() + mat.diffuse.max());
+            result = std::make_shared<PhongBsdf>(mat.hardness, diffuseRatio);
+            result->setAlbedo(std::make_shared<ConstantTexture>(lerp(mat.specular, mat.diffuse, diffuseRatio)));        }
     } else {
         result = std::make_shared<DielectricBsdf>(mat.ior);
     }
     if (!result)
         return _errorMaterial;
 
-    // TODO: Can no longer set bump maps directly, since they moved from Bsdf to Primitive.
-    // Need to somehow remember this piece of info for later so we can set the bump map on
-    // the primitive when the bsdf is applied
-//  if (mat.hasBumpMap())
-//      result->setBump(fetchBitmap(mat.bumpMap, true));
     if (mat.hasDiffuseMap()) {
         auto texture = _textureCache->fetchTexture(mat.diffuseMap, TexelConversion::REQUEST_RGB);
         if (texture)
@@ -291,10 +273,7 @@ std::shared_ptr<Bsdf> ObjLoader::convertObjMaterial(const ObjMaterial &mat)
 
 std::string ObjLoader::generateDummyName() const
 {
-    std::stringstream ss;
-    ss << "Mesh" << _meshes.size() + 1;
-
-    return std::move(ss.str());
+    return tfm::format("Mesh%d", _meshes.size() + 1);
 }
 
 void ObjLoader::clearPerMeshData()
@@ -305,58 +284,73 @@ void ObjLoader::clearPerMeshData()
     _verts.clear();
 }
 
+std::shared_ptr<Primitive> ObjLoader::tryInstantiateSphere(const std::string &name, std::shared_ptr<Bsdf> &bsdf)
+{
+    Vec3f center(0.0f);
+    for (const Vertex &v : _verts)
+        center += v.pos()/_verts.size();
+    float r = 0.0f;
+    for (const Vertex &v : _verts)
+        r = max(r, (center - v.pos()).length());
+    return std::make_shared<Sphere>(center, r, name, bsdf);
+}
+
+std::shared_ptr<Primitive> ObjLoader::tryInstantiateQuad(const std::string &name, std::shared_ptr<Bsdf> &bsdf)
+{
+    if (_tris.size() != 2) {
+        DBG("AnalyticQuad must have exactly 2 triangles. Mesh '%s' has %d instead", _meshName.c_str(), _tris.size());
+        return nullptr;
+    }
+
+    TriangleI &t = _tris[0];
+    Vec3f p0 = _verts[t.v0].pos();
+    Vec3f p1 = _verts[t.v1].pos();
+    Vec3f p2 = _verts[t.v2].pos();
+    float absDot0 = std::abs((p1 - p0).dot(p2 - p0));
+    float absDot1 = std::abs((p2 - p1).dot(p0 - p1));
+    float absDot2 = std::abs((p0 - p2).dot(p1 - p2));
+    Vec3f base, edge0, edge1;
+    if (absDot0 < absDot1 && absDot0 < absDot2)
+        base = p0, edge0 = p1 - base, edge1 = p2 - base;
+    else if (absDot1 < absDot2)
+        base = p1, edge0 = p2 - base, edge1 = p0 - base;
+    else
+        base = p2, edge0 = p0 - base, edge1 = p1 - base;
+
+    return std::make_shared<Quad>(base, edge0, edge1, name, bsdf);
+}
+
 std::shared_ptr<Primitive> ObjLoader::finalizeMesh()
 {
-    std::shared_ptr<Texture> emission;
+    std::shared_ptr<Texture> emission, bump;
     std::shared_ptr<Bsdf> bsdf;
     if (_currentMaterial == -1) {
         bsdf = _errorMaterial;
     } else {
         bsdf = _convertedMaterials[_currentMaterial];
-        if (_materials[_currentMaterial].isEmissive())
-            emission = std::make_shared<ConstantTexture>(_materials[_currentMaterial].emission);
+
+        ObjMaterial &mat = _materials[_currentMaterial];
+        if (mat.isEmissive())
+            emission = std::make_shared<ConstantTexture>(mat.emission);
+        if (mat.hasBumpMap())
+            bump = _textureCache->fetchTexture(mat.bumpMap, TexelConversion::REQUEST_AVERAGE);
     }
 
     std::string name = _meshName.empty() ? generateDummyName() : _meshName;
 
     std::shared_ptr<Primitive> prim;
-    if (name.find("AnalyticSphere") != std::string::npos) {
-        Vec3f center(0.0f);
-        for (const Vertex &v : _verts)
-            center += v.pos()/_verts.size();
-        float r = 0.0f;
-        for (const Vertex &v : _verts)
-            r = max(r, (center - v.pos()).length());
-        prim = std::make_shared<Sphere>(center, r, name, bsdf);
-    } else if (name.find("AnalyticQuad") != std::string::npos) {
-        if (_tris.size() == 2) {
-            TriangleI &t = _tris[0];
-            Vec3f p0 = _verts[t.v0].pos();
-            Vec3f p1 = _verts[t.v1].pos();
-            Vec3f p2 = _verts[t.v2].pos();
-            float absDot0 = std::abs((p1 - p0).dot(p2 - p0));
-            float absDot1 = std::abs((p2 - p1).dot(p0 - p1));
-            float absDot2 = std::abs((p0 - p2).dot(p1 - p2));
-            Vec3f base, edge0, edge1;
-            if (absDot0 < absDot1 && absDot0 < absDot2)
-                base = p0, edge0 = p1 - base, edge1 = p2 - base;
-            else if (absDot1 < absDot2)
-                base = p1, edge0 = p2 - base, edge1 = p0 - base;
-            else
-                base = p2, edge0 = p0 - base, edge1 = p1 - base;
-
-            prim = std::make_shared<Quad>(base, edge0, edge1, name, bsdf);
-        } else {
-            DBG("AnalyticQuad must have exactly 2 triangles. Mesh '%s' has %d instead", _meshName.c_str(), _tris.size());
-        }
-    }
+    if (name.find("AnalyticSphere") != std::string::npos)
+        prim = tryInstantiateSphere(name, bsdf);
+    else if (name.find("AnalyticQuad") != std::string::npos)
+        prim = tryInstantiateQuad(name, bsdf);
 
     if (!prim)
         prim = std::make_shared<TriangleMesh>(std::move(_verts), std::move(_tris), bsdf, name, _meshSmoothed);
 
     prim->setEmission(emission);
+    prim->setBump(bump);
 
-    return prim;
+    return std::move(prim);
 }
 
 ObjLoader::ObjLoader(std::ifstream &in, const char *path, std::shared_ptr<TextureCache> cache)
@@ -365,13 +359,7 @@ ObjLoader::ObjLoader(std::ifstream &in, const char *path, std::shared_ptr<Textur
   _currentMaterial(-1),
   _meshSmoothed(false)
 {
-    std::string previousDir = FileUtils::getCurrentDir();
-
-    _folder = FileUtils::extractParent(std::string(path));
-    if (!_folder.empty()) {
-        FileUtils::changeCurrentDir(_folder);
-        _folder.append("/");
-    }
+    DirectoryChange context(FileUtils::extractParent(path));
 
     std::string line;
     while (!in.fail() && !in.eof()) {
@@ -384,8 +372,6 @@ ObjLoader::ObjLoader(std::ifstream &in, const char *path, std::shared_ptr<Textur
         _meshes.emplace_back(finalizeMesh());
         clearPerMeshData();
     }
-
-    FileUtils::changeCurrentDir(previousDir);
 }
 
 Scene *ObjLoader::load(const char *path, std::shared_ptr<TextureCache> cache)
