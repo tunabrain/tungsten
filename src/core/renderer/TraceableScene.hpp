@@ -3,8 +3,11 @@
 
 #include "integrators/Integrator.hpp"
 
+#include "primitives/InfiniteSphere.hpp"
 #include "primitives/EmbreeUtil.hpp"
 #include "primitives/Primitive.hpp"
+
+#include "materials/ConstantTexture.hpp"
 
 #include "cameras/Camera.hpp"
 
@@ -89,7 +92,7 @@ public:
         for (std::shared_ptr<Medium> &m : _media)
             m->prepareForRender();
 
-        int finiteCount = 0;
+        int finiteCount = 0, lightCount = 0;
         for (std::shared_ptr<Primitive> &m : _primitives) {
             m->prepareForRender();
 
@@ -100,10 +103,17 @@ public:
             }
 
             if (m->isEmissive()) {
+                lightCount++;
                 m->makeSamplable();
                 if (m->isSamplable())
                     _lights.push_back(m);
             }
+        }
+        if (lightCount == 0) {
+            std::shared_ptr<InfiniteSphere> defaultLight = std::make_shared<InfiniteSphere>();;
+            defaultLight->setEmission(std::make_shared<ConstantTexture>(1.0f));
+            _lights.push_back(defaultLight);
+            _infinites.push_back(defaultLight);
         }
 
         _scene = new embree::VirtualScene(finiteCount, "bvh2");
