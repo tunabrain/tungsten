@@ -22,18 +22,13 @@ public:
         sfmt_init_gen_rand(&_state, seed);
     }
 
-    void setup(uint32 /*pixelId*/, int /*sample*/) override final
+    virtual void setup(uint32 /*pixelId*/, int /*sample*/) override final
     {
     }
 
-    uint32 nextI() override final
+    virtual uint32 nextI() override final
     {
         return sfmt_genrand_uint32(&_state);
-    }
-
-    virtual float next1D()
-    {
-        return BitManip::normalizedUint(nextI());
     }
 };
 

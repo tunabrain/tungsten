@@ -26,14 +26,14 @@ public:
     {
     }
 
-    void setup(uint32 pixelId, int sample) override final
+    virtual void setup(uint32 pixelId, int sample) override final
     {
         _scramble = MathUtil::hash32(pixelId);
         _index = sample;
         _dimension = 0;
     }
 
-    uint32 nextI() override final
+    virtual uint32 nextI() override final
     {
         if (_dimension >= 1024)
             FAIL("Sobol sampler dimension > 1024!");
