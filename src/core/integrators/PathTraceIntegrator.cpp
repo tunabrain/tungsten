@@ -17,12 +17,14 @@ SurfaceScatterEvent PathTraceIntegrator::makeLocalScatterEvent(IntersectionTempo
     TangentFrame frame;
     info.primitive->setupTangentFrame(data, info, frame);
 
+    bool flippedFrame = false;
     if (frame.normal.dot(ray.dir()) > 0.0f && !info.primitive->bsdf()->lobes().isTransmissive()) {
         // TODO: Should we flip info.Ns here too? It doesn't seem to be used at the moment,
         // but it may be in the future. Modifying the intersection info itself could be a bad
         // idea though
         frame.normal = -frame.normal;
         frame.tangent = -frame.tangent;
+        flippedFrame = true;
     }
 
     return SurfaceScatterEvent(
@@ -31,16 +33,16 @@ SurfaceScatterEvent PathTraceIntegrator::makeLocalScatterEvent(IntersectionTempo
         supplementalSampler,
         frame,
         frame.toLocal(-ray.dir()),
-        BsdfLobes::AllLobes
+        BsdfLobes::AllLobes,
+        flippedFrame
     );
 }
 
 bool PathTraceIntegrator::isConsistent(const SurfaceScatterEvent &event, const Vec3f &w) const
 {
     bool geometricBackside = (w.dot(event.info->Ng) < 0.0f);
-    if (geometricBackside != (event.wo.z() < 0.0f))
-        return false;
-    return true;
+    bool shadingBackside = (event.wo.z() < 0.0f) ^ event.flippedFrame;
+    return geometricBackside == shadingBackside;
 }
 
 Vec3f PathTraceIntegrator::generalizedShadowRay(Ray &ray,

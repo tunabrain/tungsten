@@ -23,13 +23,15 @@ struct SurfaceScatterEvent
     float pdf;
     BsdfLobes requestedLobe;
     BsdfLobes sampledLobe;
+    bool flippedFrame;
 
     SurfaceScatterEvent(const IntersectionInfo *info_,
                  SampleGenerator *sampler_,
                  UniformSampler *supplementalSampler_,
                  const TangentFrame &frame_,
                  const Vec3f &wi_,
-                 BsdfLobes requestedLobe_)
+                 BsdfLobes requestedLobe_,
+                 bool flippedFrame_)
     : info(info_),
       sampler(sampler_),
       supplementalSampler(supplementalSampler_),
@@ -38,7 +40,8 @@ struct SurfaceScatterEvent
       wo(0.0f),
       throughput(1.0f),
       pdf(1.0f),
-      requestedLobe(requestedLobe_)
+      requestedLobe(requestedLobe_),
+      flippedFrame(flippedFrame_)
     {
     }
 
