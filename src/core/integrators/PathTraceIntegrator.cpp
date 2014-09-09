@@ -35,6 +35,14 @@ SurfaceScatterEvent PathTraceIntegrator::makeLocalScatterEvent(IntersectionTempo
     );
 }
 
+bool PathTraceIntegrator::isConsistent(const SurfaceScatterEvent &event, const Vec3f &w) const
+{
+    bool geometricBackside = (w.dot(event.info->Ng) < 0.0f);
+    if (geometricBackside != (event.wo.z() < 0.0f))
+        return false;
+    return true;
+}
+
 Vec3f PathTraceIntegrator::generalizedShadowRay(Ray &ray,
                            const Medium *medium,
                            const Primitive *endCap,
@@ -121,10 +129,10 @@ Vec3f PathTraceIntegrator::lightSample(const TangentFrame &frame,
         return Vec3f(0.0f);
 
     event.wo = frame.toLocal(sample.d);
-    float geometricBackside = (sample.d.dot(event.info->Ng) < 0.0f);
-    if (geometricBackside != (event.wo.z() < 0.0f))
+    if (!isConsistent(event, sample.d))
         return Vec3f(0.0f);
 
+    bool geometricBackside = (sample.d.dot(event.info->Ng) < 0.0f);
     if (bsdf.overridesMedia()) {
         if (geometricBackside)
             medium = bsdf.intMedium().get();
@@ -133,6 +141,7 @@ Vec3f PathTraceIntegrator::lightSample(const TangentFrame &frame,
     }
 
     event.requestedLobe = BsdfLobes::AllButSpecular;
+
     Vec3f f = bsdf.eval(event);
     if (f == 0.0f)
         return Vec3f(0.0f);
@@ -165,10 +174,10 @@ Vec3f PathTraceIntegrator::bsdfSample(const TangentFrame &frame,
         return Vec3f(0.0f);
 
     Vec3f wo = frame.toGlobal(event.wo);
-    float geometricBackside = (wo.dot(event.info->Ng) < 0.0f);
-    if (geometricBackside != (event.wo.z() < 0.0f))
+    if (!isConsistent(event, wo))
         return Vec3f(0.0f);
 
+    bool geometricBackside = (wo.dot(event.info->Ng) < 0.0f);
     if (bsdf.overridesMedia()) {
         if (geometricBackside)
             medium = bsdf.intMedium().get();
@@ -409,7 +418,7 @@ bool PathTraceIntegrator::handleSurface(IntersectionTemporary &data, Intersectio
 
         wo = event.frame.toGlobal(event.wo);
 
-        if ((wo.dot(info.Ng) < 0.0f) != (event.wo.z() < 0.0f))
+        if (!isConsistent(event, wo))
             return false;
 
         throughput *= event.throughput;

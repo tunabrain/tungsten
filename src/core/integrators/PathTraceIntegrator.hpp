@@ -44,6 +44,8 @@ class PathTraceIntegrator : public Integrator
     SurfaceScatterEvent makeLocalScatterEvent(IntersectionTemporary &data, IntersectionInfo &info,
             Ray &ray, SampleGenerator *sampler, UniformSampler *supplementalSampler) const;
 
+    bool isConsistent(const SurfaceScatterEvent &event, const Vec3f &w) const;
+
     Vec3f generalizedShadowRay(Ray &ray,
                                const Medium *medium,
                                const Primitive *endCap,
