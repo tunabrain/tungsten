@@ -14,6 +14,10 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
+// THIS FILE HAS BEEN MODIFIED FROM ITS ORIGINAL DISTRIBUTION
+// THE ORIGINAL DISTRIBUTION MAY BE OBTAINED AT
+//      https://github.com/embree/embree
+
 #ifndef __EMBREE_ACCEL_TRIANGLE_H__
 #define __EMBREE_ACCEL_TRIANGLE_H__
 
