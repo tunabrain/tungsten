@@ -148,7 +148,7 @@ bool savePng(const std::string &file, const uint8 *img, int w, int h, int channe
         return false;
 
     LodePNGColorType types[] = {LCT_GREY, LCT_GREY_ALPHA, LCT_RGB, LCT_RGBA};
-    return lodepng_encode_file(file.c_str(), img, w, h, types[channels], 8) == 0;
+    return lodepng_encode_file(file.c_str(), img, w, h, types[channels - 1], 8) == 0;
 }
 
 bool saveHdr(const std::string &file, const float *img, int w, int h, int channels)
