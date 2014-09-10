@@ -5,6 +5,7 @@
 
 #include "cameras/Camera.hpp"
 
+#include "io/DirectoryChange.hpp"
 #include "io/FileUtils.hpp"
 #include "io/Scene.hpp"
 
@@ -13,57 +14,6 @@
 #include <lodepng/lodepng.h>
 
 using namespace Tungsten;
-
-std::string incrementalFilename(const std::string &relFile,
-                                const std::string &dstFile,
-                                const std::string &suffix)
-{
-    std::string fileName = FileUtils::stripExt(dstFile) + suffix + "." + FileUtils::extractExt(dstFile);
-    std::string dst = FileUtils::addSeparator(FileUtils::extractParent(relFile)) + fileName;
-    std::string basename = FileUtils::stripExt(dst);
-    std::string extension = FileUtils::extractExt(dst);
-    int index = 0;
-    while (FileUtils::fileExists(dst))
-        dst = tfm::format("%s%05d.%s", basename, ++index, extension);
-
-    return std::move(dst);
-}
-
-void saveFrameAndVariance(Renderer &renderer, Scene &scene, Camera &camera, const std::string &suffix)
-{
-    std::string dst         = incrementalFilename(scene.path(), camera.outputFile(), suffix);
-    std::string dstVariance = incrementalFilename(scene.path(), camera.outputFile(), suffix + "Variance");
-
-    int w = camera.resolution().x();
-    int h = camera.resolution().y();
-    std::unique_ptr<uint8[]> ldr(new uint8[w*h*3]);
-    std::unique_ptr<Vec3f[]> hdr(new Vec3f[w*h]);
-    for (int y = 0, idx = 0; y < h; ++y) {
-        for (int x = 0; x < w; ++x, ++idx) {
-            Vec3c rgb(clamp(camera.get(x, y)*256.0f, Vec3f(0.0f), Vec3f(255.0f)));
-            ldr[idx*3 + 0] = rgb.x();
-            ldr[idx*3 + 1] = rgb.y();
-            ldr[idx*3 + 2] = rgb.z();
-
-            hdr[idx] = camera.getLinear(x, h - y - 1);
-        }
-    }
-
-    FileUtils::createDirectory(FileUtils::extractParent(dst));
-
-    lodepng_encode24_file(dst.c_str(), ldr.get(), w, h);
-    renderer.saveVariance(dstVariance);
-
-    std::string pfmDst = FileUtils::stripExt(dst) + ".pfm";
-    std::ofstream pfmOut(pfmDst, std::ios_base::out | std::ios_base::binary);
-    if (!pfmOut.good()) {
-        std::cout << "Warning: Unable to open pfm output at" << pfmOut << std::endl;
-        return;
-    }
-    pfmOut << "PF\n" << w << " " << h << "\n" << -1.0 << "\n";
-    pfmOut.write(reinterpret_cast<const char *>(hdr.get()), w*h*sizeof(Vec3f));
-    pfmOut.close();
-}
 
 std::string formatTime(double elapsed)
 {
@@ -111,8 +61,9 @@ int main(int argc, const char *argv[])
         }
 
         try {
+            DirectoryChange context(FileUtils::extractParent(scene->path()));
+
             int maxSpp = scene->camera()->spp();
-            //int maxSpp = 2048;
             std::unique_ptr<TraceableScene> flattenedScene(scene->makeTraceable());
             std::unique_ptr<Renderer> renderer(new Renderer(*flattenedScene, ThreadCount));
 
@@ -128,14 +79,14 @@ int main(int argc, const char *argv[])
                     totalElapsed += checkpointTimer.elapsed();
                     std::cout << tfm::format("Saving checkpoint after %s", formatTime(totalElapsed).c_str()) << std::endl;
                     checkpointTimer.start();
-                    saveFrameAndVariance(*renderer, *scene, *scene->camera(), "Checkpoint");
+                    scene->camera()->saveCheckpoint(*renderer);
                 }
             }
             timer.stop();
 
             std::cout << tfm::format("Finished render. Render time %s", formatTime(timer.elapsed()).c_str()) << std::endl;
 
-            saveFrameAndVariance(*renderer, *scene, *scene->camera(), "");
+            scene->camera()->saveOutputs(*renderer);
         } catch (std::runtime_error &e) {
             std::cerr << tfm::format("Renderer for file '%s' encountered an unrecoverable error: \n%s",
                     argv[i], e.what()) << std::endl;

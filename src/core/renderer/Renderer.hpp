@@ -66,7 +66,7 @@ public:
     void waitForCompletion();
     void abortRender();
 
-    void saveVariance(const std::string &path);
+    void getVarianceImage(std::vector<float> &data, int &w, int &h);
 };
 
 }

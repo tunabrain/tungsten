@@ -17,12 +17,16 @@ namespace Tungsten {
 class Ray;
 class Scene;
 class Medium;
+class Renderer;
 class SampleGenerator;
 
 class Camera : public JsonSerializable
 {
     std::string _outputFile;
+    std::string _hdrOutputFile;
+    std::string _varianceOutputFile;
     std::string _tonemapString;
+    bool _overwriteOutputFiles;
 
     Tonemap::Type _tonemapOp;
 
@@ -47,6 +51,9 @@ protected:
 private:
     void precompute();
 
+    std::string incrementalFilename(const std::string &dstFile, const std::string &suffix) const;
+    void saveBuffers(Renderer &renderer, const std::string &suffix) const;
+
 public:
     Camera();
     Camera(const Mat4f &transform, const Vec2u &res, uint32 spp);
@@ -65,6 +72,9 @@ public:
     void setPos(const Vec3f &pos);
     void setLookAt(const Vec3f &lookAt);
     void setUp(const Vec3f &up);
+
+    void saveOutputs(Renderer &renderer) const;
+    void saveCheckpoint(Renderer &renderer) const;
 
     void addSamples(int x, int y, const Vec3f &c, uint32 weight)
     {
@@ -123,6 +133,21 @@ public:
     const std::string &outputFile() const
     {
         return _outputFile;
+    }
+
+    const std::string &hdrOutputFile() const
+    {
+        return _hdrOutputFile;
+    }
+
+    const std::string &varianceOutputFile() const
+    {
+        return _varianceOutputFile;
+    }
+
+    bool overwriteOutputFiles() const
+    {
+        return _overwriteOutputFiles;
     }
 
     const std::shared_ptr<Medium> &medium() const

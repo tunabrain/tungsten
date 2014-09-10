@@ -1,9 +1,13 @@
 #include "Camera.hpp"
 
+#include "renderer/Renderer.hpp"
+
 #include "math/Angle.hpp"
 #include "math/Ray.hpp"
 
+#include "io/FileUtils.hpp"
 #include "io/JsonUtils.hpp"
+#include "io/ImageIO.hpp"
 #include "io/Scene.hpp"
 
 #include <cmath>
@@ -19,6 +23,7 @@ Camera::Camera()
 Camera::Camera(const Mat4f &transform, const Vec2u &res, uint32 spp)
 : _outputFile("TungstenRender.png"),
   _tonemapString("gamma"),
+  _overwriteOutputFiles(false),
   _transform(transform),
   _res(res),
   _spp(spp)
@@ -39,9 +44,59 @@ void Camera::precompute()
     _invTransform = _transform.pseudoInvert();
 }
 
+std::string Camera::incrementalFilename(const std::string &dstFile, const std::string &suffix) const
+{
+    std::string dstPath = FileUtils::stripExt(dstFile) + suffix + "." + FileUtils::extractExt(dstFile);
+    if (_overwriteOutputFiles)
+        return std::move(dstPath);
+
+    std::string barePath = FileUtils::stripExt(dstPath);
+    std::string extension = FileUtils::extractExt(dstPath);
+
+    int index = 0;
+    while (FileUtils::fileExists(dstPath))
+        dstPath = tfm::format("%s%05d.%s", barePath, ++index, extension);
+
+    return std::move(dstPath);
+}
+
+void Camera::saveBuffers(Renderer &renderer, const std::string &suffix) const
+{
+    std::unique_ptr<Vec3f[]> hdr(new Vec3f[_res.x()*_res.y()]);
+    std::unique_ptr<Vec3c[]> ldr(new Vec3c[_res.x()*_res.y()]);
+
+    for (uint32 y = 0; y < _res.y(); ++y) {
+        for (uint32 x = 0; x < _res.x(); ++x) {
+            hdr[x + y*_res.x()] = getLinear(x, y);
+            ldr[x + y*_res.x()] = Vec3c(clamp(Vec3i(get(x, y)*255.0f), Vec3i(0), Vec3i(255)));
+        }
+    }
+
+    if (!_outputFile.empty())
+        ImageIO::saveLdr(incrementalFilename(_outputFile, suffix), &ldr[0].x(), _res.x(), _res.y(), 3);
+    if (!_hdrOutputFile.empty())
+        ImageIO::saveHdr(incrementalFilename(_hdrOutputFile, suffix), &hdr[0].x(), _res.x(), _res.y(), 3);
+
+    if (!_varianceOutputFile.empty()) {
+        std::vector<float> variance;
+        int varianceW, varianceH;
+        renderer.getVarianceImage(variance, varianceW, varianceH);
+
+        std::unique_ptr<uint8[]> ldrVariance(new uint8[_res.x()*_res.y()]);
+        for (int y = 0; y < varianceH; ++y)
+            for (int x = 0; x < varianceW; ++x)
+                ldrVariance[x + y*varianceW] = clamp(int(variance[x + y*varianceW]*255.0f), 0, 255);
+
+        ImageIO::saveLdr(incrementalFilename(_varianceOutputFile, suffix), ldrVariance.get(), varianceW, varianceH, 1);
+    }
+}
+
 void Camera::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
-    JsonUtils::fromJson(v, "file", _outputFile);
+    JsonUtils::fromJson(v, "output_file", _outputFile);
+    JsonUtils::fromJson(v, "hdr_output_file", _hdrOutputFile);
+    JsonUtils::fromJson(v, "variance_output_file", _varianceOutputFile);
+    JsonUtils::fromJson(v, "overwrite_output_files", _overwriteOutputFiles);
     JsonUtils::fromJson(v, "tonemap", _tonemapString);
     JsonUtils::fromJson(v, "position", _pos);
     JsonUtils::fromJson(v, "lookAt", _lookAt);
@@ -57,7 +112,13 @@ void Camera::fromJson(const rapidjson::Value &v, const Scene &scene)
 rapidjson::Value Camera::toJson(Allocator &allocator) const
 {
     rapidjson::Value v = JsonSerializable::toJson(allocator);
-    v.AddMember("file", _outputFile.c_str(), allocator);
+    if (!_outputFile.empty())
+        v.AddMember("output_file", _outputFile.c_str(), allocator);
+    if (!_hdrOutputFile.empty())
+        v.AddMember("hdr_output_file", _hdrOutputFile.c_str(), allocator);
+    if (!_varianceOutputFile.empty())
+        v.AddMember("variance_output_file", _varianceOutputFile.c_str(), allocator);
+    v.AddMember("overwrite_output_files", _overwriteOutputFiles, allocator);
     v.AddMember("tonemap", _tonemapString.c_str(), allocator);
     v.AddMember("position", JsonUtils::toJsonValue<float, 3>(_pos,    allocator), allocator);
     v.AddMember("lookAt",   JsonUtils::toJsonValue<float, 3>(_lookAt, allocator), allocator);
@@ -107,6 +168,16 @@ void Camera::setUp(const Vec3f &up)
 {
     _up = up;
     precompute();
+}
+
+void Camera::saveOutputs(Renderer &renderer) const
+{
+    saveBuffers(renderer, "");
+}
+
+void Camera::saveCheckpoint(Renderer &renderer) const
+{
+    saveBuffers(renderer, "_checkpoint");
 }
 
 }

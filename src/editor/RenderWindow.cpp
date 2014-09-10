@@ -1,6 +1,7 @@
 #include "RenderWindow.hpp"
 #include "MainWindow.hpp"
 
+#include "io/DirectoryChange.hpp"
 #include "io/FileUtils.hpp"
 
 #include <string.h>
@@ -190,16 +191,9 @@ void RenderWindow::finishRender()
         startRender();
     else {
         if (_scene) {
-            std::string dst = FileUtils::addSeparator(FileUtils::extractParent(_scene->path())) + _scene->camera()->outputFile();
-            std::string basename = FileUtils::stripExt(dst);
-            std::string extension = FileUtils::extractExt(dst);
-            int index = 0;
-            while (FileUtils::fileExists(dst))
-                dst = tfm::format("%s%05d.%s", basename, ++index, extension);
-
-            _image->save(QString::fromStdString(dst), "PNG", 100);
+            DirectoryChange context(FileUtils::extractParent(_scene->path()));
+            _scene->camera()->saveOutputs(*_renderer);
         }
-        _renderer->saveVariance("Variance.png");
         _renderer.reset();
         _flattenedScene.reset();
 

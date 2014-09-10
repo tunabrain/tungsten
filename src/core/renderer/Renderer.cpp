@@ -205,14 +205,15 @@ void Renderer::abortRender()
     _threadPool.reset();
 }
 
-void Renderer::saveVariance(const std::string &path)
+void Renderer::getVarianceImage(std::vector<float> &data, int &w, int &h)
 {
-    float maxError = max(errorPercentile95(), 1e-5f);
-    std::vector<Vec3c> image(_varianceW*_varianceH);
-    for (size_t i = 0; i < _samples.size(); ++i)
-        image[i] = Vec3c(min(int(_samples[i].errorEstimate()/maxError*256.0f), 255));
+    w = _varianceW;
+    h = _varianceH;
+    data.resize(w*h);
 
-    lodepng_encode24_file(path.c_str(), &image[0].x(), _varianceW, _varianceH);
+    float maxError = max(errorPercentile95(), 1e-5f);
+    for (size_t i = 0; i < _samples.size(); ++i)
+        data[i] = clamp(_samples[i].errorEstimate()/maxError, 0.0f, 1.0f);
 }
 
 }
