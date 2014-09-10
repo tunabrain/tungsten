@@ -35,19 +35,19 @@ endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SIMD_FLAGS}")
 
-add_subdirectory(src/extern/embree)
+add_subdirectory(src/thirdparty/embree)
 add_definitions(-DLODEPNG_NO_COMPILE_DECODER=1)
-add_library(extern STATIC
-		src/extern/lodepng/lodepng.cpp
-		src/extern/sobol/sobol.cpp
-		src/extern/stbi/stb_image.c
-		src/extern/SFMT/SFMT.c)
+add_library(thirdparty STATIC
+		src/thirdparty/lodepng/lodepng.cpp
+		src/thirdparty/sobol/sobol.cpp
+		src/thirdparty/stbi/stb_image.c
+		src/thirdparty/SFMT/SFMT.c)
 
 set(CXX_WARNINGS "-Wall -Wextra -Wpointer-arith -Wcast-align -fstrict-aliasing -Wno-unused-local-typedefs")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_WARNINGS} -fvisibility-inlines-hidden")
-set(core_libs core extern embree)
+set(core_libs core thirdparty embree)
 
-include_directories(src/core src/extern src/extern/embree src)
+include_directories(src/core src/thirdparty src/thirdparty/embree src)
 
 file(GLOB_RECURSE Core_SOURCES "src/core/*.cpp")
 add_library(core STATIC ${Core_SOURCES})
