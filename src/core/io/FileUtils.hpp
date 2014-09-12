@@ -33,6 +33,8 @@ std::string toAbsolutePath(const std::string &path);
 bool changeCurrentDir(const std::string &dir);
 std::string getCurrentDir();
 
+std::string getExecutablePath();
+
 bool fileExists(const std::string &path);
 bool createDirectory(const std::string &path, bool recursive = true);
 

@@ -302,6 +302,28 @@ std::string getCurrentDir()
     return std::string();
 }
 
+std::string getExecutablePath()
+{
+#if _WIN32
+    DWORD size = GetModuleFileNameA(nullptr, tmpBuffer, sizeof(tmpBuffer));
+    if (size >= sizeof(tmpBuffer)) {
+        std::unique_ptr<char[]> tmpBuf(new char[size + 1]);
+        size = GetModuleFileNameA(nullptr, tmpBuf.get(), size + 1);
+        if (size)
+            return std::string(tmpBuf.get(), size);
+    } else if (size != 0) {
+        return std::string(tmpBuffer, size);
+    }
+#else
+    ssize_t size = readlink("/proc/self/exe", tmpBuffer, sizeof(tmpBuffer));
+    if (size != -1)
+    	return std::string(tmpBuffer, size);
+    // readlink does not tell us the actual content size if our buffer is too small,
+    // so we won't attempt to allocate a larger buffer here and fail instead
+#endif
+    return std::string();
+}
+
 bool fileExists(const std::string &path)
 {
 #if _WIN32
