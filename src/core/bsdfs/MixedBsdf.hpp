@@ -7,7 +7,9 @@
 #include "Bsdf.hpp"
 #include "ErrorBsdf.hpp"
 
-#include "sampling/SurfaceScatterEvent.hpp"
+#include "samplerecords/SurfaceScatterEvent.hpp"
+
+#include "sampling/UniformSampler.hpp"
 
 #include "math/Vec.hpp"
 

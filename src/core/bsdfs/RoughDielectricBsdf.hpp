@@ -5,6 +5,8 @@
 #include "Fresnel.hpp"
 #include "Bsdf.hpp"
 
+#include "sampling/UniformSampler.hpp"
+
 namespace Tungsten {
 
 class RoughDielectricBsdf : public Bsdf

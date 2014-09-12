@@ -3,11 +3,11 @@
 
 #include "BsdfLobes.hpp"
 
+#include "samplerecords/SurfaceScatterEvent.hpp"
+
 #include "primitives/Primitive.hpp"
 
 #include "materials/Texture.hpp"
-
-#include "sampling/SurfaceScatterEvent.hpp"
 
 #include "math/TangentFrame.hpp"
 #include "math/Vec.hpp"

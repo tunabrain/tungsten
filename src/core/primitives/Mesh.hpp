@@ -4,8 +4,9 @@
 #include "Triangle.hpp"
 #include "Vertex.hpp"
 
+#include "sampling/SampleGenerator.hpp"
 #include "sampling/Distribution1D.hpp"
-#include "sampling/Sample.hpp"
+#include "sampling/SampleWarp.hpp"
 
 #include "math/TangentFrame.hpp"
 #include "math/Mat4f.hpp"

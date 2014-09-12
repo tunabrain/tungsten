@@ -1,7 +1,7 @@
 #ifndef PHASEFUNCTION_HPP_
 #define PHASEFUNCTION_HPP_
 
-#include "sampling/Sample.hpp"
+#include "sampling/SampleWarp.hpp"
 
 #include "math/Angle.hpp"
 #include "math/Vec.hpp"

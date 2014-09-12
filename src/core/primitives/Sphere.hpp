@@ -4,7 +4,7 @@
 #include "Primitive.hpp"
 #include "Mesh.hpp"
 
-#include "sampling/Sample.hpp"
+#include "sampling/SampleWarp.hpp"
 
 namespace Tungsten {
 

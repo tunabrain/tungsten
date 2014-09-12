@@ -2,6 +2,8 @@
 
 #include "materials/DiskTexture.hpp"
 
+#include "sampling/SampleGenerator.hpp"
+
 #include "math/Angle.hpp"
 
 #include "io/Scene.hpp"

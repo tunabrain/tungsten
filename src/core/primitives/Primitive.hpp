@@ -1,9 +1,9 @@
 #ifndef PRIMITIVE_HPP_
 #define PRIMITIVE_HPP_
 
-#include "materials/Texture.hpp"
+#include "samplerecords/LightSample.hpp"
 
-#include "sampling/LightSample.hpp"
+#include "materials/Texture.hpp"
 
 #include "math/Mat4f.hpp"
 #include "math/Ray.hpp"

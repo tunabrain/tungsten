@@ -5,7 +5,7 @@
 
 #include "Bsdf.hpp"
 
-#include "sampling/SurfaceScatterEvent.hpp"
+#include "samplerecords/SurfaceScatterEvent.hpp"
 
 #include "io/JsonUtils.hpp"
 

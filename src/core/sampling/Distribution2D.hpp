@@ -1,10 +1,10 @@
 #ifndef DISTRIBUTION2D_HPP_
 #define DISTRIBUTION2D_HPP_
 
-#include <core/Debug.hpp>
 #include "math/MathUtil.hpp"
 
 #include <algorithm>
+#include <vector>
 
 namespace Tungsten {
 
@@ -40,17 +40,19 @@ public:
             int idxC = y*(w + 1);
             int idxTail = idxC + w;
 
+            float rowWeight = _cdf[idxTail];
             for (int x = 0; x < w; ++x, ++idxP, ++idxC) {
-                _pdf[idxP] /= _cdf[idxTail];
-                _cdf[idxC] /= _cdf[idxTail];
+                _pdf[idxP] /= rowWeight;
+                _cdf[idxC] /= rowWeight;
             }
             _cdf[idxTail] = 1.0f;
         }
 
+        float totalWeight = _marginalCdf.back();
         for (float &p : _marginalPdf)
-            p /= _marginalCdf.back();
+            p /= totalWeight;
         for (float &c : _marginalCdf)
-            c /= _marginalCdf.back();
+            c /= totalWeight;
         _marginalCdf.back() = 1.0f;
     }
 

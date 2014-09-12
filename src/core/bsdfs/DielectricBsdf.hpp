@@ -6,9 +6,10 @@
 #include "Bsdf.hpp"
 #include "Fresnel.hpp"
 
+#include "samplerecords/SurfaceScatterEvent.hpp"
+
 #include "sampling/SampleGenerator.hpp"
-#include "sampling/SurfaceScatterEvent.hpp"
-#include "sampling/Sample.hpp"
+#include "sampling/SampleWarp.hpp"
 
 #include "math/MathUtil.hpp"
 #include "math/Angle.hpp"

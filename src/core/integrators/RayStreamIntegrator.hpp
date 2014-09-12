@@ -6,13 +6,15 @@
 #include <memory>
 #include <cmath>
 
+#include "samplerecords/SurfaceScatterEvent.hpp"
+#include "samplerecords/VolumeScatterEvent.hpp"
+#include "samplerecords/LightSample.hpp"
+
 #include "integrators/Integrator.hpp"
 
 #include "sampling/SampleGenerator.hpp"
-#include "sampling/SurfaceScatterEvent.hpp"
-#include "sampling/VolumeScatterEvent.hpp"
-#include "sampling/LightSample.hpp"
-#include "sampling/Sample.hpp"
+#include "sampling/UniformSampler.hpp"
+#include "sampling/SampleWarp.hpp"
 
 #include "volume/Medium.hpp"
 

@@ -5,8 +5,9 @@
 
 #include "Bsdf.hpp"
 
-#include "sampling/SurfaceScatterEvent.hpp"
-#include "sampling/Sample.hpp"
+#include "samplerecords/SurfaceScatterEvent.hpp"
+
+#include "sampling/SampleWarp.hpp"
 
 #include "math/TangentFrame.hpp"
 #include "math/Angle.hpp"

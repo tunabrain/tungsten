@@ -1,8 +1,6 @@
 #ifndef INTEGRATOR_HPP_
 #define INTEGRATOR_HPP_
 
-#include "sampling/SampleGenerator.hpp"
-
 #include "math/Vec.hpp"
 
 #include "io/JsonSerializable.hpp"
@@ -12,6 +10,8 @@ namespace Tungsten
 
 class Camera;
 class TraceableScene;
+class SampleGenerator;
+class UniformSampler;
 
 class Integrator : public JsonSerializable
 {

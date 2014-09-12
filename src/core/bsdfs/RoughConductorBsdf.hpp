@@ -5,6 +5,8 @@
 #include "Fresnel.hpp"
 #include "Bsdf.hpp"
 
+#include "sampling/SampleGenerator.hpp"
+
 namespace Tungsten
 {
 

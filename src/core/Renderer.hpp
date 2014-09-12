@@ -10,6 +10,8 @@
 #include "integrators/Integrator.hpp"
 
 #include "sampling/SampleGenerator.hpp"
+#include "sampling/UniformSampler.hpp"
+#include "sampling/SobolSampler.hpp"
 
 #include "cameras/Camera.hpp"
 

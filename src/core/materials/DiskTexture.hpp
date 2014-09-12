@@ -3,7 +3,7 @@
 
 #include "Texture.hpp"
 
-#include "sampling/Sample.hpp"
+#include "sampling/SampleWarp.hpp"
 
 #include "math/MathUtil.hpp"
 

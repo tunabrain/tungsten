@@ -1,7 +1,7 @@
 #ifndef MEDIUM_HPP_
 #define MEDIUM_HPP_
 
-#include "sampling/VolumeScatterEvent.hpp"
+#include "samplerecords/VolumeScatterEvent.hpp"
 
 #include "io/JsonSerializable.hpp"
 #include "io/JsonUtils.hpp"

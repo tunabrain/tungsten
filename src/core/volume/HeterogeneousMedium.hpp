@@ -4,6 +4,8 @@
 #include "VoxelVolume.hpp"
 #include "Medium.hpp"
 
+#include "sampling/UniformSampler.hpp"
+
 namespace Tungsten
 {
 

@@ -1,10 +1,10 @@
 #ifndef DISTRIBUTION1D_HPP_
 #define DISTRIBUTION1D_HPP_
 
-#include <core/Debug.hpp>
 #include "math/MathUtil.hpp"
 
 #include <algorithm>
+#include <vector>
 
 namespace Tungsten {
 
@@ -20,10 +20,11 @@ public:
         _cdf[0] = 0.0f;
         for (size_t i = 0; i < _pdf.size(); ++i)
             _cdf[i + 1] = _cdf[i] + _pdf[i];
+        float totalWeight = _cdf.back();
         for (float &p : _pdf)
-            p /= _cdf.back();
+            p /= totalWeight;
         for (float &c : _cdf)
-            c /= _cdf.back();
+            c /= totalWeight;
         _cdf.back() = 1.0f;
     }
 

@@ -1,11 +1,11 @@
 #ifndef SAMPLE_HPP_
 #define SAMPLE_HPP_
 
-#include <cmath>
-
 #include "math/MathUtil.hpp"
 #include "math/Angle.hpp"
 #include "math/Vec.hpp"
+
+#include <cmath>
 
 namespace Tungsten
 {

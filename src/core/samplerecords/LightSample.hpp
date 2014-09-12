@@ -1,12 +1,12 @@
 #ifndef LIGHTSAMPLE_HPP_
 #define LIGHTSAMPLE_HPP_
 
-#include "SampleGenerator.hpp"
-
 #include "math/Vec.hpp"
 
 namespace Tungsten
 {
+
+class SampleGenerator;
 
 struct LightSample
 {
