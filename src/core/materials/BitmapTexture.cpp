@@ -232,7 +232,7 @@ void BitmapTexture::derivatives(const Vec2f &uv, Vec2f &derivs) const
 
 void BitmapTexture::makeSamplable(TextureMapJacobian jacobian)
 {
-    if (_distribution)
+    if (_distribution[jacobian])
         return;
 
     std::vector<float> weights(_w*_h);
@@ -250,20 +250,20 @@ void BitmapTexture::makeSamplable(TextureMapJacobian jacobian)
             weights[idx] = w*0.125f*rowWeight;
         }
     }
-    _distribution.reset(new Distribution2D(std::move(weights), _w, _h));
+    _distribution[jacobian].reset(new Distribution2D(std::move(weights), _w, _h));
 }
 
-Vec2f BitmapTexture::sample(const Vec2f &uv) const
+Vec2f BitmapTexture::sample(TextureMapJacobian jacobian, const Vec2f &uv) const
 {
     Vec2f newUv(uv);
     int row, column;
-    _distribution->warp(newUv, row, column);
+    _distribution[jacobian]->warp(newUv, row, column);
     return Vec2f((newUv.x() + column)/_w, 1.0f - (newUv.y() + row)/_h);
 }
 
-float BitmapTexture::pdf(const Vec2f &uv) const
+float BitmapTexture::pdf(TextureMapJacobian jacobian, const Vec2f &uv) const
 {
-    return _distribution->pdf(int((1.0f - uv.y())*_h), int(uv.x()*_w))*_w*_h;
+    return _distribution[jacobian]->pdf(int((1.0f - uv.y())*_h), int(uv.x()*_w))*_w*_h;
 }
 
 std::shared_ptr<BitmapTexture> BitmapTexture::loadTexture(const std::string &path, TexelConversion conversion)

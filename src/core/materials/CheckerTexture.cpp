@@ -70,7 +70,7 @@ void CheckerTexture::makeSamplable(TextureMapJacobian /*jacobian*/)
 }
 
 /* TODO this is biased for odd resolutions */
-Vec2f CheckerTexture::sample(const Vec2f &uv) const
+Vec2f CheckerTexture::sample(TextureMapJacobian /*jacobian*/, const Vec2f &uv) const
 {
     float  onWeight =  _onColor.max();
     float offWeight = _offColor.max();
@@ -98,7 +98,7 @@ Vec2f CheckerTexture::sample(const Vec2f &uv) const
     return Vec2f(u, v);
 }
 
-float CheckerTexture::pdf(const Vec2f &uv) const
+float CheckerTexture::pdf(TextureMapJacobian /*jacobian*/, const Vec2f &uv) const
 {
     float  onWeight =  _onColor.max();
     float offWeight = _offColor.max();

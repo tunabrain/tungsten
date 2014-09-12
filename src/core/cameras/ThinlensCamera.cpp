@@ -115,7 +115,7 @@ bool ThinlensCamera::generateSample(Vec2u pixel, SampleGenerator &sampler, Vec3f
     );
     planePos *= _focusDist/planePos.z();
 
-    Vec2f aperturePos = _aperture->sample(lensUv);
+    Vec2f aperturePos = _aperture->sample(MAP_UNIFORM, lensUv);
     if (_chromaticAberration > 0.0f)
         throughput = aberration(planePos, pixel, aperturePos, sampler);
     else

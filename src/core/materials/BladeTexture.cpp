@@ -90,7 +90,7 @@ void BladeTexture::makeSamplable(TextureMapJacobian /*jacobian*/)
 {
 }
 
-Vec2f BladeTexture::sample(const Vec2f &uv) const
+Vec2f BladeTexture::sample(TextureMapJacobian /*jacobian*/, const Vec2f &uv) const
 {
     float u = uv.x()*_numBlades;
     int blade = int(u);
@@ -112,7 +112,7 @@ Vec2f BladeTexture::sample(const Vec2f &uv) const
     )*0.5f + 0.5f;
 }
 
-float BladeTexture::pdf(const Vec2f &uv) const
+float BladeTexture::pdf(TextureMapJacobian /*jacobian*/, const Vec2f &uv) const
 {
     if (uv.sum() == 0.0f)
         return 1.0f/_area;

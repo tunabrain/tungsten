@@ -35,8 +35,8 @@ public:
     virtual void derivatives(const Vec2f &uv, Vec2f &derivs) const override;
 
     virtual void makeSamplable(TextureMapJacobian jacobian) override;
-    virtual Vec2f sample(const Vec2f &uv) const override;
-    virtual float pdf(const Vec2f &uv) const override;
+    virtual Vec2f sample(TextureMapJacobian jacobian, const Vec2f &uv) const override;
+    virtual float pdf(TextureMapJacobian jacobian, const Vec2f &uv) const override;
 };
 
 }

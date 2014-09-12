@@ -115,7 +115,7 @@ float InfiniteSphere::inboundPdf(const IntersectionTemporary &data, const Vec3f 
         const InfiniteSphereIntersection *isect = data.as<InfiniteSphereIntersection>();
         float sinTheta;
         Vec2f uv = directionToUV(isect->w, sinTheta);
-        return INV_PI*INV_TWO_PI*_emission->pdf(uv)/sinTheta;
+        return INV_PI*INV_TWO_PI*_emission->pdf(MAP_SPHERICAL, uv)/sinTheta;
     }
 }
 
@@ -127,10 +127,10 @@ bool InfiniteSphere::sampleInboundDirection(LightSample &sample) const
         sample.pdf = INV_FOUR_PI;
         return true;
     } else {
-        Vec2f uv = _emission->sample(sample.sampler->next2D());
+        Vec2f uv = _emission->sample(MAP_SPHERICAL, sample.sampler->next2D());
         float sinTheta;
         sample.d = uvToDirection(uv, sinTheta);
-        sample.pdf = INV_PI*INV_TWO_PI*_emission->pdf(uv)/sinTheta;
+        sample.pdf = INV_PI*INV_TWO_PI*_emission->pdf(MAP_SPHERICAL, uv)/sinTheta;
         sample.dist = 1e30f;
         return true;
     }

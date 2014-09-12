@@ -10,6 +10,7 @@ namespace Tungsten {
 enum TextureMapJacobian {
     MAP_UNIFORM,
     MAP_SPHERICAL,
+    MAP_JACOBIAN_COUNT,
 };
 
 class Texture : public JsonSerializable
@@ -31,8 +32,8 @@ public:
     virtual void derivatives(const Vec2f &uv, Vec2f &derivs) const = 0;
 
     virtual void makeSamplable(TextureMapJacobian jacobian) = 0;
-    virtual Vec2f sample(const Vec2f &uv) const = 0;
-    virtual float pdf(const Vec2f &uv) const = 0;
+    virtual Vec2f sample(TextureMapJacobian jacobian, const Vec2f &uv) const = 0;
+    virtual float pdf(TextureMapJacobian jacobian, const Vec2f &uv) const = 0;
 };
 
 }

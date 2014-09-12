@@ -61,12 +61,12 @@ void ConstantTexture::makeSamplable(TextureMapJacobian /*jacobian*/)
 {
 }
 
-Vec2f ConstantTexture::sample(const Vec2f &uv) const
+Vec2f ConstantTexture::sample(TextureMapJacobian /*jacobian*/, const Vec2f &uv) const
 {
     return uv;
 }
 
-float ConstantTexture::pdf(const Vec2f &/*uv*/) const
+float ConstantTexture::pdf(TextureMapJacobian /*jacobian*/, const Vec2f &/*uv*/) const
 {
     return 1.0f;
 }
