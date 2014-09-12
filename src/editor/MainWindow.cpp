@@ -16,7 +16,7 @@ MainWindow::MainWindow()
 {
     _scene.reset();
     QGLFormat qglFormat;
-    qglFormat.setVersion(4, 2);
+    qglFormat.setVersion(3, 2);
     qglFormat.setProfile(QGLFormat::CoreProfile);
     qglFormat.setAlpha(true);
     qglFormat.setSampleBuffers(true);
