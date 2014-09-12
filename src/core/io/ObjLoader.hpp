@@ -24,6 +24,8 @@ class Primitive;
 
 class ObjLoader
 {
+	bool _geometryOnly;
+
     std::shared_ptr<Bsdf> _errorMaterial;
     std::vector<ObjMaterial> _materials;
     std::unordered_map<std::string, uint32> _materialToIndex;
@@ -57,6 +59,7 @@ class ObjLoader
     void loadFace(const char *line);
     void loadMaterialLibrary(const char *path);
     void loadLine(const char *line);
+    void loadFile(std::ifstream &in);
 
     std::shared_ptr<Bsdf> convertObjMaterial(const ObjMaterial &mat);
 
@@ -67,10 +70,12 @@ class ObjLoader
     std::shared_ptr<Primitive> tryInstantiateQuad(const std::string &name, std::shared_ptr<Bsdf> &bsdf);
     std::shared_ptr<Primitive> finalizeMesh();
 
-    ObjLoader(std::ifstream &in, const char *path, std::shared_ptr<TextureCache> cache);
+    ObjLoader(std::ifstream &in, const std::string &path, std::shared_ptr<TextureCache> cache);
+    ObjLoader(std::ifstream &in);
 
 public:
-    static Scene *load(const char *path, std::shared_ptr<TextureCache> cache = nullptr);
+    static Scene *load(const std::string &path, std::shared_ptr<TextureCache> cache = nullptr);
+    static bool loadGeometryOnly(const std::string &path, std::vector<Vertex> &verts, std::vector<TriangleI> &tris);
 };
 
 }

@@ -191,7 +191,7 @@ void ObjLoader::loadLine(const char *line)
             || hasPrefix(line, "o")
             || hasPrefix(line, "s");
 
-    if (meshBoundary && !_tris.empty()) {
+    if (meshBoundary && !_tris.empty() && !_geometryOnly) {
         _meshes.emplace_back(finalizeMesh());
         clearPerMeshData();
     }
@@ -205,6 +205,8 @@ void ObjLoader::loadLine(const char *line)
         _uv.push_back(loadVector<2>(line + 3));
     else if (hasPrefix(line, "f"))
         loadFace(line + 2);
+    else if (_geometryOnly)
+    	return;
     else if (hasPrefix(line, "mtllib"))
         loadMaterialLibrary(line + 7);
     else if (hasPrefix(line, "usemtl")) {
@@ -353,20 +355,26 @@ std::shared_ptr<Primitive> ObjLoader::finalizeMesh()
     return std::move(prim);
 }
 
-ObjLoader::ObjLoader(std::ifstream &in, const char *path, std::shared_ptr<TextureCache> cache)
-: _errorMaterial(std::make_shared<ErrorBsdf>()),
-  _textureCache(std::move(cache)),
-  _currentMaterial(-1),
-  _meshSmoothed(false)
+void ObjLoader::loadFile(std::ifstream &in)
 {
-    DirectoryChange context(FileUtils::extractParent(path));
-
     std::string line;
     while (!in.fail() && !in.eof()) {
         std::getline(in, line);
 
         loadLine(line.c_str());
     }
+}
+
+ObjLoader::ObjLoader(std::ifstream &in, const std::string &path, std::shared_ptr<TextureCache> cache)
+: _geometryOnly(false),
+  _errorMaterial(std::make_shared<ErrorBsdf>()),
+  _textureCache(std::move(cache)),
+  _currentMaterial(-1),
+  _meshSmoothed(false)
+{
+    DirectoryChange context(FileUtils::extractParent(path));
+
+    loadFile(in);
 
     if (!_tris.empty()) {
         _meshes.emplace_back(finalizeMesh());
@@ -374,7 +382,13 @@ ObjLoader::ObjLoader(std::ifstream &in, const char *path, std::shared_ptr<Textur
     }
 }
 
-Scene *ObjLoader::load(const char *path, std::shared_ptr<TextureCache> cache)
+ObjLoader::ObjLoader(std::ifstream &in)
+: _geometryOnly(true)
+{
+	loadFile(in);
+}
+
+Scene *ObjLoader::load(const std::string &path, std::shared_ptr<TextureCache> cache)
 {
     std::ifstream file(path, std::ios::in | std::ios::binary);
 
@@ -398,6 +412,20 @@ Scene *ObjLoader::load(const char *path, std::shared_ptr<TextureCache> cache)
     } else {
         return nullptr;
     }
+}
+
+bool ObjLoader::loadGeometryOnly(const std::string &path, std::vector<Vertex> &verts, std::vector<TriangleI> &tris)
+{
+    std::ifstream file(path, std::ios::in | std::ios::binary);
+    if (!file.good())
+    	return false;
+
+    ObjLoader loader(file);
+
+    verts = std::move(loader._verts);
+    tris  = std::move(loader._tris);
+
+    return true;
 }
 
 }
