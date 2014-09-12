@@ -546,11 +546,7 @@ class SceneXmlWriter
             if (!FileUtils::createDirectory(FileUtils::extractParent(fullObjFile)))
                 DBG("Unable to create target folder for obj at: '%s'", fullObjFile);
         }
-        std::ofstream out(fullObjFile, std::ios_base::out | std::ios_base::binary);
-        if (!out.good())
-            DBG("Unable to create obj for writing at: '%s'", fullObjFile);
-        prim->saveAsObj(out);
-        out.close();
+        prim->saveAsObj(fullObjFile);
         convert("filename", objFile);
         convert("toWorld", prim->transform());
     }

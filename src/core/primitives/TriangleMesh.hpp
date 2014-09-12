@@ -49,7 +49,7 @@ public:
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
     void saveData() const;
-    void saveAsObj(std::ostream &out) const;
+    void saveAsObj(const std::string &path) const;
     void calcSmoothVertexNormals();
     void computeBounds();
 
