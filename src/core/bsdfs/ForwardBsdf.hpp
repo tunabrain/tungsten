@@ -1,54 +1,24 @@
 #ifndef FORWARDBSDF_HPP_
 #define FORWARDBSDF_HPP_
 
-#include <rapidjson/document.h>
-
 #include "Bsdf.hpp"
-
-#include "samplerecords/SurfaceScatterEvent.hpp"
-
-#include "io/JsonUtils.hpp"
 
 namespace Tungsten
 {
 
 class Scene;
+class SurfaceScatterEvent;
 
 class ForwardBsdf : public Bsdf
 {
 public:
-    ForwardBsdf()
-    {
-        _lobes = BsdfLobes::ForwardLobe;
-    }
+    ForwardBsdf();
 
-    virtual rapidjson::Value toJson(Allocator &allocator) const
-    {
-        rapidjson::Value v = Bsdf::toJson(allocator);
-        v.AddMember("type", "forward", allocator);
-        return std::move(v);
-    }
+    virtual rapidjson::Value toJson(Allocator &allocator) const;
 
-    bool sample(SurfaceScatterEvent &event) const override final
-    {
-        if (!event.requestedLobe.test(BsdfLobes::ForwardLobe))
-            return false;
-        event.wo = -event.wi;
-        event.throughput = Vec3f(1.0f);
-        event.pdf = 1.0f;
-        event.sampledLobe = BsdfLobes::ForwardLobe;
-        return true;
-    }
-
-    Vec3f eval(const SurfaceScatterEvent &/*event*/) const override final
-    {
-        return Vec3f(0.0f);
-    }
-
-    float pdf(const SurfaceScatterEvent &/*event*/) const override final
-    {
-        return 0.0f;
-    }
+    bool sample(SurfaceScatterEvent &event) const override final;
+    Vec3f eval(const SurfaceScatterEvent &event) const override final;
+    float pdf(const SurfaceScatterEvent &event) const override final;
 };
 
 }

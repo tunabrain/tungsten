@@ -43,7 +43,6 @@ public:
     BsdfLobes(const BsdfLobes &a, const BsdfLobes &b)
     : _lobes(a._lobes | b._lobes)
     {
-
     }
 
     BsdfLobes(Lobe lobes)

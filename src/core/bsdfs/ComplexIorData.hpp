@@ -1,3 +1,11 @@
+#include "math/Vec.hpp"
+
+#include <string>
+
+namespace Tungsten {
+
+namespace ComplexIorList {
+
 struct ComplexIor
 {
     std::string name;
@@ -5,7 +13,7 @@ struct ComplexIor
     Vec3f k;
 };
 
-const ComplexIor complexIorList[] = {
+static const ComplexIor complexIorList[] = {
     {"a-C", Vec3f(2.9440999183f, 2.2271502925f, 1.9681668794f), Vec3f(0.8874329109f, 0.7993216383f, 0.8152862927f)},
     {"Ag", Vec3f(0.1552646489f, 0.1167232965f, 0.1383806959f), Vec3f(4.8283433224f, 3.1222459278f, 2.1469504455f)},
     {"Al", Vec3f(1.6574599595f, 0.8803689579f, 0.5212287346f), Vec3f(9.2238691996f, 6.2695232477f, 4.8370012281f)},
@@ -78,5 +86,8 @@ const ComplexIor complexIorList[] = {
     {"V_palik", Vec3f(4.2775126218f, 3.5131538236f, 2.7611257461f), Vec3f(3.4911844504f, 2.8893580874f, 3.1116965117f)},
     {"W", Vec3f(4.3707029924f, 3.3002972445f, 2.9982666528f), Vec3f(3.5006778591f, 2.6048652781f, 2.2731930614f)},
 };
-const int ComplexIorCount = 71;
+static const int ComplexIorCount = 71;
 
+}
+
+}

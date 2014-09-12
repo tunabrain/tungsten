@@ -28,7 +28,8 @@ class Bsdf : public JsonSerializable
 protected:
     BsdfLobes _lobes;
 
-    std::shared_ptr<Medium> _intMedium, _extMedium;
+    std::shared_ptr<Medium> _intMedium;
+    std::shared_ptr<Medium> _extMedium;
 
     std::shared_ptr<TextureRgb> _albedo;
     std::shared_ptr<TextureA> _alpha;
