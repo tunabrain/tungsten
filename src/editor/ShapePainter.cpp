@@ -7,6 +7,8 @@
 #include "math/Mat4f.hpp"
 #include "math/Angle.hpp"
 
+#include "io/FileUtils.hpp"
+
 namespace Tungsten {
 
 using namespace GL;
@@ -21,8 +23,11 @@ void ShapePainter::initialize()
     _vbo->setStandardAttributes(VBO_ATT_POSITION | VBO_ATT_COLOR);
     _vbo->initBuffer();
 
+    std::string exePath = FileUtils::getExecutablePath();
+    std::string shaderBasePath = FileUtils::extractParent(exePath) + "/data/shaders/";
+
     _defaultShader =
-        new Shader("src/editor/shaders/", "Preamble.txt", "Primitive.vert", nullptr, "Primitive.frag", 1);
+        new Shader(shaderBasePath.c_str(), "Preamble.txt", "Primitive.vert", nullptr, "Primitive.frag", 1);
 
     _initialized = true;
 }
