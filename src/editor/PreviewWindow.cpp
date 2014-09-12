@@ -465,6 +465,16 @@ void PreviewWindow::initializeGL()
     glewInit();
     glGetError();
 
+    if (!QGLFormat::openGLVersionFlags().testFlag(QGLFormat::OpenGL_Version_3_2)) {
+    	QMessageBox::critical(this,
+    			"No OpenGL Support",
+    			"This system does not appear to support OpenGL 3.2.\n\n"
+    			"The Tungsten scene editor requires OpenGL version 3.2 or higher "
+    			"to work properly. The editor will now terminate.\n\n"
+    			"Please install any available updates for your graphics card driver and try again");
+    	std::exit(0);
+    }
+
     GLuint vao;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);

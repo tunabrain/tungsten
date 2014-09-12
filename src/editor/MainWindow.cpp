@@ -15,6 +15,17 @@ MainWindow::MainWindow()
 : QMainWindow()
 {
     _scene.reset();
+
+    if (!QGLFormat::hasOpenGL()) {
+    	QMessageBox::critical(this,
+    			"No OpenGL Support",
+    			"This system does not appear to support OpenGL.\n\n"
+    			"The Tungsten scene editor requires OpenGL "
+    			"to work properly. The editor will now terminate.\n\n"
+    			"Please install any available updates for your graphics card driver and try again");
+    	std::exit(0);
+    }
+
     QGLFormat qglFormat;
     qglFormat.setVersion(3, 2);
     qglFormat.setProfile(QGLFormat::CoreProfile);
