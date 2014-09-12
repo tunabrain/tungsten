@@ -75,6 +75,8 @@ public:
 
     virtual Primitive *clone() = 0;
 
+    virtual void saveData() {}
+
     void setupTangentFrame(const IntersectionTemporary &data,
             const IntersectionInfo &info, TangentFrame &dst) const;
 

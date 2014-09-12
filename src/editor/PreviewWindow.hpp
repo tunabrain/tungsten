@@ -91,6 +91,7 @@ class PreviewWindow : public QGLWidget
     std::unique_ptr<GL::Texture> _screenBuffer, _depthBuffer;
 
     std::unordered_map<Primitive *, std::shared_ptr<GlMesh>> _meshes;
+    std::unordered_set<Primitive *> _dirtyPrimitives;
     std::unique_ptr<GL::Shader> _shader, _wireframeShader, _solidShader;
 
     SelectionState _selectionState;
@@ -150,6 +151,7 @@ public:
     PreviewWindow(QWidget *proxyParent, MainWindow *parent, const QGLFormat &format);
 
     void addStatusWidgets(QStatusBar *statusBar);
+    void saveSceneData();
 };
 
 }

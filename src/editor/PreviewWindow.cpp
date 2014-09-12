@@ -102,6 +102,13 @@ void PreviewWindow::addStatusWidgets(QStatusBar *statusBar)
     statusBar->addPermanentWidget(new QLabel(), 1);
 }
 
+void PreviewWindow::saveSceneData()
+{
+	for (Primitive *p : _dirtyPrimitives)
+		p->saveData();
+	_dirtyPrimitives.clear();
+}
+
 void PreviewWindow::rebuildMeshMap()
 {
     std::unordered_map<Primitive *, std::shared_ptr<GlMesh>> tmpMap = std::move(_meshes);
@@ -328,7 +335,7 @@ void PreviewWindow::recomputeCentroids()
             for (Vertex &v : m->verts())
                 v.pos() -= centroid;
             m->setTransform(m->transform()*Mat4f::translate(centroid));
-            m->markDirty();
+            _dirtyPrimitives.insert(m);
 
             _meshes.erase(m);
         }
@@ -353,7 +360,7 @@ void PreviewWindow::computeSmoothNormals()
         if (TriangleMesh *m = dynamic_cast<TriangleMesh *>(e)) {
             m->calcSmoothVertexNormals();
             m->setSmoothed(true);
-            m->markDirty();
+            _dirtyPrimitives.insert(m);
             _meshes.erase(m);
         }
     }
@@ -369,7 +376,7 @@ void PreviewWindow::freezeTransforms()
             Mat4f tform = m->transform().stripTranslation();
             for (Vertex &v : m->verts())
                 v.pos() = tform*v.pos();
-            m->markDirty();
+            _dirtyPrimitives.insert(m);
             m->setTransform(m->transform().extractTranslation());
 
             _meshes.erase(m);

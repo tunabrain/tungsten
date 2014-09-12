@@ -19,7 +19,6 @@ class Scene;
 class TriangleMesh : public Primitive
 {
     std::string _path;
-    bool _dirty;
     bool _smoothed;
 
     std::vector<Vertex> _verts;
@@ -48,7 +47,7 @@ public:
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
-    void saveData() const;
+    virtual void saveData() override;
     void saveAsObj(const std::string &path) const;
     void calcSmoothVertexNormals();
     void computeBounds();
@@ -112,16 +111,6 @@ public:
     void setSmoothed(bool v)
     {
         _smoothed = v;
-    }
-
-    bool isDirty() const
-    {
-        return _dirty;
-    }
-
-    void markDirty()
-    {
-        _dirty = true;
     }
 
     const std::string& path() const

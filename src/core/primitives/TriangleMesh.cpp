@@ -32,15 +32,13 @@ struct MeshIntersection
 };
 
 TriangleMesh::TriangleMesh()
-: _dirty(false),
-  _smoothed(false)
+: _smoothed(false)
 {
 }
 
 TriangleMesh::TriangleMesh(const TriangleMesh &o)
 : Primitive(o),
   _path(o._path),
-  _dirty(true),
   _smoothed(o._smoothed),
   _verts(o._verts),
   _tris(o._tris),
@@ -53,7 +51,6 @@ TriangleMesh::TriangleMesh(std::vector<Vertex> verts, std::vector<TriangleI> tri
              const std::string &name, bool smoothed)
 : Primitive(name, bsdf),
   _path(std::string(name).append(".wo3")),
-  _dirty(true),
   _smoothed(smoothed),
   _verts(std::move(verts)),
   _tris(std::move(tris))
@@ -91,7 +88,6 @@ void TriangleMesh::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     Primitive::fromJson(v, scene);
 
-    _dirty = false;
     _path = JsonUtils::as<std::string>(v, "file");
     JsonUtils::fromJson(v, "smooth", _smoothed);
 
@@ -107,10 +103,9 @@ rapidjson::Value TriangleMesh::toJson(Allocator &allocator) const
     return std::move(v);
 }
 
-void TriangleMesh::saveData() const
+void TriangleMesh::saveData()
 {
-    if (_dirty)
-        MeshIO::save(_path, _verts, _tris);
+	MeshIO::save(_path, _verts, _tris);
 }
 
 void TriangleMesh::saveAsObj(const std::string &path) const
