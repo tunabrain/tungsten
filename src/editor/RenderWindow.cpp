@@ -1,6 +1,8 @@
 #include "RenderWindow.hpp"
 #include "MainWindow.hpp"
 
+#include "io/FileUtils.hpp"
+
 #include <string.h>
 #include <QtGui>
 

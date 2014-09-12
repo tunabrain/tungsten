@@ -14,6 +14,7 @@
 #include "render/MatrixStack.hpp"
 #include "render/GLDebug.hpp"
 
+#include "io/FileUtils.hpp"
 #include "io/ObjLoader.hpp"
 
 namespace Tungsten {
