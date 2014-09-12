@@ -474,12 +474,15 @@ void PreviewWindow::initializeGL()
 
     _fbo.reset(new RenderTarget());
 
+    std::string exePath = FileUtils::getExecutablePath();
+    std::string shaderBasePath = FileUtils::extractParent(exePath) + "/data/shaders/";
+
     _shader.reset(
-        new Shader("src/editor/shaders/", "Preamble.txt", "MeshPreview.vert", "MeshPreview.geom", "MeshPreview.frag", 1));
+        new Shader(shaderBasePath.c_str(), "Preamble.txt", "MeshPreview.vert", "MeshPreview.geom", "MeshPreview.frag", 1));
     _solidShader.reset(
-        new Shader("src/editor/shaders/", "Preamble.txt", "SolidMesh.vert", nullptr, "SolidMesh.frag", 1));
+        new Shader(shaderBasePath.c_str(), "Preamble.txt", "SolidMesh.vert", nullptr, "SolidMesh.frag", 1));
     _wireframeShader.reset(
-        new Shader("src/editor/shaders/", "Preamble.txt", "Wireframe.vert", "Wireframe.geom", "Wireframe.frag", 1));
+        new Shader(shaderBasePath.c_str(), "Preamble.txt", "Wireframe.vert", "Wireframe.geom", "Wireframe.frag", 1));
 }
 
 void PreviewWindow::paintGL()
