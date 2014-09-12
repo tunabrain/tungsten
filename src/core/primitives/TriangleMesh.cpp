@@ -10,8 +10,8 @@
 #include "math/Box.hpp"
 
 #include "io/JsonSerializable.hpp"
-#include "io/MeshInputOutput.hpp"
 #include "io/JsonUtils.hpp"
+#include "io/MeshIO.hpp"
 #include "io/Scene.hpp"
 
 #include <rapidjson/document.h>
@@ -95,7 +95,7 @@ void TriangleMesh::fromJson(const rapidjson::Value &v, const Scene &scene)
     _path = JsonUtils::as<std::string>(v, "file");
     JsonUtils::fromJson(v, "smooth", _smoothed);
 
-    MeshInputOutput::load(_path, _verts, _tris);
+    MeshIO::load(_path, _verts, _tris);
 }
 
 rapidjson::Value TriangleMesh::toJson(Allocator &allocator) const
@@ -110,7 +110,7 @@ rapidjson::Value TriangleMesh::toJson(Allocator &allocator) const
 void TriangleMesh::saveData() const
 {
     if (_dirty)
-        MeshInputOutput::save(_path, _verts, _tris);
+        MeshIO::save(_path, _verts, _tris);
 }
 
 void TriangleMesh::saveAsObj(std::ostream &out) const

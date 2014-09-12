@@ -16,7 +16,7 @@
 
 namespace Tungsten {
 
-class MeshInputOutput
+class MeshIO
 {
 public:
     static void load(const std::string &path, std::vector<Vertex> &verts, std::vector<TriangleI> &tris)
