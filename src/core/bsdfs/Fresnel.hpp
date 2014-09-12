@@ -6,11 +6,9 @@
 
 #include <cmath>
 
-namespace Tungsten
-{
+namespace Tungsten {
 
-namespace Fresnel
-{
+namespace Fresnel {
 
 static inline float thinFilmReflectance(float eta, float cosThetaI, float &cosThetaT)
 {

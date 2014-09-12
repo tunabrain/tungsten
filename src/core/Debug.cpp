@@ -7,8 +7,7 @@
 
 #include "extern/tinyformat/tinyformat.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 static const char *levelStr[] = {"WARN", "INFO", "DEBUG"};
 

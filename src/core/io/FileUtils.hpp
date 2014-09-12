@@ -7,8 +7,7 @@
 #include <string>
 #include <vector>
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 class FileUtils
 {

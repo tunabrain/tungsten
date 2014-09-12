@@ -19,8 +19,7 @@
 
 class QStatusBar;
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 class MainWindow;
 class TriangleMesh;

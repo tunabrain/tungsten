@@ -5,11 +5,9 @@
 
 #define MAX_VBO_ATTRIBUTES 16
 
-namespace Tungsten
-{
+namespace Tungsten {
 
-namespace GL
-{
+namespace GL {
 
 enum VboAttributes
 {

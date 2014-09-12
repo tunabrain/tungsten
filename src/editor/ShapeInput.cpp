@@ -5,8 +5,7 @@
 
 #include <iostream>
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 void ShapeInput::checkDistance(float d)
 {

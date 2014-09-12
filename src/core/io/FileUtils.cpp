@@ -4,8 +4,7 @@
 
 #include "FileUtils.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 std::string FileUtils::loadText(const char *path)
 {

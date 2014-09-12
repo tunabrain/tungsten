@@ -3,8 +3,7 @@
 
 #include "Bsdf.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 class SmoothCoatBsdf : public Bsdf
 {

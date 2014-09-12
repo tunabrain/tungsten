@@ -8,8 +8,7 @@
 #include <memory>
 #include <vector>
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 class Curves : public Primitive
 {

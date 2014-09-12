@@ -6,8 +6,7 @@
 
 #include <rapidjson/document.h>
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 ForwardBsdf::ForwardBsdf()
 {

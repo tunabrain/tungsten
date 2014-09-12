@@ -40,8 +40,7 @@
 #include <string>
 #include <stack>
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 class SceneXmlWriter
 {

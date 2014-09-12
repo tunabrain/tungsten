@@ -4,8 +4,7 @@
 #include "Bsdf.hpp"
 #include "Microfacet.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 class RoughCoatBsdf : public Bsdf
 {

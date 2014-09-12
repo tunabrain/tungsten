@@ -6,8 +6,7 @@
 
 #include <unordered_map>
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 void TriangleMesh::fromJson(const rapidjson::Value &v, const Scene &scene)
 {

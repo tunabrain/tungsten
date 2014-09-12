@@ -24,8 +24,7 @@
 #include "RendererSettings.hpp"
 #include "TraceableScene.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 class Scene : public JsonSerializable
 {

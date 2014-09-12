@@ -5,8 +5,7 @@
 
 #include "primitives/Primitive.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 class AtmosphericMedium : public Medium
 {

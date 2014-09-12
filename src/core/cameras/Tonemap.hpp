@@ -6,8 +6,7 @@
 
 #include "Debug.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 class Tonemap
 {

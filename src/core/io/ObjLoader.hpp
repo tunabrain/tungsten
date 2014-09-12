@@ -19,8 +19,7 @@
 #include "math/Vec.hpp"
 #include "math/Box.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 class Primitive;
 

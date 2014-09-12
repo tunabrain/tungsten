@@ -3,8 +3,7 @@
 
 #include <cmath>
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 Mat4f Mat4f::toNormalMatrix() const
 {

@@ -18,8 +18,7 @@
 #include <rapidjson/document.h>
 #include <memory>
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 class Medium;
 

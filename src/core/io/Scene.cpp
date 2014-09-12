@@ -49,8 +49,7 @@
 
 #include "Debug.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 std::shared_ptr<Medium> Scene::instantiateMedium(std::string type, const rapidjson::Value &value) const
 {

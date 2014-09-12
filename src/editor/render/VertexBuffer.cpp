@@ -7,8 +7,7 @@
 
 #include "GLDebug.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 namespace GL {
 

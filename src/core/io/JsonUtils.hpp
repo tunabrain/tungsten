@@ -11,8 +11,7 @@
 #include "math/Mat4f.hpp"
 #include "math/Vec.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 class JsonUtils
 {

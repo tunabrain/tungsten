@@ -3,8 +3,7 @@
 
 #include "math/Vec.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 class AbstractPainter
 {

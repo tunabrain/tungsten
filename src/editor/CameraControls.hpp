@@ -11,8 +11,7 @@
 
 #include <iostream>
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 class CameraControls
 {

@@ -5,11 +5,9 @@
 
 #include "math/Mat4f.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
-namespace GL
-{
+namespace GL {
 
 enum StackName {
     PROJECTION_STACK,

@@ -5,8 +5,7 @@
 
 #include "io/JsonSerializable.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 class Camera;
 class TraceableScene;

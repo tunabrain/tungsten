@@ -5,11 +5,9 @@
 
 #include <GL/glew.h>
 
-namespace Tungsten
-{
+namespace Tungsten {
 
-namespace GL
-{
+namespace GL {
 
 #ifndef NDEBUG
 # define GLCHECK() do {uint32 e = glGetError(); ASSERT(e == 0, "glGetError() == %d  %s", e, gluErrorString(e)); } while(0)

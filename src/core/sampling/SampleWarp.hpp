@@ -7,11 +7,9 @@
 
 #include <cmath>
 
-namespace Tungsten
-{
+namespace Tungsten {
 
-namespace Sample
-{
+namespace Sample {
 
 static inline Vec3f uniformHemisphere(const Vec2f &uv)
 {

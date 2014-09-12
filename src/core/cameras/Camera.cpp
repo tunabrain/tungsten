@@ -8,8 +8,7 @@
 
 #include <cmath>
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 // Default to low-res 16:9
 Camera::Camera()

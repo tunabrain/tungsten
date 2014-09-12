@@ -5,8 +5,7 @@
 
 #include "extern/SFMT/SFMT.h"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 class UniformSampler : public SampleGenerator
 {

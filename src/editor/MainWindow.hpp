@@ -9,8 +9,7 @@
 class QStackedWidget;
 class QLabel;
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 class RenderWindow;
 class PreviewWindow;

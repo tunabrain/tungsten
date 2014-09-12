@@ -5,11 +5,9 @@
 #include "Texture.hpp"
 #include "Debug.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
-namespace GL
-{
+namespace GL {
 
 /* Future proof as hell */
 static const GLenum targets[] = {

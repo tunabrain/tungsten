@@ -3,8 +3,7 @@
 #include "io/JsonUtils.hpp"
 #include "io/Scene.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 void RoughDielectricBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
 {

@@ -6,8 +6,7 @@
 
 #include "sampling/SampleWarp.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 class Quad : public Primitive
 {

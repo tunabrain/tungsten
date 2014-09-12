@@ -6,8 +6,7 @@
 #include <GL/glew.h>
 #include <vector>
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 namespace GL {
 class VertexBuffer;

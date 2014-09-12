@@ -8,8 +8,7 @@
 
 #include <type_traits>
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 enum TextureMapJacobian {
     MAP_UNIFORM,

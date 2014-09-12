@@ -5,8 +5,7 @@
 
 #include "Vec.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 struct TangentFrame
 {

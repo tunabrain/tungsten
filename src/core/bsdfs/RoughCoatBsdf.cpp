@@ -5,8 +5,7 @@
 
 #include "io/Scene.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 void RoughCoatBsdf::init()
 {

@@ -16,8 +16,7 @@
 
 #include "io/ObjLoader.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 using namespace GL;
 

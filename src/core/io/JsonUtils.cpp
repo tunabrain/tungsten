@@ -1,7 +1,6 @@
 #include "JsonUtils.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 template<>
 bool JsonUtils::fromJson<bool>(const rapidjson::Value &v, bool &dst)

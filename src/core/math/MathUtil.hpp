@@ -5,8 +5,7 @@
 
 #include "IntTypes.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 template<typename T>
 T min(T a, T b)

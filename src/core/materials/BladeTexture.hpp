@@ -8,8 +8,7 @@
 #include "math/MathUtil.hpp"
 #include "math/Angle.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 template<bool Scalar>
 class BladeTexture : public Texture<Scalar, 2>

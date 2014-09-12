@@ -22,8 +22,7 @@
 
 #include "extern/lodepng/lodepng.h"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 class Renderer
 {

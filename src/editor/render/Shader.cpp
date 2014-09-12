@@ -4,11 +4,9 @@
 #include "Shader.hpp"
 #include "Debug.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
-namespace GL
-{
+namespace GL {
 
 static int stringHash(const char *str) {
     int hash = 5381;

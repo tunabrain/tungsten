@@ -3,8 +3,7 @@
 
 #include "Vec.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 class Mat4f;
 

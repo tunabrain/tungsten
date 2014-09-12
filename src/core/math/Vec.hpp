@@ -10,8 +10,7 @@
 #include <ostream>
 #include <cmath>
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 template<typename ElementType, unsigned Size>
 class Vec {

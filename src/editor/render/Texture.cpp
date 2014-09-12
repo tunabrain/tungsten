@@ -5,11 +5,9 @@
 #include "Texture.hpp"
 #include "Debug.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
-namespace GL
-{
+namespace GL {
 
 static const GLenum GlFormatTable[][4][4] = {
     {{  GL_R8,   GL_RG8,   GL_RGB8,   GL_RGBA8},

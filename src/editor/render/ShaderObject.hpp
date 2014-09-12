@@ -6,11 +6,9 @@
 #include <windows.h>
 #endif
 
-namespace Tungsten
-{
+namespace Tungsten {
 
-namespace GL
-{
+namespace GL {
 
 #define MAX_SOURCES 16
 

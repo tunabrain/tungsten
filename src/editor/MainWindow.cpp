@@ -9,8 +9,7 @@
 
 #include "cameras/PinholeCamera.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 MainWindow::MainWindow()
 : QMainWindow()

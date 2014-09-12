@@ -8,8 +8,7 @@
 #include "io/JsonUtils.hpp"
 #include "io/Scene.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 void RoughConductorBsdf::init()
 {

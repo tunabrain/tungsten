@@ -5,11 +5,9 @@
 
 #include "Debug.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
-namespace GL
-{
+namespace GL {
 
 std::stack<Mat4f> MatrixStack::_stacks[3] = {
         std::stack<Mat4f>(std::deque<Mat4f>(1, Mat4f())),

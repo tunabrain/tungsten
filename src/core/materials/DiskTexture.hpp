@@ -7,8 +7,7 @@
 
 #include "math/MathUtil.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 template<bool Scalar>
 class DiskTexture : public Texture<Scalar, 2>

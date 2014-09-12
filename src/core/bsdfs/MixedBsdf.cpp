@@ -12,8 +12,7 @@
 
 #include <rapidjson/document.h>
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 bool MixedBsdf::adjustedRatio(BsdfLobes requestedLobe, Vec2f uv, float &ratio) const
 {

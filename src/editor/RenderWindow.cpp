@@ -4,8 +4,7 @@
 #include <string.h>
 #include <QtGui>
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 RenderWindow::RenderWindow(QWidget *proxyParent, MainWindow *parent)
 : QWidget(proxyParent),

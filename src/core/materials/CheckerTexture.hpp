@@ -5,8 +5,7 @@
 
 #include "math/MathUtil.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 template<bool Scalar>
 class CheckerTexture : public Texture<Scalar, 2>

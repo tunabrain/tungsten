@@ -4,8 +4,7 @@
 #include "math/BitManip.hpp"
 #include "math/MathUtil.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 class SampleGenerator
 {

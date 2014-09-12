@@ -3,8 +3,7 @@
 
 #include "LambertBsdf.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 class ErrorBsdf : public LambertBsdf
 {

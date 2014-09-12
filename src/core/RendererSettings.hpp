@@ -4,8 +4,7 @@
 #include "io/JsonSerializable.hpp"
 #include "io/JsonUtils.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 class Scene;
 

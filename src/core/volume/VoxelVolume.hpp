@@ -7,8 +7,7 @@
 
 #include <type_traits>
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 template<bool Scalar>
 class VoxelVolume : public JsonSerializable

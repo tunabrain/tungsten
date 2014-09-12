@@ -5,8 +5,7 @@
 
 #include "materials/Texture.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 ErrorBsdf::ErrorBsdf()
 {

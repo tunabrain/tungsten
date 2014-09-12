@@ -10,11 +10,9 @@
 #include "Debug.hpp"
 #include "ShaderObject.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
-namespace GL
-{
+namespace GL {
 
 static int fsize(FILE *fp) {
     int prev = ftell(fp);

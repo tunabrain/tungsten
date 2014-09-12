@@ -27,8 +27,7 @@
 #include "TraceableScene.hpp"
 #include "cameras/Camera.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 class RayStreamIntegrator : public Integrator
 {

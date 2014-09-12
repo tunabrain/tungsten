@@ -25,8 +25,7 @@
 #include <vector>
 #include <string>
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 class Scene;
 

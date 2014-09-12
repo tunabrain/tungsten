@@ -11,8 +11,7 @@
 class QStatusBar;
 class QLabel;
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 class MainWindow;
 

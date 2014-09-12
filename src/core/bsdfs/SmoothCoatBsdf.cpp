@@ -6,8 +6,7 @@
 
 #include "io/Scene.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 void SmoothCoatBsdf::init()
 {

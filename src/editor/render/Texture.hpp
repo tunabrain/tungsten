@@ -3,11 +3,9 @@
 
 #include <GL/glew.h>
 
-namespace Tungsten
-{
+namespace Tungsten {
 
-namespace GL
-{
+namespace GL {
 
 class BufferObject;
 

@@ -11,8 +11,7 @@
 #include <string>
 #include <cmath>
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 class PhaseFunction
 {

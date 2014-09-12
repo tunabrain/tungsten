@@ -9,8 +9,7 @@
 
 #include <fstream>
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 class Scene;
 

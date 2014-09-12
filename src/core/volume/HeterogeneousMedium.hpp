@@ -6,8 +6,7 @@
 
 #include "sampling/UniformSampler.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 class HeterogeneousMedium : public Medium
 {

@@ -7,11 +7,9 @@
 #include "math/Vec.hpp"
 #include "math/Mat4f.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
-namespace GL
-{
+namespace GL {
 
 #define MAX_SHADERS 8
 #define MAX_OUTPUTS 8

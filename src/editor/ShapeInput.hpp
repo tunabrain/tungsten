@@ -3,8 +3,7 @@
 
 #include "AbstractPainter.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 class ShapeInput: public AbstractPainter
 {

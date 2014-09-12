@@ -5,8 +5,7 @@
 
 #include "extern/tinyformat/tinyformat.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 #define DEBUG_LEVEL DEBUG
 #undef NDEBUG

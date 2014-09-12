@@ -12,8 +12,7 @@
 #include <vector>
 #include <memory>
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 class Ray;
 class Scene;

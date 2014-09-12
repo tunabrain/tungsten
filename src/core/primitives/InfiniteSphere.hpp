@@ -4,8 +4,7 @@
 #include "Primitive.hpp"
 #include "Mesh.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 class InfiniteSphere : public Primitive
 {

@@ -3,8 +3,7 @@
 
 #include "Camera.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 class Scene;
 

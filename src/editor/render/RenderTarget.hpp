@@ -4,11 +4,9 @@
 #include <GL/glew.h>
 #include <stack>
 
-namespace Tungsten
-{
+namespace Tungsten {
 
-namespace GL
-{
+namespace GL {
 
 class Texture;
 

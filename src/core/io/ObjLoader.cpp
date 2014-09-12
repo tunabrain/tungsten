@@ -24,9 +24,7 @@
 #include "bsdfs/MixedBsdf.hpp"
 #include "bsdfs/ErrorBsdf.hpp"
 
-namespace Tungsten
-{
-
+namespace Tungsten {
 
 template<unsigned Size>
 Vec<float, Size> ObjLoader::loadVector(const char *s)

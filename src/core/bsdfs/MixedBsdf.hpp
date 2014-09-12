@@ -5,8 +5,7 @@
 
 #include <memory>
 
-namespace Tungsten
-{
+namespace Tungsten {
 
 class Scene;
 

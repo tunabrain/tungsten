@@ -2,11 +2,9 @@
 
 #include "BufferObject.hpp"
 
-namespace Tungsten
-{
+namespace Tungsten {
 
-namespace GL
-{
+namespace GL {
 
 static GLenum bufferTypes[] = {
     GL_ARRAY_BUFFER,
