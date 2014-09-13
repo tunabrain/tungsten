@@ -150,12 +150,12 @@ Curves::Curves(const Curves &o)
 
 void Curves::loadCurves()
 {
-	CurveIO::CurveData data;
-	data.curveEnds = &_curveEnds;
-	data.nodeData  = &_nodeData;
-	data.nodeColor = &_nodeColor;
+    CurveIO::CurveData data;
+    data.curveEnds = &_curveEnds;
+    data.nodeData  = &_nodeData;
+    data.nodeColor = &_nodeColor;
 
-	CurveIO::load(_path, data);
+    CurveIO::load(_path, data);
 }
 
 void Curves::computeBounds()
@@ -400,12 +400,12 @@ Primitive *Curves::clone()
 
 void Curves::saveData()
 {
-	CurveIO::CurveData data;
-	data.curveEnds = &_curveEnds;
-	data.nodeData  = &_nodeData;
-	data.nodeColor = &_nodeColor;
+    CurveIO::CurveData data;
+    data.curveEnds = &_curveEnds;
+    data.nodeData  = &_nodeData;
+    data.nodeColor = &_nodeColor;
 
-	CurveIO::save(_path, data);
+    CurveIO::save(_path, data);
 }
 
 }

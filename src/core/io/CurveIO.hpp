@@ -13,10 +13,10 @@ namespace CurveIO {
 
 struct CurveData
 {
-	std::vector<uint32> *curveEnds = nullptr;
-	std::vector<Vec4f> *nodeData   = nullptr;
-	std::vector<Vec3f> *nodeColor  = nullptr;
-	std::vector<Vec3f> *nodeNormal = nullptr;
+    std::vector<uint32> *curveEnds = nullptr;
+    std::vector<Vec4f> *nodeData   = nullptr;
+    std::vector<Vec3f> *nodeColor  = nullptr;
+    std::vector<Vec3f> *nodeNormal = nullptr;
 };
 
 bool load(const std::string &path, CurveData &data);
