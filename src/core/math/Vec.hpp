@@ -8,13 +8,14 @@
 #include <rapidjson/document.h>
 #include <type_traits>
 #include <ostream>
+#include <array>
 #include <cmath>
 
 namespace Tungsten {
 
 template<typename ElementType, unsigned Size>
 class Vec {
-    ElementType _v[Size];
+    std::array<ElementType, Size> _v;
 
 public:
     static const unsigned size = Size;
@@ -29,7 +30,7 @@ public:
 
     template<typename... Ts>
     Vec(ElementType a, ElementType b, Ts... ts)
-    : _v{a, b, ts...}
+    : _v({a, b, ts...})
     {
     }
 
