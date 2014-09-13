@@ -87,7 +87,7 @@ uint32 ObjLoader::fetchVertex(int32 pos, int32 normal, int32 uv)
 
 void ObjLoader::loadFace(const char *line)
 {
-    uint32 first, current;
+    uint32 first = 0, current = 0;
     int vertexCount = 0;
 
     std::istringstream ss(line);
