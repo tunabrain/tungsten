@@ -6,7 +6,7 @@
 namespace Tungsten {
 
 class Scene;
-class SurfaceScatterEvent;
+struct SurfaceScatterEvent;
 
 class NullBsdf : public Bsdf
 {

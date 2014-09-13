@@ -8,7 +8,7 @@
 
 namespace Tungsten {
 
-class IntersectionInfo;
+struct IntersectionInfo;
 class SampleGenerator;
 class UniformSampler;
 
