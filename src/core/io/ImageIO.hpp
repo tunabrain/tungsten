@@ -3,6 +3,7 @@
 
 #include "IntTypes.hpp"
 
+#include <string>
 #include <memory>
 
 namespace Tungsten {
