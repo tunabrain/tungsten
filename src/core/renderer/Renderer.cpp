@@ -12,6 +12,10 @@
 
 namespace Tungsten {
 
+CONSTEXPR uint32 Renderer::TileSize;
+CONSTEXPR uint32 Renderer::VarianceTileSize;
+CONSTEXPR uint32 Renderer::AdaptiveThreshold;
+
 Renderer::Renderer(const TraceableScene &scene, uint32 threadCount)
 : _threadPool(threadCount),
   _abortRender(false),

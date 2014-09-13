@@ -11,6 +11,8 @@
 
 namespace Tungsten {
 
+CONSTEXPR uint32 ShapePainter::MaxVertices;
+
 using namespace GL;
 
 VertexBuffer *ShapePainter::_vbo = nullptr;

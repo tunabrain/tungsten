@@ -2,6 +2,8 @@
 
 namespace Tungsten {
 
+CONSTEXPR bool PathTraceIntegrator::GeneralizedShadowRays;
+
 PathTraceIntegrator::PathTraceIntegrator()
 : _scene(nullptr),
   _enableLightSampling(true),

@@ -19,6 +19,10 @@
 
 namespace Tungsten {
 
+CONSTEXPR float PreviewWindow::Fov;
+CONSTEXPR float PreviewWindow::Near;
+CONSTEXPR float PreviewWindow::Far;
+
 using namespace GL;
 
 GlMesh::GlMesh(const TriangleMesh &src)
