@@ -14,6 +14,10 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
+// THIS FILE HAS BEEN MODIFIED FROM ITS ORIGINAL DISTRIBUTION
+// THE ORIGINAL DISTRIBUTION MAY BE OBTAINED AT
+//      https://github.com/embree/embree
+
 #ifndef __EMBREE_PLATFORM_H__
 #define __EMBREE_PLATFORM_H__
 
@@ -59,11 +63,11 @@
 #endif
 
 /* detect Windows 95/98/NT/2000/XP/Vista/7 platform */
-/*#if (defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)) && !defined(__CYGWIN__)
+#if (defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)) && !defined(__CYGWIN__) && !defined(__MINGW32__)
 #  if !defined(__WIN32__)
 #     define __WIN32__
 #  endif
-#endif*/
+#endif
 
 /* detect Cygwin platform */
 #if defined(__CYGWIN__)
@@ -90,37 +94,18 @@
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
-/// Configurations
-////////////////////////////////////////////////////////////////////////////////
-
-#if defined(_MSC_VER) && !defined(__SSE__)
-#define __SSE__
-#endif
-
-#if defined(_MSC_VER) && !defined(__SSE4_2__) && !defined(__SSE4_1__)
-#define __SSE4_1__  //! enable these to activate SSE4.2 under Windows
-#define __SSE4_2__
-#endif
-
-#if defined(_MSC_VER) && !defined(__AVX__)
-#define __AVX__  //! enable to activate AVX under Windows
-#endif
-
-//#define PTHREADS_WIN32 // enable to activates use of pthreads under Windows
-
-////////////////////////////////////////////////////////////////////////////////
 /// Makros
 ////////////////////////////////////////////////////////////////////////////////
 
-/*#ifdef __WIN32__ && false
+#ifdef _MSC_VER
 #define __dllexport extern "C" __declspec(dllexport)
 #define __dllimport extern "C" __declspec(dllimport)
-#else*/
+#else
 #define __dllexport extern "C" __attribute__ ((visibility ("default")))
 #define __dllimport extern "C"
-//#endif
+#endif
 
-/*#ifdef __WIN32__ && false
+#ifdef _MSC_VER
 #undef __noinline
 #define __noinline             __declspec(noinline)
 //#define __forceinline          __forceinline
@@ -130,7 +115,7 @@
 //#define __FUNCTION__           __FUNCTION__
 #define debugbreak()           __debugbreak()
 
-#else*/
+#else
 #undef __noinline
 #undef __forceinline
 #define __noinline             __attribute__((noinline))
@@ -140,32 +125,32 @@
 #define __align(...)           __attribute__((aligned(__VA_ARGS__)))
 #define __FUNCTION__           __PRETTY_FUNCTION__
 #define debugbreak()           asm ("int $3")
-//#endif
+#endif
 
-//#ifdef __GNUC__ || true
+#ifdef __GNUC__
     #define MAYBE_UNUSED __attribute__((used))
-/*#else
+#else
     #define MAYBE_UNUSED
-#endif*/
+#endif
 
-/*#if false && defined(_MSC_VER) && !defined(__INTEL_COMPILER)
+#if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
 #define   likely(expr) expr
 #define unlikely(expr) expr
-#else*/
+#else
 #define   likely(expr) __builtin_expect(expr,true )
 #define unlikely(expr) __builtin_expect(expr,false)
-//#endif
+#endif
 
 /* compiler memory barriers */
-//#ifdef __GNUC__ || true
+#ifdef __GNUC__
 #  define __memory_barrier() asm volatile("" ::: "memory")
-/*#elif defined(__MIC__)
+#elif defined(__MIC__)
 #define __memory_barrier()
 #elif defined(__INTEL_COMPILER)
-//#define __memory_barrier() __memory_barrier()
+#define __memory_barrier() __memory_barrier()
 #elif  defined(_MSC_VER)
 #  define __memory_barrier() _ReadWriteBarrier()
-#endif*/
+#endif
 
 /* debug printing macros */
 #define STRING(x) #x
@@ -195,13 +180,13 @@ typedef unsigned     short uint16;
 typedef               char   int8;
 typedef unsigned      char  uint8;
 
-/*#ifdef __WIN32__ && false
+#ifdef _MSC_VER
 #if defined(__X86_64__)
 typedef int64 ssize_t;
 #else
 typedef int32 ssize_t;
 #endif
-#endif*/
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Disable some compiler warnings

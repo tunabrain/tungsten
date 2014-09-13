@@ -19,17 +19,17 @@
 
 #include "simd/sse.h"
 
-#if defined(__AVX__)
+#if __AVX__
 #include <immintrin.h>
 #include <fmaintrin.h>
 #else
 #include "immintrin_emu.h"
 #endif
 
-#if defined (__AVX_I__)
+#if __AVX_I__
 #endif
 
-#if defined (__AVX2__)
+#if __AVX2__
 #endif
 
 namespace embree 
@@ -40,7 +40,7 @@ namespace embree
 }
 
 #include "simd/avxb.h"
-#if defined (__AVX_I__)
+#if __AVX_I__
 #include "simd/avxi.h"
 #else
 #include "simd/avxi_emu.h"

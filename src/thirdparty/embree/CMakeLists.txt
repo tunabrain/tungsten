@@ -65,4 +65,6 @@ IF (__AVX__)
 ENDIF ()
 
 add_library(embree STATIC ${SOURCES})
-set_target_properties(embree PROPERTIES COMPILE_FLAGS "-ffast-math -fvisibility-inlines-hidden -fvisibility=hidden")
+if (CMAKE_COMPILER_IS_GNUCXX)
+    set_target_properties(embree PROPERTIES COMPILE_FLAGS "-ffast-math -fvisibility-inlines-hidden -fvisibility=hidden")
+endif()
