@@ -5,6 +5,7 @@
 #include "math/Angle.hpp"
 #include "math/Vec.hpp"
 
+#include <algorithm>
 #include <cmath>
 
 namespace Tungsten {
