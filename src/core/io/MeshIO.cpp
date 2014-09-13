@@ -18,10 +18,10 @@ bool loadWo3(const std::string &path, std::vector<Vertex> &verts, std::vector<Tr
 
     uint64 numVerts, numTris;
     FileUtils::streamRead(stream, numVerts);
-    verts.resize(numVerts);
+    verts.resize(size_t(numVerts));
     FileUtils::streamRead(stream, verts);
     FileUtils::streamRead(stream, numTris);
-    tris.resize(numTris);
+    tris.resize(size_t(numTris));
     FileUtils::streamRead(stream, tris);
 
     return true;

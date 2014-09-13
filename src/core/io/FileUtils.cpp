@@ -365,7 +365,7 @@ std::string loadText(const std::string &path)
         FAIL("Unable to open file at '%s'", path);
 
     in.seekg(0, std::ios::end);
-    size_t size = in.tellg();
+    size_t size = size_t(in.tellg());
     std::string text(size, '\0');
     in.seekg(0);
     in.read(&text[0], size);

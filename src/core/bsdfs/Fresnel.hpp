@@ -149,7 +149,7 @@ static inline float computeDiffuseFresnel(float ior, const int sampleCount)
         fb = fa;
     }
 
-    return diffuseFresnel;
+    return float(diffuseFresnel);
 }
 
 }

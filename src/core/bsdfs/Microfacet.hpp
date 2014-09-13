@@ -56,7 +56,7 @@ public:
             return INV_PI*std::exp(-tanThetaSq/alphaSq)/(alphaSq*cosThetaQu);
         }
         case Phong:
-            return (alpha + 2.0f)*INV_TWO_PI*std::pow(double(m.z()), double(alpha));
+            return (alpha + 2.0f)*INV_TWO_PI*float(std::pow(double(m.z()), double(alpha)));
         case GGX: {
             float alphaSq = alpha*alpha;
             float cosThetaSq = m.z()*m.z();
