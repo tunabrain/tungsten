@@ -69,6 +69,8 @@ public:
     virtual void cleanupAfterRender() override;
 
     virtual Primitive *clone() override;
+
+    virtual void saveData() override;
 };
 
 }

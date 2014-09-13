@@ -425,4 +425,14 @@ Primitive *Curves::clone()
     return new Curves(*this);
 }
 
+void Curves::saveData()
+{
+	CurveIO::CurveData data;
+	data.curveEnds = &_curveEnds;
+	data.nodeData  = &_nodeData;
+	data.nodeColor = &_nodeColor;
+
+	CurveIO::save(_path, data);
+}
+
 }
