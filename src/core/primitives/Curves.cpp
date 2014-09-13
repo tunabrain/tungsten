@@ -192,11 +192,11 @@ void Curves::loadCurves()
     uint32 descriptor;
     FileUtils::streamRead(in, descriptor);
 
-    bool hasSegments     = descriptor & 0x01;
-    bool hasPoints       = descriptor & 0x02;
-    bool hasThickness    = descriptor & 0x04;
-    bool hasTransparency = descriptor & 0x08;
-    bool hasColor        = descriptor & 0x10;
+    bool hasSegments     = (descriptor & 0x01) != 0;
+    bool hasPoints       = (descriptor & 0x02) != 0;
+    bool hasThickness    = (descriptor & 0x04) != 0;
+    bool hasTransparency = (descriptor & 0x08) != 0;
+    bool hasColor        = (descriptor & 0x10) != 0;
 
     uint32 defaultSegments;
     float defaultThickness;

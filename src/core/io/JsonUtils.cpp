@@ -7,7 +7,7 @@ namespace JsonUtils {
 const rapidjson::Value &fetchMember(const rapidjson::Value &v, const char *name)
 {
     const rapidjson::Value::Member *member = v.FindMember(name);
-    ASSERT(member, "Json value is missing mandatory member '%s'", name);
+    ASSERT(member != nullptr, "Json value is missing mandatory member '%s'", name);
     return member->value;
 }
 

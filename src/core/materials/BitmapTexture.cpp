@@ -64,12 +64,12 @@ BitmapTexture::~BitmapTexture()
 
 inline bool BitmapTexture::isRgb() const
 {
-    return uint32(_texelType) & 2;
+    return (uint32(_texelType) & 2) != 0;
 }
 
 inline bool BitmapTexture::isHdr() const
 {
-    return uint32(_texelType) & 1;
+    return (uint32(_texelType) & 1) != 0;
 }
 
 inline float BitmapTexture::lerp(float x00, float x01, float x10, float x11, float u, float v) const

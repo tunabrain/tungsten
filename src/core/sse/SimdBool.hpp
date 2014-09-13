@@ -89,7 +89,7 @@ public:
     SimdBool operator||(const SimdBool &o) const { return _mm_or_ps(_b, o._b); }
     SimdBool operator&&(const SimdBool &o) const { return _mm_and_ps(_b, o._b); }
 
-    bool operator[](uint32 idx) { return _i[idx]; };
+    bool operator[](uint32 idx) { return _i[idx] != 0; };
 };
 #endif
 
