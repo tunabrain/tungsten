@@ -96,6 +96,49 @@ bool loadHair(const std::string &path, CurveData &data)
     return true;
 }
 
+bool saveHair(const std::string &path, const CurveData &data)
+{
+    if (!data.nodeData || !data.curveEnds)
+    	return false;
+
+    std::ofstream out(path, std::ios_base::out | std::ios_base::binary);
+    if (!out.good())
+    	return false;
+
+    char fileInfo[88] = "Hair file written by Tungsten";
+    uint32 descriptor = 0x1 | 0x2 | 0x4; // Segments, points and thickness array
+    bool hasColor = data.nodeColor && data.nodeColor->size() == data.nodeData->size();
+    if (hasColor)
+    	descriptor |= 0x10;
+
+    out.put('H');
+    out.put('A');
+    out.put('I');
+    out.put('R');
+    FileUtils::streamWrite(out, uint32(data.curveEnds->size()));
+    FileUtils::streamWrite(out, uint32(data.nodeData->size()));
+    FileUtils::streamWrite(out, descriptor);
+    FileUtils::streamWrite(out, uint32(0));
+    FileUtils::streamWrite(out, 0.0f);
+    FileUtils::streamWrite(out, 0.0f);
+    FileUtils::streamWrite(out, Vec3f(1.0f));
+    out.write(fileInfo, 88);
+
+    const std::vector<uint32> &curveEnds = *data.curveEnds;
+    for (size_t i = 0; i < curveEnds.size(); ++i) {
+    	uint32 nodeCount = curveEnds[i] - (i ? curveEnds[i - 1] : 0);
+    	FileUtils::streamWrite(out, nodeCount - 1);
+    }
+    for (const Vec4f &v : *data.nodeData)
+    	FileUtils::streamWrite(out, v.xyz());
+    for (const Vec4f &v : *data.nodeData)
+    	FileUtils::streamWrite(out, v.w());
+    if (hasColor)
+    	FileUtils::streamWrite(out, *data.nodeColor);
+
+    return true;
+}
+
 bool load(const std::string &path, CurveData &data)
 {
     if (FileUtils::testExtension(path, "hair"))
@@ -103,8 +146,10 @@ bool load(const std::string &path, CurveData &data)
     return false;
 }
 
-bool save(const std::string &/*path*/, const CurveData &/*data*/)
+bool save(const std::string &path, const CurveData &data)
 {
+    if (FileUtils::testExtension(path, "hair"))
+        return saveHair(path, data);
     return false;
 }
 
