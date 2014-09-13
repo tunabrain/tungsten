@@ -202,7 +202,7 @@ public:
         if (!bboxIntersection(_bounds, ray.pos(), ray.dir(), tMin, tMax))
             return;
 
-        const pfloat signMask(__m128(_mm_set_epi32(0x80000000, 0x80000000, 0x00000000, 0x00000000)));
+        const pfloat signMask(_mm_castsi128_ps(_mm_set_epi32(0x80000000, 0x80000000, 0x00000000, 0x00000000)));
         const __m128i keepNearFar = _mm_set_epi8(15, 14, 13, 12, 11, 10, 9, 8,  7,  6,  5,  4,  3,  2, 1, 0);
         const __m128i swapNearFar = _mm_set_epi8( 7,  6,  5,  4,  3,  2, 1, 0, 15, 14, 13, 12, 11, 10, 9, 8);
         const __m128i xMask = ray.dir().x() >= 0.0f ? keepNearFar : swapNearFar;
@@ -218,13 +218,13 @@ public:
         while (true) {
             while (node->isNode()) {
                 const Vec3pf tNearFar = Vec3pf(
-                    pfloat(__m128(_mm_shuffle_epi8(__m128i((node->bbox().x() - rayO.x()).raw()), xMask))),
-                    pfloat(__m128(_mm_shuffle_epi8(__m128i((node->bbox().y() - rayO.y()).raw()), yMask))),
-                    pfloat(__m128(_mm_shuffle_epi8(__m128i((node->bbox().z() - rayO.z()).raw()), zMask)))
+                    pfloat(_mm_castsi128_ps(_mm_shuffle_epi8(_mm_castps_si128((node->bbox().x() - rayO.x()).raw()), xMask))),
+                    pfloat(_mm_castsi128_ps(_mm_shuffle_epi8(_mm_castps_si128((node->bbox().y() - rayO.y()).raw()), yMask))),
+                    pfloat(_mm_castsi128_ps(_mm_shuffle_epi8(_mm_castps_si128((node->bbox().z() - rayO.z()).raw()), zMask)))
                 )*invNegDir;
                 pfloat minMax = max(tNearFar.x(), tNearFar.y(), tNearFar.z(), nearFar);
                 minMax ^= signMask;
-                pfloat maxMin(__m128(_mm_shuffle_epi8(__m128i(minMax.raw()), swapNearFar)));
+                pfloat maxMin(_mm_castsi128_ps(_mm_shuffle_epi8(_mm_castps_si128(minMax.raw()), swapNearFar)));
                 pbool hit = minMax <= maxMin;
 
                 bool intersectsL = hit[0];
