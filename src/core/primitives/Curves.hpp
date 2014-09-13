@@ -10,6 +10,7 @@
 
 namespace Tungsten {
 
+struct CurveIntersection;
 class Scene;
 
 class Curves : public Primitive
@@ -33,6 +34,7 @@ class Curves : public Primitive
     void loadCurves();
     void computeBounds();
     void buildProxy();
+    Vec3f computeTangent(const CurveIntersection &isect) const;
 
 public:
     virtual ~Curves() {}

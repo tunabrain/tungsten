@@ -227,6 +227,19 @@ void Curves::buildProxy()
     _proxy = std::make_shared<TriangleMesh>(verts, tris, _bsdf, "Curves", false);
 }
 
+Vec3f Curves::computeTangent(const CurveIntersection &isect) const
+{
+    uint32 p0 = isect.curveP0;
+    Vec3f tangent = BSpline::quadraticDeriv(
+        _nodeData[p0].xyz(),
+        _nodeData[p0 + 1].xyz(),
+        _nodeData[p0 + 2].xyz(),
+        isect.uv.x()
+    );
+
+    return tangent.normalized();
+}
+
 void Curves::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     Primitive::fromJson(v, scene);
@@ -293,18 +306,19 @@ bool Curves::hitBackside(const IntersectionTemporary &/*data*/) const
 void Curves::intersectionInfo(const IntersectionTemporary &data, IntersectionInfo &info) const
 {
     const CurveIntersection &isect = *data.as<CurveIntersection>();
-    uint32 p0 = isect.curveP0;
-    Vec3f tangent = BSpline::quadraticDeriv(_nodeData[p0].xyz(), _nodeData[p0 + 1].xyz(), _nodeData[p0 + 2].xyz(), isect.uv.x()).normalized();
-    info.Ng = info.Ns = tangent;
-//  info.Ng = info.Ns = (-info.w - tangent*tangent.dot(-info.w)).normalized();
+    Vec3f tangent = computeTangent(isect);
+    info.Ng = info.Ns = (-info.w - tangent*tangent.dot(-info.w)).normalized();
     info.uv = isect.uv;
     info.primitive = this;
     info.epsilon = 10.0f*isect.w;
 }
 
-bool Curves::tangentSpace(const IntersectionTemporary &/*data*/, const IntersectionInfo &/*info*/,
-        Vec3f &/*T*/, Vec3f &/*B*/) const
+bool Curves::tangentSpace(const IntersectionTemporary &data, const IntersectionInfo &info,
+        Vec3f &T, Vec3f &B) const
 {
+    const CurveIntersection &isect = *data.as<CurveIntersection>();
+    T = computeTangent(isect);
+    B = T.cross(info.Ng);
     return false;
 }
 
