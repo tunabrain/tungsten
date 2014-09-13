@@ -56,7 +56,12 @@ public:
     }
 };
 
+// MSVC's views on what is POD or not differ from gcc or clang.
+// memcpy and similar code still seem to work, so we ignore this
+// issue for now.
+#ifndef _MSC_VER
 static_assert(std::is_pod<Vertex>::value, "Vertex needs to be of POD type!");
+#endif
 
 }
 

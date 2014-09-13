@@ -462,6 +462,11 @@ typedef Vec<uint8, 2> Vec2c;
 // Vec classes were accidentally turned into not-POD-types on several occasions,
 // but a lot of code relies on vectors being POD. The static_asserts here catch
 // it in case another mistake happens
+
+// MSVC's views on what is POD or not differ from gcc or clang.
+// memcpy and similar code still seem to work, so we ignore this
+// issue for now.
+#ifndef _MSC_VER
 static_assert(std::is_pod<Vec4d>::value, "Vec4d is not a pod!");
 static_assert(std::is_pod<Vec3d>::value, "Vec3d is not a pod!");
 static_assert(std::is_pod<Vec2d>::value, "Vec2d is not a pod!");
@@ -481,6 +486,7 @@ static_assert(std::is_pod<Vec2i>::value, "Vec2i is not a pod!");
 static_assert(std::is_pod<Vec4c>::value, "Vec4c is not a pod!");
 static_assert(std::is_pod<Vec3c>::value, "Vec3c is not a pod!");
 static_assert(std::is_pod<Vec2c>::value, "Vec2c is not a pod!");
+#endif
 
 }
 
