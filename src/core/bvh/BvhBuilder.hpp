@@ -299,6 +299,8 @@ public:
 
     void build(std::vector<Primitive> prims)
     {
+        if (prims.empty())
+            return;
 #ifndef NDEBUG
         Timer timer;
 #endif

@@ -166,18 +166,25 @@ public:
     {
         size_t count = prims.size();
 
-        BvhBuilder<2> builder;
-        builder.build(std::move(prims));
+        if (prims.empty()) {
+            _depth = 0;
+            _nodes.push_back(TinyBvhNode());
+            _nodes.back().setJointBbox(Box3f(), Box3f());
+            _nodes.back().setRchild(&_nodes.back());
+        } else {
+            BvhBuilder<2> builder;
+            builder.build(std::move(prims));
 
-        _primIndices.resize(count);
-        _nodes.resize(builder.numNodes());
-        _depth = builder.depth();
-        _bounds = builder.root()->bbox();
+            _primIndices.resize(count);
+            _nodes.resize(builder.numNodes());
+            _depth = builder.depth();
+            _bounds = builder.root()->bbox();
 
-        uint32 tail = 1, primIndex = 0;
-        recursiveBuild(builder.root().get(), 0, tail, primIndex, _primIndices, maxPrimsPerLeaf);
-        builder.root().reset();
-        _nodes.resize(tail);
+            uint32 tail = 1, primIndex = 0;
+            recursiveBuild(builder.root().get(), 0, tail, primIndex, _primIndices, maxPrimsPerLeaf);
+            builder.root().reset();
+            _nodes.resize(tail);
+        }
     }
 
     template<typename LAMBDA>
