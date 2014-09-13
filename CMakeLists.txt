@@ -59,8 +59,10 @@ add_library(thirdparty STATIC
 		src/thirdparty/stbi/stb_image.c
 		src/thirdparty/SFMT/SFMT.c)
 
-set(CXX_WARNINGS "-Wall -Wextra -Wpointer-arith -Wcast-align -fstrict-aliasing -Wno-unused-local-typedefs")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_WARNINGS} -fvisibility-inlines-hidden")
+if (CMAKE_COMPILER_IS_GNUCXX)
+    set(CXX_WARNINGS "-Wall -Wextra -Wpointer-arith -Wcast-align -fstrict-aliasing -Wno-unused-local-typedefs")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_WARNINGS} -fvisibility-inlines-hidden")
+endif()
 set(core_libs core thirdparty embree)
 
 include_directories(src/core src/thirdparty src/thirdparty/embree src)
