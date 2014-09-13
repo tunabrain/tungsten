@@ -6,8 +6,7 @@
 #include "math/Vec.hpp"
 
 #include "io/FileUtils.hpp"
-
-#include <fstream>
+#include "io/CurveIO.hpp"
 
 namespace Tungsten {
 
@@ -179,78 +178,12 @@ Curves::Curves(const Curves &o)
 
 void Curves::loadCurves()
 {
-    std::ifstream in(_path, std::ios_base::in | std::ios_base::binary);
+	CurveIO::CurveData data;
+	data.curveEnds = &_curveEnds;
+	data.nodeData  = &_nodeData;
+	data.nodeColor = &_nodeColor;
 
-    ASSERT(in.good(), "Unable to open curve file at '%s'", _path);
-
-    char magic[5];
-    in.get(magic, 5);
-    ASSERT(std::string(magic) == "HAIR", "Error while loading curves: "
-            "Missing 'HAIR' identifier at beginning of file '%s'", _path);
-    FileUtils::streamRead(in, _curveCount);
-    FileUtils::streamRead(in, _nodeCount);
-    uint32 descriptor;
-    FileUtils::streamRead(in, descriptor);
-
-    bool hasSegments     = (descriptor & 0x01) != 0;
-    bool hasPoints       = (descriptor & 0x02) != 0;
-    bool hasThickness    = (descriptor & 0x04) != 0;
-    bool hasTransparency = (descriptor & 0x08) != 0;
-    bool hasColor        = (descriptor & 0x10) != 0;
-
-    uint32 defaultSegments;
-    float defaultThickness;
-    float defaultTransparency;
-    Vec3f defaultColor;
-    FileUtils::streamRead(in, defaultSegments);
-    FileUtils::streamRead(in, defaultThickness);
-    FileUtils::streamRead(in, defaultTransparency);
-    FileUtils::streamRead(in, defaultColor);
-
-    char fileInfo[89];
-    in.read(fileInfo, 88);
-    fileInfo[88] = '\0';
-
-    _curveEnds.resize(_curveCount);
-    if (hasSegments) {
-        std::vector<uint16> segmentLength(_curveCount);
-        FileUtils::streamRead(in, segmentLength);
-        for (size_t i = 0; i < _curveCount; ++i)
-            _curveEnds[i] = uint32(segmentLength[i]) + 1 + (i > 0 ? _curveEnds[i - 1] : 0);
-    } else {
-        for (size_t i = 0; i < _curveCount; ++i)
-            _curveEnds[i] = (i + 1)*(defaultSegments + 1);
-    }
-
-    ASSERT(hasPoints,  "Error while loading curves: "
-            "Missing points array in file '%s'", _path);
-    std::vector<Vec3f> points(_nodeCount);
-    FileUtils::streamRead(in, points);
-    _nodeData.resize(_nodeCount);
-    for (size_t i = 0; i < _nodeCount; ++i)
-        _nodeData[i] = Vec4f(points[i].x(), points[i].y(), points[i].z(), defaultThickness);
-
-    if (hasThickness) {
-        std::vector<float> thicknesses(_nodeCount);
-        FileUtils::streamRead(in, thicknesses);
-        for (size_t i = 0; i < _nodeCount; ++i)
-            _nodeData[i].w() = thicknesses[i];
-    }
-
-    if (hasTransparency)
-        in.seekg(sizeof(float)*_nodeCount, std::ios_base::cur);
-
-    if (hasColor) {
-        _nodeColor.resize(_nodeCount);
-        FileUtils::streamRead(in, _nodeColor);
-    } else {
-        _nodeColor.clear();
-        _nodeColor.push_back(defaultColor);
-    }
-
-    _curveEnds.shrink_to_fit();
-    _nodeData.shrink_to_fit();
-    _nodeColor.shrink_to_fit();
+	CurveIO::load(_path, data);
 }
 
 void Curves::computeBounds()
