@@ -3,6 +3,7 @@
 
 #include "math/TangentFrame.hpp"
 #include "math/MathUtil.hpp"
+#include "math/BSpline.hpp"
 #include "math/Vec.hpp"
 
 #include "io/FileUtils.hpp"
@@ -17,35 +18,6 @@ struct CurveIntersection
     Vec2f uv;
     float w;
 };
-
-// http://www.answers.com/topic/b-spline
-template<typename T>
-inline T quadraticBSpline(T p0, T p1, T p2, float t)
-{
-    return (0.5f*p0 - p1 + 0.5f*p2)*t*t + (p1 - p0)*t + 0.5f*(p0 + p1);
-}
-
-template<typename T>
-inline T quadraticBSplineDeriv(T p0, T p1, T p2, float t)
-{
-    return (p0 - 2.0f*p1 + p2)*t + (p1 - p0);
-}
-
-inline Vec2f minMaxQuadratic(float p0, float p1, float p2)
-{
-    float xMin = (p0 + p1)*0.5f;
-    float xMax = (p1 + p2)*0.5f;
-    if (xMin > xMax)
-        std::swap(xMin, xMax);
-
-    float tFlat = (p0 - p1)/(p0 - 2.0f*p1 + p2);
-    if (tFlat > 0.0f && tFlat < 1.0f) {
-        float xFlat = quadraticBSpline(p0, p1, p2, tFlat);
-        xMin = min(xMin, xFlat);
-        xMax = max(xMax, xFlat);
-    }
-    return Vec2f(xMin, xMax);
-}
 
 static bool pointOnSpline(const Vec4f &q0, const Vec4f &q1, const Vec4f &q2,
         float tMin, float tMax, float &t, Vec2f &uv, float &width)
@@ -73,8 +45,8 @@ static bool pointOnSpline(const Vec4f &q0, const Vec4f &q1, const Vec4f &q2,
 
     Vec2f p0 = q0.xy(), p1 = q1.xy(), p2 = q2.xy();
     Vec2f tFlat = (p0 - p1)/(p0 - 2.0f*p1 + p2);
-    float xFlat = quadraticBSpline(p0.x(), p1.x(), p2.x(), tFlat.x());
-    float yFlat = quadraticBSpline(p0.y(), p1.y(), p2.y(), tFlat.y());
+    float xFlat = BSpline::quadratic(p0.x(), p1.x(), p2.x(), tFlat.x());
+    float yFlat = BSpline::quadratic(p0.y(), p1.y(), p2.y(), tFlat.y());
 
     Vec2f deriv1(p0 - 2.0f*p1 + p2), deriv2(p1 - p0);
 
@@ -118,8 +90,8 @@ static bool pointOnSpline(const Vec4f &q0, const Vec4f &q1, const Vec4f &q2,
                         distance = std::fabs(signedUnnormalized)/std::sqrt(lengthSq);
 
                     float newT = segmentT*cur.tSpan + cur.tMin;
-                    float currentWidth = quadraticBSpline(q0.w(), q1.w(), q2.w(), newT);
-                    float currentDepth = quadraticBSpline(q0.z(), q1.z(), q2.z(), newT);
+                    float currentWidth = BSpline::quadratic(q0.w(), q1.w(), q2.w(), newT);
+                    float currentDepth = BSpline::quadratic(q0.z(), q1.z(), q2.z(), newT);
                     if (currentDepth < tMax && currentDepth > tMin && distance < currentWidth && newT >= 0.0f && newT <= 1.0f) {
                         float halfDistance = 0.5f*distance/currentWidth;
                         uv = Vec2f(newT, signedUnnormalized < 0.0f ? 0.5f - halfDistance : halfDistance + 0.5f);
@@ -131,7 +103,7 @@ static bool pointOnSpline(const Vec4f &q0, const Vec4f &q1, const Vec4f &q2,
             } else {
                 float newSpan = cur.tSpan*0.5f;
                 float splitT = cur.tMin + newSpan;
-                Vec4f qSplit = quadraticBSpline(q0, q1, q2, splitT);
+                Vec4f qSplit = BSpline::quadratic(q0, q1, q2, splitT);
                 (*stack++).set(cur.tMin, newSpan, cur.p0, qSplit.xy(), cur.w0, qSplit.w(), cur.depth + 1);
                 cur.set(splitT, newSpan, qSplit.xy(), cur.p1, qSplit.w(), cur.w1, cur.depth + 1);
                 continue;
@@ -153,9 +125,9 @@ static Vec4f project(const Vec3f &o, const Vec3f &lx, const Vec3f &ly, const Vec
 
 static Box3f curveBox(const Vec4f &q0, const Vec4f &q1, const Vec4f &q2)
 {
-    Vec2f xMinMax(minMaxQuadratic(q0.x(), q1.x(), q2.x()));
-    Vec2f yMinMax(minMaxQuadratic(q0.y(), q1.y(), q2.y()));
-    Vec2f zMinMax(minMaxQuadratic(q0.z(), q1.z(), q2.z()));
+    Vec2f xMinMax(BSpline::quadraticMinMax(q0.x(), q1.x(), q2.x()));
+    Vec2f yMinMax(BSpline::quadraticMinMax(q0.y(), q1.y(), q2.y()));
+    Vec2f zMinMax(BSpline::quadraticMinMax(q0.z(), q1.z(), q2.z()));
     float maxW = max(q0.w(), q1.w(), q2.w());
     return Box3f(
         Vec3f(xMinMax.x(), yMinMax.x(), zMinMax.x()) - maxW,
@@ -213,9 +185,9 @@ void Curves::buildProxy()
 
             for (int j = 0; j <= Samples; ++j) {
                 float curveT = j*(1.0f/Samples);
-                Vec3f tangent = quadraticBSplineDeriv(p0.xyz(), p1.xyz(), p2.xyz(), curveT).normalized();
+                Vec3f tangent = BSpline::quadraticDeriv(p0.xyz(), p1.xyz(), p2.xyz(), curveT).normalized();
                 TangentFrame frame(tangent);
-                Vec4f p = quadraticBSpline(p0, p1, p2, curveT);
+                Vec4f p = BSpline::quadratic(p0, p1, p2, curveT);
                 Vec3f v0 = frame.toGlobal(Vec3f(-p.w(), 0.0f, 0.0f)) + p.xyz();
                 Vec3f v1 = frame.toGlobal(Vec3f( p.w(), 0.0f, 0.0f)) + p.xyz();
 
@@ -300,7 +272,7 @@ void Curves::intersectionInfo(const IntersectionTemporary &data, IntersectionInf
 {
     const CurveIntersection &isect = *data.as<CurveIntersection>();
     uint32 p0 = isect.curveP0;
-    Vec3f tangent = quadraticBSplineDeriv(_nodeData[p0].xyz(), _nodeData[p0 + 1].xyz(), _nodeData[p0 + 2].xyz(), isect.uv.x()).normalized();
+    Vec3f tangent = BSpline::quadraticDeriv(_nodeData[p0].xyz(), _nodeData[p0 + 1].xyz(), _nodeData[p0 + 2].xyz(), isect.uv.x()).normalized();
     info.Ng = info.Ns = tangent;
 //  info.Ng = info.Ns = (-info.w - tangent*tangent.dot(-info.w)).normalized();
     info.uv = isect.uv;
@@ -419,6 +391,7 @@ void Curves::cleanupAfterRender()
     loadCurves();
     FileUtils::changeCurrentDir(dir);
 }
+
 
 Primitive *Curves::clone()
 {
