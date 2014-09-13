@@ -13,7 +13,7 @@
 #include <embree/include/embree.h>
 #include <lodepng/lodepng.h>
 
-using namespace Tungsten;
+namespace Tungsten {
 
 std::string formatTime(double elapsed)
 {
@@ -33,6 +33,10 @@ std::string formatTime(double elapsed)
 
     return ss.str();
 }
+
+}
+
+using namespace Tungsten;
 
 int main(int argc, const char *argv[])
 {
