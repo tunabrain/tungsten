@@ -22,14 +22,14 @@ public:
 
     Vec() = default;
 
-    explicit Vec(ElementType a)
+    explicit Vec(const ElementType &a)
     {
         for (unsigned i = 0; i < Size; ++i)
             _v[i] = a;
     }
 
     template<typename... Ts>
-    Vec(ElementType a, ElementType b, Ts... ts)
+    Vec(const ElementType &a, const ElementType &b, const Ts &... ts)
     : _v({a, b, ts...})
     {
     }
@@ -231,7 +231,7 @@ public:
         return result;
     }
 
-    Vec operator+(ElementType a) const
+    Vec operator+(const ElementType &a) const
     {
         Vec result;
         for (unsigned i = 0; i < Size; ++i)
@@ -239,7 +239,7 @@ public:
         return result;
     }
 
-    Vec operator-(ElementType a) const
+    Vec operator-(const ElementType &a) const
     {
         Vec result;
         for (unsigned i = 0; i < Size; ++i)
@@ -247,7 +247,7 @@ public:
         return result;
     }
 
-    Vec operator*(ElementType a) const
+    Vec operator*(const ElementType &a) const
     {
         Vec result;
         for (unsigned i = 0; i < Size; ++i)
@@ -255,7 +255,7 @@ public:
         return result;
     }
 
-    Vec operator/(ElementType a) const
+    Vec operator/(const ElementType &a) const
     {
         Vec result;
         for (unsigned i = 0; i < Size; ++i)
@@ -291,28 +291,28 @@ public:
         return *this;
     }
 
-    Vec operator+=(ElementType a)
+    Vec operator+=(const ElementType &a)
     {
         for (unsigned i = 0; i < Size; ++i)
             _v[i] += a;
         return *this;
     }
 
-    Vec operator-=(ElementType a)
+    Vec operator-=(const ElementType &a)
     {
         for (unsigned i = 0; i < Size; ++i)
             _v[i] -= a;
         return *this;
     }
 
-    Vec operator*=(ElementType a)
+    Vec operator*=(const ElementType &a)
     {
         for (unsigned i = 0; i < Size; ++i)
             _v[i] *= a;
         return *this;
     }
 
-    Vec operator/=(ElementType a)
+    Vec operator/=(const ElementType &a)
     {
         for (unsigned i = 0; i < Size; ++i)
             _v[i] /= a;
@@ -404,7 +404,7 @@ public:
 };
 
 template<typename ElementType, unsigned Size>
-Vec<ElementType, Size> operator+(ElementType a, const Vec<ElementType, Size> &b)
+Vec<ElementType, Size> operator+(const ElementType &a, const Vec<ElementType, Size> &b)
 {
     Vec<ElementType, Size> result;
     for (unsigned i = 0; i < Size; ++i)
@@ -413,7 +413,7 @@ Vec<ElementType, Size> operator+(ElementType a, const Vec<ElementType, Size> &b)
 }
 
 template<typename ElementType, unsigned Size>
-Vec<ElementType, Size> operator-(ElementType a, const Vec<ElementType, Size> &b)
+Vec<ElementType, Size> operator-(const ElementType &a, const Vec<ElementType, Size> &b)
 {
     Vec<ElementType, Size> result;
     for (unsigned i = 0; i < Size; ++i)
@@ -422,7 +422,7 @@ Vec<ElementType, Size> operator-(ElementType a, const Vec<ElementType, Size> &b)
 }
 
 template<typename ElementType, unsigned Size>
-Vec<ElementType, Size> operator*(ElementType a, const Vec<ElementType, Size> &b)
+Vec<ElementType, Size> operator*(const ElementType &a, const Vec<ElementType, Size> &b)
 {
     Vec<ElementType, Size> result;
     for (unsigned i = 0; i < Size; ++i)
@@ -431,7 +431,7 @@ Vec<ElementType, Size> operator*(ElementType a, const Vec<ElementType, Size> &b)
 }
 
 template<typename ElementType, unsigned Size>
-Vec<ElementType, Size> operator/(ElementType a, const Vec<ElementType, Size> &b)
+Vec<ElementType, Size> operator/(const ElementType &a, const Vec<ElementType, Size> &b)
 {
     Vec<ElementType, Size> result;
     for (unsigned i = 0; i < Size; ++i)

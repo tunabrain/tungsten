@@ -8,25 +8,25 @@
 namespace Tungsten {
 
 template<typename T>
-T min(T a, T b)
+T min(const T &a, const T &b)
 {
     return a < b ? a : b;
 }
 
 template<typename T, typename... Ts>
-T min(T a, T b, Ts... ts)
+T min(const T &a, const T &b, const Ts &... ts)
 {
     return min(min(a, b), ts...);
 }
 
 template<typename T>
-T max(T a, T b)
+T max(const T &a, const T &b)
 {
     return a > b ? a : b;
 }
 
 template<typename T, typename... Ts>
-T max(T a, T b, Ts... ts)
+T max(const T &a, const T &b, const Ts &... ts)
 {
     return max(max(a, b), ts...);
 }
