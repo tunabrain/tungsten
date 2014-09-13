@@ -318,7 +318,7 @@ std::string getExecutablePath()
 #else
     ssize_t size = readlink("/proc/self/exe", tmpBuffer, sizeof(tmpBuffer));
     if (size != -1)
-    	return std::string(tmpBuffer, size);
+        return std::string(tmpBuffer, size);
     // readlink does not tell us the actual content size if our buffer is too small,
     // so we won't attempt to allocate a larger buffer here and fail instead
 #endif

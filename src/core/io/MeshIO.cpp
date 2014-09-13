@@ -43,7 +43,7 @@ bool saveWo3(const std::string &path, const std::vector<Vertex> &verts, const st
 
 bool loadObj(const std::string &path, std::vector<Vertex> &verts, std::vector<TriangleI> &tris)
 {
-	return ObjLoader::loadGeometryOnly(path, verts, tris);
+    return ObjLoader::loadGeometryOnly(path, verts, tris);
 }
 
 bool saveObj(const std::string &path, const std::vector<Vertex> &verts, const std::vector<TriangleI> &tris)
@@ -55,34 +55,34 @@ bool saveObj(const std::string &path, const std::vector<Vertex> &verts, const st
     for (const Vertex &v : verts)
         stream << tfm::format("v %f %f %f\n", v.pos().x(), v.pos().y(), v.pos().z());
     for (const Vertex &v : verts)
-    	stream << tfm::format("vn %f %f %f\n", v.normal().x(), v.normal().y(), v.normal().z());
+        stream << tfm::format("vn %f %f %f\n", v.normal().x(), v.normal().y(), v.normal().z());
     for (const Vertex &v : verts)
-    	stream << tfm::format("vt %f %f\n", v.uv().x(), v.uv().y());
+        stream << tfm::format("vt %f %f\n", v.uv().x(), v.uv().y());
     for (const TriangleI &t : tris)
-    	stream << tfm::format("f %d/%d/%d %d/%d/%d %d/%d/%d\n",
-			t.v0 + 1, t.v0 + 1, t.v0 + 1,
-			t.v1 + 1, t.v1 + 1, t.v1 + 1,
-			t.v2 + 1, t.v2 + 1, t.v2 + 1);
+        stream << tfm::format("f %d/%d/%d %d/%d/%d %d/%d/%d\n",
+            t.v0 + 1, t.v0 + 1, t.v0 + 1,
+            t.v1 + 1, t.v1 + 1, t.v1 + 1,
+            t.v2 + 1, t.v2 + 1, t.v2 + 1);
 
     return true;
 }
 
 bool load(const std::string &path, std::vector<Vertex> &verts, std::vector<TriangleI> &tris)
 {
-	if (FileUtils::testExtension(path, "wo3"))
-		return loadWo3(path, verts, tris);
-	else if (FileUtils::testExtension(path, "obj"))
-		return loadObj(path, verts, tris);
-	return false;
+    if (FileUtils::testExtension(path, "wo3"))
+        return loadWo3(path, verts, tris);
+    else if (FileUtils::testExtension(path, "obj"))
+        return loadObj(path, verts, tris);
+    return false;
 }
 
 bool save(const std::string &path, const std::vector<Vertex> &verts, const std::vector<TriangleI> &tris)
 {
-	if (FileUtils::testExtension(path, "wo3"))
-		return saveWo3(path, verts, tris);
-	else if (FileUtils::testExtension(path, "obj"))
-		return saveObj(path, verts, tris);
-	return false;
+    if (FileUtils::testExtension(path, "wo3"))
+        return saveWo3(path, verts, tris);
+    else if (FileUtils::testExtension(path, "obj"))
+        return saveObj(path, verts, tris);
+    return false;
 }
 
 }

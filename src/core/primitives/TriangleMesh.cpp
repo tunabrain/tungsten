@@ -105,12 +105,12 @@ rapidjson::Value TriangleMesh::toJson(Allocator &allocator) const
 
 void TriangleMesh::saveData()
 {
-	MeshIO::save(_path, _verts, _tris);
+    MeshIO::save(_path, _verts, _tris);
 }
 
 void TriangleMesh::saveAsObj(const std::string &path) const
 {
-	MeshIO::save(path, _verts, _tris);
+    MeshIO::save(path, _verts, _tris);
 }
 
 void TriangleMesh::calcSmoothVertexNormals()

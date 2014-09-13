@@ -206,7 +206,7 @@ void ObjLoader::loadLine(const char *line)
     else if (hasPrefix(line, "f"))
         loadFace(line + 2);
     else if (_geometryOnly)
-    	return;
+        return;
     else if (hasPrefix(line, "mtllib"))
         loadMaterialLibrary(line + 7);
     else if (hasPrefix(line, "usemtl")) {
@@ -385,7 +385,7 @@ ObjLoader::ObjLoader(std::ifstream &in, const std::string &path, std::shared_ptr
 ObjLoader::ObjLoader(std::ifstream &in)
 : _geometryOnly(true)
 {
-	loadFile(in);
+    loadFile(in);
 }
 
 Scene *ObjLoader::load(const std::string &path, std::shared_ptr<TextureCache> cache)
@@ -418,7 +418,7 @@ bool ObjLoader::loadGeometryOnly(const std::string &path, std::vector<Vertex> &v
 {
     std::ifstream file(path, std::ios::in | std::ios::binary);
     if (!file.good())
-    	return false;
+        return false;
 
     ObjLoader loader(file);
 

@@ -24,7 +24,7 @@ class Primitive;
 
 class ObjLoader
 {
-	bool _geometryOnly;
+    bool _geometryOnly;
 
     std::shared_ptr<Bsdf> _errorMaterial;
     std::vector<ObjMaterial> _materials;
