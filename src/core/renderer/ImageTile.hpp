@@ -16,6 +16,16 @@ struct ImageTile
     std::unique_ptr<SampleGenerator> sampler;
     std::unique_ptr<UniformSampler> supplementalSampler;
 
+    ImageTile(ImageTile &&o)
+    {
+        x = o.x;
+        y = o.y;
+        w = o.w;
+        h = o.h;
+        sampler = std::move(o.sampler);
+        supplementalSampler = std::move(o.supplementalSampler);
+    }
+
     ImageTile(uint32 x_, uint32 y_, uint32 w_, uint32 h_,
             std::unique_ptr<SampleGenerator> sampler_,
             std::unique_ptr<UniformSampler> supplementalSampler_)

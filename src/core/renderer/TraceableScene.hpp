@@ -72,8 +72,6 @@ class TraceableScene
     embree::Intersector1 _virtualIntersector;
 
 public:
-    TraceableScene(TraceableScene &&o) = default;
-
     TraceableScene(Camera &cam, const Integrator &integratorBase,
             std::vector<std::shared_ptr<Primitive>> &primitives,
             std::vector<std::shared_ptr<Medium>> &media,
