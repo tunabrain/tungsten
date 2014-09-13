@@ -14,6 +14,7 @@
 #include <iostream>
 #include <cstring>
 #include <memory>
+#include <locale>
 
 namespace Tungsten {
 
@@ -240,7 +241,7 @@ bool testExtension(const std::string &path, const std::string &ext)
 
     // Sinze extensions don't normally contain localized characters, this should work fine
     for (size_t i = 0; i < pathExt.size(); ++i)
-        if (std::toupper(pathExt[i]) != std::toupper(ext[i]))
+        if (toupper(pathExt[i]) != toupper(ext[i]))
             return false;
 
     return true;
