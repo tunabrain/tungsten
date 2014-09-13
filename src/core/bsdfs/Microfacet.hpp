@@ -33,7 +33,7 @@ public:
 
     static float roughnessToAlpha(Distribution dist, float roughness)
     {
-        constexpr float MinAlpha = 1e-3f;
+        CONSTEXPR float MinAlpha = 1e-3f;
         roughness = max(roughness, MinAlpha);
 
         if (dist == Phong)

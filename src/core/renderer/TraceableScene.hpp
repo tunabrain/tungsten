@@ -25,8 +25,6 @@ namespace Tungsten {
 
 class TraceableScene
 {
-    static constexpr float DefaultEpsilon = 5e-4f;
-
     struct PerRayData
     {
         IntersectionTemporary &data;
@@ -58,6 +56,8 @@ class TraceableScene
         const Primitive *primitive = reinterpret_cast<const Primitive *>(userData);
         return primitive->occluded(EmbreeUtil::convert(eRay));
     }
+
+    const float DefaultEpsilon = 5e-4f;
 
     Camera &_cam;
     const Integrator &_integratorBase;

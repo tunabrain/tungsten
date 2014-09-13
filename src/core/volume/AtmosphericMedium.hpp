@@ -11,13 +11,13 @@ namespace Tungsten {
 
 class AtmosphericMedium : public Medium
 {
-    static constexpr float Rg = 6360.0f*1e3f;
-    static constexpr float Rt = 6420.0f*1e3f;
-    static constexpr float Hr = 8.0f*1e3f;
-    static constexpr float BetaR = 5.8f*1e-6f;
-    static constexpr float BetaG = 13.5f*1e-6f;
-    static constexpr float BetaB = 33.1f*1e-6f;
-    static constexpr float FalloffScale = 14.0f;
+    const float Rg = 6360.0f*1e3f;
+    const float Rt = 6420.0f*1e3f;
+    const float Hr = 8.0f*1e3f;
+    const float BetaR = 5.8f*1e-6f;
+    const float BetaG = 13.5f*1e-6f;
+    const float BetaB = 33.1f*1e-6f;
+    const float FalloffScale = 14.0f;
 
     const Scene *_scene;
 

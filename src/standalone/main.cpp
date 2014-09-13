@@ -36,9 +36,9 @@ std::string formatTime(double elapsed)
 
 int main(int argc, const char *argv[])
 {
-    constexpr int ThreadCount = 7;
-    constexpr int SppStep = 16;
-    constexpr int BackupInterval = 60*15;
+    CONSTEXPR int ThreadCount = 7;
+    CONSTEXPR int SppStep = 16;
+    CONSTEXPR int BackupInterval = 60*15;
 
     if (argc < 2) {
         std::cerr << "Usage: tungsten scene1 [scene2 [scene3....]]\n";

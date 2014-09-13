@@ -31,7 +31,7 @@ namespace Tungsten {
 
 class PathTraceIntegrator : public Integrator
 {
-    static constexpr bool GeneralizedShadowRays = true;
+    static CONSTEXPR bool GeneralizedShadowRays = true;
 
     const TraceableScene *_scene;
 

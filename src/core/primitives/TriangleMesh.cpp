@@ -115,8 +115,8 @@ void TriangleMesh::saveAsObj(const std::string &path) const
 
 void TriangleMesh::calcSmoothVertexNormals()
 {
-    static constexpr float SplitLimit = std::cos(PI*0.15f);
-    //static constexpr float SplitLimit = -1.0f;
+    static CONSTEXPR float SplitLimit = std::cos(PI*0.15f);
+    //static CONSTEXPR float SplitLimit = -1.0f;
 
     std::vector<Vec3f> geometricN(_verts.size(), Vec3f(0.0f));
     std::unordered_multimap<Vec3f, uint32> posToVert;
@@ -182,8 +182,8 @@ void TriangleMesh::computeBounds()
 
 void TriangleMesh::makeSphere(float radius)
 {
-    constexpr int SubDiv = 10;
-    constexpr int Skip = SubDiv*2 + 1;
+    CONSTEXPR int SubDiv = 10;
+    CONSTEXPR int Skip = SubDiv*2 + 1;
     for (int f = 0, idx = _verts.size(); f < 3; ++f) {
         for (int s = -1; s <= 1; s += 2) {
             for (int u = -SubDiv; u <= SubDiv; ++u) {
@@ -206,7 +206,7 @@ void TriangleMesh::makeSphere(float radius)
 
 void TriangleMesh::makeCone(float radius, float height)
 {
-    constexpr int SubDiv = 36;
+    CONSTEXPR int SubDiv = 36;
     int base = _verts.size();
     _verts.emplace_back(Vec3f(0.0f));
     for (int i = 0; i < SubDiv; ++i) {

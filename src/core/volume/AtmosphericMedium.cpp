@@ -90,8 +90,8 @@ void AtmosphericMedium::sampleColorChannel(VolumeScatterEvent &event, MediumStat
 
 Vec4f AtmosphericMedium::spectralOpticalDepthAndT(const Vec3f &p, const Vec3f &w, float maxT, float targetDepth, int targetChannel, float rand) const
 {
-    constexpr int MaxStepCount = 1024*10;
-    constexpr float maxError = 0.02f;
+    CONSTEXPR int MaxStepCount = 1024*10;
+    CONSTEXPR float maxError = 0.02f;
     int iter = 0;
 
     Vec3f localP = p - _pos;
@@ -144,8 +144,8 @@ Vec4f AtmosphericMedium::spectralOpticalDepthAndT(const Vec3f &p, const Vec3f &w
 
 Vec2f AtmosphericMedium::opticalDepthAndT(const Vec3f &p, const Vec3f &w, float maxT, float targetDepth) const
 {
-    constexpr int MaxStepCount = 1024*10;
-    constexpr float maxError = 0.02f;
+    CONSTEXPR int MaxStepCount = 1024*10;
+    CONSTEXPR float maxError = 0.02f;
     int iter = 0;
 
     Vec3f localP = p - _pos;

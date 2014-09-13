@@ -51,7 +51,7 @@ inline Vec2f minMaxQuadratic(float p0, float p1, float p2)
 static bool pointOnSpline(const Vec4f &q0, const Vec4f &q1, const Vec4f &q2,
         float tMin, float tMax, float &t, Vec2f &uv, float &width)
 {
-    constexpr int MaxDepth = 5;
+    CONSTEXPR int MaxDepth = 5;
 
     struct StackNode
     {

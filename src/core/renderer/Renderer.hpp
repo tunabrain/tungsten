@@ -24,9 +24,9 @@ class Integrator;
 
 class Renderer
 {
-    static constexpr uint32 TileSize = 16;
-    static constexpr uint32 VarianceTileSize = 4;
-    static constexpr uint32 AdaptiveThreshold = 16;
+    static CONSTEXPR uint32 TileSize = 16;
+    static CONSTEXPR uint32 VarianceTileSize = 4;
+    static CONSTEXPR uint32 AdaptiveThreshold = 16;
 
     ThreadPool _threadPool;
 

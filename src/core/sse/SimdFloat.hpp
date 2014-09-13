@@ -15,8 +15,8 @@ template<uint32 N>
 class SimdFloat
 {
 public:
-    static constexpr uint32 n = N;
-    static constexpr size_t Alignment = N*sizeof(float);
+    static CONSTEXPR uint32 n = N;
+    static CONSTEXPR size_t Alignment = N*sizeof(float);
 
     SimdFloat() = default;
     SimdFloat(const SimdFloat &o) = default;
@@ -62,8 +62,8 @@ class SimdFloat<1>
     friend SimdFloat<1> max(const Tungsten::SimdFloat<1> &, const Tungsten::SimdFloat<1> &);
     friend SimdFloat<1> sqrt(const Tungsten::SimdFloat<1> &);
 public:
-    static constexpr uint32 n = 1;
-    static constexpr size_t Alignment = sizeof(float);
+    static CONSTEXPR uint32 n = 1;
+    static CONSTEXPR size_t Alignment = sizeof(float);
 
     SimdFloat() = default;
     SimdFloat(const SimdFloat &o) = default;
@@ -120,8 +120,8 @@ class SimdFloat<4>
     friend SimdFloat<4> max(const Tungsten::SimdFloat<4> &, const Tungsten::SimdFloat<4> &);
     friend SimdFloat<4> sqrt(const Tungsten::SimdFloat<4> &);
 public:
-    static constexpr uint32 n = 4;
-    static constexpr size_t Alignment = 4*sizeof(float);
+    static CONSTEXPR uint32 n = 4;
+    static CONSTEXPR size_t Alignment = 4*sizeof(float);
 
     SimdFloat() = default;
     SimdFloat(const SimdFloat &o) = default;
@@ -206,8 +206,8 @@ class SimdFloat<8>
     friend SimdFloat<8> sqrt(const Tungsten::SimdFloat<8> &);
 
 public:
-    static constexpr uint32 n = 8;
-    static constexpr size_t Alignment = 8*sizeof(float);
+    static CONSTEXPR uint32 n = 8;
+    static CONSTEXPR size_t Alignment = 8*sizeof(float);
 
     SimdFloat() = default;
     SimdFloat(const SimdFloat &o) = default;

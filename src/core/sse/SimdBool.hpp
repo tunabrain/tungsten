@@ -15,8 +15,8 @@ template<uint32 N>
 class SimdBool
 {
 public:
-    static constexpr uint32 n = N;
-    static constexpr size_t Alignment = N*sizeof(float);
+    static CONSTEXPR uint32 n = N;
+    static CONSTEXPR size_t Alignment = N*sizeof(float);
 
     SimdBool() = default;
     SimdBool(const SimdBool &o) = default;
@@ -37,8 +37,8 @@ class SimdBool<1>
 
     friend SimdFloat<1>;
 public:
-    static constexpr uint32 n = 1;
-    static constexpr size_t Alignment = sizeof(bool);
+    static CONSTEXPR uint32 n = 1;
+    static CONSTEXPR size_t Alignment = sizeof(bool);
 
     SimdBool() = default;
     SimdBool(const SimdBool &o) = default;
@@ -68,8 +68,8 @@ class SimdBool<4>
 
     friend SimdFloat<4>;
 public:
-    static constexpr uint32 n = 4;
-    static constexpr size_t Alignment = 4*sizeof(float);
+    static CONSTEXPR uint32 n = 4;
+    static CONSTEXPR size_t Alignment = 4*sizeof(float);
 
     SimdBool() = default;
     SimdBool(const SimdBool &o) = default;
@@ -104,8 +104,8 @@ class SimdBool<8>
 
     friend SimdFloat<8>;
 public:
-    static constexpr uint32 n = 8;
-    static constexpr size_t Alignment = 8*sizeof(float);
+    static CONSTEXPR uint32 n = 8;
+    static CONSTEXPR size_t Alignment = 8*sizeof(float);
 
     SimdBool() = default;
     SimdBool(const SimdBool &o) = default;

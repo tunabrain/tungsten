@@ -54,9 +54,9 @@ class PreviewWindow : public QGLWidget
 {
     Q_OBJECT
 
-    static constexpr float Fov  = 60.0f;
-    static constexpr float Near = 0.01f;
-    static constexpr float Far  = 100.0f;
+    static CONSTEXPR float Fov  = 60.0f;
+    static CONSTEXPR float Near = 0.01f;
+    static CONSTEXPR float Far  = 100.0f;
 
     enum MouseConsumers
     {

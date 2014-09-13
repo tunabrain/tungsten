@@ -107,7 +107,7 @@ Vec3f PathTraceIntegrator::attenuatedEmission(const Primitive &light,
                          int bounce,
                          float tMin)
 {
-    constexpr float fudgeFactor = 1.0f + 1e-3f;
+    CONSTEXPR float fudgeFactor = 1.0f + 1e-3f;
 
     IntersectionInfo info;
     Ray ray(p, d, tMin);

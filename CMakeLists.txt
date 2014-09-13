@@ -33,6 +33,12 @@ else()
     message(FATAL_ERROR "The target machine does not support SSE3. At least SSE3 is required")
 endif()
 
+if (MSVC)
+    add_definitions(-DCONSTEXPR=const -DNOMINMAX -D_CRT_SECURE_NO_WARNINGS)
+else()
+    add_definitions(-DCONSTEXPR=constexpr)
+endif()
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SIMD_FLAGS}")
 
 add_subdirectory(src/thirdparty/embree)

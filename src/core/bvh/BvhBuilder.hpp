@@ -81,9 +81,7 @@ public:
 template<uint32 BranchFactor>
 class BvhBuilder
 {
-    static constexpr int ParallelThreshold = 1000000;
-    static constexpr float IntersectionCost = 1.0f;
-    static constexpr float TraversalCost = 1.0f;
+    static CONSTEXPR int ParallelThreshold = 1000000;
 
     struct SplitInfo
     {
@@ -94,6 +92,9 @@ class BvhBuilder
     };
 
     typedef NaiveBvhNode<BranchFactor> Node;
+
+    const float IntersectionCost = 1.0f;
+    const float TraversalCost = 1.0f;
 
 protected:
     std::unique_ptr<Node> _root;
