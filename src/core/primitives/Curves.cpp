@@ -156,6 +156,9 @@ void Curves::loadCurves()
     data.nodeColor = &_nodeColor;
 
     CurveIO::load(_path, data);
+
+    _nodeCount = _nodeData.size();
+    _curveCount = _curveEnds.size();
 }
 
 void Curves::computeBounds()
