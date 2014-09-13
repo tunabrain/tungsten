@@ -82,8 +82,8 @@ public:
       _media(media),
       _settings(settings)
     {
-        _virtualIntersector.intersectPtr = &intersect;
-        _virtualIntersector.occludedPtr = &occluded;
+        _virtualIntersector.intersectPtr = &TraceableScene::intersect;
+        _virtualIntersector.occludedPtr = &TraceableScene::occluded;
 
         _cam.prepareForRender();
 
