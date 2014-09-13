@@ -19,42 +19,81 @@ struct CurveIntersection
     float w;
 };
 
-static bool pointOnSpline(const Vec4f &q0, const Vec4f &q1, const Vec4f &q2,
-        float tMin, float tMax, float &t, Vec2f &uv, float &width)
+struct StackNode
+{
+    Vec2f p0, p1;
+    float w0, w1;
+    float tMin, tSpan;
+    int depth;
+
+    void set(float tMin_, float tSpan_, Vec2f p0_, Vec2f p1_, float w0_, float w1_, int depth_)
+    {
+        p0 = p0_;
+        p1 = p1_;
+        w0 = w0_;
+        w1 = w1_;
+        tMin = tMin_;
+        tSpan = tSpan_;
+        depth = depth_;
+    }
+};
+
+static inline void intersectSegment(StackNode node, Vec4f q0,
+        Vec4f q1, Vec4f q2, float tMin, float tMax,
+        float &closestDepth, CurveIntersection &isect)
+{
+    float d0 = q0.z(), d1 = q1.z(), d2 = q2.z();
+    float w0 = q0.w(), w1 = q1.w(), w2 = q2.w();
+
+    Vec2f v = (node.p1 - node.p0);
+    float lengthSq = v.lengthSq();
+    float segmentT = -(node.p0.dot(v))/lengthSq;
+    float distance;
+    float signedUnnormalized = node.p0.x()*v.y() - node.p0.y()*v.x();
+    if (segmentT <= 0.0f)
+        distance = node.p0.length();
+    else if (segmentT >= 1.0f)
+        distance = node.p1.length();
+    else
+        distance = std::fabs(signedUnnormalized)/std::sqrt(lengthSq);
+
+    float newT = segmentT*node.tSpan + node.tMin;
+    float currentWidth = BSpline::quadratic(w0, w1, w2, newT);
+    float currentDepth = BSpline::quadratic(d0, d1, d2, newT);
+    if (currentDepth < tMax && currentDepth > tMin && distance < currentWidth && newT >= 0.0f && newT <= 1.0f) {
+        float halfDistance = 0.5f*distance/currentWidth;
+        isect.uv = Vec2f(newT, signedUnnormalized < 0.0f ? 0.5f - halfDistance : halfDistance + 0.5f);
+        isect.t = currentDepth;
+        isect.w = currentWidth;
+        closestDepth = currentDepth;
+    }
+}
+
+// Implementation of "Ray tracing for curves primitive" by Nakamaru and Ohno
+// http://wscg.zcu.cz/wscg2002/Papers_2002/A83.pdf
+static bool pointOnSpline(Vec4f q0, Vec4f q1, Vec4f q2, float tMin, float tMax, CurveIntersection &isect)
 {
     CONSTEXPR int MaxDepth = 5;
 
-    struct StackNode
-    {
-        Vec2f p0, p1;
-        float w0, w1;
-        float tMin, tSpan;
-        int depth;
-
-        void set(float tMin_, float tSpan_, Vec2f p0_, Vec2f p1_, float w0_, float w1_, int depth_)
-        {
-            p0 = p0_;
-            p1 = p1_;
-            w0 = w0_;
-            w1 = w1_;
-            tMin = tMin_;
-            tSpan = tSpan_;
-            depth = depth_;
-        }
-    };
+    StackNode stackBuf[MaxDepth];
+    StackNode *stack = &stackBuf[0];
 
     Vec2f p0 = q0.xy(), p1 = q1.xy(), p2 = q2.xy();
+    float w0 = q0.w(),  w1 = q1.w(),  w2 = q2.w();
+
     Vec2f tFlat = (p0 - p1)/(p0 - 2.0f*p1 + p2);
     float xFlat = BSpline::quadratic(p0.x(), p1.x(), p2.x(), tFlat.x());
     float yFlat = BSpline::quadratic(p0.y(), p1.y(), p2.y(), tFlat.y());
 
     Vec2f deriv1(p0 - 2.0f*p1 + p2), deriv2(p1 - p0);
 
-    StackNode stackBuf[MaxDepth];
-    const StackNode *top = &stackBuf[0];
-    StackNode *stack = &stackBuf[0];
-
-    StackNode cur{(p0 + p1)*0.5f, (p1 + p2)*0.5f, (q0.w() + q1.w())*0.5f, (q1.w() + q2.w())*0.5f, 0.0f, 1.0f, 0};
+    StackNode cur{
+        (p0 + p1)*0.5f,
+        (p1 + p2)*0.5f,
+        (w0 + w1)*0.5f,
+        (w1 + w2)*0.5f,
+        0.0f, 1.0f, 0
+    };
 
     float closestDepth = tMax;
 
@@ -70,46 +109,25 @@ static bool pointOnSpline(const Vec4f &q0, const Vec4f &q1, const Vec4f &q2,
             pMax.y() = max(pMax.y(), yFlat);
         }
 
-        float testWidth = max(cur.w0, cur.w1);
-        if (pMin.x() <= testWidth && pMin.y() <= testWidth && pMax.x() >= -testWidth && pMax.y() >= -testWidth) {
+        float maxWidth = max(cur.w0, cur.w1);
+        if (pMin.x() <= maxWidth && pMin.y() <= maxWidth && pMax.x() >= -maxWidth && pMax.y() >= -maxWidth) {
             if (cur.depth >= MaxDepth) {
                 Vec2f tangent0 = deriv2 + deriv1*cur.tMin;
                 Vec2f tangent1 = deriv2 + deriv1*(cur.tMin + cur.tSpan);
 
-                if (tangent0.dot(cur.p0) <= 0.0f && tangent1.dot(cur.p1) >= 0.0f) {
-                    Vec2f v = (cur.p1 - cur.p0);
-                    float lengthSq = v.lengthSq();
-                    float segmentT = -(cur.p0.dot(v))/lengthSq;
-                    float distance;
-                    float signedUnnormalized = cur.p0.x()*v.y() - cur.p0.y()*v.x();
-                    if (segmentT <= 0.0f)
-                        distance = cur.p0.length();
-                    else if (segmentT >= 1.0f)
-                        distance = cur.p1.length();
-                    else
-                        distance = std::fabs(signedUnnormalized)/std::sqrt(lengthSq);
-
-                    float newT = segmentT*cur.tSpan + cur.tMin;
-                    float currentWidth = BSpline::quadratic(q0.w(), q1.w(), q2.w(), newT);
-                    float currentDepth = BSpline::quadratic(q0.z(), q1.z(), q2.z(), newT);
-                    if (currentDepth < tMax && currentDepth > tMin && distance < currentWidth && newT >= 0.0f && newT <= 1.0f) {
-                        float halfDistance = 0.5f*distance/currentWidth;
-                        uv = Vec2f(newT, signedUnnormalized < 0.0f ? 0.5f - halfDistance : halfDistance + 0.5f);
-                        t = currentDepth;
-                        width = currentWidth;
-                        closestDepth = currentDepth;
-                    }
-                }
+                if (tangent0.dot(cur.p0) <= 0.0f && tangent1.dot(cur.p1) >= 0.0f)
+                    intersectSegment(cur, q0, q1, q2, tMin, tMax, closestDepth, isect);
             } else {
                 float newSpan = cur.tSpan*0.5f;
                 float splitT = cur.tMin + newSpan;
                 Vec4f qSplit = BSpline::quadratic(q0, q1, q2, splitT);
+
                 (*stack++).set(cur.tMin, newSpan, cur.p0, qSplit.xy(), cur.w0, qSplit.w(), cur.depth + 1);
                 cur.set(splitT, newSpan, qSplit.xy(), cur.p1, qSplit.w(), cur.w1, cur.depth + 1);
                 continue;
             }
         }
-        if (stack == top)
+        if (stack == stackBuf)
             break;
         cur = *--stack;
     }
@@ -173,10 +191,11 @@ void Curves::buildProxy()
     std::vector<Vertex> verts;
     std::vector<TriangleI> tris;
 
-    const int Samples = _curveCount < 100 ? 100 : (_curveCount < 10000 ? 5 : 2);
+    const int Samples = _curveCount < 100 ? 100 : (_curveCount < 10000 ? 5 : 1);
+    const int StepSize = _curveCount < 10000 ? 1 : 10;
 
     uint32 idx = 0;
-    for (uint32 i = 0; i < _curveCount; ++i) {
+    for (uint32 i = 0; i < _curveCount; i += StepSize) {
         uint32 start = 0;
         if (i > 0)
             start = _curveEnds[i - 1];
@@ -246,7 +265,7 @@ bool Curves::intersect(Ray &ray, IntersectionTemporary &data) const
         Vec4f q1(project(o, lx, ly, lz, _nodeData[id - 1]));
         Vec4f q2(project(o, lx, ly, lz, _nodeData[id - 0]));
 
-        if (pointOnSpline(q0, q1, q2, ray.nearT(), ray.farT(), isect.t, isect.uv, isect.w)) {
+        if (pointOnSpline(q0, q1, q2, ray.nearT(), ray.farT(), isect)) {
             ray.setFarT(isect.t);
             isect.curveP0 = id - 2;
             didIntersect = true;
