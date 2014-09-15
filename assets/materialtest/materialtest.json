@@ -1,0 +1,217 @@
+{
+    "media": [],
+    "bsdfs": [
+        {
+            "name": "rough_metal",
+            "color": [1, 0.5, 0.5],
+            "type": "rough_conductor",
+            "distribution": "beckmann",
+            "roughness": 0.1
+        },
+        {
+            "name": "Material",
+            "type": "smooth_coat",
+            "ior": 1.7,
+            "thickness": 5,
+            "sigmaA": [
+                0.1,
+                0.2,
+                0.5
+            ],
+            "substrate": "rough_metal"
+        },
+        {
+            "name": "Stand",
+            "albedo": 0.2,
+            "type": "lambert"
+        },
+        {
+            "name": "Floor",
+            "albedo": {
+                "type": "checker",
+                "onColor": [
+                    0.725,
+                    0.71,
+                    0.68
+                ],
+                "offColor": [
+                    0.325,
+                    0.31,
+                    0.25
+                ],
+                "resU": 20,
+                "resV": 20
+            },
+            "type": "lambert"
+        }
+    ],
+    "primitives": [
+        {
+            "name": "Floor",
+            "transform": [
+                -3.76602,
+                4.75207e-007,
+                -3.92041,
+                -0.708772,
+                -3.29289e-007,
+                -5.43617,
+                -3.42735e-007,
+                -2.35511e-007,
+                -3.92035,
+                -3.6174e-011,
+                3.76596,
+                -0.732108,
+                0,
+                0,
+                0,
+                1
+            ],
+            "bump_strength": 1,
+            "bsdf": "Floor",
+            "type": "quad"
+        },
+        {
+            "name": "Envmap",
+            "transform": [
+                0.386859,
+                0,
+                0.922211,
+                -5.96046e-008,
+                0,
+                1,
+                0,
+                -4.76837e-007,
+                -0.92222,
+                0,
+                0.386499,
+                1.17369,
+                0,
+                0,
+                0,
+                1
+            ],
+            "bump_strength": 1,
+            "bsdf": {
+                "albedo": 1,
+                "type": "null"
+            },
+            "emission": "envmap.hdr",
+            "type": "infinite_sphere",
+            "doSample": true
+        },
+        {
+            "name": "Ring",
+            "transform": [
+                0.482906,
+                0,
+                0,
+                0.0571719,
+                0,
+                0.482906,
+                0,
+                0.213656,
+                0,
+                0,
+                0.482906,
+                0.0682078,
+                0,
+                0,
+                0,
+                1
+            ],
+            "bump_strength": 1,
+            "bsdf": "Material",
+            "type": "mesh",
+            "file": "Ring.wo3",
+            "smooth": true
+        },
+        {
+            "name": "T-Ball",
+            "transform": [
+                0.482906,
+                0,
+                0,
+                0.156382,
+                0,
+                0.482906,
+                0,
+                0.777229,
+                0,
+                0,
+                0.482906,
+                0.161698,
+                0,
+                0,
+                0,
+                1
+            ],
+            "bump_strength": 1,
+            "bsdf": "Material",
+            "type": "mesh",
+            "file": "T-Ball.wo3",
+            "smooth": true
+        },
+        {
+            "name": "Stand",
+            "transform": [
+                0.482906,
+                0,
+                0,
+                0.110507,
+                0,
+                0.482906,
+                0,
+                0.494301,
+                0,
+                0,
+                0.482906,
+                0.126194,
+                0,
+                0,
+                0,
+                1
+            ],
+            "bump_strength": 1,
+            "bsdf": "Stand",
+            "type": "mesh",
+            "file": "Stand.wo3",
+            "smooth": true
+        }
+    ],
+    "camera": {
+        "output_file": "TungstenRender.png",
+        "overwrite_output_files": false,
+        "tonemap": "filmic",
+        "position": [
+            3.04068,
+            3.17153,
+            3.20454
+        ],
+        "lookAt": [
+            0.118789,
+            0.473398,
+            0.161081
+        ],
+        "up": [
+            0,
+            1,
+            0
+        ],
+        "spp": 32,
+        "type": "pinhole",
+        "fov": 35
+    },
+    "integrator": {
+        "type": "path_trace",
+        "min_bounces": 0,
+        "max_bounces": 64,
+        "enable_light_sampling": true,
+        "enable_volume_light_sampling": true,
+        "enable_consistency_checks": false,
+        "enable_two_sided_shading": true
+    },
+    "renderer": {
+        "adaptive_sampling": true,
+        "stratified_sampler": true
+    }
+}
