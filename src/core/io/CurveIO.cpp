@@ -1,11 +1,88 @@
 #include "CurveIO.hpp"
 #include "FileUtils.hpp"
 
+#include "sampling/UniformSampler.hpp"
+#include "sampling/SampleWarp.hpp"
+
+#include "math/BSpline.hpp"
+#include "math/Angle.hpp"
+#include "math/Mat4f.hpp"
+
 #include <fstream>
 
 namespace Tungsten {
 
 namespace CurveIO {
+
+void extrudeMinimumTorsionNormals(CurveData &data)
+{
+    std::vector<uint32> &curveEnds = *data.curveEnds;
+    std::vector<Vec4f> &nodes = *data.nodeData;
+    std::vector<Vec3f> &normals = *data.nodeNormal;
+
+    auto getTangent = [&](int idx, float t)
+    {
+        const Vec4f &p0 = nodes[idx];
+        const Vec4f &p1 = nodes[idx + 1];
+        const Vec4f &p2 = nodes[idx + 2];
+        return BSpline::quadraticDeriv(p0.xyz(), p1.xyz(), p2.xyz(), t).normalized();
+    };
+
+    auto minTorsionAdvance = [&](const Vec3f &currentNormal, int idx) {
+        Vec3f tangent = getTangent(idx, 0.0f);
+        Vec3f nextNormal = currentNormal;
+        for (int j = 1; j <= 10; ++j) {
+            Vec3f newTangent = getTangent(idx, j*0.1f);
+            float angle = std::acos(std::min(tangent.dot(newTangent), 1.0f));
+            Vec3f axis = tangent.cross(newTangent);
+            float length = axis.length();
+            if (length == 0.0f)
+                continue;
+            axis /= length;
+            tangent = newTangent;
+
+            nextNormal = Mat4f::rotAxis(axis, Angle::radToDeg(angle))*nextNormal;
+            nextNormal -= tangent*tangent.dot(nextNormal);
+            nextNormal.normalize();
+        }
+        return nextNormal;
+    };
+
+    uint32 t = 0;
+    for (size_t i = 0; i < curveEnds.size(); ++i) {
+        Vec3f lastNormal = normals[t];
+        do {
+            normals[t + 1] = (2.0f*lastNormal - normals[t]).normalized();
+            lastNormal = minTorsionAdvance(lastNormal, t);
+        } while (++t < curveEnds[i] - 2);
+        normals[t + 1] = normals[t];
+        t += 2;
+    }
+}
+
+void initializeRandomNormals(CurveData &data)
+{
+    std::vector<uint32> &curveEnds = *data.curveEnds;
+    std::vector<Vec4f> &nodes = *data.nodeData;
+    std::vector<Vec3f> &normals = *data.nodeNormal;
+    normals.resize(nodes.size());
+
+    UniformSampler sampler(std::hash<Vec3f>()(data.nodeData->front().xyz()));
+    for (size_t i = 0; i < curveEnds.size(); ++i) {
+        uint32 dst = (i == 0 ? 0 : curveEnds[i - 1]);
+
+        Vec3f tangent((nodes[dst + 1].xyz() - nodes[dst].xyz()).normalized());
+        float dot;
+        do {
+            normals[dst] = SampleWarp::uniformSphere(sampler.next2D());
+            dot = tangent.dot(normals[dst]);
+        } while (std::abs(dot) > 1.0f - 1e-4f);
+        normals[dst] -= tangent*dot;
+        normals[dst].normalize();
+    }
+
+    extrudeMinimumTorsionNormals(data);
+}
 
 bool loadHair(const std::string &path, CurveData &data)
 {
@@ -92,6 +169,9 @@ bool loadHair(const std::string &path, CurveData &data)
             data.nodeColor->push_back(defaultColor);
         }
     }
+
+    if (data.curveEnds && data.nodeData && data.nodeNormal)
+        initializeRandomNormals(data);
 
     return true;
 }
