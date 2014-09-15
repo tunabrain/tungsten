@@ -20,8 +20,12 @@ it freely, subject to the following restrictions:
        distribution.
 
 
+This software contains source code and data from third-party sources. They are listed below, including their respective licenses (if applicable):
 
-This software contains source code from third-party sources. They are listed below, including their respective licenses:
+The light probe in assets/materialtest/envmap.hdr is courtesy of Berhnard Vogl and may be obtained at http://dativ.at/lightprobes/
+    
+The CMake modules in cmake/ are courtesy of Matthias Kretz, Nathan Osman and Alexander Neundorf.
+Please see the respective files for license terms.
 
 src/thirdparty/tinyformat is Tinyformat, which may be obtained at https://github.com/c42f/tinyformat
 
