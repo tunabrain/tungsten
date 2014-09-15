@@ -6,6 +6,7 @@
 !/.gitignore
 !/CMakeLists.txt
 !/setup_builds.sh
+!/setup_builds.bat
 !/Header.jpg
 !/Readme.md
 !/LICENSE.txt
