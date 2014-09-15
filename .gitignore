@@ -1,9 +1,13 @@
 /*
 /*/
+!/assets/
+/assets/*
+!/assets/materialtest/
 !/.gitignore
 !/CMakeLists.txt
 !/setup_builds.sh
-!/spectrum_converter.cpp
+!/Header.jpg
+!/Readme.md
 !/LICENSE.txt
 !/src/
 !/data/
