@@ -283,11 +283,23 @@ void Curves::buildProxy()
     std::vector<Vertex> verts;
     std::vector<TriangleI> tris;
 
-    const int Samples = _curveCount < 100 ? 100 : (_curveCount <= 10000 ? 5 : 2);
-    const int StepSize = _curveCount <= 10000 ? 1 : 10;
+    int segmentCount = 0;
+    for (uint32 i = 0; i < _curveCount; ++i)
+        segmentCount += _curveEnds[i] - (i ? _curveEnds[i - 1] : 0) - 1;
+
+    const int MaxSegments = 150000;
+
+    int samples, stepSize;
+    if (segmentCount < MaxSegments) {
+        stepSize = 1;
+        samples = min(MaxSegments/segmentCount, 10);
+    } else {
+        stepSize = segmentCount/MaxSegments;
+        samples = 1;
+    }
 
     uint32 idx = 0;
-    for (uint32 i = 0; i < _curveCount; i += StepSize) {
+    for (uint32 i = 0; i < _curveCount; i += stepSize) {
         uint32 start = 0;
         if (i > 0)
             start = _curveEnds[i - 1];
@@ -300,8 +312,8 @@ void Curves::buildProxy()
             const Vec3f &n1 = _nodeNormals[t - 1];
             const Vec3f &n2 = _nodeNormals[t - 0];
 
-            for (int j = 0; j <= Samples; ++j) {
-                float curveT = j*(1.0f/Samples);
+            for (int j = 0; j <= samples; ++j) {
+                float curveT = j*(1.0f/samples);
                 Vec3f tangent = BSpline::quadraticDeriv(p0.xyz(), p1.xyz(), p2.xyz(), curveT).normalized();
                 Vec3f normal = BSpline::quadratic(n0, n1, n2, curveT);
                 Vec3f binormal = tangent.cross(normal).normalized();
