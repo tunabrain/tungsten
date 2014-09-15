@@ -15,8 +15,19 @@ class Scene;
 
 class Curves : public Primitive
 {
+    enum CurveMode
+    {
+        MODE_HALF_CYLINDER,
+        MODE_BCSDF_CYLINDER,
+        MODE_CYLINDER,
+        MODE_RIBBON
+    };
+
     std::string _path;
     std::string _dir;
+    std::string _modeString;
+
+    CurveMode _mode;
 
     uint32 _curveCount;
     uint32 _nodeCount;
@@ -24,6 +35,7 @@ class Curves : public Primitive
     std::vector<uint32> _curveEnds;
     std::vector<Vec4f> _nodeData;
     std::vector<Vec3f> _nodeColor;
+    std::vector<Vec3f> _nodeNormals;
 
     std::shared_ptr<TriangleMesh> _proxy;
 
@@ -31,15 +43,18 @@ class Curves : public Primitive
 
     std::unique_ptr<BinaryBvh> _bvh;
 
+    void init();
     void loadCurves();
     void computeBounds();
     void buildProxy();
-    Vec3f computeTangent(const CurveIntersection &isect) const;
+
+    template<bool isRibbon>
+    bool intersectTemplate(Ray &ray, IntersectionTemporary &data) const;
 
 public:
     virtual ~Curves() {}
 
-    Curves() = default;
+    Curves();
     Curves(const Curves &o);
 
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;

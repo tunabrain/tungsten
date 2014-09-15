@@ -21,124 +21,193 @@ struct CurveIntersection
 
 struct StackNode
 {
-    Vec2f p0, p1;
-    float w0, w1;
-    float tMin, tSpan;
+    Vec4f p0, p1;
+    float tMin, tMax;
     int depth;
 
-    void set(float tMin_, float tSpan_, Vec2f p0_, Vec2f p1_, float w0_, float w1_, int depth_)
+    void set(float tMin_, float tMax_, Vec4f p0_, Vec4f p1_, int depth_)
     {
         p0 = p0_;
         p1 = p1_;
-        w0 = w0_;
-        w1 = w1_;
         tMin = tMin_;
-        tSpan = tSpan_;
+        tMax = tMax_;
         depth = depth_;
     }
 };
 
-static inline void intersectSegment(StackNode node, Vec4f q0,
-        Vec4f q1, Vec4f q2, float tMin, float tMax,
-        float &closestDepth, CurveIntersection &isect)
+static inline void intersectHalfCylinder(StackNode node, float tMin,
+        float &tMax, CurveIntersection &isect)
 {
-    float d0 = q0.z(), d1 = q1.z(), d2 = q2.z();
-    float w0 = q0.w(), w1 = q1.w(), w2 = q2.w();
-
-    Vec2f v = (node.p1 - node.p0);
+    Vec2f v = (node.p1.xy() - node.p0.xy());
     float lengthSq = v.lengthSq();
-    float segmentT = -(node.p0.dot(v))/lengthSq;
-    float distance;
+    float invLengthSq = 1.0f/lengthSq;
+    float invLength = std::sqrt(invLengthSq);
+    float segmentT = -(node.p0.xy().dot(v))*invLengthSq;
     float signedUnnormalized = node.p0.x()*v.y() - node.p0.y()*v.x();
-    if (segmentT <= 0.0f)
-        distance = node.p0.length();
-    else if (segmentT >= 1.0f)
-        distance = node.p1.length();
-    else
-        distance = std::fabs(signedUnnormalized)/std::sqrt(lengthSq);
+    float distance = std::fabs(signedUnnormalized)*invLength;
 
-    float newT = segmentT*node.tSpan + node.tMin;
-    float currentWidth = BSpline::quadratic(w0, w1, w2, newT);
-    float currentDepth = BSpline::quadratic(d0, d1, d2, newT);
-    if (currentDepth < tMax && currentDepth > tMin && distance < currentWidth && newT >= 0.0f && newT <= 1.0f) {
-        float halfDistance = 0.5f*distance/currentWidth;
-        isect.uv = Vec2f(newT, signedUnnormalized < 0.0f ? 0.5f - halfDistance : halfDistance + 0.5f);
-        isect.t = currentDepth;
-        isect.w = currentWidth;
-        closestDepth = currentDepth;
+    float width = node.p0.w()*(1.0f - segmentT) + node.p1.w()*segmentT;
+    if (distance > width)
+        return;
+
+    float depth = node.p0.z()*(1.0f - segmentT) + node.p1.z()*segmentT;
+    float dz = node.p1.z() - node.p0.z();
+    float ySq = sqr(width) - sqr(distance);
+    float lSq = ySq*(1.0f + dz*dz*invLengthSq);
+    float deltaT = std::sqrt(std::max(lSq, 0.0f));
+    float t0 = depth - deltaT;
+
+    Vec3f v3(node.p0.xyz() - node.p1.xyz());
+    lengthSq = v3.lengthSq();
+    segmentT = (Vec3f(node.p0.x(), node.p0.y(), node.p0.z() - t0)).dot(v3)/lengthSq;
+    if (segmentT < 0.0f || t0 >= tMax || t0 <= tMin) {
+        // Enable this for two-sided cylinders (for transmissive BSDFs)
+        // Not really recommended (self-intersections), so disabled for now
+
+//        t0 = depth + deltaT;
+//        segmentT -= 2.0f*deltaT*v3.z()/lengthSq;
+//        if (segmentT < 0.0f || t0 >= closestDepth || t0 <= tMin)
+            return;
     }
+
+    float newT = segmentT*(node.tMax - node.tMin) + node.tMin;
+
+    if (newT >= 0.0f && newT <= 1.0f) {
+        isect.uv = Vec2f(newT, 0.0f);
+        isect.t = t0;
+        isect.w = width;
+        tMax = t0;
+    }
+}
+
+static inline void intersectRibbon(StackNode node, float tMin, float &tMax,
+        CurveIntersection &isect, Vec3f n0, Vec3f n1, Vec3f n2)
+{
+    Vec3f v = (node.p1.xyz() - node.p0.xyz());
+    float lengthSq = v.lengthSq();
+    if (lengthSq == 0.0f)
+        return;
+    float invLengthSq = 1.0f/lengthSq;
+
+    float tMid = (node.tMin + node.tMax)*0.5f;
+    Vec3f n = BSpline::quadratic(n0, n1, n2, tMid);
+
+    n = (v*(v.dot(n)*invLengthSq) - n);
+
+    float t0 = n.dot(node.p0.xyz())/n.z();
+    if (t0 < tMin || t0 > tMax)
+        return;
+
+    Vec3f localP = Vec3f(-node.p0.x(), -node.p0.y(), t0 - node.p0.z());
+    float dot = localP.dot(v);
+    float segmentT = dot*invLengthSq;
+    if (segmentT < 0.0f || segmentT > 1.0f)
+        return;
+
+    float width = node.p0.w()*(1.0f - segmentT) + node.p1.w()*segmentT;
+    float distSq = (localP - v*segmentT).lengthSq();
+
+    if (distSq > width*width)
+        return;
+
+    float newT = segmentT*(node.tMax - node.tMin) + node.tMin;
+    if (newT >= 0.0f && newT <= 1.0f) {
+        isect.uv = Vec2f(newT, 0.0f);
+        isect.t = t0;
+        isect.w = width;
+        tMax = t0;
+    }
+}
+
+template<typename T>
+static inline void precomputeBSplineCoefficients(T &p0, T &p1, T &p2)
+{
+    T q0 = (0.5f*p0 - p1 + 0.5f*p2);
+    T q1 = (p1 - p0);
+    T q2 = 0.5f*(p0 + p1);
+    p0 = q0;
+    p1 = q1;
+    p2 = q2;
 }
 
 // Implementation of "Ray tracing for curves primitive" by Nakamaru and Ohno
 // http://wscg.zcu.cz/wscg2002/Papers_2002/A83.pdf
-static bool pointOnSpline(Vec4f q0, Vec4f q1, Vec4f q2, float tMin, float tMax, CurveIntersection &isect)
+template<bool isRibbon>
+static bool pointOnSpline(Vec4f q0, Vec4f q1, Vec4f q2,
+        float tMin, float tMax, CurveIntersection &isect,
+        Vec3f n0, Vec3f n1, Vec3f n2)
 {
+
     CONSTEXPR int MaxDepth = 5;
 
     StackNode stackBuf[MaxDepth];
     StackNode *stack = &stackBuf[0];
 
-    Vec2f p0 = q0.xy(), p1 = q1.xy(), p2 = q2.xy();
-    float w0 = q0.w(),  w1 = q1.w(),  w2 = q2.w();
+    precomputeBSplineCoefficients(q0, q1, q2);
 
-    Vec2f tFlat = (p0 - p1)/(p0 - 2.0f*p1 + p2);
-    float xFlat = BSpline::quadratic(p0.x(), p1.x(), p2.x(), tFlat.x());
-    float yFlat = BSpline::quadratic(p0.y(), p1.y(), p2.y(), tFlat.y());
-
-    Vec2f deriv1(p0 - 2.0f*p1 + p2), deriv2(p1 - p0);
+    Vec2f tFlat = -q1.xy()*0.5f/q0.xy();
+    Vec2f xyFlat = q0.xy()*tFlat*tFlat + q1.xy()*tFlat + q2.xy();
+    float xFlat = xyFlat.x(), yFlat = xyFlat.y();
 
     StackNode cur{
-        (p0 + p1)*0.5f,
-        (p1 + p2)*0.5f,
-        (w0 + w1)*0.5f,
-        (w1 + w2)*0.5f,
+        q2,
+        q0 + q1 + q2,
         0.0f, 1.0f, 0
     };
-
     float closestDepth = tMax;
 
     while (true) {
-        Vec2f pMin = min(cur.p0, cur.p1);
-        Vec2f pMax = max(cur.p0, cur.p1);
-        if (tFlat.x() > cur.tMin && tFlat.x() < cur.tMin + cur.tSpan) {
+        Vec2f pMin = min(cur.p0.xy(), cur.p1.xy());
+        Vec2f pMax = max(cur.p0.xy(), cur.p1.xy());
+        if (tFlat.x() > cur.tMin && tFlat.x() < cur.tMax) {
             pMin.x() = min(pMin.x(), xFlat);
             pMax.x() = max(pMax.x(), xFlat);
         }
-        if (tFlat.y() > cur.tMin && tFlat.y() < cur.tMin + cur.tSpan) {
+        if (tFlat.y() > cur.tMin && tFlat.y() < cur.tMax) {
             pMin.y() = min(pMin.y(), yFlat);
             pMax.y() = max(pMax.y(), yFlat);
         }
 
-        float maxWidth = max(cur.w0, cur.w1);
+        float maxWidth = max(cur.p0.w(), cur.p1.w());
         if (pMin.x() <= maxWidth && pMin.y() <= maxWidth && pMax.x() >= -maxWidth && pMax.y() >= -maxWidth) {
             if (cur.depth >= MaxDepth) {
-                Vec2f tangent0 = deriv2 + deriv1*cur.tMin;
-                Vec2f tangent1 = deriv2 + deriv1*(cur.tMin + cur.tSpan);
-
-                if (tangent0.dot(cur.p0) <= 0.0f && tangent1.dot(cur.p1) >= 0.0f)
-                    intersectSegment(cur, q0, q1, q2, tMin, tMax, closestDepth, isect);
+                if (isRibbon)
+                    intersectRibbon(cur, tMin, closestDepth, isect, n0, n1, n2);
+                else
+                    intersectHalfCylinder(cur, tMin, closestDepth, isect);
             } else {
-                float newSpan = cur.tSpan*0.5f;
-                float splitT = cur.tMin + newSpan;
-                Vec4f qSplit = BSpline::quadratic(q0, q1, q2, splitT);
+                float splitT = (cur.tMin + cur.tMax)*0.5f;
+                Vec4f qSplit = q0*(splitT*splitT) + q1*splitT + q2;
 
-                (*stack++).set(cur.tMin, newSpan, cur.p0, qSplit.xy(), cur.w0, qSplit.w(), cur.depth + 1);
-                cur.set(splitT, newSpan, qSplit.xy(), cur.p1, qSplit.w(), cur.w1, cur.depth + 1);
+                if (cur.p0.z() < qSplit.z()) {
+                    (*stack++).set(splitT, cur.tMax, qSplit, cur.p1, cur.depth + 1);
+                    cur.set(cur.tMin, splitT, cur.p0, qSplit, cur.depth + 1);
+                } else {
+                    (*stack++).set(cur.tMin, splitT, cur.p0, qSplit, cur.depth + 1);
+                    cur.set(splitT, cur.tMax, qSplit, cur.p1, cur.depth + 1);
+                }
                 continue;
             }
         }
-        if (stack == stackBuf)
-            break;
-        cur = *--stack;
+        do {
+            if (stack == stackBuf)
+                return closestDepth < tMax;
+            cur = *--stack;
+        } while (min(cur.p0.z() - cur.p0.w(), cur.p1.z() - cur.p1.w()) > closestDepth);
     }
 
-    return closestDepth < tMax;
+    return false;
 }
 
 static Vec4f project(const Vec3f &o, const Vec3f &lx, const Vec3f &ly, const Vec3f &lz, const Vec4f &q)
 {
     Vec3f p(q.xyz() - o);
     return Vec4f(lx.dot(p), ly.dot(p), lz.dot(p), q.w());
+}
+
+static Vec3f project(const Vec3f &lx, const Vec3f &ly, const Vec3f &lz, const Vec3f &q)
+{
+    return Vec3f(lx.dot(q), ly.dot(q), lz.dot(q));
 }
 
 static Box3f curveBox(const Vec4f &q0, const Vec4f &q1, const Vec4f &q2)
@@ -153,9 +222,17 @@ static Box3f curveBox(const Vec4f &q0, const Vec4f &q1, const Vec4f &q2)
     );
 }
 
+Curves::Curves()
+: _modeString("half_cylinder")
+{
+    init();
+}
+
 Curves::Curves(const Curves &o)
 : Primitive(o)
 {
+    _modeString = o._modeString;
+    _mode       = o._mode;
     _path       = o._path;
     _curveCount = o._curveCount;
     _nodeCount  = o._nodeCount;
@@ -166,12 +243,27 @@ Curves::Curves(const Curves &o)
     _bounds     = o._bounds;
 }
 
+void Curves::init()
+{
+    if (_modeString == "cylinder")
+        _mode = MODE_CYLINDER;
+    else if (_modeString == "half_cylinder")
+        _mode = MODE_HALF_CYLINDER;
+    else if (_modeString == "bcsdf_cylinder")
+        _mode = MODE_BCSDF_CYLINDER;
+    else if (_modeString == "ribbon")
+        _mode = MODE_RIBBON;
+    else
+        FAIL("Unkown mode type curve mode '%s'", _modeString);
+}
+
 void Curves::loadCurves()
 {
     CurveIO::CurveData data;
     data.curveEnds = &_curveEnds;
     data.nodeData  = &_nodeData;
     data.nodeColor = &_nodeColor;
+    data.nodeNormal = &_nodeNormals;
 
     CurveIO::load(_path, data);
 
@@ -191,8 +283,8 @@ void Curves::buildProxy()
     std::vector<Vertex> verts;
     std::vector<TriangleI> tris;
 
-    const int Samples = _curveCount < 100 ? 100 : (_curveCount < 10000 ? 5 : 1);
-    const int StepSize = _curveCount < 10000 ? 1 : 10;
+    const int Samples = _curveCount < 100 ? 100 : (_curveCount <= 10000 ? 5 : 2);
+    const int StepSize = _curveCount <= 10000 ? 1 : 10;
 
     uint32 idx = 0;
     for (uint32 i = 0; i < _curveCount; i += StepSize) {
@@ -204,14 +296,18 @@ void Curves::buildProxy()
             const Vec4f &p0 = _nodeData[t - 2];
             const Vec4f &p1 = _nodeData[t - 1];
             const Vec4f &p2 = _nodeData[t - 0];
+            const Vec3f &n0 = _nodeNormals[t - 2];
+            const Vec3f &n1 = _nodeNormals[t - 1];
+            const Vec3f &n2 = _nodeNormals[t - 0];
 
             for (int j = 0; j <= Samples; ++j) {
                 float curveT = j*(1.0f/Samples);
                 Vec3f tangent = BSpline::quadraticDeriv(p0.xyz(), p1.xyz(), p2.xyz(), curveT).normalized();
-                TangentFrame frame(tangent);
+                Vec3f normal = BSpline::quadratic(n0, n1, n2, curveT);
+                Vec3f binormal = tangent.cross(normal).normalized();
                 Vec4f p = BSpline::quadratic(p0, p1, p2, curveT);
-                Vec3f v0 = frame.toGlobal(Vec3f(-p.w(), 0.0f, 0.0f)) + p.xyz();
-                Vec3f v1 = frame.toGlobal(Vec3f( p.w(), 0.0f, 0.0f)) + p.xyz();
+                Vec3f v0 = -p.w()*binormal + p.xyz();
+                Vec3f v1 =  p.w()*binormal + p.xyz();
 
                 verts.emplace_back(v0);
                 verts.emplace_back(v1);
@@ -227,24 +323,14 @@ void Curves::buildProxy()
     _proxy = std::make_shared<TriangleMesh>(verts, tris, _bsdf, "Curves", false);
 }
 
-Vec3f Curves::computeTangent(const CurveIntersection &isect) const
-{
-    uint32 p0 = isect.curveP0;
-    Vec3f tangent = BSpline::quadraticDeriv(
-        _nodeData[p0].xyz(),
-        _nodeData[p0 + 1].xyz(),
-        _nodeData[p0 + 2].xyz(),
-        isect.uv.x()
-    );
-
-    return tangent.normalized();
-}
-
 void Curves::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     Primitive::fromJson(v, scene);
-    _path = JsonUtils::as<std::string>(v, "file");
+    JsonUtils::fromJson(v, "file", _path);
+    JsonUtils::fromJson(v, "mode", _modeString);
     _dir = FileUtils::getCurrentDir();
+
+    init();
 
     loadCurves();
 }
@@ -254,10 +340,20 @@ rapidjson::Value Curves::toJson(Allocator &allocator) const
     rapidjson::Value v = Primitive::toJson(allocator);
     v.AddMember("type", "curves", allocator);
     v.AddMember("file", _path.c_str(), allocator);
+    v.AddMember("mode", _modeString.c_str(), allocator);
     return std::move(v);
 }
 
 bool Curves::intersect(Ray &ray, IntersectionTemporary &data) const
+{
+    if (_mode == MODE_RIBBON)
+        return intersectTemplate<true>(ray, data);
+    else
+        return intersectTemplate<false>(ray, data);
+}
+
+template<bool isRibbon>
+bool Curves::intersectTemplate(Ray &ray, IntersectionTemporary &data) const
 {
     Vec3f o(ray.pos()), lz(ray.dir());
     float d = std::sqrt(lz.x()*lz.x() + lz.z()*lz.z());
@@ -278,7 +374,14 @@ bool Curves::intersect(Ray &ray, IntersectionTemporary &data) const
         Vec4f q1(project(o, lx, ly, lz, _nodeData[id - 1]));
         Vec4f q2(project(o, lx, ly, lz, _nodeData[id - 0]));
 
-        if (pointOnSpline(q0, q1, q2, ray.nearT(), ray.farT(), isect)) {
+        Vec3f n0, n1, n2;
+        if (isRibbon) {
+            n0 = project(lx, ly, lz, _nodeNormals[id - 2]);
+            n1 = project(lx, ly, lz, _nodeNormals[id - 1]);
+            n2 = project(lx, ly, lz, _nodeNormals[id - 0]);
+        }
+
+        if (pointOnSpline<isRibbon>(q0, q1, q2, ray.nearT(), ray.farT(), isect, n0, n1, n2)) {
             ray.setFarT(isect.t);
             isect.curveP0 = id - 2;
             didIntersect = true;
@@ -306,18 +409,45 @@ bool Curves::hitBackside(const IntersectionTemporary &/*data*/) const
 void Curves::intersectionInfo(const IntersectionTemporary &data, IntersectionInfo &info) const
 {
     const CurveIntersection &isect = *data.as<CurveIntersection>();
-    Vec3f tangent = computeTangent(isect);
-    info.Ng = info.Ns = (-info.w - tangent*tangent.dot(-info.w)).normalized();
+
+    uint32 p0 = isect.curveP0;
+    float t = isect.uv.x();
+
+    Vec3f tangent = BSpline::quadraticDeriv(_nodeData[p0].xyz(), _nodeData[p0 + 1].xyz(), _nodeData[p0 + 2].xyz(), t);
+    tangent.normalize();
+
+    if (_mode == MODE_RIBBON) {
+        Vec3f normal = BSpline::quadratic(_nodeNormals[p0], _nodeNormals[p0 + 1], _nodeNormals[p0 + 2], t);
+        info.Ng = info.Ns = (tangent*tangent.dot(normal) - normal).normalized();
+    } else if (_mode == MODE_BCSDF_CYLINDER) {
+        info.Ng = info.Ns = (-info.w - tangent*tangent.dot(-info.w)).normalized();
+    } else if (_mode == MODE_HALF_CYLINDER || _mode == MODE_CYLINDER) {
+        Vec3f point = BSpline::quadratic(_nodeData[p0].xyz(), _nodeData[p0 + 1].xyz(), _nodeData[p0 + 2].xyz(), t);
+
+        Vec3f localP = info.p - point;
+        localP -= tangent*(localP.dot(tangent));
+        info.Ng = info.Ns = localP.normalized();
+    }
+
     info.uv = isect.uv;
     info.primitive = this;
-    info.epsilon = 10.0f*isect.w;
+
+    if (_mode == MODE_CYLINDER)
+        info.epsilon = max(info.epsilon, 0.1f*isect.w);
+    else
+        info.epsilon = max(info.epsilon, 0.01f*isect.w);
 }
 
 bool Curves::tangentSpace(const IntersectionTemporary &data, const IntersectionInfo &info,
         Vec3f &T, Vec3f &B) const
 {
     const CurveIntersection &isect = *data.as<CurveIntersection>();
-    T = computeTangent(isect);
+
+    uint32 p0 = isect.curveP0;
+    float t = isect.uv.x();
+    Vec3f tangent = BSpline::quadraticDeriv(_nodeData[p0].xyz(), _nodeData[p0 + 1].xyz(), _nodeData[p0 + 2].xyz(), t);
+
+    T = tangent.normalized();
     B = T.cross(info.Ng);
     return false;
 }
