@@ -87,7 +87,7 @@ std::unique_ptr<float[]> loadStbiHdr(const std::string &file, TexelConversion re
 
     std::unique_ptr<float[]> texels(new float[w*h*targetChannels]);
     if (targetChannels == 3) {
-        std::memcpy(texels.get(), img.get(), w*h*targetChannels*sizeof(uint8));
+        std::memcpy(texels.get(), img.get(), w*h*targetChannels*sizeof(float));
     } else {
         for (int i = 0; i < w*h; ++i)
             texels[i] = convertToScalar(request, img[i*3], img[i*3 + 1], img[i*3 + 2], 1.0f, false);
