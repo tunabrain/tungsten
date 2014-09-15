@@ -56,7 +56,8 @@ static std::unique_ptr<float[]> loadPfm(const std::string &file, TexelConversion
     std::getline(in, tmp);
 
     std::unique_ptr<float[]> img(new float[w*h*channels]);
-    in.read(reinterpret_cast<char *>(img.get()), w*h*channels*sizeof(float));
+    for (int y = 0; y < h; ++y)
+        in.read(reinterpret_cast<char *>(img.get() + (h - y - 1)*w*channels), w*channels*sizeof(float));
     in.close();
 
     if (channels == targetChannels)

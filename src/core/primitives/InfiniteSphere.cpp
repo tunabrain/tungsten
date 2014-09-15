@@ -22,14 +22,14 @@ InfiniteSphere::InfiniteSphere()
 Vec2f InfiniteSphere::directionToUV(const Vec3f &wi) const
 {
     Vec3f wLocal = _invRotTransform*wi;
-    return Vec2f(std::atan2(wLocal.z(), wLocal.x())*INV_TWO_PI + 0.5f, std::acos(wLocal.y())*INV_PI);
+    return Vec2f(std::atan2(wLocal.z(), wLocal.x())*INV_TWO_PI + 0.5f, std::acos(-wLocal.y())*INV_PI);
 }
 
 Vec2f InfiniteSphere::directionToUV(const Vec3f &wi, float &sinTheta) const
 {
     Vec3f wLocal = _invRotTransform*wi;
     sinTheta = std::sqrt(max(1.0f - wLocal.y()*wLocal.y(), 0.0f));
-    return Vec2f(std::atan2(wLocal.z(), wLocal.x())*INV_TWO_PI + 0.5f, std::acos(wLocal.y())*INV_PI);
+    return Vec2f(std::atan2(wLocal.z(), wLocal.x())*INV_TWO_PI + 0.5f, std::acos(-wLocal.y())*INV_PI);
 }
 
 Vec3f InfiniteSphere::uvToDirection(Vec2f uv, float &sinTheta) const
@@ -39,7 +39,7 @@ Vec3f InfiniteSphere::uvToDirection(Vec2f uv, float &sinTheta) const
     sinTheta = std::sin(theta);
     return _rotTransform*Vec3f(
         std::cos(phi)*sinTheta,
-        std::cos(theta),
+        -std::cos(theta),
         std::sin(phi)*sinTheta
     );
 }
