@@ -54,7 +54,7 @@ bool ThinSheetBsdf::sample(SurfaceScatterEvent &event) const
         return false;
 
     event.wo = Vec3f(-event.wi.x(), -event.wi.y(), event.wi.z());
-    event.pdf = 1.0f;
+    event.pdf = 0.0f;
     event.sampledLobe = BsdfLobes::SpecularReflectionLobe;
 
     if (_sigmaA == 0.0f && !_enableInterference) {

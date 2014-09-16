@@ -32,7 +32,7 @@ bool MirrorBsdf::sample(SurfaceScatterEvent &event) const
     if (!event.requestedLobe.test(BsdfLobes::SpecularReflectionLobe))
         return false;
     event.wo = Vec3f(-event.wi.x(), -event.wi.y(), event.wi.z());
-    event.pdf = 1.0f;
+    event.pdf = 0.0f;
     event.sampledLobe = BsdfLobes::SpecularReflectionLobe;
     event.throughput = albedo(event.info);
     return true;

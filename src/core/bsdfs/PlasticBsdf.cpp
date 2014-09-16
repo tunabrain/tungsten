@@ -69,13 +69,11 @@ bool PlasticBsdf::sample(SurfaceScatterEvent &event) const
 
     if (sampleR && (event.sampler->next1D() < specularProbability || !sampleT)) {
         event.wo = Vec3f(-wi.x(), -wi.y(), wi.z());
-        if (sampleT) {
-            event.pdf = specularProbability;
+        event.pdf = 0.0f;
+        if (sampleT)
             event.throughput = Vec3f(Fi/specularProbability);
-        } else {
-            event.pdf = 1.0f;
+        else
             event.throughput = Vec3f(Fi);
-        }
         event.sampledLobe = BsdfLobes::SpecularReflectionLobe;
     } else {
         Vec3f wo(SampleWarp::cosineHemisphere(event.sampler->next2D()));
