@@ -55,11 +55,10 @@ class PathTraceIntegrator : public Integrator
 
     Vec3f attenuatedEmission(const Primitive &light,
                              const Medium *medium,
-                             const Vec3f &p, const Vec3f &d,
                              float expectedDist,
                              IntersectionTemporary &data,
                              int bounce,
-                             float tMin);
+                             Ray &ray);
 
     Vec3f lightSample(const TangentFrame &frame,
                       const Primitive &light,
@@ -67,7 +66,8 @@ class PathTraceIntegrator : public Integrator
                       SurfaceScatterEvent &event,
                       const Medium *medium,
                       int bounce,
-                      float epsilon);
+                      float epsilon,
+                      const Ray &parentRay);
 
     Vec3f bsdfSample(const TangentFrame &frame,
                      const Primitive &light,
@@ -75,11 +75,21 @@ class PathTraceIntegrator : public Integrator
                      SurfaceScatterEvent &event,
                      const Medium *medium,
                      int bounce,
-                     float epsilon);
+                     float epsilon,
+                     const Ray &parentRay);
 
-    Vec3f volumeLightSample(VolumeScatterEvent &event, const Primitive &light, const Medium *medium, bool performMis, int bounce);
+    Vec3f volumeLightSample(VolumeScatterEvent &event,
+                            const Primitive &light,
+                            const Medium *medium,
+                            bool performMis,
+                            int bounce,
+                            const Ray &parentRay);
 
-    Vec3f volumePhaseSample(const Primitive &light, VolumeScatterEvent &event, const Medium *medium, int bounce);
+    Vec3f volumePhaseSample(const Primitive &light,
+                            VolumeScatterEvent &event,
+                            const Medium *medium,
+                            int bounce,
+                            const Ray &parentRay);
 
     Vec3f sampleDirect(const TangentFrame &frame,
                        const Primitive &light,
@@ -87,20 +97,29 @@ class PathTraceIntegrator : public Integrator
                        SurfaceScatterEvent &event,
                        const Medium *medium,
                        int bounce,
-                       float epsilon);
+                       float epsilon,
+                       const Ray &parentRay);
 
-    Vec3f volumeSampleDirect(const Primitive &light, VolumeScatterEvent &event, const Medium *medium, int bounce);
+    Vec3f volumeSampleDirect(const Primitive &light,
+                             VolumeScatterEvent &event,
+                             const Medium *medium,
+                             int bounce,
+                             const Ray &parentRay);
 
     const Primitive *chooseLight(SampleGenerator &sampler, const Vec3f &p, float &weight);
 
-    Vec3f volumeEstimateDirect(VolumeScatterEvent &event, const Medium *medium, int bounce);
+    Vec3f volumeEstimateDirect(VolumeScatterEvent &event,
+                               const Medium *medium,
+                               int bounce,
+                               const Ray &parentRay);
 
     Vec3f estimateDirect(const TangentFrame &frame,
                          const Bsdf &bsdf,
                          SurfaceScatterEvent &event,
                          const Medium *medium,
                          int bounce,
-                         float epsilon);
+                         float epsilon,
+                         const Ray &parentRay);
 
     bool handleVolume(SampleGenerator &sampler, UniformSampler &supplementalSampler,
                const Medium *&medium, int bounce, Ray &ray,

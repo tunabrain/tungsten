@@ -133,6 +133,7 @@ bool ThinlensCamera::generateSample(Vec2u pixel, SampleGenerator &sampler, Vec3f
     }
 
     ray = Ray(_transform*lensPos, dir);
+    ray.setDiameter(_pixelSize.x()/_planeDist);
 
     return true;
 }
