@@ -41,7 +41,7 @@ class Curves : public Primitive
 
     Box3f _bounds;
 
-    std::unique_ptr<BinaryBvh> _bvh;
+    std::unique_ptr<Bvh::BinaryBvh> _bvh;
 
     void init();
     void loadCurves();

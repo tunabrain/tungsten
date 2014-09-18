@@ -13,6 +13,8 @@ namespace Tungsten {
 
 #include "AlignedAllocator.hpp"
 
+namespace Bvh {
+
 class BinaryBvh
 {
     template<typename T> using aligned_vector = std::vector<T, AlignedAllocator<T, 64>>;
@@ -162,7 +164,7 @@ class BinaryBvh
     }
 
 public:
-    BinaryBvh(std::vector<BvhBuilder<2>::Primitive> prims, int maxPrimsPerLeaf)
+    BinaryBvh(std::vector<Primitive> prims, int maxPrimsPerLeaf)
     {
         size_t count = prims.size();
 
@@ -275,6 +277,8 @@ pop:
         }
     }
 };
+
+}
 
 }
 

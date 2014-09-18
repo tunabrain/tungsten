@@ -522,7 +522,7 @@ const TriangleMesh &Curves::asTriangleMesh()
 
 void Curves::prepareForRender()
 {
-    std::vector<BvhBuilder<2>::Primitive> prims;
+    std::vector<Bvh::Primitive> prims;
     prims.reserve(_nodeCount - 2*_curveCount);
 
     float widthScale = _transform.extractScaleVec().avg();
@@ -553,7 +553,7 @@ void Curves::prepareForRender()
         }
     }
 
-    _bvh.reset(new BinaryBvh(std::move(prims), 2));
+    _bvh.reset(new Bvh::BinaryBvh(std::move(prims), 2));
 
     //_needsRayTransform = true;
 
