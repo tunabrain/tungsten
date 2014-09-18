@@ -60,7 +60,7 @@ public:
 
     TVec diagonal() const
     {
-        return _max - _min;
+        return Tungsten::max(_max - _min, TVec(ElementType(0)));
     }
 
     float area() const
