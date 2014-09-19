@@ -522,7 +522,7 @@ const TriangleMesh &Curves::asTriangleMesh()
 
 void Curves::prepareForRender()
 {
-    std::vector<Bvh::Primitive> prims;
+    Bvh::PrimVector prims;
     prims.reserve(_nodeCount - 2*_curveCount);
 
     float widthScale = _transform.extractScaleVec().avg();

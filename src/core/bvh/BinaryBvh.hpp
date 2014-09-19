@@ -164,7 +164,7 @@ class BinaryBvh
     }
 
 public:
-    BinaryBvh(std::vector<Primitive> prims, int maxPrimsPerLeaf)
+    BinaryBvh(PrimVector prims, int maxPrimsPerLeaf)
     {
         size_t count = prims.size();
 

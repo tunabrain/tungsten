@@ -5,6 +5,7 @@
 #include "math/Box.hpp"
 #include "math/Vec.hpp"
 
+#include "AlignedAllocator.hpp"
 #include "IntTypes.hpp"
 #include "Debug.hpp"
 #include "Timer.hpp"
@@ -15,6 +16,29 @@
 namespace Tungsten {
 
 namespace Bvh {
+
+typedef SimdFloat<4> pfloat;
+typedef Box<pfloat, float, 3> Box3pf;
+
+inline pfloat expand(const Vec3f &a)
+{
+    return pfloat(a.x(), a.y(), a.z(), 0.0f);
+}
+
+inline Box3pf expand(const Box3f &b)
+{
+    return Box3pf(expand(b.min()), expand(b.max()));
+}
+
+inline Vec3f narrow(const pfloat &a)
+{
+    return Vec3f(a[0], a[1], a[2]);
+}
+
+inline Box3f narrow(const Box3pf &b)
+{
+    return Box3f(narrow(b.min()), narrow(b.max()));
+}
 
 template<uint32 BranchFactor>
 class NaiveBvhNode
@@ -82,24 +106,24 @@ public:
 
 class Primitive
 {
-    Box3f _box;
-    Vec3f _centroid;
+    Box3pf _box;
+    pfloat _centroid;
     uint32 _id;
 
     float _area;
 public:
     Primitive(const Box3f &box, const Vec3f &centroid, uint32 id)
-    : _box(box), _centroid(centroid), _id(id), _area(box.area())
+    : _box(expand(box)), _centroid(expand(centroid)), _id(id), _area(box.area())
     {
     }
 
     Primitive(const Vec3f &p0, const Vec3f &p1, const Vec3f &p2, uint32 id)
-    : _centroid((p0 + p1 + p2)/3.0f),
+    : _centroid(expand((p0 + p1 + p2)/3.0f)),
       _id(id)
     {
-        _box.grow(p0);
-        _box.grow(p1);
-        _box.grow(p2);
+        _box.grow(expand(p0));
+        _box.grow(expand(p1));
+        _box.grow(expand(p2));
         _area = _box.area();
     }
 
@@ -113,12 +137,12 @@ public:
         _area = area;
     }
 
-    const Box3f &box() const
+    const Box3pf &box() const
     {
         return _box;
     }
 
-    const Vec3f &centroid() const
+    const pfloat &centroid() const
     {
         return _centroid;
     }
@@ -129,12 +153,14 @@ public:
     }
 };
 
+typedef std::vector<Primitive, AlignedAllocator<Primitive, 16>> PrimVector;
+
 struct SplitInfo
 {
+    Box3pf lBox, rBox;
+    Box3pf lCentroidBox, rCentroidBox;
     int dim;
     uint32 idx;
-    Box3f lBox, rBox;
-    Box3f lCentroidBox, rCentroidBox;
     float cost;
 };
 
@@ -145,17 +171,17 @@ class BinnedSahSplitter
 {
     static CONSTEXPR int BinCount = 32;
 
-    int _counts[3][BinCount];
-    Box3f _geomBounds[3][BinCount];
-    Box3f _centroidBounds[3][BinCount];
+    Box3pf _geomBounds[3][BinCount];
+    Box3pf _centroidBounds[3][BinCount];
     Vec3f _centroidMin, _centroidSpan;
+    int _counts[3][BinCount];
 
     int primitiveBin(const Primitive &prim, int dim) const
     {
         return clamp(int(BinCount*((prim.centroid()[dim] - _centroidMin[dim])/_centroidSpan[dim])), 0, BinCount - 1);
     }
 
-    void binPrimitives(uint32 start, uint32 end, int dim, std::vector<Primitive> &prims)
+    void binPrimitives(uint32 start, uint32 end, int dim, PrimVector &prims)
     {
         for (uint32 i = start; i <= end; ++i) {
             int idx = primitiveBin(prims[i], dim);
@@ -169,8 +195,8 @@ class BinnedSahSplitter
     {
         int rCount = 0;
         int rCounts[BinCount];
-        Box3f rBox;
-        Box3f rBoxes[BinCount];
+        Box3pf rBox;
+        Box3pf rBoxes[BinCount];
         for (int i = BinCount - 1; i > 0; --i) {
             rCount += _counts[dim][i];
             rBox.grow(_geomBounds[dim][i]);
@@ -180,7 +206,7 @@ class BinnedSahSplitter
         }
 
         int lCount = _counts[dim][0];
-        Box3f lBox = _geomBounds[dim][0];
+        Box3pf lBox = _geomBounds[dim][0];
         for (int i = 1; i < BinCount; ++i) {
             float cost = IntersectionCost*(lBox.area()*lCount + rBoxes[i].area()*rCounts[i]);
 
@@ -195,7 +221,7 @@ class BinnedSahSplitter
         }
     }
 
-    uint32 sortByBin(uint32 start, uint32 end, std::vector<Primitive> &prims, int dim, int bin)
+    uint32 sortByBin(uint32 start, uint32 end, PrimVector &prims, int dim, int bin)
     {
         uint32 left = start, right = end;
         while (left < right) {
@@ -218,7 +244,7 @@ public:
         std::memset(_counts, 0, sizeof(_counts));
     }
 
-    void partialBin(uint32 start, uint32 end, std::vector<Primitive> &prims, const Box3f &centroidBox)
+    void partialBin(uint32 start, uint32 end, PrimVector &prims, const Box3f &centroidBox)
     {
         _centroidMin = centroidBox.min();
         _centroidSpan = centroidBox.diagonal();
@@ -238,7 +264,7 @@ public:
         }
     }
 
-    void twoWaySahSplit(uint32 start, uint32 end, std::vector<Primitive> &prims, const Box3f &box, SplitInfo &split)
+    void twoWaySahSplit(uint32 start, uint32 end, PrimVector &prims, const Box3f &box, SplitInfo &split)
     {
         split.dim = -1;
         split.cost = box.area()*((end - start + 1)*IntersectionCost - TraversalCost);
@@ -287,7 +313,7 @@ public:
         }
     }
 
-    void fullSplit(uint32 start, uint32 end, std::vector<Primitive> &prims,
+    void fullSplit(uint32 start, uint32 end, PrimVector &prims,
             const Box3f &geomBox, const Box3f &centroidBox, SplitInfo &split)
     {
         partialBin(start, end, prims, centroidBox);
@@ -297,7 +323,7 @@ public:
 
 class MidpointSplitter
 {
-    void sort(uint32 start, uint32 end, int dim, std::vector<Primitive> &prims)
+    void sort(uint32 start, uint32 end, int dim, PrimVector &prims)
     {
         std::sort(prims.begin() + start, prims.begin() + end + 1, [&](const Primitive &a, const Primitive &b) {
             if (a.centroid()[dim] == b.centroid()[dim])
@@ -308,7 +334,7 @@ class MidpointSplitter
     }
 
 public:
-    void twoWaySahSplit(uint32 start, uint32 end, std::vector<Primitive> &prims, const Box3f &/*geomBox*/, const Box3f &centroidBox, SplitInfo &split)
+    void twoWaySahSplit(uint32 start, uint32 end, PrimVector &prims, const Box3f &/*geomBox*/, const Box3f &centroidBox, SplitInfo &split)
     {
         split.dim = centroidBox.diagonal().maxDim();
         split.idx = (end - start + 1)/2 + start;
@@ -331,9 +357,9 @@ public:
 
 class FullSahSplitter
 {
-    void computeAreas(uint32 start, uint32 end, std::vector<Primitive> &prims)
+    void computeAreas(uint32 start, uint32 end, PrimVector &prims)
     {
-        Box3f rBox;
+        Box3pf rBox;
         for (uint32 i = end; i > start; --i) {
             rBox.grow(prims[i].box());
             prims[i].setArea(rBox.area());
@@ -342,7 +368,7 @@ class FullSahSplitter
         prims[start].setArea(rBox.area());
     }
 
-    void sort(uint32 start, uint32 end, int dim, std::vector<Primitive> &prims)
+    void sort(uint32 start, uint32 end, int dim, PrimVector &prims)
     {
         std::sort(prims.begin() + start, prims.begin() + end + 1, [&](const Primitive &a, const Primitive &b) {
             if (a.centroid()[dim] == b.centroid()[dim])
@@ -352,12 +378,12 @@ class FullSahSplitter
         });
     }
 
-    void findSahSplit(uint32 start, uint32 end, int dim, std::vector<Primitive> &prims, SplitInfo &split)
+    void findSahSplit(uint32 start, uint32 end, int dim, PrimVector &prims, SplitInfo &split)
     {
         sort(start, end, dim, prims);
         computeAreas(start, end, prims);
 
-        Box3f lBox(prims[start].box());
+        Box3pf lBox(prims[start].box());
         for (uint32 i = start + 1; i <= end; ++i) {
             float cost = IntersectionCost*(lBox.area()*(i - start) + prims[i].area()*(end - i + 1));
 
@@ -371,7 +397,7 @@ class FullSahSplitter
             lBox.grow(prims[i].box());
         }
         if (split.dim == dim) {
-            Box3f rBox;
+            Box3pf rBox;
             for (uint32 i = split.idx; i <= end; ++i)
                 rBox.grow(prims[i].box());
             split.rBox = rBox;
@@ -379,7 +405,7 @@ class FullSahSplitter
     }
 
 public:
-    void twoWaySahSplit(uint32 start, uint32 end, std::vector<Primitive> &prims, const Box3f &geomBox, const Box3f &/*centroidBox*/, SplitInfo &split)
+    void twoWaySahSplit(uint32 start, uint32 end, PrimVector &prims, const Box3f &geomBox, const Box3f &/*centroidBox*/, SplitInfo &split)
     {
         split.dim = -1;
         split.cost = geomBox.area()*((end - start + 1)*IntersectionCost - TraversalCost);
@@ -427,7 +453,7 @@ public:
     }
 
     BuildResult recursiveBuild(Node &dst, uint32 start, uint32 end,
-            std::vector<Primitive> &prims, const Box3f &geomBox, const Box3f &centroidBox)
+            PrimVector &prims, const Box3f &geomBox, const Box3f &centroidBox)
     {
         BuildResult result{1, 1};
 
@@ -439,7 +465,7 @@ public:
         } else if (numPrims <= BranchFactor) {
             result.nodeCount += numPrims;
             for (uint32 i = start; i <= end; ++i)
-                dst.setChild(i - start, new Node(prims[i].box(), prims[i].id()));
+                dst.setChild(i - start, new Node(narrow(prims[i].box()), prims[i].id()));
         } else {
             Vec<uint32, BranchFactor> starts(0u), ends(0u);
             std::array<Box3f, BranchFactor> geomBoxes, centroidBoxes;
@@ -460,11 +486,11 @@ public:
                     BinnedSahSplitter().fullSplit(starts[interval], ends[interval], prims, geomBoxes[interval], centroidBoxes[interval], split);
                 starts[child] = split.idx;
                 ends[child] = ends[interval];
-                geomBoxes[child] = split.rBox;
-                centroidBoxes[child] = split.rCentroidBox;
+                geomBoxes[child] = narrow(split.rBox);
+                centroidBoxes[child] = narrow(split.rCentroidBox);
                 ends[interval] = split.idx - 1;
-                geomBoxes[interval] = split.lBox;
-                centroidBoxes[interval] = split.lCentroidBox;
+                geomBoxes[interval] = narrow(split.lBox);
+                centroidBoxes[interval] = narrow(split.lCentroidBox);
             }
 
             for (unsigned i = 0; i < child; ++i) {
@@ -502,20 +528,20 @@ public:
         return result;
     }
 
-    void build(std::vector<Primitive> prims)
+    void build(PrimVector prims)
     {
         if (prims.empty())
             return;
 //#ifndef NDEBUG
         Timer timer;
 //#endif
-        Box3f geomBounds, centroidBounds;
+        Box3pf geomBounds, centroidBounds;
         for (const Primitive &p : prims) {
             geomBounds.grow(p.box());
             centroidBounds.grow(p.centroid());
         }
 
-        BuildResult result = recursiveBuild(*_root, 0, prims.size() - 1, prims, geomBounds, centroidBounds);
+        BuildResult result = recursiveBuild(*_root, 0, prims.size() - 1, prims, narrow(geomBounds), narrow(centroidBounds));
         _numNodes = result.nodeCount;
         _depth = result.depth;
 
