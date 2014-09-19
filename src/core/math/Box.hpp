@@ -4,15 +4,14 @@
 
 #include "IntTypes.hpp"
 #include "MathUtil.hpp"
+#include "sse/SimdFloat.hpp"
 
 #include <limits>
 
 namespace Tungsten {
 
-template<typename ElementType, unsigned Size>
+template<typename TVec, typename ElementType, unsigned Size>
 class Box {
-    typedef Vec<ElementType, Size> TVec;
-
     TVec _min;
     TVec _max;
 
@@ -63,15 +62,23 @@ public:
         return Tungsten::max(_max - _min, TVec(ElementType(0)));
     }
 
-    float area() const
+    ElementType area() const
     {
         TVec d(diagonal());
-        return Tungsten::max(d.x()*d.y() + d.y()*d.z() + d.z()*d.x(), ElementType(0))*ElementType(2);
+        if (Size == 2)
+            return (d[0] + d[1])*ElementType(2);
+        else if (Size == 3)
+            return (d[0]*d[1] + d[1]*d[2] + d[2]*d[0])*ElementType(2);
+        return ElementType(0);
     }
 
     bool empty() const
     {
-        return diagonal().min() <= ElementType(0);
+        TVec diag(diagonal());
+        for (unsigned i = 0; i < Size; ++i)
+            if (diag[i] <= ElementType(0))
+                return true;
+        return false;
     }
 
     void grow(ElementType t)
@@ -94,7 +101,7 @@ public:
 
     bool contains(const TVec &p) const
     {
-        for (int i = 0; i < TVec::size; i++)
+        for (int i = 0; i < Size; i++)
             if (p[i] < _min[i] || p[i] > _max[i])
                 return false;
         return true;
@@ -102,7 +109,7 @@ public:
 
     bool contains(const Box &box) const
     {
-        for (unsigned i = 0; i < TVec::size; i++)
+        for (unsigned i = 0; i < Size; i++)
             if (box._max[i] < _min[i] || box._min[i] > _max[i])
                 return false;
         return true;
@@ -120,21 +127,21 @@ public:
     }
 };
 
-typedef Box<float, 4> Box4f;
-typedef Box<float, 3> Box3f;
-typedef Box<float, 2> Box2f;
+typedef Box<Vec4f, float, 4> Box4f;
+typedef Box<Vec3f, float, 3> Box3f;
+typedef Box<Vec2f, float, 2> Box2f;
 
-typedef Box<uint32, 4> Box4u;
-typedef Box<uint32, 3> Box3u;
-typedef Box<uint32, 2> Box2u;
+typedef Box<Vec4u, uint32, 4> Box4u;
+typedef Box<Vec3u, uint32, 3> Box3u;
+typedef Box<Vec2u, uint32, 2> Box2u;
 
-typedef Box<int32, 4> Box4i;
-typedef Box<int32, 3> Box3i;
-typedef Box<int32, 2> Box2i;
+typedef Box<Vec4i, int32, 4> Box4i;
+typedef Box<Vec3i, int32, 3> Box3i;
+typedef Box<Vec2i, int32, 2> Box2i;
 
-typedef Box<uint8, 4> Box4c;
-typedef Box<uint8, 3> Box3c;
-typedef Box<uint8, 2> Box2c;
+typedef Box<Vec4c, uint8, 4> Box4c;
+typedef Box<Vec3c, uint8, 3> Box3c;
+typedef Box<Vec2c, uint8, 2> Box2c;
 
 }
 
