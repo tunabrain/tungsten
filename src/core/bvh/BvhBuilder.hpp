@@ -295,6 +295,40 @@ public:
     }
 };
 
+class MidpointSplitter
+{
+    void sort(uint32 start, uint32 end, int dim, std::vector<Primitive> &prims)
+    {
+        std::sort(prims.begin() + start, prims.begin() + end + 1, [&](const Primitive &a, const Primitive &b) {
+            if (a.centroid()[dim] == b.centroid()[dim])
+                return a.id() < b.id();
+            else
+                return a.centroid()[dim] < b.centroid()[dim];
+        });
+    }
+
+public:
+    void twoWaySahSplit(uint32 start, uint32 end, std::vector<Primitive> &prims, const Box3f &/*geomBox*/, const Box3f &centroidBox, SplitInfo &split)
+    {
+        split.dim = centroidBox.diagonal().maxDim();
+        split.idx = (end - start + 1)/2 + start;
+        sort(start, end, split.dim, prims);
+        split.lBox = prims[start].box();
+        split.rBox = prims[end].box();
+        split.lCentroidBox = prims[start].centroid();
+        split.rCentroidBox = prims[end].centroid();
+        for (uint32 i = start + 1; i < end; ++i) {
+            if (i < split.idx) {
+                split.lBox.grow(prims[i].box());
+                split.lCentroidBox.grow(prims[i].centroid());
+            } else {
+                split.rBox.grow(prims[i].box());
+                split.rCentroidBox.grow(prims[i].centroid());
+            }
+        }
+    }
+};
+
 class FullSahSplitter
 {
     void computeAreas(uint32 start, uint32 end, std::vector<Primitive> &prims)
@@ -345,17 +379,17 @@ class FullSahSplitter
     }
 
 public:
-    void twoWaySahSplit(uint32 start, uint32 end, std::vector<Primitive> &prims, const Box3f &box, SplitInfo &split)
+    void twoWaySahSplit(uint32 start, uint32 end, std::vector<Primitive> &prims, const Box3f &geomBox, const Box3f &/*centroidBox*/, SplitInfo &split)
     {
         split.dim = -1;
-        split.cost = box.area()*((end - start + 1)*IntersectionCost - TraversalCost);
+        split.cost = geomBox.area()*((end - start + 1)*IntersectionCost - TraversalCost);
 
         findSahSplit(start, end, 0, prims, split);
         findSahSplit(start, end, 1, prims, split);
         findSahSplit(start, end, 2, prims, split);
 
         if (split.dim == -1) { /* SAH split failed, resort to midpoint split along largest extent */
-            split.dim = box.diagonal().maxDim();
+            split.dim = geomBox.diagonal().maxDim();
             split.idx = (end - start + 1)/2 + start;
             sort(start, end, split.dim, prims);
             for (uint32 i = start; i <= end; ++i)
@@ -416,11 +450,12 @@ public:
             unsigned child;
             for (child = 1; child < BranchFactor; ++child) {
                 uint32 interval = (ends - starts).maxDim();
-                if (ends[interval] - starts[interval] + 1 <= BranchFactor)
+                uint32 numPrims = ends[interval] - starts[interval] + 1;
+                if (numPrims <= BranchFactor)
                     break;
                 SplitInfo split;
-                if (ends[interval] - starts[interval] + 1 <= 32)
-                    FullSahSplitter().twoWaySahSplit(starts[interval], ends[interval], prims, geomBoxes[interval], split);
+                if (numPrims <= 64)
+                    FullSahSplitter().twoWaySahSplit(starts[interval], ends[interval], prims, geomBoxes[interval], centroidBoxes[interval], split);
                 else
                     BinnedSahSplitter().fullSplit(starts[interval], ends[interval], prims, geomBoxes[interval], centroidBoxes[interval], split);
                 starts[child] = split.idx;
