@@ -4,6 +4,8 @@
 #include "sampling/UniformSampler.hpp"
 #include "sampling/SampleWarp.hpp"
 
+#include "thread/ThreadUtils.hpp"
+
 #include "math/BSpline.hpp"
 #include "math/Angle.hpp"
 #include "math/Mat4f.hpp"
@@ -20,44 +22,52 @@ void extrudeMinimumTorsionNormals(CurveData &data)
     std::vector<Vec4f> &nodes = *data.nodeData;
     std::vector<Vec3f> &normals = *data.nodeNormal;
 
-    auto getTangent = [&](int idx, float t)
-    {
-        const Vec4f &p0 = nodes[idx];
-        const Vec4f &p1 = nodes[idx + 1];
-        const Vec4f &p2 = nodes[idx + 2];
-        return BSpline::quadraticDeriv(p0.xyz(), p1.xyz(), p2.xyz(), t).normalized();
-    };
+    if (nodes.empty())
+        return;
 
     auto minTorsionAdvance = [&](const Vec3f &currentNormal, int idx) {
-        Vec3f tangent = getTangent(idx, 0.0f);
-        Vec3f nextNormal = currentNormal;
-        for (int j = 1; j <= 10; ++j) {
-            Vec3f newTangent = getTangent(idx, j*0.1f);
-            float angle = std::acos(std::min(tangent.dot(newTangent), 1.0f));
-            Vec3f axis = tangent.cross(newTangent);
-            float length = axis.length();
+        Vec3f p0 = nodes[idx + 0].xyz();
+        Vec3f p1 = nodes[idx + 1].xyz();
+        Vec3f p2 = nodes[idx + 2].xyz();
+        Vec3f deriv0(p1 - p0), deriv1(p0 - 2.0f*p1 + p2);
+
+        Vec3f T0 = deriv0.normalized();
+        Vec3f N = currentNormal;
+        for (int j = 1; j <= 5; ++j) {
+            Vec3f T1 = (j*0.2f*deriv1 + deriv0).normalized();
+            Vec3f A = T0.cross(T1);
+            float length = A.length();
             if (length == 0.0f)
                 continue;
-            axis /= length;
-            tangent = newTangent;
+            A *= 1.0f/length;
 
-            nextNormal = Mat4f::rotAxis(axis, Angle::radToDeg(angle))*nextNormal;
-            nextNormal -= tangent*tangent.dot(nextNormal);
-            nextNormal.normalize();
+            Vec3f A0 = T0.cross(A);
+            Vec3f A1 = T1.cross(A);
+
+            N = Vec3f(
+                N.x()*T1.x() + N.y()*A.x() + N.z()*A1.x(),
+                N.x()*T1.y() + N.y()*A.y() + N.z()*A1.y(),
+                N.x()*T1.z() + N.y()*A.z() + N.z()*A1.z()
+            );
+            N = Vec3f(T0.dot(N), A.dot(N), A0.dot(N));
+            T0 = T1;
         }
-        return nextNormal;
+        N -= T0*T0.dot(N);
+        N.normalize();
+        return N;
     };
 
-    uint32 t = 0;
-    for (size_t i = 0; i < curveEnds.size(); ++i) {
+    // Break work up into roughly ~10ms chunks
+    uint32 numTasks = (nodes.size() - 1)/30000 + 1;
+    ThreadUtils::parallelFor(0, curveEnds.size(), numTasks, [&](uint32 i) {
+        uint32 t = i ? curveEnds[i - 1] : 0;
         Vec3f lastNormal = normals[t];
         do {
             normals[t + 1] = (2.0f*lastNormal - normals[t]).normalized();
             lastNormal = minTorsionAdvance(lastNormal, t);
         } while (++t < curveEnds[i] - 2);
         normals[t + 1] = normals[t];
-        t += 2;
-    }
+    });
 }
 
 void initializeRandomNormals(CurveData &data)
