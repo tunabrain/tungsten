@@ -13,6 +13,7 @@
 #include "IntTypes.hpp"
 
 #include <functional>
+#include <vector>
 #include <thread>
 #include <memory>
 #include <atomic>
