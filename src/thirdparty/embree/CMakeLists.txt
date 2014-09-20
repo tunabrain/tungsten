@@ -14,6 +14,7 @@ SET(SOURCES
     sys/sync/condition.cpp
     sys/stl/string.cpp
 
+
     embree.cpp
     common/alloc.cpp
     common/stat.cpp 
@@ -65,6 +66,11 @@ IF (__AVX__)
 ENDIF ()
 
 add_library(embree STATIC ${SOURCES})
+
+if(UNIX)
+    TARGET_LINK_LIBRARIES(embree pthread dl)
+endif()
+
 if (CMAKE_COMPILER_IS_GNUCXX)
     set_target_properties(embree PROPERTIES COMPILE_FLAGS "-ffast-math -fvisibility-inlines-hidden -fvisibility=hidden")
 endif()
