@@ -7,6 +7,9 @@
 
 #include "cameras/Camera.hpp"
 
+#include "thread/ThreadUtils.hpp"
+#include "thread/ThreadPool.hpp"
+
 #include <lodepng/lodepng.h>
 #include <algorithm>
 
@@ -16,13 +19,11 @@ CONSTEXPR uint32 Renderer::TileSize;
 CONSTEXPR uint32 Renderer::VarianceTileSize;
 CONSTEXPR uint32 Renderer::AdaptiveThreshold;
 
-Renderer::Renderer(const TraceableScene &scene, uint32 threadCount)
-: _threadPool(threadCount),
-  _abortRender(false),
-  _sampler(0xBA5EBA11),
+Renderer::Renderer(const TraceableScene &scene)
+: _sampler(0xBA5EBA11),
   _scene(scene)
 {
-    for (uint32 i = 0; i < threadCount; ++i)
+    for (uint32 i = 0; i < ThreadUtils::pool->threadCount(); ++i)
         _integrators.emplace_back(scene.cloneThreadSafeIntegrator(i));
 
     _w = scene.cam().resolution().x();
@@ -171,42 +172,32 @@ void Renderer::renderTile(uint32 id, uint32 tileId)
             _scene.cam().addSamples(x + tile.x, y + tile.y, c, spp);
         }
     }
-
-    if ((--_inFlightCount) == 0 && !_abortRender) {
-        _completionCallback();
-
-        std::unique_lock<std::mutex> lock(_completionMutex);
-        _completionCond.notify_all();
-    }
 }
 
 void Renderer::startRender(std::function<void()> completionCallback, uint32 sppFrom, uint32 sppTo)
 {
-    _completionCallback = std::move(completionCallback);
-    _inFlightCount = 0;
-    _abortRender = false;
     if (!generateWork(sppFrom, sppTo)) {
         completionCallback();
         return;
     }
 
-    _inFlightCount = _tiles.size();
-
     using namespace std::placeholders;
-    for (uint32 i = 0; i < _tiles.size(); ++i)
-        _threadPool.enqueue(std::bind(&Renderer::renderTile, this, _1, i));
+    _group = ThreadUtils::pool->enqueue(
+        std::bind(&Renderer::renderTile, this, _3, _1),
+        _tiles.size(),
+        std::move(completionCallback)
+    );
 }
 
 void Renderer::waitForCompletion()
 {
-    std::unique_lock<std::mutex> lock(_completionMutex);
-    _completionCond.wait(lock, [this]{return _inFlightCount == 0;});
+    _group->wait();
 }
 
 void Renderer::abortRender()
 {
-    _abortRender = true;
-    _threadPool.reset();
+    _group->abort();
+    _group->wait();
 }
 
 void Renderer::getVarianceImage(std::vector<float> &data, int &w, int &h)

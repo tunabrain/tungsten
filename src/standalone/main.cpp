@@ -5,6 +5,8 @@
 
 #include "cameras/Camera.hpp"
 
+#include "thread/ThreadUtils.hpp"
+
 #include "io/DirectoryChange.hpp"
 #include "io/FileUtils.hpp"
 #include "io/Scene.hpp"
@@ -39,9 +41,10 @@ using namespace Tungsten;
 
 int main(int argc, const char *argv[])
 {
-    CONSTEXPR int ThreadCount = 7;
     CONSTEXPR int SppStep = 16;
     CONSTEXPR int BackupInterval = 60*15;
+
+    int threadCount = max(ThreadUtils::idealThreadCount() - 1, 1u);
 
     if (argc < 2) {
         std::cerr << "Usage: tungsten scene1 [scene2 [scene3....]]\n";
@@ -50,7 +53,9 @@ int main(int argc, const char *argv[])
 
     embree::rtcInit();
     //embree::rtcSetVerbose(1);
-    embree::rtcStartThreads(ThreadCount);
+    embree::rtcStartThreads(threadCount);
+
+    ThreadUtils::startThreads(threadCount);
 
     for (int i = 1; i < argc; ++i) {
         std::cout << tfm::format("Loading scene '%s'...", argv[i]) << std::endl;
@@ -68,7 +73,7 @@ int main(int argc, const char *argv[])
 
             int maxSpp = scene->camera()->spp();
             std::unique_ptr<TraceableScene> flattenedScene(scene->makeTraceable());
-            std::unique_ptr<Renderer> renderer(new Renderer(*flattenedScene, ThreadCount));
+            std::unique_ptr<Renderer> renderer(new Renderer(*flattenedScene));
 
             std::cout << "Starting render..." << std::endl;
             Timer timer, checkpointTimer;

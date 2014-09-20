@@ -146,12 +146,8 @@ void RenderWindow::startRender()
     };
 
     if (!_renderer) {
-        int threadCount = std::max(QThread::idealThreadCount() - 1, 1);
-        if (threadCount == -1)
-            threadCount = 7;
-
         _currentSpp = 0;
-        _renderer.reset(new Renderer(*_flattenedScene, threadCount));
+        _renderer.reset(new Renderer(*_flattenedScene));
 
         _image->fill(Qt::black);
         repaint();
@@ -183,6 +179,8 @@ void RenderWindow::finishRender()
 {
     if (_renderer)
         _renderer->waitForCompletion();
+    if (!_rendering)
+        return;
     _currentSpp = _nextSpp;
     _rendering = false;
     refresh();

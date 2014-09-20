@@ -7,9 +7,10 @@
 #include "sampling/SampleGenerator.hpp"
 #include "sampling/UniformSampler.hpp"
 
+#include "thread/TaskGroup.hpp"
+
 #include "math/MathUtil.hpp"
 
-#include "ThreadPool.hpp"
 #include "IntTypes.hpp"
 
 #include <functional>
@@ -29,14 +30,7 @@ class Renderer
     static CONSTEXPR uint32 VarianceTileSize = 4;
     static CONSTEXPR uint32 AdaptiveThreshold = 16;
 
-    ThreadPool _threadPool;
-
-    std::atomic<bool> _abortRender;
-    std::atomic<int> _inFlightCount;
-
-    std::mutex _completionMutex;
-    std::condition_variable _completionCond;
-    std::function<void()> _completionCallback;
+    std::shared_ptr<TaskGroup> _group;
 
     uint32 _w;
     uint32 _h;
@@ -60,7 +54,7 @@ class Renderer
     void renderTile(uint32 id, uint32 tileId);
 
 public:
-    Renderer(const TraceableScene &scene, uint32 threadCount);
+    Renderer(const TraceableScene &scene);
     ~Renderer();
 
     void startRender(std::function<void()> completionCallback, uint32 sppFrom, uint32 sppTo);

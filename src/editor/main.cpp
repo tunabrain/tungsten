@@ -3,6 +3,8 @@
 #include <QApplication>
 #include <QGLWidget>
 
+#include "thread/ThreadUtils.hpp"
+
 #include "RenderWindow.hpp"
 #include "MainWindow.hpp"
 
@@ -10,6 +12,12 @@ using namespace Tungsten;
 
 int main(int argc, char *argv[])
 {
+    int threadCount = max(ThreadUtils::idealThreadCount() - 1, 1u);
+    ThreadUtils::startThreads(threadCount);
+
+    embree::rtcInit();
+    embree::rtcStartThreads(threadCount);
+
     QApplication app(argc, argv);
 
     QDesktopWidget desktop;
@@ -24,10 +32,6 @@ int main(int argc, char *argv[])
 
     if (argc > 1)
         mainWindow.openScene(QString(argv[1]));
-
-    embree::rtcInit();
-    //embree::rtcSetVerbose(1);
-    embree::rtcStartThreads(8);
 
     try {
         return app.exec();
