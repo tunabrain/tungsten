@@ -11,7 +11,6 @@
 
 #include <tinyformat/tinyformat.hpp>
 #include <embree/include/embree.h>
-#include <lodepng/lodepng.h>
 
 namespace Tungsten {
 
