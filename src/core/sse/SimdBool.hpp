@@ -91,6 +91,9 @@ public:
 
     bool operator[](uint32 idx) { return _i[idx] != 0; };
 };
+
+typedef SimdBool<4> bool4;
+
 #endif
 
 #ifdef __AVX__
@@ -127,6 +130,9 @@ public:
 
     bool operator[](uint32 idx) { return _i[idx]; };
 };
+
+typedef SimdBool<8> bool8;
+
 #endif
 
 }

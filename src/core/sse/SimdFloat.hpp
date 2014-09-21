@@ -184,6 +184,9 @@ public:
     float &operator[](unsigned i) { return _f[i]; }
     float operator[](unsigned i) const { return _f[i]; }
 };
+
+typedef SimdFloat<4> float4;
+
 #endif
 
 #ifdef __AVX__
@@ -253,6 +256,9 @@ public:
     float &operator[](unsigned i) { return _f[i]; }
     float operator[](unsigned i) const { return _f[i]; }
 };
+
+typedef SimdFloat<4> float8;
+
 #endif
 
 inline SimdFloat<1> min(const SimdFloat<1> &a, const SimdFloat<1> &b)
