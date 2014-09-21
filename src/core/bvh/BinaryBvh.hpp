@@ -108,7 +108,7 @@ class BinaryBvh
     std::vector<uint32> _primIndices;
     Box3f _bounds;
 
-    uint32 recursiveBuild(const NaiveBvhNode<2> *node, uint32 head, uint32 &tail, uint32 &primIndex,
+    uint32 recursiveBuild(const NaiveBvhNode *node, uint32 head, uint32 &tail, uint32 &primIndex,
             std::vector<uint32> &primIndices, uint32 maxPrimsPerLeaf)
     {
         if (node->isLeaf()) {
@@ -172,7 +172,7 @@ public:
             _nodes.back().setJointBbox(Box3f(), Box3f());
             _nodes.back().setRchild(&_nodes.back());
         } else {
-            BvhBuilder<2> builder;
+            BvhBuilder builder(2);
             builder.build(std::move(prims));
 
             _primIndices.resize(count);
