@@ -140,11 +140,13 @@ __forceinline int32 atomic_cmpxchg(volatile int32* p, const int32 v, const int32
 
 #else
 
+#include <x86intrin.h>
+
 __forceinline void __cpuid(int out[4], int op) {
   asm volatile ("cpuid" : "=a"(out[0]), "=b"(out[1]), "=c"(out[2]), "=d"(out[3]) : "a"(op)); 
 }
 
-__forceinline uint64 __rdtsc()  {
+/*__forceinline uint64 __rdtsc()  {
   uint32 high,low;
   asm volatile ("rdtsc" : "=d"(high), "=a"(low));
   return (((uint64)high) << 32) + (uint64)low;
@@ -154,7 +156,7 @@ __forceinline uint64 __rdpmc(int i) {
   uint32 high,low;
   asm volatile ("rdpmc" : "=d"(high), "=a"(low) : "c"(i));
   return (((uint64)high) << 32) + (uint64)low;
-}
+}*/
 
 __forceinline unsigned int __popcnt(unsigned int in) {
   int r = 0; asm ("popcnt %1,%0" : "=r"(r) : "r"(in)); return r;

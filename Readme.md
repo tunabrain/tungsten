@@ -42,9 +42,7 @@ After installing CMake, double click the `setup_builds.bat` file. The MSVC proje
 
 ### Linux ###
 
-Building under Linux has not been tested and is at your own risk.
-
-Since I'm developing on Windows using gcc in a UNIX-like environment, the Linux build has a good chance of working using the build commands listed under _Windows + MinGW_. I won't be able to help you if it doesn't, however. 
+Building on Linux works just like building on MINGW.
 
 ## Usage ##
 
