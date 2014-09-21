@@ -4,7 +4,8 @@
 
 #include "IntTypes.hpp"
 #include "MathUtil.hpp"
-#include "sse/SimdFloat.hpp"
+
+#include "sse/SimdUtils.hpp"
 
 #include <limits>
 
@@ -142,6 +143,20 @@ typedef Box<Vec2i, int32, 2> Box2i;
 typedef Box<Vec4c, uint8, 4> Box4c;
 typedef Box<Vec3c, uint8, 3> Box3c;
 typedef Box<Vec2c, uint8, 2> Box2c;
+
+typedef Box<Vec4fp, float, 4> Box4fp;
+typedef Box<Vec3fp, float, 3> Box3fp;
+typedef Box<Vec2fp, float, 2> Box2fp;
+
+inline Box3fp expand(const Box3f &b)
+{
+    return Box3fp(expand(b.min()), expand(b.max()));
+}
+
+inline Box3f narrow(const Box3fp &b)
+{
+    return Box3f(narrow(b.min()), narrow(b.max()));
+}
 
 }
 
