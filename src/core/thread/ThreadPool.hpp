@@ -37,6 +37,8 @@ public:
     ThreadPool(uint32 threadCount);
     ~ThreadPool();
 
+    void yield(TaskGroup &wait);
+
     void reset();
     void stop();
 

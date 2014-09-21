@@ -81,6 +81,11 @@ public:
         return _abort;
     }
 
+    bool isDone() const
+    {
+        return _done;
+    }
+
     uint32 startSubTask()
     {
         return _startedSubTasks++;

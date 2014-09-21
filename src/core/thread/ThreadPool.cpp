@@ -1,5 +1,7 @@
 #include "ThreadPool.hpp"
 
+#include <chrono>
+
 namespace Tungsten {
 
 ThreadPool::ThreadPool(uint32 threadCount)
@@ -16,8 +18,6 @@ ThreadPool::~ThreadPool()
 
 std::shared_ptr<TaskGroup> ThreadPool::acquireTask(uint32 &subTaskId)
 {
-    std::unique_lock<std::mutex> lock(_taskMutex);
-    _taskCond.wait(lock, [this]{return _terminateFlag || !_tasks.empty();});
     if (_terminateFlag)
         return nullptr;
     std::shared_ptr<TaskGroup> task = _tasks.front();
@@ -35,7 +35,12 @@ void ThreadPool::runWorker(uint32 threadId)
 {
     while (!_terminateFlag) {
         uint32 subTaskId;
-        std::shared_ptr<TaskGroup> task = acquireTask(subTaskId);
+        std::shared_ptr<TaskGroup> task;
+        {
+            std::unique_lock<std::mutex> lock(_taskMutex);
+            _taskCond.wait(lock, [this]{return _terminateFlag || !_tasks.empty();});
+            task = acquireTask(subTaskId);
+        }
         if (task)
             task->run(threadId, subTaskId);
     }
@@ -46,6 +51,23 @@ void ThreadPool::startThreads()
     _terminateFlag = false;
     for (uint32 i = 0; i < _threadCount; ++i)
         _workers.emplace_back(new std::thread(&ThreadPool::runWorker, this, _workers.size()));
+}
+
+void ThreadPool::yield(TaskGroup &wait)
+{
+    std::chrono::milliseconds waitSpan(10);
+    while (!wait.isDone() && !_terminateFlag) {
+        uint32 subTaskId;
+        std::shared_ptr<TaskGroup> task;
+        {
+            std::unique_lock<std::mutex> lock(_taskMutex);
+            if (!_taskCond.wait_for(lock, waitSpan, [this]{return _terminateFlag || !_tasks.empty();}))
+                continue;
+            task = acquireTask(subTaskId);
+        }
+        if (task)
+            task->run(0, subTaskId); //FIXME Figure out proper thread id here
+    }
 }
 
 void ThreadPool::reset()
