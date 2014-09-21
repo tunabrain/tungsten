@@ -43,7 +43,7 @@ static void twoWaySahSplit(uint32 start, uint32 end, PrimVector &prims, const Bo
         // serial reduce for large workloads
 
         CONSTEXPR uint32 NumTasks = 8;
-        std::unique_ptr<BinnedSahSplitter[]> splitters(new BinnedSahSplitter[NumTasks]);
+        BinnedSahSplitter splitters[NumTasks];
 
         std::shared_ptr<TaskGroup> group = ThreadUtils::pool->enqueue([&](uint32 i, uint32 numTasks, uint32) {
             uint32 span = numPrims/numTasks;
@@ -115,8 +115,8 @@ static void recursiveBuild(BuildResult &result, NaiveBvhNode &dst, uint32 start,
             dst.setChild(i - start, new NaiveBvhNode(narrow(prims[i].box()), prims[i].id()));
     } else {
         // Many primitives: Setup SAH split
-        uint32 starts[branchFactor], ends[branchFactor];
-        Box3f geomBoxes[branchFactor], centroidBoxes[branchFactor];
+        uint32 starts[4], ends[4];
+        Box3f geomBoxes[4], centroidBoxes[4];
         starts       [0] = start;
         ends         [0] = end;
         geomBoxes    [0] = geomBox;
@@ -140,7 +140,7 @@ static void recursiveBuild(BuildResult &result, NaiveBvhNode &dst, uint32 start,
             }
         } else {
             // Enqueue parallel build for large workloads
-            BuildResult results[childCount];
+            BuildResult results[4];
             std::shared_ptr<TaskGroup> group = ThreadUtils::pool->enqueue([&](uint32 i, uint32, uint32) {
                 recursiveBuild(results[i], *dst.child(i), starts[i], ends[i],
                         prims, geomBoxes[i], centroidBoxes[i], branchFactor);
