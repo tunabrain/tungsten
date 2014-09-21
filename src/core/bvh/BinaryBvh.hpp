@@ -19,13 +19,11 @@ class BinaryBvh
 {
     template<typename T> using aligned_vector = std::vector<T, AlignedAllocator<T, 64>>;
 
-    typedef SimdFloat<4> pfloat;
-    typedef SimdBool<4>  pbool;
-    typedef Vec<pfloat, 3> Vec3pf;
+    typedef Vec<float4, 3> Vec3pf;
 
     Vec3pf transpose(const Vec3f &p) const
     {
-        return Vec3pf(pfloat(p.x()), pfloat(p.y()), pfloat(p.z()));
+        return Vec3pf(float4(p.x()), float4(p.y()), float4(p.z()));
     }
 
     class TinyBvhNode
@@ -43,9 +41,9 @@ class BinaryBvh
         void setJointBbox(const Box3f &lbox, const Box3f &rbox)
         {
             _box = Vec3pf(
-                pfloat(lbox.min().x(), rbox.min().x(), lbox.max().x(), rbox.max().x()),
-                pfloat(lbox.min().y(), rbox.min().y(), lbox.max().y(), rbox.max().y()),
-                pfloat(lbox.min().z(), rbox.min().z(), lbox.max().z(), rbox.max().z())
+                float4(lbox.min().x(), rbox.min().x(), lbox.max().x(), rbox.max().x()),
+                float4(lbox.min().y(), rbox.min().y(), lbox.max().y(), rbox.max().y()),
+                float4(lbox.min().z(), rbox.min().z(), lbox.max().z(), rbox.max().z())
             );
         }
 
@@ -211,7 +209,7 @@ public:
         if (!bboxIntersection(_bounds, ray.pos(), ray.dir(), tMin, tMax))
             return;
 
-        const pfloat signMask(_mm_castsi128_ps(_mm_set_epi32(0x80000000, 0x80000000, 0x00000000, 0x00000000)));
+        const float4 signMask(_mm_castsi128_ps(_mm_set_epi32(0x80000000, 0x80000000, 0x00000000, 0x00000000)));
         const __m128i keepNearFar = _mm_set_epi8(15, 14, 13, 12, 11, 10, 9, 8,  7,  6,  5,  4,  3,  2, 1, 0);
         const __m128i swapNearFar = _mm_set_epi8( 7,  6,  5,  4,  3,  2, 1, 0, 15, 14, 13, 12, 11, 10, 9, 8);
         const __m128i xMask = ray.dir().x() >= 0.0f ? keepNearFar : swapNearFar;
@@ -219,22 +217,22 @@ public:
         const __m128i zMask = ray.dir().z() >= 0.0f ? keepNearFar : swapNearFar;
 
         const Vec3pf rayO(transpose(ray.pos()));
-        const Vec3pf invDir = pfloat(1.0f)/transpose(ray.dir());
+        const Vec3pf invDir = float4(1.0f)/transpose(ray.dir());
         const Vec3pf invNegDir(invDir.x() ^ signMask, invDir.y() ^ signMask, invDir.z() ^ signMask);
 
         uint32 start, count;
-        pfloat nearFar(ray.nearT(), ray.nearT(), -ray.farT(), -ray.farT());
+        float4 nearFar(ray.nearT(), ray.nearT(), -ray.farT(), -ray.farT());
         while (true) {
             while (node->isNode()) {
                 const Vec3pf tNearFar = Vec3pf(
-                    pfloat(_mm_castsi128_ps(_mm_shuffle_epi8(_mm_castps_si128((node->bbox().x() - rayO.x()).raw()), xMask))),
-                    pfloat(_mm_castsi128_ps(_mm_shuffle_epi8(_mm_castps_si128((node->bbox().y() - rayO.y()).raw()), yMask))),
-                    pfloat(_mm_castsi128_ps(_mm_shuffle_epi8(_mm_castps_si128((node->bbox().z() - rayO.z()).raw()), zMask)))
+                    float4(_mm_castsi128_ps(_mm_shuffle_epi8(_mm_castps_si128((node->bbox().x() - rayO.x()).raw()), xMask))),
+                    float4(_mm_castsi128_ps(_mm_shuffle_epi8(_mm_castps_si128((node->bbox().y() - rayO.y()).raw()), yMask))),
+                    float4(_mm_castsi128_ps(_mm_shuffle_epi8(_mm_castps_si128((node->bbox().z() - rayO.z()).raw()), zMask)))
                 )*invNegDir;
-                pfloat minMax = max(tNearFar.x(), tNearFar.y(), tNearFar.z(), nearFar);
+                float4 minMax = max(tNearFar.x(), tNearFar.y(), tNearFar.z(), nearFar);
                 minMax ^= signMask;
-                pfloat maxMin(_mm_castsi128_ps(_mm_shuffle_epi8(_mm_castps_si128(minMax.raw()), swapNearFar)));
-                pbool hit = minMax <= maxMin;
+                float4 maxMin(_mm_castsi128_ps(_mm_shuffle_epi8(_mm_castps_si128(minMax.raw()), swapNearFar)));
+                bool4 hit = minMax <= maxMin;
 
                 bool intersectsL = hit[0];
                 bool intersectsR = hit[1];
