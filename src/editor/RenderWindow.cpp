@@ -201,7 +201,7 @@ void RenderWindow::finishRender()
 
 void RenderWindow::refresh()
 {
-    if (!_image)
+    if (!_image || !_renderer)
         return;
 
     uint32 w = _image->width(), h = _image->height();
