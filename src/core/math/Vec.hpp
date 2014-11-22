@@ -15,6 +15,7 @@ namespace Tungsten {
 
 template<typename ElementType, unsigned Size>
 class Vec {
+protected:
     std::array<ElementType, Size> _v;
 
 public:
