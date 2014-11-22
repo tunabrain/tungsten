@@ -103,6 +103,11 @@ public:
         return _bsdfs;
     }
 
+    const std::vector<std::shared_ptr<Primitive>> &primitives() const
+    {
+        return _primitives;
+    }
+
     std::vector<std::shared_ptr<Primitive>> &primitives()
     {
         return _primitives;
