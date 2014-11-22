@@ -87,6 +87,11 @@ public:
         return Vec3f(a13, a23, a33);
     }
 
+    float operator()(int i, int j) const
+    {
+        return a[i*4 + j];
+    }
+
     float operator[](int i) const
     {
         return a[i];
