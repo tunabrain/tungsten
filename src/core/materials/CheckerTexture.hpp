@@ -14,6 +14,7 @@ class CheckerTexture : public Texture
 
 public:
     CheckerTexture();
+    CheckerTexture(Vec3f onColor, Vec3f offColor, int resU, int resV);
 
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;

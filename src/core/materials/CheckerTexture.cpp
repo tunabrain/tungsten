@@ -12,6 +12,12 @@ CheckerTexture::CheckerTexture()
 {
 }
 
+CheckerTexture::CheckerTexture(Vec3f onColor, Vec3f offColor, int resU, int resV)
+: _onColor(onColor), _offColor(offColor),
+  _resU(resU), _resV(resV)
+{
+}
+
 void CheckerTexture::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     Texture::fromJson(v, scene);
