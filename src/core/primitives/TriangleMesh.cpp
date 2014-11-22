@@ -180,6 +180,28 @@ void TriangleMesh::computeBounds()
     _bounds = box;
 }
 
+void TriangleMesh::makeCube()
+{
+    const Vec3f verts[6][4] = {
+        {{-0.5f, -0.5f, -0.5f}, {-0.5f, -0.5f,  0.5f}, { 0.5f, -0.5f,  0.5f}, { 0.5f, -0.5f, -0.5f}},
+        {{-0.5f,  0.5f,  0.5f}, {-0.5f,  0.5f, -0.5f}, { 0.5f,  0.5f, -0.5f}, { 0.5f,  0.5f,  0.5f}},
+        {{-0.5f,  0.5f, -0.5f}, {-0.5f, -0.5f, -0.5f}, { 0.5f, -0.5f, -0.5f}, { 0.5f,  0.5f, -0.5f}},
+        {{ 0.5f,  0.5f,  0.5f}, { 0.5f, -0.5f,  0.5f}, {-0.5f, -0.5f,  0.5f}, {-0.5f,  0.5f,  0.5f}},
+        {{-0.5f,  0.5f,  0.5f}, {-0.5f, -0.5f,  0.5f}, {-0.5f, -0.5f, -0.5f}, {-0.5f,  0.5f, -0.5f}},
+        {{ 0.5f,  0.5f, -0.5f}, { 0.5f, -0.5f, -0.5f}, { 0.5f, -0.5f,  0.5f}, { 0.5f,  0.5f,  0.5f}},
+    };
+    const Vec2f uvs[] = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}};
+
+    for (int i = 0; i < 6; ++i) {
+        int idx = _verts.size();
+        _tris.emplace_back(idx, idx + 2, idx + 1);
+        _tris.emplace_back(idx, idx + 3, idx + 2);
+
+        for (int j = 0; j < 4; ++j)
+            _verts.emplace_back(verts[i][j], uvs[j]);
+    }
+}
+
 void TriangleMesh::makeSphere(float radius)
 {
     CONSTEXPR int SubDiv = 10;

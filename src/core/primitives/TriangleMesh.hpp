@@ -52,6 +52,7 @@ public:
     void calcSmoothVertexNormals();
     void computeBounds();
 
+    void makeCube();
     void makeSphere(float radius);
     void makeCone(float radius, float height);
 
