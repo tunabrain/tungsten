@@ -20,6 +20,11 @@ public:
     {
     }
 
+    Vertex(const Vec3f &pos, const Vec2f &uv)
+    : _pos(pos), _uv(uv)
+    {
+    }
+
     Vertex(const Vec3f &pos, const Vec3f &normal, const Vec2f &uv)
     : _pos(pos), _normal(normal), _uv(uv)
     {
