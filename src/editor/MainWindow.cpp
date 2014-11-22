@@ -91,10 +91,13 @@ void MainWindow::newScene()
 
 void MainWindow::openScene()
 {
+    std::string dir = (!_scene || _scene->path().empty()) ?
+            FileUtils::getCurrentDir() :
+            _scene->path();
     QString file = QFileDialog::getOpenFileName(
         nullptr,
         "Open file...",
-        QString::fromStdString(FileUtils::getCurrentDir()),
+        QString::fromStdString(dir),
         "Scene files (*.json)"
     );
 
@@ -146,10 +149,13 @@ void MainWindow::saveScene()
 void MainWindow::saveSceneAs()
 {
     if (_scene) {
+        std::string dir = _scene->path().empty() ?
+                FileUtils::getCurrentDir() :
+                _scene->path();
         QString file = QFileDialog::getSaveFileName(
             nullptr,
             "Save file as...",
-            QString::fromStdString(FileUtils::getCurrentDir()),
+            QString::fromStdString(dir),
             "Scene files (*.json)"
         );
 
