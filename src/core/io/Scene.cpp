@@ -10,6 +10,7 @@
 #include "primitives/TriangleMesh.hpp"
 #include "primitives/Sphere.hpp"
 #include "primitives/Curves.hpp"
+#include "primitives/Cube.hpp"
 #include "primitives/Quad.hpp"
 #include "primitives/Disk.hpp"
 
@@ -153,6 +154,8 @@ std::shared_ptr<Primitive> Scene::instantiatePrimitive(std::string type, const r
         result = std::make_shared<InfiniteSphereCap>();
     else if (type == "curves")
         result = std::make_shared<Curves>();
+    else if (type == "cube")
+        result = std::make_shared<Cube>();
     else
         FAIL("Unknown primitive type: '%s'", type.c_str());
 
