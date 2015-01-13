@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 GENERATOR=""
 if [ "$(uname -o)" = "Msys" ];
 then
