@@ -40,7 +40,7 @@ float ThinlensCamera::evalApertureThroughput(Vec3f planePos, Vec2f aperturePos) 
         aperturePos = (aperturePos*2.0f - 1.0f)*_apertureSize;
         Vec3f lensPos = Vec3f(aperturePos.x(), aperturePos.y(), 0.0f);
         Vec3f localDir = (planePos - lensPos).normalized();
-        Vec2f diaphragmPos = lensPos.xy() - _catEye*_planeDist*localDir.xy();
+        Vec2f diaphragmPos = lensPos.xy() - _catEye*_planeDist*localDir.xy()/localDir.z();
         if (diaphragmPos.lengthSq() > sqr(_apertureSize))
             return 0.0f;
     }
@@ -127,7 +127,7 @@ bool ThinlensCamera::generateSample(Vec2u pixel, SampleGenerator &sampler, Vec3f
     Vec3f dir = _transform.transformVector(localDir);
 
     if (_catEye > 0.0f && _chromaticAberration <= 0.0f) {
-        Vec2f diaphragmPos = lensPos.xy() - _catEye*_planeDist*localDir.xy();
+        Vec2f diaphragmPos = lensPos.xy() - _catEye*_planeDist*localDir.xy()/localDir.z();
         if (diaphragmPos.lengthSq() > sqr(_apertureSize))
             return false;
     }
