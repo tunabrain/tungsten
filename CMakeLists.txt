@@ -20,12 +20,13 @@ set(__AVX__ 0)
 if (MSVC)
     # Needed by MSVC, but not added by OptimizeForArchitexture()
     add_definitions(-D__SSE__)
-    # Compiling with AVX enabled is unfortunately broken on MSVC right now, so we force AVX off
-    if (USE_AVX)
-        message(STATUS "Detected AVX support, but also detected MSVC. Disabling AVX.")
-        remove_definitions(-D__AVX__ -D__AVX2__)
-        set (USE_AVX false)
-    endif()
+endif()
+
+# AVX does not do much benefit at the moment, but breaks compilation on some platforms.
+# Disabled for now until AVX becomes important enough to reconsider.
+if (USE_AVX)
+    remove_definitions(-D__AVX__ -D__AVX2__)
+    set (USE_AVX false)
 endif()
 
 if (USE_AVX)
