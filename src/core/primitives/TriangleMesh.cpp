@@ -49,12 +49,25 @@ TriangleMesh::TriangleMesh(const TriangleMesh &o)
 TriangleMesh::TriangleMesh(std::vector<Vertex> verts, std::vector<TriangleI> tris,
              const std::shared_ptr<Bsdf> &bsdf,
              const std::string &name, bool smoothed)
+: TriangleMesh(
+      std::move(verts),
+      std::move(tris),
+      std::vector<std::shared_ptr<Bsdf>>(1, bsdf),
+      name,
+      smoothed
+  )
+{
+}
+
+TriangleMesh::TriangleMesh(std::vector<Vertex> verts, std::vector<TriangleI> tris,
+             std::vector<std::shared_ptr<Bsdf>> bsdfs,
+             const std::string &name, bool smoothed)
 : Primitive(name),
   _path(std::string(name).append(".wo3")),
   _smoothed(smoothed),
   _verts(std::move(verts)),
   _tris(std::move(tris)),
-  _bsdf(std::move(bsdf))
+  _bsdfs(std::move(bsdfs))
 {
 }
 
@@ -92,7 +105,15 @@ void TriangleMesh::fromJson(const rapidjson::Value &v, const Scene &scene)
     _path = JsonUtils::as<std::string>(v, "file");
     JsonUtils::fromJson(v, "smooth", _smoothed);
 
-    _bsdf = scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf"));
+    const rapidjson::Value::Member *bsdf = v.FindMember("bsdf");
+    if (bsdf && bsdf->value.IsArray()) {
+        if (bsdf->value.Size() == 0)
+            FAIL("Empty BSDF array for triangle mesh");
+        for (int i = 0; i < int(bsdf->value.IsArray()); ++i)
+            _bsdfs.emplace_back(scene.fetchBsdf(bsdf->value[i]));
+    } else {
+        _bsdfs.emplace_back(scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf")));
+    }
 
     MeshIO::load(_path, _verts, _tris);
 }
@@ -103,7 +124,14 @@ rapidjson::Value TriangleMesh::toJson(Allocator &allocator) const
     v.AddMember("type", "mesh", allocator);
     v.AddMember("file", _path.c_str(), allocator);
     v.AddMember("smooth", _smoothed, allocator);
-    JsonUtils::addObjectMember(v, "bsdf", *_bsdf, allocator);
+    if (_bsdfs.size() == 1) {
+        JsonUtils::addObjectMember(v, "bsdf", *_bsdfs[0], allocator);
+    } else {
+        rapidjson::Value a(rapidjson::kArrayType);
+        for (const auto &bsdf : _bsdfs)
+            a.PushBack(_bsdfs[0]->toJson(allocator), allocator);
+        v.AddMember("bsdf", std::move(a), allocator);
+    }
     return std::move(v);
 }
 
@@ -280,7 +308,7 @@ void TriangleMesh::intersectionInfo(const IntersectionTemporary &data, Intersect
         info.Ns = info.Ng;
     info.uv = uvAt(isect->id0, isect->u, isect->v);
     info.primitive = this;
-    info.bsdf = _bsdf.get();
+    info.bsdf = _bsdfs[_tris[isect->id0].material].get();
     info.p = isect->p;
 }
 
@@ -426,6 +454,7 @@ void TriangleMesh::prepareForRender()
 
     for (size_t i = 0; i < _tris.size(); ++i) {
         const TriangleI &t = _tris[i];
+        _tris[i].material = clamp(_tris[i].material, 0, int(_bsdfs.size()) - 1);
         ts[i] = embree::RTCTriangle(t.v0, t.v1, t.v2, i, 0);
     }
 
@@ -467,12 +496,12 @@ void TriangleMesh::cleanupAfterRender()
 
 int TriangleMesh::numBsdfs() const
 {
-    return 1;
+    return _bsdfs.size();
 }
 
-std::shared_ptr<Bsdf> &TriangleMesh::bsdf(int /*index*/)
+std::shared_ptr<Bsdf> &TriangleMesh::bsdf(int index)
 {
-    return _bsdf;
+    return _bsdfs[index];
 }
 
 Primitive *TriangleMesh::clone()

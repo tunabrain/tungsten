@@ -25,7 +25,7 @@ class TriangleMesh : public Primitive
     std::vector<Vertex> _tfVerts;
     std::vector<TriangleI> _tris;
 
-    std::shared_ptr<Bsdf> _bsdf;
+    std::vector<std::shared_ptr<Bsdf>> _bsdfs;
 
     std::unique_ptr<Distribution1D> _triSampler;
     float _totalArea;
@@ -44,6 +44,9 @@ public:
     TriangleMesh(const TriangleMesh &o);
     TriangleMesh(std::vector<Vertex> verts, std::vector<TriangleI> tris,
                  const std::shared_ptr<Bsdf> &bsdf,
+                 const std::string &name, bool smoothed);
+    TriangleMesh(std::vector<Vertex> verts, std::vector<TriangleI> tris,
+                 std::vector<std::shared_ptr<Bsdf>> bsdf,
                  const std::string &name, bool smoothed);
 
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
