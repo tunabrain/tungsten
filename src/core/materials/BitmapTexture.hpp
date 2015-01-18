@@ -11,6 +11,7 @@ class Distribution2D;
 
 class BitmapTexture : public Texture
 {
+public:
     enum class TexelType : uint32 {
         SCALAR_LDR = 0,
         SCALAR_HDR = 1,
@@ -18,6 +19,7 @@ class BitmapTexture : public Texture
         RGB_HDR    = 3,
     };
 
+private:
     typedef JsonSerializable::Allocator Allocator;
 
     std::string _path;
