@@ -8,6 +8,7 @@
 
 #include "io/FileUtils.hpp"
 #include "io/CurveIO.hpp"
+#include "io/Scene.hpp"
 
 namespace Tungsten {
 
@@ -353,6 +354,7 @@ rapidjson::Value Curves::toJson(Allocator &allocator) const
     v.AddMember("type", "curves", allocator);
     v.AddMember("file", _path.c_str(), allocator);
     v.AddMember("mode", _modeString.c_str(), allocator);
+    JsonUtils::addObjectMember(v, "bsdf", *_bsdf, allocator);
     return std::move(v);
 }
 
@@ -443,6 +445,7 @@ void Curves::intersectionInfo(const IntersectionTemporary &data, IntersectionInf
 
     info.uv = isect.uv;
     info.primitive = this;
+    info.bsdf = _bsdf.get();
 
     if (_mode == MODE_CYLINDER)
         info.epsilon = max(info.epsilon, 0.1f*isect.w);
@@ -570,6 +573,16 @@ void Curves::cleanupAfterRender()
     FileUtils::changeCurrentDir(dir);
 }
 
+
+int Curves::numBsdfs() const
+{
+    return 1;
+}
+
+std::shared_ptr<Bsdf> &Curves::bsdf(int /*index*/)
+{
+    return _bsdf;
+}
 
 Primitive *Curves::clone()
 {

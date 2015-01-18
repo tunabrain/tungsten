@@ -17,6 +17,7 @@ class Disk : public Primitive
     float _cosApex;
     Vec3f _coneBase;
 
+    std::shared_ptr<Bsdf> _bsdf;
     std::shared_ptr<TriangleMesh> _proxy;
 
     void buildProxy();
@@ -51,6 +52,9 @@ public:
 
     virtual void prepareForRender() override;
     virtual void cleanupAfterRender() override;
+
+    virtual int numBsdfs() const override;
+    virtual std::shared_ptr<Bsdf> &bsdf(int index) override;
 
     virtual Primitive *clone() override;
 };

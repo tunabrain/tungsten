@@ -4,6 +4,8 @@
 #include "sampling/SampleGenerator.hpp"
 #include "sampling/SampleWarp.hpp"
 
+#include "io/Scene.hpp"
+
 namespace Tungsten {
 
 struct QuadIntersection
@@ -16,7 +18,8 @@ struct QuadIntersection
 
 Quad::Quad(const Vec3f &base, const Vec3f &edge0, const Vec3f &edge1,
         const std::string &name, std::shared_ptr<Bsdf> bsdf)
-: Primitive(name, bsdf)
+: Primitive(name),
+  _bsdf(std::move(bsdf))
 {
     _transform = Mat4f::translate(base + edge0*0.5f + edge1*0.5f)*Mat4f(edge0, edge0.cross(edge1), edge1);
 }
@@ -40,12 +43,15 @@ void Quad::buildProxy()
 void Quad::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     Primitive::fromJson(v, scene);
+
+    _bsdf = scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf"));
 }
 
 rapidjson::Value Quad::toJson(Allocator &allocator) const
 {
     rapidjson::Value v = Primitive::toJson(allocator);
     v.AddMember("type", "quad", allocator);
+    JsonUtils::addObjectMember(v, "bsdf", *_bsdf, allocator);
     return std::move(v);
 }
 
@@ -106,6 +112,7 @@ void Quad::intersectionInfo(const IntersectionTemporary &data, IntersectionInfo 
     info.p = isect->p;
     info.uv = Vec2f(isect->u, isect->v);
     info.primitive = this;
+    info.bsdf = _bsdf.get();
 }
 
 bool Quad::tangentSpace(const IntersectionTemporary &/*data*/, const IntersectionInfo &/*info*/,
@@ -235,6 +242,16 @@ void Quad::prepareForRender()
 
 void Quad::cleanupAfterRender()
 {
+}
+
+int Quad::numBsdfs() const
+{
+    return 1;
+}
+
+std::shared_ptr<Bsdf> &Quad::bsdf(int /*index*/)
+{
+    return _bsdf;
 }
 
 Primitive *Quad::clone()

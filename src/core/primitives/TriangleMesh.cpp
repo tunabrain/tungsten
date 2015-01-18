@@ -49,11 +49,12 @@ TriangleMesh::TriangleMesh(const TriangleMesh &o)
 TriangleMesh::TriangleMesh(std::vector<Vertex> verts, std::vector<TriangleI> tris,
              const std::shared_ptr<Bsdf> &bsdf,
              const std::string &name, bool smoothed)
-: Primitive(name, bsdf),
+: Primitive(name),
   _path(std::string(name).append(".wo3")),
   _smoothed(smoothed),
   _verts(std::move(verts)),
-  _tris(std::move(tris))
+  _tris(std::move(tris)),
+  _bsdf(std::move(bsdf))
 {
 }
 
@@ -91,6 +92,8 @@ void TriangleMesh::fromJson(const rapidjson::Value &v, const Scene &scene)
     _path = JsonUtils::as<std::string>(v, "file");
     JsonUtils::fromJson(v, "smooth", _smoothed);
 
+    _bsdf = scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf"));
+
     MeshIO::load(_path, _verts, _tris);
 }
 
@@ -100,6 +103,7 @@ rapidjson::Value TriangleMesh::toJson(Allocator &allocator) const
     v.AddMember("type", "mesh", allocator);
     v.AddMember("file", _path.c_str(), allocator);
     v.AddMember("smooth", _smoothed, allocator);
+    JsonUtils::addObjectMember(v, "bsdf", *_bsdf, allocator);
     return std::move(v);
 }
 
@@ -276,6 +280,7 @@ void TriangleMesh::intersectionInfo(const IntersectionTemporary &data, Intersect
         info.Ns = info.Ng;
     info.uv = uvAt(isect->id0, isect->u, isect->v);
     info.primitive = this;
+    info.bsdf = _bsdf.get();
     info.p = isect->p;
 }
 
@@ -458,6 +463,16 @@ void TriangleMesh::cleanupAfterRender()
     _geom = nullptr;
     _intersector = nullptr;
     _tfVerts.clear();
+}
+
+int TriangleMesh::numBsdfs() const
+{
+    return 1;
+}
+
+std::shared_ptr<Bsdf> &TriangleMesh::bsdf(int /*index*/)
+{
+    return _bsdf;
 }
 
 Primitive *TriangleMesh::clone()

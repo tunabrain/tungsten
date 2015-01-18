@@ -4,6 +4,8 @@
 #include "sampling/SampleGenerator.hpp"
 #include "sampling/SampleWarp.hpp"
 
+#include "io/Scene.hpp"
+
 namespace Tungsten {
 
 struct InfiniteSphereCapIntersection
@@ -29,6 +31,8 @@ void InfiniteSphereCap::fromJson(const rapidjson::Value &v, const Scene &scene)
     Primitive::fromJson(v, scene);
     JsonUtils::fromJson(v, "sample", _doSample);
     JsonUtils::fromJson(v, "cap_angle", _capAngleDeg);
+
+    _bsdf = scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf"));
 }
 rapidjson::Value InfiniteSphereCap::toJson(Allocator &allocator) const
 {
@@ -36,6 +40,7 @@ rapidjson::Value InfiniteSphereCap::toJson(Allocator &allocator) const
     v.AddMember("type", "infinite_sphere_cap", allocator);
     v.AddMember("sample", _doSample, allocator);
     v.AddMember("cap_angle", _capAngleDeg, allocator);
+    JsonUtils::addObjectMember(v, "bsdf", *_bsdf, allocator);
     return std::move(v);
 }
 
@@ -68,6 +73,7 @@ void InfiniteSphereCap::intersectionInfo(const IntersectionTemporary &data, Inte
     info.p = isect->p;
     info.uv = Vec2f(0.0f, 0.0f);
     info.primitive = this;
+    info.bsdf = _bsdf.get();
 }
 
 bool InfiniteSphereCap::tangentSpace(const IntersectionTemporary &/*data*/, const IntersectionInfo &/*info*/, Vec3f &/*T*/, Vec3f &/*B*/) const
@@ -147,6 +153,16 @@ void InfiniteSphereCap::prepareForRender()
 
 void InfiniteSphereCap::cleanupAfterRender()
 {
+}
+
+int InfiniteSphereCap::numBsdfs() const
+{
+    return 1;
+}
+
+std::shared_ptr<Bsdf> &InfiniteSphereCap::bsdf(int /*index*/)
+{
+    return _bsdf;
 }
 
 Primitive *InfiniteSphereCap::clone()

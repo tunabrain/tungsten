@@ -27,7 +27,6 @@ class TriangleMesh;
 class Primitive : public JsonSerializable
 {
 protected:
-    std::shared_ptr<Bsdf> _bsdf;
     std::shared_ptr<Texture> _emission;
     std::shared_ptr<Texture> _bump;
     float _bumpStrength;
@@ -40,7 +39,7 @@ public:
     virtual ~Primitive() {}
 
     Primitive();
-    Primitive(const std::string &name, std::shared_ptr<Bsdf> bsdf);
+    Primitive(const std::string &name);
 
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
@@ -72,6 +71,9 @@ public:
 
     virtual void prepareForRender() = 0;
     virtual void cleanupAfterRender() = 0;
+
+    virtual int numBsdfs() const = 0;
+    virtual std::shared_ptr<Bsdf> &bsdf(int index) = 0;
 
     virtual Primitive *clone() = 0;
 
@@ -117,16 +119,6 @@ public:
     const Mat4f &transform() const
     {
         return _transform;
-    }
-
-    std::shared_ptr<Bsdf> &bsdf()
-    {
-        return _bsdf;
-    }
-
-    const std::shared_ptr<Bsdf> &bsdf() const
-    {
-        return _bsdf;
     }
 
     void setBump(const std::shared_ptr<Texture> &b)

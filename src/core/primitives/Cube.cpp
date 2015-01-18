@@ -4,6 +4,8 @@
 #include "sampling/SampleGenerator.hpp"
 #include "sampling/SampleWarp.hpp"
 
+#include "io/Scene.hpp"
+
 namespace Tungsten {
 
 struct CubeIntersection
@@ -19,11 +21,12 @@ Cube::Cube()
 
 Cube::Cube(const Vec3f &pos, const Vec3f &scale, const Mat4f &rot,
         const std::string &name, std::shared_ptr<Bsdf> bsdf)
-: Primitive(name, std::move(bsdf)),
+: Primitive(name),
   _rot(rot),
   _invRot(rot.transpose()),
   _pos(pos),
-  _scale(scale*0.5f)
+  _scale(scale*0.5f),
+  _bsdf(std::move(bsdf))
 {
     _transform = Mat4f::translate(_pos)*rot*Mat4f::scale(Vec3f(scale));
 }
@@ -37,12 +40,15 @@ void Cube::buildProxy()
 void Cube::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     Primitive::fromJson(v, scene);
+
+    _bsdf = scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf"));
 }
 
 rapidjson::Value Cube::toJson(Allocator &allocator) const
 {
     rapidjson::Value v = Primitive::toJson(allocator);
     v.AddMember("type", "cube", allocator);
+    JsonUtils::addObjectMember(v, "bsdf", *_bsdf, allocator);
     return std::move(v);
 }
 
@@ -120,6 +126,7 @@ void Cube::intersectionInfo(const IntersectionTemporary &/*data*/, IntersectionI
     info.Ns = info.Ng = _rot*n;
     info.uv = Vec2f(uvw[(dim + 1) % 3], uvw[(dim + 2) % 3]);
     info.primitive = this;
+    info.bsdf = _bsdf.get();
 }
 
 bool Cube::tangentSpace(const IntersectionTemporary &/*data*/, const IntersectionInfo &info, Vec3f &T, Vec3f &B) const
@@ -208,6 +215,16 @@ void Cube::prepareForRender()
 
 void Cube::cleanupAfterRender()
 {
+}
+
+int Cube::numBsdfs() const
+{
+    return 1;
+}
+
+std::shared_ptr<Bsdf> &Cube::bsdf(int /*index*/)
+{
+    return _bsdf;
 }
 
 Primitive *Cube::clone()

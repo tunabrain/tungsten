@@ -4,6 +4,8 @@
 #include "sampling/SampleGenerator.hpp"
 #include "sampling/SampleWarp.hpp"
 
+#include "io/Scene.hpp"
+
 namespace Tungsten {
 
 struct SphereIntersection
@@ -18,9 +20,10 @@ Sphere::Sphere()
 }
 
 Sphere::Sphere(const Vec3f &pos, float r, const std::string &name, std::shared_ptr<Bsdf> bsdf)
-: Primitive(name, bsdf),
+: Primitive(name),
   _pos(pos),
-  _radius(r)
+  _radius(r),
+  _bsdf(std::move(bsdf))
 {
     _transform = Mat4f::translate(_pos)*Mat4f::scale(Vec3f(_radius));
 }
@@ -43,12 +46,15 @@ void Sphere::buildProxy()
 void Sphere::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     Primitive::fromJson(v, scene);
+
+    _bsdf = scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf"));
 }
 
 rapidjson::Value Sphere::toJson(Allocator &allocator) const
 {
     rapidjson::Value v = Primitive::toJson(allocator);
     v.AddMember("type", "sphere", allocator);
+    JsonUtils::addObjectMember(v, "bsdf", *_bsdf, allocator);
     return std::move(v);
 }
 
@@ -111,6 +117,7 @@ void Sphere::intersectionInfo(const IntersectionTemporary &/*data*/, Intersectio
     if (std::isnan(info.uv.x()))
         info.uv.x() = 0.0f;
     info.primitive = this;
+    info.bsdf = _bsdf.get();
 }
 
 bool Sphere::tangentSpace(const IntersectionTemporary &/*data*/, const IntersectionInfo &info, Vec3f &T, Vec3f &B) const
@@ -213,6 +220,16 @@ void Sphere::prepareForRender()
 
 void Sphere::cleanupAfterRender()
 {
+}
+
+int Sphere::numBsdfs() const
+{
+    return 1;
+}
+
+std::shared_ptr<Bsdf> &Sphere::bsdf(int /*index*/)
+{
+    return _bsdf;
 }
 
 Primitive *Sphere::clone()

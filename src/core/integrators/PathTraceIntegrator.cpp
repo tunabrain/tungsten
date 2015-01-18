@@ -22,7 +22,7 @@ SurfaceScatterEvent PathTraceIntegrator::makeLocalScatterEvent(IntersectionTempo
     info.primitive->setupTangentFrame(data, info, frame);
 
     bool hitBackside = frame.normal.dot(ray.dir()) > 0.0f;
-    bool isTransmissive = info.primitive->bsdf()->lobes().isTransmissive();
+    bool isTransmissive = info.bsdf->lobes().isTransmissive();
 
     bool flipFrame = _enableTwoSidedShading && hitBackside && !isTransmissive;
 
@@ -71,7 +71,7 @@ Vec3f PathTraceIntegrator::generalizedShadowRay(Ray &ray,
         if (_scene->intersect(ray, data, info) && info.primitive != endCap) {
             SurfaceScatterEvent event = makeLocalScatterEvent(data, info, ray, nullptr, nullptr);
 
-            Vec3f transmittance = info.primitive->bsdf()->eval(event.makeForwardEvent());
+            Vec3f transmittance = info.bsdf->eval(event.makeForwardEvent());
             if (transmittance == 0.0f)
                 return Vec3f(0.0f);
 
@@ -86,11 +86,11 @@ Vec3f PathTraceIntegrator::generalizedShadowRay(Ray &ray,
             throughput *= medium->transmittance(VolumeScatterEvent(ray.pos(), ray.dir(), ray.farT()));
         if (info.primitive == nullptr || info.primitive == endCap)
             return bounce >= _minBounces ? throughput : Vec3f(0.0f);
-        if (info.primitive->bsdf()->overridesMedia()) {
+        if (info.bsdf->overridesMedia()) {
             if (info.primitive->hitBackside(data))
-                medium = info.primitive->bsdf()->extMedium().get();
+                medium = info.bsdf->extMedium().get();
             else
-                medium = info.primitive->bsdf()->intMedium().get();
+                medium = info.bsdf->intMedium().get();
         }
 
         ray.advanceFootprint();
@@ -423,7 +423,7 @@ bool PathTraceIntegrator::handleSurface(IntersectionTemporary &data, Intersectio
                    Vec3f &throughput, Vec3f &emission, bool &wasSpecular,
                    Medium::MediumState &state)
 {
-    const Bsdf &bsdf = *info.primitive->bsdf();
+    const Bsdf &bsdf = *info.bsdf;
 
     SurfaceScatterEvent event = makeLocalScatterEvent(data, info, ray, &sampler, &supplementalSampler);
 

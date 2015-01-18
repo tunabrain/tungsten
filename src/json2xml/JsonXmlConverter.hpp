@@ -592,6 +592,9 @@ class SceneXmlWriter
 
     void convert(Primitive *prim)
     {
+        if (prim->numBsdfs() > 1)
+            return; // Mitsuba does not support multiple BSDFs per primitive
+
         prim->prepareForRender();
 
         if (TriangleMesh *prim2 = dynamic_cast<TriangleMesh *>(prim))
@@ -606,7 +609,7 @@ class SceneXmlWriter
         } else
             DBG("Unknown primitive type!");
 
-        if (!dynamic_cast<ForwardBsdf *>(prim->bsdf().get())) {
+        if (!dynamic_cast<ForwardBsdf *>(prim->bsdf(0).get())) {
             bool hasBump = prim->bump() && !prim->bump()->isConstant();
             if (hasBump) {
                 begin("bsdf");
@@ -614,17 +617,17 @@ class SceneXmlWriter
                 beginPost();
                 convert("map", prim->bump().get());
             }
-            convertOrRef(prim->bsdf().get());
+            convertOrRef(prim->bsdf(0).get());
             if (hasBump)
                 end();
         }
-        if (prim->bsdf()->intMedium()) {
-            prim->bsdf()->intMedium()->setName("interior");
-            convert(prim->bsdf()->intMedium().get());
+        if (prim->bsdf(0)->intMedium()) {
+            prim->bsdf(0)->intMedium()->setName("interior");
+            convert(prim->bsdf(0)->intMedium().get());
         }
-        if (prim->bsdf()->extMedium()) {
-            prim->bsdf()->extMedium()->setName("exterior");
-            convert(prim->bsdf()->extMedium().get());
+        if (prim->bsdf(0)->extMedium()) {
+            prim->bsdf(0)->extMedium()->setName("exterior");
+            convert(prim->bsdf(0)->extMedium().get());
         }
         if (prim->isEmissive()) {
             begin("emitter");

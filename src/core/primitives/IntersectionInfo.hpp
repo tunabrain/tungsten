@@ -6,6 +6,7 @@
 namespace Tungsten {
 
 class Primitive;
+class Bsdf;
 
 struct IntersectionInfo
 {
@@ -18,6 +19,7 @@ struct IntersectionInfo
     float epsilon;
 
     const Primitive *primitive;
+    const Bsdf *bsdf;
 };
 
 }

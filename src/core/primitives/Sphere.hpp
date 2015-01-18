@@ -12,6 +12,7 @@ class Sphere : public Primitive
     Vec3f _pos;
     float _radius;
 
+    std::shared_ptr<Bsdf> _bsdf;
     std::shared_ptr<TriangleMesh> _proxy;
 
     float solidAngle(const Vec3f &p) const;
@@ -47,6 +48,9 @@ public:
 
     virtual void prepareForRender() override;
     virtual void cleanupAfterRender() override;
+
+    virtual int numBsdfs() const override;
+    virtual std::shared_ptr<Bsdf> &bsdf(int index) override;
 
     virtual Primitive *clone() override;
 

@@ -6,6 +6,8 @@
 
 #include "math/Angle.hpp"
 
+#include "io/Scene.hpp"
+
 namespace Tungsten {
 
 struct InfiniteSphereIntersection
@@ -54,12 +56,15 @@ void InfiniteSphere::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     Primitive::fromJson(v, scene);
     JsonUtils::fromJson(v, "doSample", _doSample);
+
+    _bsdf = scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf"));
 }
 rapidjson::Value InfiniteSphere::toJson(Allocator &allocator) const
 {
     rapidjson::Value v = Primitive::toJson(allocator);
     v.AddMember("type", "infinite_sphere", allocator);
     v.AddMember("doSample", _doSample, allocator);
+    JsonUtils::addObjectMember(v, "bsdf", *_bsdf, allocator);
     return std::move(v);
 }
 
@@ -89,6 +94,7 @@ void InfiniteSphere::intersectionInfo(const IntersectionTemporary &data, Interse
     info.p = isect->p;
     info.uv = directionToUV(isect->w);
     info.primitive = this;
+    info.bsdf = _bsdf.get();
 }
 
 bool InfiniteSphere::tangentSpace(const IntersectionTemporary &/*data*/, const IntersectionInfo &/*info*/,
@@ -183,6 +189,16 @@ void InfiniteSphere::prepareForRender()
 
 void InfiniteSphere::cleanupAfterRender()
 {
+}
+
+int InfiniteSphere::numBsdfs() const
+{
+    return 1;
+}
+
+std::shared_ptr<Bsdf> &InfiniteSphere::bsdf(int /*index*/)
+{
+    return _bsdf;
 }
 
 Primitive *InfiniteSphere::clone()

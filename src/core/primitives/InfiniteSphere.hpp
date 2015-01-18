@@ -11,6 +11,7 @@ class InfiniteSphere : public Primitive
     Mat4f _invRotTransform;
     bool _doSample;
 
+    std::shared_ptr<Bsdf> _bsdf;
     std::shared_ptr<TriangleMesh> _proxy;
 
     Vec2f directionToUV(const Vec3f &wi) const;
@@ -48,6 +49,9 @@ public:
 
     virtual void prepareForRender() override;
     virtual void cleanupAfterRender() override;
+
+    virtual int numBsdfs() const override;
+    virtual std::shared_ptr<Bsdf> &bsdf(int index) override;
 
     virtual Primitive *clone() override;
 };

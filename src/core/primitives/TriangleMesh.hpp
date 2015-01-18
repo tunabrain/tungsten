@@ -25,6 +25,8 @@ class TriangleMesh : public Primitive
     std::vector<Vertex> _tfVerts;
     std::vector<TriangleI> _tris;
 
+    std::shared_ptr<Bsdf> _bsdf;
+
     std::unique_ptr<Distribution1D> _triSampler;
     float _totalArea;
 
@@ -81,6 +83,9 @@ public:
 
     virtual void prepareForRender() override;
     virtual void cleanupAfterRender() override;
+
+    virtual int numBsdfs() const override;
+    virtual std::shared_ptr<Bsdf> &bsdf(int index) override;
 
     virtual Primitive *clone() override;
 

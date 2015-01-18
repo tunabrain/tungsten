@@ -11,8 +11,8 @@ Primitive::Primitive()
 {
 }
 
-Primitive::Primitive(const std::string &name, std::shared_ptr<Bsdf> bsdf)
-: JsonSerializable(name), _bsdf(bsdf),
+Primitive::Primitive(const std::string &name)
+: JsonSerializable(name),
   _bumpStrength(1.0f)
 {
 }
@@ -22,7 +22,6 @@ void Primitive::fromJson(const rapidjson::Value &v, const Scene &scene)
     JsonSerializable::fromJson(v, scene);
     JsonUtils::fromJson(v, "transform", _transform);
     JsonUtils::fromJson(v, "bump_strength", _bumpStrength);
-    _bsdf = scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf"));
 
     scene.textureFromJsonMember(v, "emission", TexelConversion::REQUEST_RGB, _emission);
     scene.textureFromJsonMember(v, "bump", TexelConversion::REQUEST_AVERAGE, _bump);
@@ -33,7 +32,6 @@ rapidjson::Value Primitive::toJson(Allocator &allocator) const
     rapidjson::Value v = JsonSerializable::toJson(allocator);
     v.AddMember("transform", JsonUtils::toJsonValue(_transform, allocator), allocator);
     v.AddMember("bump_strength", JsonUtils::toJsonValue(_bumpStrength, allocator), allocator);
-    JsonUtils::addObjectMember(v, "bsdf", *_bsdf, allocator);
     if (_emission)
         JsonUtils::addObjectMember(v, "emission", *_emission, allocator);
     if (_bump)
@@ -44,7 +42,7 @@ rapidjson::Value Primitive::toJson(Allocator &allocator) const
 void Primitive::setupTangentFrame(const IntersectionTemporary &data,
         const IntersectionInfo &info, TangentFrame &dst) const
 {
-    if ((!_bump || _bump->isConstant()) && !_bsdf->lobes().isAnisotropic()) {
+    if ((!_bump || _bump->isConstant()) && !info.bsdf->lobes().isAnisotropic()) {
         dst = TangentFrame(info.Ns);
         return;
     }

@@ -3,6 +3,8 @@
 #include "sampling/SampleGenerator.hpp"
 #include "sampling/SampleWarp.hpp"
 
+#include "io/Scene.hpp"
+
 namespace Tungsten {
 
 struct DiskIntersection
@@ -27,6 +29,8 @@ void Disk::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     Primitive::fromJson(v, scene);
     JsonUtils::fromJson(v, "angle", _coneAngle);
+
+    _bsdf = scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf"));
 }
 
 rapidjson::Value Disk::toJson(Allocator &allocator) const
@@ -34,6 +38,7 @@ rapidjson::Value Disk::toJson(Allocator &allocator) const
     rapidjson::Value v = Primitive::toJson(allocator);
     v.AddMember("type", "disk", allocator);
     v.AddMember("cone_angle", _coneAngle, allocator);
+    JsonUtils::addObjectMember(v, "bsdf", *_bsdf, allocator);
     return std::move(v);
 }
 
@@ -101,6 +106,7 @@ void Disk::intersectionInfo(const IntersectionTemporary &data, IntersectionInfo 
     info.uv = Vec2f(u, v);
 
     info.primitive = this;
+    info.bsdf = _bsdf.get();
 }
 
 bool Disk::tangentSpace(const IntersectionTemporary &data, const IntersectionInfo &/*info*/, Vec3f &T, Vec3f &B) const
@@ -239,6 +245,16 @@ void Disk::prepareForRender()
 
 void Disk::cleanupAfterRender()
 {
+}
+
+int Disk::numBsdfs() const
+{
+    return 1;
+}
+
+std::shared_ptr<Bsdf> &Disk::bsdf(int /*index*/)
+{
+    return _bsdf;
 }
 
 Primitive *Disk::clone()
