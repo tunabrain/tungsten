@@ -17,12 +17,15 @@ struct Rgba
     }
 };
 
-BitmapTexture::BitmapTexture(const std::string &path, void *texels, int w, int h, TexelType texelType)
+BitmapTexture::BitmapTexture(const std::string &path, void *texels, int w, int h,
+        TexelType texelType, bool linear, bool clamp)
 : _path(path),
   _texels(texels),
   _w(w),
   _h(h),
-  _texelType(texelType)
+  _texelType(texelType),
+  _linear(linear),
+  _clamp(clamp)
 {
     if (isRgb()) {
         _max = _min = getRgb(0, 0);
@@ -157,16 +160,31 @@ Vec3f BitmapTexture::maximum() const
 
 Vec3f BitmapTexture::operator[](const Vec2f &uv) const
 {
-    float u = uv.x()*_w - 0.5f;
-    float v = (1.0f - uv.y())*_h - 0.5f;
+    float u = uv.x()*_w;
+    float v = (1.0f - uv.y())*_h;
     int iu = int(u);
     int iv = int(v);
     u -= iu;
     v -= iv;
-    iu = ((iu % _w) + _w) % _w;
-    iv = ((iv % _h) + _h) % _h;
-    iu = clamp(iu, 0, _w - 2);
-    iv = clamp(iv, 0, _h - 2);
+    if (!_clamp) {
+        iu = ((iu % _w) + _w) % _w;
+        iv = ((iv % _h) + _h) % _h;
+    }
+    if (_linear) {
+        iu = clamp(iu, 0, _w - 2);
+        iv = clamp(iv, 0, _h - 2);
+    } else {
+        iu = clamp(iu, 0, _w - 1);
+        iv = clamp(iv, 0, _h - 1);
+    }
+
+    if (!_linear) {
+        if (isRgb())
+            return getRgb(iu, iv);
+        else
+            return Vec3f(getScalar(iu, iv));
+    }
+
 
     if (isRgb()) {
         return lerp(
@@ -281,7 +299,7 @@ std::shared_ptr<BitmapTexture> BitmapTexture::loadTexture(const std::string &pat
     if (!pixels)
         return nullptr;
 
-    return std::make_shared<BitmapTexture>(path, pixels, w, h, getTexelType(isRgb, isHdr));
+    return std::make_shared<BitmapTexture>(path, pixels, w, h, getTexelType(isRgb, isHdr), true, false);
 }
 
 }

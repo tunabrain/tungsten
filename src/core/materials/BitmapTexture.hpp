@@ -29,6 +29,7 @@ private:
     int _w;
     int _h;
     TexelType _texelType;
+    bool _linear, _clamp;
 
     std::unique_ptr<Distribution2D> _distribution[MAP_JACOBIAN_COUNT];
 
@@ -48,7 +49,7 @@ private:
     static TexelType getTexelType(bool isRgb, bool isHdr);
 
 public:
-    BitmapTexture(const std::string &path, void *texels, int w, int h, TexelType texelType);
+    BitmapTexture(const std::string &path, void *texels, int w, int h, TexelType texelType, bool linear, bool clamp);
     ~BitmapTexture();
 
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
