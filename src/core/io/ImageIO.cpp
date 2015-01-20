@@ -105,10 +105,35 @@ std::unique_ptr<float[]> loadHdr(const std::string &file, TexelConversion reques
         return std::move(loadStbiHdr(file, request, w, h));
 }
 
+std::unique_ptr<uint8[], void(*)(void *)> loadPng(const std::string &file,
+        int &w, int &h, int &channels)
+{
+    uint8 *dst;
+    uint32 uw, uh;
+    lodepng_decode32_file(&dst, &uw, &uh, file.c_str());
+
+    w = uw;
+    h = uh;
+    channels = 4;
+
+    return std::unique_ptr<uint8[], void(*)(void *)>(dst, free);
+}
+
+std::unique_ptr<uint8[], void(*)(void *)> loadStbi(const std::string &file,
+        int &w, int &h, int &channels)
+{
+    return std::unique_ptr<uint8[], void(*)(void *)>(stbi_load(file.c_str(), &w, &h, &channels, 4), stbi_image_free);
+}
+
 std::unique_ptr<uint8[]> loadLdr(const std::string &file, TexelConversion request, int &w, int &h)
 {
     int channels;
-    std::unique_ptr<uint8[], void(*)(void *)> img(stbi_load(file.c_str(), &w, &h, &channels, 4), stbi_image_free);
+    std::unique_ptr<uint8[], void(*)(void *)> img(nullptr, free);
+    if (FileUtils::testExtension(file, "png"))
+        img = loadPng(file, w, h, channels);
+    else
+        img = loadStbi(file, w, h, channels);
+
     if (!img)
         return nullptr;
 

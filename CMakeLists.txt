@@ -49,7 +49,6 @@ endif()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Vc_ARCHITECTURE_FLAGS}")
 
 add_subdirectory(src/thirdparty/embree)
-add_definitions(-DLODEPNG_NO_COMPILE_DECODER=1)
 add_library(thirdparty STATIC
 		src/thirdparty/lodepng/lodepng.cpp
 		src/thirdparty/sobol/sobol.cpp
