@@ -109,7 +109,7 @@ void TriangleMesh::fromJson(const rapidjson::Value &v, const Scene &scene)
     if (bsdf && bsdf->value.IsArray()) {
         if (bsdf->value.Size() == 0)
             FAIL("Empty BSDF array for triangle mesh");
-        for (int i = 0; i < int(bsdf->value.IsArray()); ++i)
+        for (int i = 0; i < int(bsdf->value.Size()); ++i)
             _bsdfs.emplace_back(scene.fetchBsdf(bsdf->value[i]));
     } else {
         _bsdfs.emplace_back(scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf")));
@@ -129,7 +129,7 @@ rapidjson::Value TriangleMesh::toJson(Allocator &allocator) const
     } else {
         rapidjson::Value a(rapidjson::kArrayType);
         for (const auto &bsdf : _bsdfs)
-            a.PushBack(_bsdfs[0]->toJson(allocator), allocator);
+            a.PushBack(bsdf->toJson(allocator), allocator);
         v.AddMember("bsdf", std::move(a), allocator);
     }
     return std::move(v);
