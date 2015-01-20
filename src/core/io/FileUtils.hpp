@@ -55,6 +55,12 @@ inline void streamRead(std::istream &in, std::vector<T> &dst)
 }
 
 template<typename T>
+inline void streamRead(std::istream &in, T *dst, size_t numElements)
+{
+    in.read(reinterpret_cast<char *>(dst), numElements*sizeof(T));
+}
+
+template<typename T>
 inline void streamWrite(std::ostream &out, const T &src)
 {
     out.write(reinterpret_cast<const char *>(&src), sizeof(T));
@@ -64,6 +70,12 @@ template<typename T>
 inline void streamWrite(std::ostream &out, const std::vector<T> &src)
 {
     out.write(reinterpret_cast<const char *>(&src[0]), src.size()*sizeof(T));
+}
+
+template<typename T>
+inline void streamWrite(std::ostream &out, const T *dst, size_t numElements)
+{
+    out.write(reinterpret_cast<const char *>(dst), numElements*sizeof(T));
 }
 
 }
