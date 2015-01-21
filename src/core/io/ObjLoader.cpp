@@ -347,7 +347,7 @@ std::shared_ptr<Primitive> ObjLoader::finalizeMesh()
         prim = tryInstantiateQuad(name, bsdf);
 
     if (!prim)
-        prim = std::make_shared<TriangleMesh>(std::move(_verts), std::move(_tris), bsdf, name, _meshSmoothed);
+        prim = std::make_shared<TriangleMesh>(std::move(_verts), std::move(_tris), bsdf, name, _meshSmoothed, false);
 
     prim->setEmission(emission);
     prim->setBump(bump);

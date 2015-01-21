@@ -39,9 +39,12 @@
 
 #if defined (__SSE__)
 #include "intersector1_moeller.h"
+#include "intersector1_moeller_cull.h"
 #include "intersector1_pluecker.h"
 #include "triangle1_intersector1_moeller.h"
 #include "triangle4_intersector1_moeller.h"
+#include "triangle1_intersector1_moeller_cull.h"
+#include "triangle4_intersector1_moeller_cull.h"
 #endif
 
 #if defined (__AVX__)

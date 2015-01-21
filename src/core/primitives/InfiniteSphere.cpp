@@ -48,7 +48,7 @@ Vec3f InfiniteSphere::uvToDirection(Vec2f uv, float &sinTheta) const
 
 void InfiniteSphere::buildProxy()
 {
-    _proxy = std::make_shared<TriangleMesh>(std::vector<Vertex>(), std::vector<TriangleI>(), _bsdf, "Sphere", false);
+    _proxy = std::make_shared<TriangleMesh>(std::vector<Vertex>(), std::vector<TriangleI>(), _bsdf, "Sphere", false, false);
     _proxy->makeSphere(0.05f);
 }
 

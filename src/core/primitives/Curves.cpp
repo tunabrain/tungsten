@@ -333,7 +333,7 @@ void Curves::buildProxy()
         }
     }
 
-    _proxy = std::make_shared<TriangleMesh>(verts, tris, _bsdf, "Curves", false);
+    _proxy = std::make_shared<TriangleMesh>(verts, tris, _bsdf, "Curves", false, false);
 }
 
 void Curves::fromJson(const rapidjson::Value &v, const Scene &scene)

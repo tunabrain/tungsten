@@ -262,6 +262,13 @@ namespace embree
     TriangleMesh::intersectors1.add("bvh4","triangle4v","fast","pluecker",true ,BVH4Intersector1<Triangle4vIntersector1<Intersector1Pluecker> >::create);
     TriangleMesh::intersectors1.add("bvh4","triangle1" ,"fast","moeller" ,true ,BVH4Intersector1<Triangle1Intersector1MoellerTrumbore>::create);
     TriangleMesh::intersectors1.add("bvh4","triangle4" ,"fast","moeller" ,true ,BVH4Intersector1<Triangle4Intersector1MoellerTrumbore>::create);
+
+    TriangleMesh::intersectors1.add("bvh4","triangle1i","fast","moeller_cull",false,BVH4Intersector1<Triangle1iIntersector1<Intersector1MoellerTrumboreCull> >::create);
+    TriangleMesh::intersectors1.add("bvh4","triangle1v","fast","moeller_cull",false,BVH4Intersector1<Triangle1vIntersector1<Intersector1MoellerTrumboreCull> >::create);
+    TriangleMesh::intersectors1.add("bvh4","triangle4i","fast","moeller_cull",false,BVH4Intersector1<Triangle4iIntersector1<Intersector1MoellerTrumboreCull> >::create);
+    TriangleMesh::intersectors1.add("bvh4","triangle4v","fast","moeller_cull",false,BVH4Intersector1<Triangle4vIntersector1<Intersector1MoellerTrumboreCull> >::create);
+    TriangleMesh::intersectors1.add("bvh4","triangle1" ,"fast","moeller_cull",false,BVH4Intersector1<Triangle1Intersector1MoellerTrumboreCull>::create);
+    TriangleMesh::intersectors1.add("bvh4","triangle4" ,"fast","moeller_cull",false,BVH4Intersector1<Triangle4Intersector1MoellerTrumboreCull>::create);
 #if defined (__AVX__)
     TriangleMesh::intersectors1.add("bvh4","triangle8" ,"fast","moeller" ,true ,BVH4Intersector1<Triangle8Intersector1MoellerTrumbore>::create);
 #endif

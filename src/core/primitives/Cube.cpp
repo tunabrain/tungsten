@@ -33,7 +33,7 @@ Cube::Cube(const Vec3f &pos, const Vec3f &scale, const Mat4f &rot,
 
 void Cube::buildProxy()
 {
-    _proxy = std::make_shared<TriangleMesh>(std::vector<Vertex>(), std::vector<TriangleI>(), _bsdf, "Cube", false);
+    _proxy = std::make_shared<TriangleMesh>(std::vector<Vertex>(), std::vector<TriangleI>(), _bsdf, "Cube", false, false);
     _proxy->makeCube();
 }
 

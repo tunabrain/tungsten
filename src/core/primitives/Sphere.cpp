@@ -39,7 +39,7 @@ float Sphere::solidAngle(const Vec3f &p) const
 
 void Sphere::buildProxy()
 {
-    _proxy = std::make_shared<TriangleMesh>(std::vector<Vertex>(), std::vector<TriangleI>(), _bsdf, "Sphere", false);
+    _proxy = std::make_shared<TriangleMesh>(std::vector<Vertex>(), std::vector<TriangleI>(), _bsdf, "Sphere", false, false);
     _proxy->makeSphere(1.0f);
 }
 

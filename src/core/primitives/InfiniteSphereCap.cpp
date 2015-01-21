@@ -22,7 +22,7 @@ InfiniteSphereCap::InfiniteSphereCap()
 
 void InfiniteSphereCap::buildProxy()
 {
-    _proxy = std::make_shared<TriangleMesh>(std::vector<Vertex>(), std::vector<TriangleI>(), _bsdf, "Sphere", false);
+    _proxy = std::make_shared<TriangleMesh>(std::vector<Vertex>(), std::vector<TriangleI>(), _bsdf, "Sphere", false, false);
     _proxy->makeCone(0.05f, 1.0f);
 }
 

@@ -21,7 +21,7 @@ Disk::Disk()
 
 void Disk::buildProxy()
 {
-    _proxy = std::make_shared<TriangleMesh>(std::vector<Vertex>(), std::vector<TriangleI>(), _bsdf, "Cone", false);
+    _proxy = std::make_shared<TriangleMesh>(std::vector<Vertex>(), std::vector<TriangleI>(), _bsdf, "Cone", false, false);
     _proxy->makeCone(1.0f, 0.01f);
 }
 

@@ -31,7 +31,8 @@ struct MeshIntersection
 };
 
 TriangleMesh::TriangleMesh()
-: _smoothed(false)
+: _smoothed(false),
+  _backfaceCulling(false)
 {
 }
 
@@ -39,6 +40,7 @@ TriangleMesh::TriangleMesh(const TriangleMesh &o)
 : Primitive(o),
   _path(o._path),
   _smoothed(o._smoothed),
+  _backfaceCulling(o._backfaceCulling),
   _verts(o._verts),
   _tris(o._tris),
   _bounds(o._bounds)
@@ -47,23 +49,25 @@ TriangleMesh::TriangleMesh(const TriangleMesh &o)
 
 TriangleMesh::TriangleMesh(std::vector<Vertex> verts, std::vector<TriangleI> tris,
              const std::shared_ptr<Bsdf> &bsdf,
-             const std::string &name, bool smoothed)
+             const std::string &name, bool smoothed, bool backfaceCull)
 : TriangleMesh(
       std::move(verts),
       std::move(tris),
       std::vector<std::shared_ptr<Bsdf>>(1, bsdf),
       name,
-      smoothed
+      smoothed,
+      backfaceCull
   )
 {
 }
 
 TriangleMesh::TriangleMesh(std::vector<Vertex> verts, std::vector<TriangleI> tris,
              std::vector<std::shared_ptr<Bsdf>> bsdfs,
-             const std::string &name, bool smoothed)
+             const std::string &name, bool smoothed, bool backfaceCull)
 : Primitive(name),
   _path(std::string(name).append(".wo3")),
   _smoothed(smoothed),
+  _backfaceCulling(backfaceCull),
   _verts(std::move(verts)),
   _tris(std::move(tris)),
   _bsdfs(std::move(bsdfs))
@@ -103,6 +107,7 @@ void TriangleMesh::fromJson(const rapidjson::Value &v, const Scene &scene)
 
     _path = JsonUtils::as<std::string>(v, "file");
     JsonUtils::fromJson(v, "smooth", _smoothed);
+    JsonUtils::fromJson(v, "backface_culling", _backfaceCulling);
 
     const rapidjson::Value::Member *bsdf = v.FindMember("bsdf");
     if (bsdf && bsdf->value.IsArray()) {
@@ -123,6 +128,7 @@ rapidjson::Value TriangleMesh::toJson(Allocator &allocator) const
     v.AddMember("type", "mesh", allocator);
     v.AddMember("file", _path.c_str(), allocator);
     v.AddMember("smooth", _smoothed, allocator);
+    v.AddMember("backface_culling", _backfaceCulling, allocator);
     if (_bsdfs.size() == 1) {
         JsonUtils::addObjectMember(v, "bsdf", *_bsdfs[0], allocator);
     } else {
@@ -478,7 +484,10 @@ void TriangleMesh::prepareForRender()
     embree::rtcUnmapTriangleBuffer(_geom);
 
     embree::rtcBuildAccel(_geom, "objectsplit");
-    _intersector = embree::rtcQueryIntersector1(_geom, "fast.moeller");
+    if (_backfaceCulling)
+        _intersector = embree::rtcQueryIntersector1(_geom, "fast.moeller_cull");
+    else
+        _intersector = embree::rtcQueryIntersector1(_geom, "fast.moeller");
 }
 
 void TriangleMesh::cleanupAfterRender()

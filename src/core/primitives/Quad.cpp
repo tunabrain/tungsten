@@ -37,7 +37,7 @@ void Quad::buildProxy()
         TriangleI{0, 2, 3}
     }};
 
-    _proxy.reset(new TriangleMesh(std::move(verts), std::move(tris), nullptr, "QuadLight", false));
+    _proxy.reset(new TriangleMesh(std::move(verts), std::move(tris), nullptr, "QuadLight", false, false));
 }
 
 void Quad::fromJson(const rapidjson::Value &v, const Scene &scene)

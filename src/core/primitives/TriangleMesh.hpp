@@ -20,6 +20,7 @@ class TriangleMesh : public Primitive
 {
     std::string _path;
     bool _smoothed;
+    bool _backfaceCulling;
 
     std::vector<Vertex> _verts;
     std::vector<Vertex> _tfVerts;
@@ -44,10 +45,10 @@ public:
     TriangleMesh(const TriangleMesh &o);
     TriangleMesh(std::vector<Vertex> verts, std::vector<TriangleI> tris,
                  const std::shared_ptr<Bsdf> &bsdf,
-                 const std::string &name, bool smoothed);
+                 const std::string &name, bool smoothed, bool backfaceCull);
     TriangleMesh(std::vector<Vertex> verts, std::vector<TriangleI> tris,
                  std::vector<std::shared_ptr<Bsdf>> bsdf,
-                 const std::string &name, bool smoothed);
+                 const std::string &name, bool smoothed, bool backfaceCull);
 
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
