@@ -5,6 +5,7 @@
 
 #include "integrators/PathTraceIntegrator.hpp"
 
+#include "primitives/TraceableMinecraftMap.hpp"
 #include "primitives/InfiniteSphereCap.hpp"
 #include "primitives/InfiniteSphere.hpp"
 #include "primitives/TriangleMesh.hpp"
@@ -156,6 +157,8 @@ std::shared_ptr<Primitive> Scene::instantiatePrimitive(std::string type, const r
         result = std::make_shared<Curves>();
     else if (type == "cube")
         result = std::make_shared<Cube>();
+    else if (type == "minecraft_map")
+        result = std::make_shared<TraceableMinecraftMap>();
     else
         FAIL("Unknown primitive type: '%s'", type.c_str());
 
