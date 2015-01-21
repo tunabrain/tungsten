@@ -264,6 +264,22 @@ public:
         return result;
     }
 
+    Vec operator>>(const ElementType &a) const
+    {
+        Vec result;
+        for (unsigned i = 0; i < Size; ++i)
+            result._v[i] = _v[i] >> a;
+        return result;
+    }
+
+    Vec operator<<(const ElementType &a) const
+    {
+        Vec result;
+        for (unsigned i = 0; i < Size; ++i)
+            result._v[i] = _v[i] << a;
+        return result;
+    }
+
     Vec operator+=(const Vec &other)
     {
         for (unsigned i = 0; i < Size; ++i)
@@ -317,6 +333,20 @@ public:
     {
         for (unsigned i = 0; i < Size; ++i)
             _v[i] /= a;
+        return *this;
+    }
+
+    Vec operator>>=(const ElementType &a) const
+    {
+        for (unsigned i = 0; i < Size; ++i)
+            _v[i] >>= a;
+        return *this;
+    }
+
+    Vec operator<<=(const ElementType &a) const
+    {
+        for (unsigned i = 0; i < Size; ++i)
+            _v[i] <<= a;
         return *this;
     }
 
