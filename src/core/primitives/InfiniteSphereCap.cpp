@@ -90,7 +90,8 @@ void InfiniteSphereCap::makeSamplable()
 {
 }
 
-float InfiniteSphereCap::inboundPdf(const IntersectionTemporary &/*data*/, const Vec3f &/*p*/, const Vec3f &/*d*/) const
+float InfiniteSphereCap::inboundPdf(const IntersectionTemporary &/*data*/, const IntersectionInfo &/*info*/,
+        const Vec3f &/*p*/, const Vec3f &/*d*/) const
 {
     return SampleWarp::uniformSphericalCapPdf(_cosCapAngle);
 }

@@ -36,7 +36,8 @@ public:
     virtual bool isSamplable() const override;
     virtual void makeSamplable() override;
 
-    virtual float inboundPdf(const IntersectionTemporary &data, const Vec3f &p, const Vec3f &d) const override;
+    virtual float inboundPdf(const IntersectionTemporary &data, const IntersectionInfo &info,
+            const Vec3f &p, const Vec3f &d) const override;
     virtual bool sampleInboundDirection(LightSample &sample) const override;
     virtual bool sampleOutboundDirection(LightSample &sample) const override;
     virtual bool invertParametrization(Vec2f uv, Vec3f &pos) const override;

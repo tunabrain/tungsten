@@ -150,7 +150,8 @@ void Cube::makeSamplable()
 {
 }
 
-float Cube::inboundPdf(const IntersectionTemporary &/*data*/, const Vec3f &/*p*/, const Vec3f &/*d*/) const
+float Cube::inboundPdf(const IntersectionTemporary &/*data*/, const IntersectionInfo &/*info*/,
+        const Vec3f &/*p*/, const Vec3f &/*d*/) const
 {
     return 0.0f;
 }

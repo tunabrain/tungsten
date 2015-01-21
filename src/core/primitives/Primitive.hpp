@@ -54,7 +54,8 @@ public:
     virtual bool isSamplable() const = 0;
     virtual void makeSamplable() = 0;
 
-    virtual float inboundPdf(const IntersectionTemporary &data, const Vec3f &p, const Vec3f &d) const = 0;
+    virtual float inboundPdf(const IntersectionTemporary &data, const IntersectionInfo &info,
+            const Vec3f &p, const Vec3f &d) const = 0;
     virtual bool sampleInboundDirection(LightSample &sample) const = 0;
     virtual bool sampleOutboundDirection(LightSample &sample) const = 0;
 

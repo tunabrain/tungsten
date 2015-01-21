@@ -132,8 +132,8 @@ void Quad::makeSamplable()
 {
 }
 
-float Quad::inboundPdf(const IntersectionTemporary &/*data*/, const Vec3f &p, const Vec3f &d) const
-{
+float Quad::inboundPdf(const IntersectionTemporary &/*data*/, const IntersectionInfo &/*info*/,
+        const Vec3f &p, const Vec3f &d) const {
     float cosTheta = std::abs(_n.dot(d));
     float t = _n.dot(_base - p)/_n.dot(d);
 

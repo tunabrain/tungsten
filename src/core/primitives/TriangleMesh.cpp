@@ -23,7 +23,6 @@ namespace Tungsten {
 struct MeshIntersection
 {
     Vec3f Ng;
-    Vec3f p;
     float u;
     float v;
     int id0;
@@ -280,7 +279,6 @@ bool TriangleMesh::intersect(Ray &ray, IntersectionTemporary &data) const
         data.primitive = this;
         MeshIntersection *isect = data.as<MeshIntersection>();
         isect->Ng = unnormalizedGeometricNormalAt(eRay.id0);
-        isect->p = EmbreeUtil::convert(eRay.org + eRay.dir*eRay.tfar);
         isect->u = eRay.u;
         isect->v = eRay.v;
         isect->id0 = eRay.id0;
@@ -309,7 +307,6 @@ void TriangleMesh::intersectionInfo(const IntersectionTemporary &data, Intersect
     info.uv = uvAt(isect->id0, isect->u, isect->v);
     info.primitive = this;
     info.bsdf = _bsdfs[_tris[isect->id0].material].get();
-    info.p = isect->p;
 }
 
 bool TriangleMesh::hitBackside(const IntersectionTemporary &data) const
@@ -366,11 +363,10 @@ void TriangleMesh::makeSamplable()
     _triSampler.reset(new Distribution1D(std::move(areas)));
 }
 
-float TriangleMesh::inboundPdf(const IntersectionTemporary &data, const Vec3f &p, const Vec3f &d) const
+float TriangleMesh::inboundPdf(const IntersectionTemporary &/*data*/, const IntersectionInfo &info,
+        const Vec3f &p, const Vec3f &d) const
 {
-    const MeshIntersection *isect = data.as<MeshIntersection>();
-
-    return (p - isect->p).lengthSq()/(-d.dot(isect->Ng.normalized())*_totalArea);
+    return (p - info.p).lengthSq()/(-d.dot(info.Ng.normalized())*_totalArea);
 }
 
 bool TriangleMesh::sampleInboundDirection(LightSample &sample) const

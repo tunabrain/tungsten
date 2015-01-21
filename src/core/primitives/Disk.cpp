@@ -131,7 +131,7 @@ void Disk::makeSamplable()
 {
 }
 
-float Disk::inboundPdf(const IntersectionTemporary &/*data*/, const Vec3f &p, const Vec3f &d) const
+float Disk::inboundPdf(const IntersectionTemporary &/*data*/, const IntersectionInfo &/*info*/, const Vec3f &p, const Vec3f &d) const
 {
     float cosTheta = std::abs(_n.dot(d));
     float t = _n.dot(_center - p)/_n.dot(d);

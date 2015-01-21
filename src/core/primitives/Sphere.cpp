@@ -137,7 +137,8 @@ void Sphere::makeSamplable()
 {
 }
 
-float Sphere::inboundPdf(const IntersectionTemporary &/*data*/, const Vec3f &p, const Vec3f &/*d*/) const
+float Sphere::inboundPdf(const IntersectionTemporary &/*data*/, const IntersectionInfo &/*info*/,
+        const Vec3f &p, const Vec3f &/*d*/) const
 {
     float dist = (_pos - p).length();
     float cosTheta = std::sqrt(max(dist*dist - _radius*_radius, 0.0f))/dist;

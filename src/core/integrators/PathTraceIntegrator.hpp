@@ -57,6 +57,7 @@ class PathTraceIntegrator : public Integrator
                              const Medium *medium,
                              float expectedDist,
                              IntersectionTemporary &data,
+                             IntersectionInfo &info,
                              int bounce,
                              Ray &ray);
 

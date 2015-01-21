@@ -106,12 +106,12 @@ Vec3f PathTraceIntegrator::attenuatedEmission(const Primitive &light,
                          const Medium *medium,
                          float expectedDist,
                          IntersectionTemporary &data,
+                         IntersectionInfo &info,
                          int bounce,
                          Ray &ray)
 {
     CONSTEXPR float fudgeFactor = 1.0f + 1e-3f;
 
-    IntersectionInfo info;
     if (!light.intersect(ray, data) || ray.farT()*fudgeFactor < expectedDist)
         return Vec3f(0.0f);
     light.intersectionInfo(data, info);
@@ -158,7 +158,8 @@ Vec3f PathTraceIntegrator::lightSample(const TangentFrame &frame,
     Ray ray = parentRay.scatter(sample.p, sample.d, epsilon, sample.pdf);
 
     IntersectionTemporary data;
-    Vec3f e = attenuatedEmission(light, medium, sample.dist, data, bounce, ray);
+    IntersectionInfo info;
+    Vec3f e = attenuatedEmission(light, medium, sample.dist, data, info, bounce, ray);
     if (e == 0.0f)
         return Vec3f(0.0f);
 
@@ -200,14 +201,15 @@ Vec3f PathTraceIntegrator::bsdfSample(const TangentFrame &frame,
     Ray ray = parentRay.scatter(event.info->p, wo, epsilon, event.pdf);
 
     IntersectionTemporary data;
-    Vec3f e = attenuatedEmission(light, medium, -1.0f, data, bounce, ray);
+    IntersectionInfo info;
+    Vec3f e = attenuatedEmission(light, medium, -1.0f, data, info, bounce, ray);
 
     if (e == Vec3f(0.0f))
         return Vec3f(0.0f);
 
     Vec3f bsdfF = e*event.throughput;
 
-    bsdfF *= SampleWarp::powerHeuristic(event.pdf, light.inboundPdf(data, event.info->p, wo));
+    bsdfF *= SampleWarp::powerHeuristic(event.pdf, light.inboundPdf(data, info, event.info->p, wo));
 
     return bsdfF;
 }
@@ -232,7 +234,8 @@ Vec3f PathTraceIntegrator::volumeLightSample(VolumeScatterEvent &event,
     Ray ray = parentRay.scatter(sample.p, sample.d, 0.0f, sample.pdf);
 
     IntersectionTemporary data;
-    Vec3f e = attenuatedEmission(light, medium, sample.dist, data, bounce, ray);
+    IntersectionInfo info;
+    Vec3f e = attenuatedEmission(light, medium, sample.dist, data, info, bounce, ray);
     if (e == 0.0f)
         return Vec3f(0.0f);
 
@@ -258,14 +261,15 @@ Vec3f PathTraceIntegrator::volumePhaseSample(const Primitive &light,
     Ray ray = parentRay.scatter(event.p, event.wo, 0.0f, event.pdf);
 
     IntersectionTemporary data;
-    Vec3f e = attenuatedEmission(light, medium, -1.0f, data, bounce, ray);
+    IntersectionInfo info;
+    Vec3f e = attenuatedEmission(light, medium, -1.0f, data, info, bounce, ray);
 
     if (e == Vec3f(0.0f))
         return Vec3f(0.0f);
 
     Vec3f phaseF = e*event.throughput;
 
-    phaseF *= SampleWarp::powerHeuristic(event.pdf, light.inboundPdf(data, event.p, event.wo));
+    phaseF *= SampleWarp::powerHeuristic(event.pdf, light.inboundPdf(data, info, event.p, event.wo));
 
     return phaseF;
 }

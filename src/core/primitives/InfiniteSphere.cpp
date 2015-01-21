@@ -113,7 +113,8 @@ void InfiniteSphere::makeSamplable()
     _emission->makeSamplable(MAP_SPHERICAL);
 }
 
-float InfiniteSphere::inboundPdf(const IntersectionTemporary &data, const Vec3f &/*p*/, const Vec3f &/*d*/) const
+float InfiniteSphere::inboundPdf(const IntersectionTemporary &data, const IntersectionInfo &/*info*/,
+        const Vec3f &/*p*/, const Vec3f &/*d*/) const
 {
     if (_emission->isConstant()) {
         return INV_FOUR_PI;
