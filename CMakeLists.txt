@@ -53,6 +53,7 @@ add_library(thirdparty STATIC
 		src/thirdparty/lodepng/lodepng.cpp
 		src/thirdparty/sobol/sobol.cpp
 		src/thirdparty/stbi/stb_image.c
+		src/thirdparty/miniz/miniz.c
 		src/thirdparty/SFMT/SFMT.c)
 
 if (CMAKE_COMPILER_IS_GNUCXX)
