@@ -24,7 +24,8 @@ namespace ImageIO {
 bool isHdr(const std::string &file);
 
 std::unique_ptr<float[]> loadHdr(const std::string &file, TexelConversion request, int &w, int &h);
-std::unique_ptr<uint8[]> loadLdr(const std::string &file, TexelConversion request, int &w, int &h);
+std::unique_ptr<uint8[]> loadLdr(const std::string &file, TexelConversion request, int &w, int &h,
+        bool gammaCorrect = true);
 
 bool saveHdr(const std::string &file, const float *img, int w, int h, int channels);
 bool saveLdr(const std::string &file, const uint8 *img, int w, int h, int channels);
