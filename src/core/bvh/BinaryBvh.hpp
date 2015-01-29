@@ -261,7 +261,7 @@ public:
             start = node->primIndex();
             count = node->childCount();
             for (uint32 i = start; i < start + count; ++i)
-            intersector(ray, _primIndices[i]);
+            intersector(ray, _primIndices[i], tMin);
             tMax = min(tMax, ray.farT());
             nearFar[2] = nearFar[3] = -tMax;
 

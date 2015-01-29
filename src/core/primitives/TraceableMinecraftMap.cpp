@@ -417,7 +417,7 @@ rapidjson::Value TraceableMinecraftMap::toJson(Allocator &allocator) const
 bool TraceableMinecraftMap::intersect(Ray &ray, IntersectionTemporary &data) const
 {
     bool hit = false;
-    _chunkBvh->trace(ray, [&](Ray &ray, uint32 id) {
+    _chunkBvh->trace(ray, [&](Ray &ray, uint32 id, float /*tMin*/) {
         _grids[id]->trace(ray, [&](uint32 idx, const Vec3f &offset) {
             Vec3f oldPos = ray.pos();
             ray.setPos(oldPos - offset);
