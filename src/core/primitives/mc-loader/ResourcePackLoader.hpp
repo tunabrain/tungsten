@@ -6,6 +6,8 @@
 #include "Model.hpp"
 #include "File.hpp"
 
+#include "materials/BitmapTexture.hpp"
+
 #include "io/FileUtils.hpp"
 #include "io/JsonUtils.hpp"
 
@@ -26,12 +28,30 @@ static inline std::vector<std::string> split(const std::string &s, char delim) {
     return std::move(elems);
 }
 
+struct BiomeColor {
+    Vec3f foliageBottom, foliageTop;
+    Vec3f grassBottom, grassTop;
+    float height;
+};
+
 class ResourcePackLoader {
+public:
+    enum TintType
+    {
+        TINT_NONE = -1,
+        TINT_FOLIAGE,
+        TINT_GRASS,
+        TINT_REDSTONE
+    };
+
+private:
     std::string _packPath;
 
     std::vector<BlockDescriptor> _blockDescriptors;
     std::vector<Model> _models;
     std::vector<const BlockVariant *> _blockMapping;
+
+    std::vector<BiomeColor> _biomes;
 
     std::unique_ptr<ModelResolver> _resolver;
 
@@ -120,6 +140,26 @@ class ResourcePackLoader {
         }
     }
 
+    void fixTintIndices()
+    {
+        // Minecraft models with tint always use tint index 0,
+        // even though there are three different types of
+        // tinting used. This is fixed here.
+        for (auto &iter : _resolver->builtModels()) {
+            TintType type;
+            if (iter.first.find("leaves") != std::string::npos)
+                type = TINT_FOLIAGE;
+            else if (iter.first.find("redstone") != std::string::npos)
+                type = TINT_REDSTONE;
+            else
+                type = TINT_GRASS;
+
+            for (TexturedQuad &quad : iter.second)
+                if (quad.tintIndex != -1)
+                    quad.tintIndex = type;
+        }
+    }
+
     void printVariants()
     {
         std::map<std::string, std::pair<std::set<std::string>, std::set<std::string>>> variants;
@@ -147,11 +187,88 @@ class ResourcePackLoader {
         }
     }
 
+    void generateBiomeColors()
+    {
+        CONSTEXPR float coolingRate = 1.0f/600.0f;
+
+        BiomeColor defaultColor{
+            Vec3f(0.62f, 0.5f, 0.3f), Vec3f(0.62f, 0.5f, 0.3f),
+            Vec3f(0.56f, 0.5f, 0.3f), Vec3f(0.56f, 0.5f, 0.3f),
+            1.0f
+        };
+        _biomes.resize(256, defaultColor);
+
+        std::shared_ptr<BitmapTexture> grass(BitmapTexture::loadTexture(
+                _packPath + textureBase + "colormap/grass.png", TexelConversion::REQUEST_RGB, false));
+        std::shared_ptr<BitmapTexture> foliage(BitmapTexture::loadTexture(
+                _packPath + textureBase + "colormap/foliage.png", TexelConversion::REQUEST_RGB, false));
+
+        if (!grass || !foliage)
+            return;
+
+        std::string json = FileUtils::loadText(_packPath + biomePath);
+        if (json.empty())
+            return;
+
+        rapidjson::Document document;
+        document.Parse<0>(json.c_str());
+        if (document.HasParseError() || !document.IsArray())
+            return;
+
+        for (unsigned i = 0; i < document.Size(); ++i) {
+            int id = 0;
+            float temperature = 0.0f, rainfall = 0.0f;
+
+            JsonUtils::fromJson(document[i], "id", id);
+            JsonUtils::fromJson(document[i], "temperature", temperature);
+            JsonUtils::fromJson(document[i], "rainfall", rainfall);
+
+            float tempBottom = clamp(temperature, 0.0f, 1.0f);
+            float rainfallBottom = clamp(rainfall, 0.0f, 1.0f)*tempBottom;
+
+            _biomes[id].foliageBottom = (*foliage)[Vec2f(1.0f - tempBottom, rainfallBottom)];
+            _biomes[id].grassBottom   = (*grass)  [Vec2f(1.0f - tempBottom, rainfallBottom)];
+            _biomes[id].foliageTop    = (*foliage)[Vec2f(1.0f, 0.0f)];
+            _biomes[id].grassTop      = (*grass  )[Vec2f(1.0f, 0.0f)];
+            _biomes[id].height        = tempBottom/coolingRate;
+        }
+
+        // Swampland. We're not going to do Perlin noise, so constant color will have to do
+        _biomes[6].foliageBottom = _biomes[6].foliageTop = Vec3f(0.41f, 0.43f, 0.22f);
+        _biomes[6].  grassBottom = _biomes[6].  grassTop = Vec3f(0.41f, 0.43f, 0.22f);
+        // Sampland M
+        _biomes[134] = _biomes[6];
+
+        // Roofed forest
+        _biomes[ 29].grassBottom = (_biomes[ 29].grassBottom + Vec3f(0.16f, 0.2f, 0.04f))*0.5f;
+        _biomes[ 29].grassTop    = (_biomes[ 29].grassTop    + Vec3f(0.16f, 0.2f, 0.04f))*0.5f;
+        _biomes[157].grassBottom = (_biomes[157].grassBottom + Vec3f(0.16f, 0.2f, 0.04f))*0.5f;
+        _biomes[157].grassTop    = (_biomes[157].grassTop    + Vec3f(0.16f, 0.2f, 0.04f))*0.5f;
+
+        // Mesa biomes
+        for (int i = 0; i < 3; ++i) {
+            _biomes[ 37 + i].grassBottom = _biomes[ 37 + i].grassTop = Vec3f(0.56f, 0.5f, 0.3f);
+            _biomes[165 + i].grassBottom = _biomes[165 + i].grassTop = Vec3f(0.56f, 0.5f, 0.3f);
+            _biomes[ 37 + i].foliageBottom = _biomes[ 37 + i].foliageTop = Vec3f(0.62f, 0.5f, 0.3f);
+            _biomes[165 + i].foliageBottom = _biomes[165 + i].foliageTop = Vec3f(0.62f, 0.5f, 0.3f);
+        }
+
+        // In theory, we should undo gamma correction on biome colors.
+        // However, they end up looking way too dark this way, so disabled for now.
+        /*for (int i = 0; i < 256; ++i) {
+            _biomes[i].grassBottom   = std::pow(_biomes[i].grassBottom,   2.2f);
+            _biomes[i].grassTop      = std::pow(_biomes[i].grassTop,      2.2f);
+            _biomes[i].foliageBottom = std::pow(_biomes[i].foliageBottom, 2.2f);
+            _biomes[i].foliageTop    = std::pow(_biomes[i].foliageTop,    2.2f);
+        }*/
+    }
+
 public:
     static const char *modelBase;
     static const char *stateBase;
     static const char *textureBase;
     static const char *blockMapPath;
+    static const char *biomePath;
 
     ResourcePackLoader(const std::string packPath)
     : _packPath(FileUtils::addSeparator(packPath))
@@ -160,11 +277,18 @@ public:
         _resolver.reset(new ModelResolver(_models));
         loadStates();
         buildBlockMapping();
+        fixTintIndices();
+        generateBiomeColors();
     }
 
     const std::vector<BlockDescriptor> &blockDescriptors() const
     {
         return _blockDescriptors;
+    }
+
+    const std::vector<BiomeColor> &biomeColors() const
+    {
+        return _biomes;
     }
 
     std::string textureBasePath() const

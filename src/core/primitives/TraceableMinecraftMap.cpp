@@ -4,7 +4,10 @@
 
 #include "materials/ConstantTexture.hpp"
 
+#include "mc-loader/ResourcePackLoader.hpp"
+#include "mc-loader/BiomeTexture.hpp"
 #include "mc-loader/MapLoader.hpp"
+#include "mc-loader/ModelRef.hpp"
 
 #include "cameras/PinholeCamera.hpp"
 
@@ -146,12 +149,75 @@ void TraceableMinecraftMap::loadTexture(ResourcePackLoader &pack, const std::str
 }
 
 void TraceableMinecraftMap::loadTextures(ResourcePackLoader &pack)
+void TraceableMinecraftMap::buildBiomeColors(ResourcePackLoader &pack, int rx, int rz, uint8 *biomes)
 {
     for (const BlockDescriptor &desc : pack.blockDescriptors())
         for (const BlockVariant &var : desc.variants())
             for (const ModelRef &model : var.models())
                 for (const TexturedQuad &quad : *model.builtModel())
                     loadTexture(pack, quad.texture);
+    std::unique_ptr<uint8[]> grassTop(new uint8[256*256*4]), grassBottom(new uint8[256*256*4]);
+    std::unique_ptr<uint8[]> foliageTop(new uint8[256*256*4]), foliageBottom(new uint8[256*256*4]);
+    std::unique_ptr<uint8[]> tmp(new uint8[256*256*4]);
+    std::unique_ptr<float[]> heights(new float[256*256*4]);
+
+    auto get = [](std::unique_ptr<uint8[]> &dst, int x, int z) -> Vec4c& {
+        return *(reinterpret_cast<Vec4c *>(dst.get()) + x + z*256);
+    };
+    auto toRgba = [](Vec3f x) {
+        return Vec4c(Vec4f(x.x(), x.y(), x.z(), 1.0f)*255.0f);
+    };
+
+    for (int z = 0; z < 256; ++z) {
+        for (int x = 0; x < 256; ++x) {
+            BiomeColor color = pack.biomeColors()[biomes[x + z*256]];
+
+            get(grassTop,      x, z) = toRgba(color.grassTop);
+            get(grassBottom,   x, z) = toRgba(color.grassBottom);
+            get(foliageTop,    x, z) = toRgba(color.foliageTop);
+            get(foliageBottom, x, z) = toRgba(color.foliageBottom);
+            heights[x + z*256] = color.height;
+        }
+    }
+
+    const int dx[9] = {-1, 0, 1, -1, 0, 1, -1,  0,  1};
+    const int dz[9] = { 1, 1, 1,  0, 0, 0, -1, -1, -1};
+
+    const uint8 gaussianKernel[9] = {
+        16, 8, 16,
+         8, 4,  8,
+        16, 8, 16,
+    };
+
+    auto blurColors = [&](std::unique_ptr<uint8[]> &dst) {
+        std::memset(tmp.get(), 0, 256*256*4*sizeof(uint8));
+
+        for (int z = 0; z < 256; ++z)
+            for (int x = 0; x < 256; ++x)
+                for (int i = 0; i < 9; ++i)
+                    get(tmp, x, z) += get(dst, clamp(x + dx[i], 0, 255), clamp(z + dz[i], 0, 255))/gaussianKernel[i];
+
+        tmp.swap(dst);
+    };
+    auto makeTexture = [](uint8 *tex) {
+        return std::unique_ptr<BitmapTexture>(new BitmapTexture("", tex,
+                256, 256, BitmapTexture::TexelType::RGB_LDR, true, true));
+    };
+
+    blurColors(grassTop);
+    blurColors(grassBottom);
+    blurColors(foliageTop);
+    blurColors(foliageBottom);
+
+    _biomes.emplace_back(new BiomeTileTexture{
+        makeTexture(grassTop.release()),
+        makeTexture(grassBottom.release()),
+        makeTexture(foliageTop.release()),
+        makeTexture(foliageBottom.release()),
+        std::move(heights)
+    });
+
+    _biomeMap.insert(std::make_pair(Vec2i(rx, rz), _biomes.back().get()));
 }
 
 void TraceableMinecraftMap::buildModel(const ModelRef &model)
@@ -265,6 +331,7 @@ void TraceableMinecraftMap::fromJson(const rapidjson::Value &v, const Scene &sce
             else
                 data[i] = 0;
         }
+        buildBiomeColors(pack, x, z, biomes);
 
         std::cout << "Building grid " << _grids.size() + 1 << std::endl;
 

@@ -4,8 +4,7 @@
 #include "VoxelHierarchy.hpp"
 #include "Primitive.hpp"
 
-#include "mc-loader/ResourcePackLoader.hpp"
-#include "mc-loader/ModelRef.hpp"
+#include "materials/BitmapTexture.hpp"
 
 #include "bsdfs/Bsdf.hpp"
 
@@ -17,7 +16,17 @@
 
 namespace Tungsten {
 
+class ResourcePackLoader;
+class TexturedQuad;
+class ModelRef;
 class Scene;
+
+struct BiomeTileTexture
+{
+    std::unique_ptr<BitmapTexture> foliageTop, foliageBottom;
+    std::unique_ptr<BitmapTexture> grassTop, grassBottom;
+    std::unique_ptr<float[]> heights;
+};
 
 class TraceableMinecraftMap : public Primitive
 {
@@ -35,6 +44,9 @@ class TraceableMinecraftMap : public Primitive
     Box3f _bounds;
     std::unique_ptr<TriangleMesh> _proxy;
     std::vector<std::unique_ptr<HierarchicalGrid>> _grids;
+
+    std::vector<std::unique_ptr<BiomeTileTexture>> _biomes;
+    std::unordered_map<Vec2i, const BiomeTileTexture *> _biomeMap;
     std::unique_ptr<Bvh::BinaryBvh> _chunkBvh;
 
     void getTexProperties(const std::string &path, int w, int h, int &tileW, int &tileH,
@@ -43,6 +55,8 @@ class TraceableMinecraftMap : public Primitive
     void loadTextures(ResourcePackLoader &pack);
 
     void buildModel(const ModelRef &model);
+
+    void buildBiomeColors(ResourcePackLoader &pack, int x, int z, uint8 *biomes);
     void buildModels(ResourcePackLoader &pack);
 
 public:
