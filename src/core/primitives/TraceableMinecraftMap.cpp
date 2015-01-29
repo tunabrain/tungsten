@@ -325,6 +325,45 @@ void TraceableMinecraftMap::buildModels(ResourcePackLoader &pack)
             for (const ModelRef &model : var.models())
                 buildModel(pack, model);
 }
+
+void TraceableMinecraftMap::resolveBlocks(ResourcePackLoader &pack)
+{
+    struct DeferredBlock
+    {
+        ElementType &dst;
+        ElementType value;
+    };
+    std::vector<DeferredBlock> deferredBlocks;
+
+    for (auto &region : _regions) {
+        region.second->iterateNonZeroVoxels([&](ElementType &voxel, int x, int y, int z) {
+            if (pack.isSpecialBlock(voxel)) {
+                const ModelRef *ref = pack.mapSpecialBlock(*this, region.first.x()*256 + x, y,
+                        region.first.y()*256 + z, x + 256*y + 256*256*z, voxel);
+                ElementType value = 0;
+                auto iter = _modelToPrimitive.find(ref);
+                if (iter != _modelToPrimitive.end())
+                    value = iter->second + 1;
+
+                deferredBlocks.push_back(DeferredBlock{voxel, value});
+            }
+        });
+    }
+
+    for (auto &region : _regions) {
+        region.second->iterateNonZeroVoxels([&](ElementType &voxel, int x, int y, int z) {
+            if (!pack.isSpecialBlock(voxel)) {
+                const ModelRef *ref = pack.mapBlock(voxel, x + 256*y + 256*256*z);
+                auto iter = _modelToPrimitive.find(ref);
+                if (iter == _modelToPrimitive.end())
+                    voxel = 0;
+                else
+                    voxel = iter->second + 1;
+            }
+        });
+    }
+    for (DeferredBlock &block : deferredBlocks)
+        block.dst = block.value;
 }
 
 void TraceableMinecraftMap::fromJson(const rapidjson::Value &v, const Scene &scene)
@@ -350,13 +389,6 @@ void TraceableMinecraftMap::fromJson(const rapidjson::Value &v, const Scene &sce
 
         prims.emplace_back(bounds, centroid, _grids.size());
 
-        for (int i = 0; i < 256*256*256; ++i) {
-            const ModelRef *map = pack.mapBlock(data[i], i);
-            if (map)
-                data[i] = _modelToPrimitive[map] + 1;
-            else
-                data[i] = 0;
-        }
         buildBiomeColors(pack, x, z, biomes);
 
         std::cout << "Building grid " << _grids.size() + 1 << std::endl;
@@ -364,6 +396,8 @@ void TraceableMinecraftMap::fromJson(const rapidjson::Value &v, const Scene &sce
         _grids.emplace_back(new HierarchicalGrid(bounds.min(), data));
         _regions[Vec2i(x, z)] = _grids.back().get();
     });
+
+    resolveBlocks(pack);
 
     for (auto &m : _models)
         m->prepareForRender();

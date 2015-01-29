@@ -62,6 +62,8 @@ class TraceableMinecraftMap : public Primitive
     void buildModel(ResourcePackLoader &pack, const ModelRef &model);
     void buildModels(ResourcePackLoader &pack);
 
+    void resolveBlocks(ResourcePackLoader &pack);
+
 public:
     TraceableMinecraftMap();
 
