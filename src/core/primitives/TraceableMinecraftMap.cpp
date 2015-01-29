@@ -268,7 +268,7 @@ void TraceableMinecraftMap::buildModel(ResourcePackLoader &pack, const ModelRef 
     Mat4f tform =
          Mat4f::translate(Vec3f(0.5f))
         *Mat4f::rotXYZ(Vec3f(float(model.xRot()), 0.0f, 0.0f))
-        *Mat4f::rotXYZ(Vec3f(0.0f, float(model.yRot()), 0.0f))
+        *Mat4f::rotXYZ(Vec3f(0.0f, float(-model.yRot()), 0.0f))
         *Mat4f::rotXYZ(Vec3f(0.0f, 0.0f, float(model.zRot())))
         *Mat4f::scale(Vec3f(1.0f/16.0f))
         *Mat4f::translate(Vec3f(-8.0f));
