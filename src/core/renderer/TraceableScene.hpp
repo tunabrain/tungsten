@@ -67,6 +67,8 @@ class TraceableScene
     std::vector<std::shared_ptr<Primitive>> _infinites;
     RendererSettings _settings;
 
+    Primitive *_singlePrimitive = nullptr;
+
     embree::VirtualScene *_scene = nullptr;
     embree::Intersector1 *_intersector = nullptr;
     embree::Intersector1 _virtualIntersector;
@@ -114,30 +116,40 @@ public:
             _infinites.push_back(defaultLight);
         }
 
-        _scene = new embree::VirtualScene(finiteCount, "bvh2");
-        embree::VirtualScene::Object *objects = _scene->objects;
-        for (std::shared_ptr<Primitive> &m : _primitives) {
-            if (m->isInfinite() || m->isDelta())
-                continue;
+        if (finiteCount == 1) {
+            for (std::shared_ptr<Primitive> &m : _primitives) {
+                if (!m->isInfinite() && !m->isDelta()) {
+                    _singlePrimitive = m.get();
+                    break;
+                }
+            }
+            std::cout << "Single primitive only!" << std::endl;
+        } else {
+            _scene = new embree::VirtualScene(finiteCount, "bvh2");
+            embree::VirtualScene::Object *objects = _scene->objects;
+            for (std::shared_ptr<Primitive> &m : _primitives) {
+                if (m->isInfinite() || m->isDelta())
+                    continue;
 
-            if (m->needsRayTransform()) {
-                objects->hasTransform = true;
-                objects->localBounds = EmbreeUtil::convert(m->bounds());
-                objects->local2world = EmbreeUtil::convert(m->transform());
-                objects->calculateWorldData();
-            } else {
-                objects->hasTransform = false;
-                objects->localBounds = objects->worldBounds = EmbreeUtil::convert(m->bounds());
+                if (m->needsRayTransform()) {
+                    objects->hasTransform = true;
+                    objects->localBounds = EmbreeUtil::convert(m->bounds());
+                    objects->local2world = EmbreeUtil::convert(m->transform());
+                    objects->calculateWorldData();
+                } else {
+                    objects->hasTransform = false;
+                    objects->localBounds = objects->worldBounds = EmbreeUtil::convert(m->bounds());
+                }
+
+                /* TODO: Transforms */
+                objects->userData = m.get();
+                objects->intersector1 = &_virtualIntersector;
+                objects++;
             }
 
-            /* TODO: Transforms */
-            objects->userData = m.get();
-            objects->intersector1 = &_virtualIntersector;
-            objects++;
+            embree::rtcBuildAccel(_scene, "objectsplit");
+            _intersector = embree::rtcQueryIntersector1(_scene, "fast");
         }
-
-        embree::rtcBuildAccel(_scene, "objectsplit");
-        _intersector = embree::rtcQueryIntersector1(_scene, "fast");
     }
 
     ~TraceableScene()
@@ -165,11 +177,15 @@ public:
         info.primitive = nullptr;
         data.primitive = nullptr;
 
-        PerRayData rayData{data, ray};
-        embree::Ray eRay(EmbreeUtil::convert(ray));
-        eRay.userData = &rayData;
+        if (_singlePrimitive) {
+            _singlePrimitive->intersect(ray, data);
+        } else {
+            PerRayData rayData{data, ray};
+            embree::Ray eRay(EmbreeUtil::convert(ray));
+            eRay.userData = &rayData;
 
-        _intersector->intersect(eRay);
+            _intersector->intersect(eRay);
+        }
 
         if (data.primitive) {
             info.p = ray.pos() + ray.dir()*ray.farT();
