@@ -21,7 +21,8 @@ class Scene;
 
 class TraceableMinecraftMap : public Primitive
 {
-    typedef VoxelHierarchy<4, 2, uint16> HierarchicalGrid;
+    typedef uint32 ElementType;
+    typedef VoxelHierarchy<2, 4, ElementType> HierarchicalGrid;
 
     std::string _mapPath;
     std::string _packPath;

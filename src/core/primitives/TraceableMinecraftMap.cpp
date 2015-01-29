@@ -249,8 +249,8 @@ void TraceableMinecraftMap::fromJson(const rapidjson::Value &v, const Scene &sce
     loadTextures(pack);
     buildModels(pack);
 
-    MapLoader loader(_mapPath);
-    loader.loadRegions([&](int x, int z, int height, uint16 *data) {
+    MapLoader<ElementType> loader(_mapPath);
+    loader.loadRegions([&](int x, int z, int height, ElementType *data, uint8 *biomes) {
         Box3f bounds(Vec3f(x*256.0f, 0.0f, z*256.0f), Vec3f((x + 1)*256.0f, float(height), (z + 1)*256.0f));
         Vec3f centroid((x + 0.5f)*256.0f, height*0.5f, (z + 0.5f)*256.0f);
 

@@ -13,6 +13,7 @@
 
 namespace Tungsten {
 
+template<typename ElementType>
 class MapLoader
 {
     static const size_t CompressedChunkSize = 1024*1024;
@@ -22,12 +23,15 @@ class MapLoader
 
     std::unique_ptr<uint8[]> _locationTable, _timestampTable;
     std::unique_ptr<uint8[]> _compressedChunk, _decompressedChunk;
-    std::unique_ptr<uint16[]> _regionGrid;
+    std::unique_ptr<ElementType[]> _regionGrid;
+    std::unique_ptr<uint8[]> _biomes;
     int _regionHeight;
 
     void loadChunk(std::istream &in, int chunkX, int chunkZ)
     {
         NbtTag root(in);
+
+        int gridOffset = (chunkX/16) + 2*(chunkZ/16);
 
         NbtTag &sections = root["Level"]["Sections"];
         for (int i = 0; i < sections.size(); ++i) {
@@ -36,7 +40,6 @@ class MapLoader
             NbtTag &data   = sections.subtag(i)["Data"];
             int chunkY = sections.subtag(i)["Y"].asInt();
 
-            int gridOffset = (chunkX/16) + 2*(chunkZ/16);
             int base = gridOffset*256*256*256 + 16*((chunkX % 16) + 256*chunkY + 256*256*(chunkZ % 16));
 
             for (int z = 0; z < 16; ++z) {
@@ -57,6 +60,15 @@ class MapLoader
                 }
             }
         }
+
+        NbtTag &biomes = root["Level"]["Biomes"];
+        if (biomes) {
+            int base = gridOffset*256*256 + 16*((chunkX % 16) + 256*(chunkZ % 16));
+
+            for (int z = 0; z < 16; ++z)
+                for (int x = 0; x < 16; ++x)
+                    _biomes[base + x + z*256] = static_cast<uint8>(biomes[x + z*16]);
+        }
     }
 
     void loadRegion(std::istream &in)
@@ -64,7 +76,8 @@ class MapLoader
         FileUtils::streamRead(in, _locationTable.get(), 4096);
         FileUtils::streamRead(in, _timestampTable.get(), 4096);
 
-        std::memset(_regionGrid.get(), 0, 512*256*512*sizeof(uint16));
+        std::memset(_regionGrid.get(), 0, 512*256*512*sizeof(ElementType));
+        std::memset(_biomes.get(), 0xFF, 512*512*sizeof(uint8));
         _regionHeight = 0;
 
         for (int i = 0; i < 1024; ++i) {
@@ -108,10 +121,11 @@ public:
         _timestampTable.reset(new uint8[4096]);
         _compressedChunk.reset(new uint8[CompressedChunkSize]);
         _decompressedChunk.reset(new uint8[DecompressedChunkSize]);
-        _regionGrid.reset(new uint16[512*256*512]);
+        _regionGrid.reset(new ElementType[512*256*512]);
+        _biomes.reset(new uint8[512*512]);
     }
 
-    void loadRegions(const std::function<void(int, int, int, uint16 *)> &regionHandler) {
+    void loadRegions(const std::function<void(int, int, int, ElementType *, uint8 *)> &regionHandler) {
         File dir(_path);
         if (!dir.exists() || !dir.isDirectory())
             return;
@@ -135,10 +149,10 @@ public:
                 continue;
             loadRegion(in);
 
-            regionHandler(x*2 + 0, z*2 + 0, _regionHeight, _regionGrid.get());
-            regionHandler(x*2 + 1, z*2 + 0, _regionHeight, _regionGrid.get() + 256*256*256);
-            regionHandler(x*2 + 0, z*2 + 1, _regionHeight, _regionGrid.get() + 256*256*256*2);
-            regionHandler(x*2 + 1, z*2 + 1, _regionHeight, _regionGrid.get() + 256*256*256*3);
+            regionHandler(x*2 + 0, z*2 + 0, _regionHeight, _regionGrid.get(),                 _biomes.get());
+            regionHandler(x*2 + 1, z*2 + 0, _regionHeight, _regionGrid.get() + 256*256*256,   _biomes.get() + 256*256);
+            regionHandler(x*2 + 0, z*2 + 1, _regionHeight, _regionGrid.get() + 256*256*256*2, _biomes.get() + 256*256*2);
+            regionHandler(x*2 + 1, z*2 + 1, _regionHeight, _regionGrid.get() + 256*256*256*3, _biomes.get() + 256*256*3);
         }
     }
 };
