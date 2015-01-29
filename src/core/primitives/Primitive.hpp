@@ -94,7 +94,7 @@ public:
             return Vec3f(0.0f);
         if (hitBackside(data))
             return Vec3f(0.0f);
-        return (*_emission)[info.uv];
+        return (*_emission)[info];
     }
 
     void setEmission(const std::shared_ptr<Texture> &emission)
