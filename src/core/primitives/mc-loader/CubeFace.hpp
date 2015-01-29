@@ -23,14 +23,14 @@ public:
     CubeFace()
     : _uv(0.0f, 0.0f, 16.0f, 16.0f),
       _rotation(0),
-      _tint(0)
+      _tint(-1)
     {
     }
 
     CubeFace(const rapidjson::Value &v)
     : _uv(0.0f, 0.0f, 16.0f, 16.0f),
       _rotation(0),
-      _tint(0)
+      _tint(-1)
     {
         JsonUtils::fromJson(v, "uv", _uv);
         JsonUtils::fromJson(v, "texture", _texture);
@@ -42,6 +42,11 @@ public:
     const std::string &texture() const
     {
         return _texture;
+    }
+
+    int tint() const
+    {
+        return _tint;
     }
 
     std::array<Vec2f, 4> generateUVs() const

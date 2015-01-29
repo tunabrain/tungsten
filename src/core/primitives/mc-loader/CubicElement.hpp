@@ -118,6 +118,7 @@ public:
 
                 quads.push_back(TexturedQuad{
                     _faces[i].face.texture(),
+                    _faces[i].face.tint(),
                     tform*(faceVerts[i][0]*scale + base), uvs[0],
                     tform*(faceVerts[i][1]*scale + base), uvs[1],
                     tform*(faceVerts[i][2]*scale + base), uvs[2],

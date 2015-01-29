@@ -10,6 +10,7 @@ namespace Tungsten {
 struct TexturedQuad
 {
     std::string texture;
+    int tintIndex;
     Vec3f p0;
     Vec2f uv0;
     Vec3f p1;
