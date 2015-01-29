@@ -148,8 +148,7 @@ public:
             const ElementType *src = (i == 0 ? data : bufferA);
             ElementType *dst = (i == NumLevels - 2 ? &_grids[NumLevels - 1][0].at(0, 0, 0) : bufferB);
             buildHierarchy(i, src, dst);
-            if (i > 0 && i < NumLevels - 2)
-                std::swap(bufferA, bufferB);
+            std::swap(bufferA, bufferB);
         }
     }
 
@@ -161,7 +160,7 @@ public:
         Vec3f o = ray.pos() - _offset;
 
         Vec3f relMin(-o);
-        Vec3f relMax(float(1 << 3*SizePower) - o);
+        Vec3f relMax(float(1 << (NumLevels*SizePower)) - o);
 
         float tMin = ray.nearT(), tMax = ray.farT();
         Vec3f tMins;
