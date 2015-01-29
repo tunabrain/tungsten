@@ -23,11 +23,11 @@ class CubicElement
         bool filled = false;
     };
 
-    Vec3i _from;
-    Vec3i _to;
+    Vec3f _from;
+    Vec3f _to;
 
     int _rotAxis;
-    Vec3i _rotOrigin;
+    Vec3f _rotOrigin;
     float _rotAngle;
     bool _rotRescale;
 
@@ -49,10 +49,10 @@ class CubicElement
 
 public:
     CubicElement(const rapidjson::Value &v)
-    : _from(0),
-      _to(0),
+    : _from(0.0f),
+      _to(0.0f),
       _rotAxis(-1),
-      _rotOrigin(8),
+      _rotOrigin(8.0f),
       _rotAngle(0.0f),
       _rotRescale(false),
       _shade(true)

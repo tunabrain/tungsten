@@ -13,7 +13,7 @@ namespace Tungsten {
 
 class CubeFace
 {
-    Vec4i _uv;
+    Vec4f _uv;
     std::string _texture;
     std::string _cullFace;
     int _rotation;
@@ -21,14 +21,14 @@ class CubeFace
 
 public:
     CubeFace()
-    : _uv(0, 0, 16, 16),
+    : _uv(0.0f, 0.0f, 16.0f, 16.0f),
       _rotation(0),
       _tint(0)
     {
     }
 
     CubeFace(const rapidjson::Value &v)
-    : _uv(0, 0, 16, 16),
+    : _uv(0.0f, 0.0f, 16.0f, 16.0f),
       _rotation(0),
       _tint(0)
     {
