@@ -87,6 +87,11 @@ public:
 
         return &_builtModels[name];
     }
+
+    std::unordered_map<std::string, std::vector<TexturedQuad>> &builtModels()
+    {
+        return _builtModels;
+    }
 };
 
 }
