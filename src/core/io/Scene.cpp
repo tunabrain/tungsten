@@ -433,12 +433,9 @@ TraceableScene *Scene::makeTraceable()
 
 Scene *Scene::load(const std::string &path, std::shared_ptr<TextureCache> cache)
 {
-    std::string json;
-    try {
-        json = FileUtils::loadText(path.c_str());
-    } catch (const std::runtime_error &) {
+    std::string json = FileUtils::loadText(path.c_str());
+    if (json.empty())
         throw std::runtime_error(tfm::format("Unable to open file at '%s'", path));
-    }
 
     rapidjson::Document document;
     document.Parse<0>(json.c_str());
