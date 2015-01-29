@@ -60,7 +60,29 @@ public:
             for (TexturedQuad &q : quads)
                 q.texture = resolveTexture(q.texture);
 
-            _builtModels.emplace(std::make_pair(name, std::move(quads)));
+            // Deal with texture overlays created by duplicate quads
+            std::unordered_map<Vec<float, 12>, int> existingQuads;
+            std::vector<TexturedQuad> filteredQuads;
+            filteredQuads.reserve(quads.size());
+
+            for (size_t i = 0; i < quads.size(); ++i) {
+                Vec<float, 12> key(
+                    quads[i].p0.x(), quads[i].p0.y(), quads[i].p0.z(),
+                    quads[i].p1.x(), quads[i].p1.y(), quads[i].p1.z(),
+                    quads[i].p2.x(), quads[i].p2.y(), quads[i].p2.z(),
+                    quads[i].p3.x(), quads[i].p3.y(), quads[i].p3.z()
+                );
+                auto iter = existingQuads.find(key);
+                if (iter != existingQuads.end()) {
+                    filteredQuads[iter->second].overlay = quads[i].texture;
+                    filteredQuads[iter->second].tintIndex = quads[i].tintIndex;
+                } else {
+                    existingQuads.insert(std::make_pair(key, filteredQuads.size()));
+                    filteredQuads.push_back(quads[i]);
+                }
+            }
+
+            _builtModels.emplace(std::make_pair(name, std::move(filteredQuads)));
         }
 
         return &_builtModels[name];
