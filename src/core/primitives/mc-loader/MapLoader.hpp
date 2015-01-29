@@ -6,6 +6,7 @@
 #include "File.hpp"
 #include "NBT.hpp"
 
+#include <tinyformat/tinyformat.hpp>
 #include <miniz/miniz.h>
 #include <iostream>
 #include <memory>
@@ -81,6 +82,9 @@ class MapLoader
         _regionHeight = 0;
 
         for (int i = 0; i < 1024; ++i) {
+            int chunkX = i % 32;
+            int chunkZ = i / 32;
+
             uint32 offset = 4*1024*(
                 (uint32(_locationTable[i*4 + 0]) << 16) +
                 (uint32(_locationTable[i*4 + 1]) <<  8) +
@@ -98,12 +102,19 @@ class MapLoader
                 (uint32(_compressedChunk[1]) << 16) +
                 (uint32(_compressedChunk[2]) <<  8) +
                  uint32(_compressedChunk[3]);
-            if (_compressedChunk[4] != 2) // Only accept Zlib compression
+            if (_compressedChunk[4] != 2) {
+                // Only accept Zlib compression
+                tfm::printf("Ignoring chunk %i, %i with unsupported compression mode %i\n", chunkX, chunkZ, _compressedChunk[4]);
+                std::cout.flush();
                 continue;
+            }
 
             uLongf destLength = DecompressedChunkSize;
-            if (uncompress(_decompressedChunk.get(), &destLength, _compressedChunk.get() + 5, chunkLength) != Z_OK)
+            if (uncompress(_decompressedChunk.get(), &destLength, _compressedChunk.get() + 5, chunkLength) != Z_OK) {
+                tfm::printf("Decompression failed for chunk %i, %i\n", chunkX, chunkZ);
+                std::cout.flush();
                 continue;
+            }
 
             MemBuf buffer(reinterpret_cast<char *>(_decompressedChunk.get()), destLength);
             std::istream bufferStream(&buffer);
