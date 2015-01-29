@@ -291,7 +291,8 @@ float BitmapTexture::pdf(TextureMapJacobian jacobian, const Vec2f &uv) const
     return _distribution[jacobian]->pdf(int((1.0f - uv.y())*_h), int(uv.x()*_w))*_w*_h;
 }
 
-std::shared_ptr<BitmapTexture> BitmapTexture::loadTexture(const std::string &path, TexelConversion conversion)
+std::shared_ptr<BitmapTexture> BitmapTexture::loadTexture(const std::string &path,
+        TexelConversion conversion, bool gammaCorrect)
 {
     bool isRgb = conversion == TexelConversion::REQUEST_RGB;
     bool isHdr = ImageIO::isHdr(path);
@@ -301,7 +302,7 @@ std::shared_ptr<BitmapTexture> BitmapTexture::loadTexture(const std::string &pat
     if (isHdr)
         pixels = ImageIO::loadHdr(path, conversion, w, h).release();
     else
-        pixels = ImageIO::loadLdr(path, conversion, w, h).release();
+        pixels = ImageIO::loadLdr(path, conversion, w, h, gammaCorrect).release();
 
     if (!pixels)
         return nullptr;

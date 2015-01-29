@@ -84,7 +84,8 @@ public:
         return _h;
     }
 
-    static std::shared_ptr<BitmapTexture> loadTexture(const std::string &path, TexelConversion conversion);
+    static std::shared_ptr<BitmapTexture> loadTexture(const std::string &path,
+            TexelConversion conversion, bool gammaCorrect = true);
 };
 
 }
