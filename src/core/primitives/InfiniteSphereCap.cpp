@@ -15,7 +15,8 @@ struct InfiniteSphereCapIntersection
 };
 
 InfiniteSphereCap::InfiniteSphereCap()
-: _doSample(true),
+: _scene(nullptr),
+  _doSample(true),
   _capAngleDeg(10.0f)
 {
 }
@@ -28,8 +29,11 @@ void InfiniteSphereCap::buildProxy()
 
 void InfiniteSphereCap::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
+    _scene = &scene;
+
     Primitive::fromJson(v, scene);
     JsonUtils::fromJson(v, "sample", _doSample);
+    JsonUtils::fromJson(v, "skydome", _domeName);
     JsonUtils::fromJson(v, "cap_angle", _capAngleDeg);
 
     _bsdf = scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf"));
@@ -39,6 +43,8 @@ rapidjson::Value InfiniteSphereCap::toJson(Allocator &allocator) const
     rapidjson::Value v = Primitive::toJson(allocator);
     v.AddMember("type", "infinite_sphere_cap", allocator);
     v.AddMember("sample", _doSample, allocator);
+    if (!_domeName.empty())
+        v.AddMember("skydome", _domeName.c_str(), allocator);
     v.AddMember("cap_angle", _capAngleDeg, allocator);
     JsonUtils::addObjectMember(v, "bsdf", *_bsdf, allocator);
     return std::move(v);
@@ -146,7 +152,16 @@ const TriangleMesh &InfiniteSphereCap::asTriangleMesh()
 
 void InfiniteSphereCap::prepareForRender()
 {
-    _capDir = _transform.transformVector(Vec3f(0.0f, 1.0f, 0.0f)).normalized();
+    Mat4f tform = _transform;
+    if (!_domeName.empty()) {
+        const Primitive *prim = _scene->findPrimitive(_domeName);
+        if (!prim)
+            DBG("Note: unable to find pivot object '%s' for infinity sphere cap", _domeName.c_str());
+        else
+            tform = prim->transform();
+    }
+
+    _capDir = tform.transformVector(Vec3f(0.0f, 1.0f, 0.0f)).normalized();
     _capAngleRad = Angle::degToRad(_capAngleDeg);
     _cosCapAngle = std::cos(_capAngleRad);
     _capFrame = TangentFrame(_capDir);

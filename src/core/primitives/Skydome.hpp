@@ -1,30 +1,40 @@
-#ifndef INFINITESPHERECAP_HPP_
-#define INFINITESPHERECAP_HPP_
+#ifndef SKYDOME_HPP_
+#define SKYDOME_HPP_
 
 #include "Primitive.hpp"
 
+#include "materials/BitmapTexture.hpp"
+
 namespace Tungsten {
 
-class InfiniteSphereCap : public Primitive
+class Scene;
+
+class Skydome : public Primitive
 {
     const Scene *_scene;
-    std::string _domeName;
 
+    std::shared_ptr<BitmapTexture> _sky;
+    float _temperature;
+    float _gammaScale;
+    float _turbidity;
+    float _intensity;
     bool _doSample;
-    float _capAngleDeg;
-
-    Vec3f _capDir;
-    TangentFrame _capFrame;
-    float _capAngleRad;
-    float _cosCapAngle;
 
     std::shared_ptr<Bsdf> _bsdf;
     std::shared_ptr<TriangleMesh> _proxy;
 
+    Vec2f directionToUV(const Vec3f &wi) const;
+    Vec2f directionToUV(const Vec3f &wi, float &sinTheta) const;
+    Vec3f uvToDirection(Vec2f uv, float &sinTheta) const;
     void buildProxy();
 
 public:
-    InfiniteSphereCap();
+    Skydome();
+
+    void setScene(const Scene *scene)
+    {
+        _scene = scene;
+    }
 
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
@@ -63,5 +73,4 @@ public:
 
 }
 
-
-#endif /* INFINITESPHERE_HPP_ */
+#endif /* SKYDOME_HPP_ */

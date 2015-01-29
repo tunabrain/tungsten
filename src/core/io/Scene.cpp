@@ -9,6 +9,7 @@
 #include "primitives/InfiniteSphereCap.hpp"
 #include "primitives/InfiniteSphere.hpp"
 #include "primitives/TriangleMesh.hpp"
+#include "primitives/SkyDome.hpp"
 #include "primitives/Sphere.hpp"
 #include "primitives/Curves.hpp"
 #include "primitives/Cube.hpp"
@@ -159,6 +160,8 @@ std::shared_ptr<Primitive> Scene::instantiatePrimitive(std::string type, const r
         result = std::make_shared<Cube>();
     else if (type == "minecraft_map")
         result = std::make_shared<TraceableMinecraftMap>();
+    else if (type == "skydome")
+        result = std::make_shared<Skydome>();
     else
         FAIL("Unknown primitive type: '%s'", type.c_str());
 
