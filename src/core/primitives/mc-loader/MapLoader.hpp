@@ -48,9 +48,9 @@ class MapLoader
                         int idx = x + z*16 + y*16*16;
 
                         uint16 blockId = 0;
-                        if (blocks) blockId |= blocks[idx] << 4;
-                        if (add   ) blockId |= ((add [idx/2] >> ((idx & 1)*4)) & 0xF) << 12;
-                        if (data  ) blockId |= ((data[idx/2] >> ((idx & 1)*4)) & 0xF);
+                        if (blocks) blockId |=   static_cast<uint8>(blocks[idx]) << 4;
+                        if (add   ) blockId |= ((static_cast<uint8>(add [idx/2]) >> ((idx & 1)*4)) & 0xF) << 12;
+                        if (data  ) blockId |= ((static_cast<uint8>(data[idx/2]) >> ((idx & 1)*4)) & 0xF);
 
                         _regionGrid[base + x + 256*y + 256*256*z] = blockId;
 
