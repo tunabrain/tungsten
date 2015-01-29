@@ -108,9 +108,11 @@ std::unique_ptr<float[]> loadHdr(const std::string &file, TexelConversion reques
 std::unique_ptr<uint8[], void(*)(void *)> loadPng(const std::string &file,
         int &w, int &h, int &channels)
 {
-    uint8 *dst;
+    uint8 *dst = nullptr;
     uint32 uw, uh;
     lodepng_decode32_file(&dst, &uw, &uh, file.c_str());
+    if (!dst)
+        return std::unique_ptr<uint8[], void(*)(void *)>(nullptr, free);
 
     w = uw;
     h = uh;
