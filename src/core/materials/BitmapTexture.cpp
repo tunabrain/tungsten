@@ -1,5 +1,7 @@
 #include "BitmapTexture.hpp"
 
+#include "primitives/IntersectionInfo.hpp"
+
 #include "sampling/Distribution2D.hpp"
 
 #include "math/MathUtil.hpp"
@@ -205,6 +207,11 @@ Vec3f BitmapTexture::operator[](const Vec2f &uv) const
             v
         ));
     }
+}
+
+Vec3f BitmapTexture::operator[](const IntersectionInfo &info) const
+{
+    return (*this)[info.uv];
 }
 
 void BitmapTexture::derivatives(const Vec2f &uv, Vec2f &derivs) const

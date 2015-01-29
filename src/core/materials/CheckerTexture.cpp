@@ -1,5 +1,7 @@
 #include "CheckerTexture.hpp"
 
+#include "primitives/IntersectionInfo.hpp"
+
 #include "math/MathUtil.hpp"
 
 #include "io/JsonUtils.hpp"
@@ -64,6 +66,11 @@ Vec3f CheckerTexture::operator[](const Vec2f &uv) const
     Vec2i uvI(uv*Vec2f(float(_resU), float(_resV)));
     bool on = (uvI.x() ^ uvI.y()) & 1;
     return on ? _onColor : _offColor;
+}
+
+Vec3f CheckerTexture::operator[](const IntersectionInfo &info) const
+{
+    return (*this)[info.uv];
 }
 
 void CheckerTexture::derivatives(const Vec2f &/*uv*/, Vec2f &derivs) const

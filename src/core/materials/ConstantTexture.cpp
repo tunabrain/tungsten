@@ -52,6 +52,11 @@ Vec3f ConstantTexture::operator[](const Vec2f &/*uv*/) const
     return _value;
 }
 
+Vec3f ConstantTexture::operator[](const IntersectionInfo &/*info*/) const
+{
+    return _value;
+}
+
 void ConstantTexture::derivatives(const Vec2f &/*uv*/, Vec2f &derivs) const
 {
     derivs = Vec2f(0.0f);

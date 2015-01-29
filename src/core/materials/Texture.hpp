@@ -7,6 +7,8 @@
 
 namespace Tungsten {
 
+struct IntersectionInfo;
+
 enum TextureMapJacobian {
     MAP_UNIFORM,
     MAP_SPHERICAL,
@@ -29,6 +31,7 @@ public:
     virtual Vec3f maximum() const = 0;
 
     virtual Vec3f operator[](const Vec2f &uv) const = 0;
+    virtual Vec3f operator[](const IntersectionInfo &info) const = 0;
     virtual void derivatives(const Vec2f &uv, Vec2f &derivs) const = 0;
 
     virtual void makeSamplable(TextureMapJacobian jacobian) = 0;

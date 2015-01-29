@@ -1,5 +1,7 @@
 #include "BladeTexture.hpp"
 
+#include "primitives/IntersectionInfo.hpp"
+
 #include "sampling/SampleWarp.hpp"
 
 #include "math/MathUtil.hpp"
@@ -79,6 +81,11 @@ Vec3f BladeTexture::operator[](const Vec2f &uv) const
     if (_baseNormal.dot(localUv - Vec2f(1.0f, 0.0f)) > 0.0f)
         return Vec3f(0.0f);
     return Vec3f(1.0f);
+}
+
+Vec3f BladeTexture::operator[](const IntersectionInfo &info) const
+{
+    return (*this)[info.uv];
 }
 
 void BladeTexture::derivatives(const Vec2f &/*uv*/, Vec2f &derivs) const

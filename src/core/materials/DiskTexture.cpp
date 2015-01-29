@@ -1,5 +1,7 @@
 #include "DiskTexture.hpp"
 
+#include "primitives/IntersectionInfo.hpp"
+
 #include "sampling/SampleWarp.hpp"
 
 #include "math/MathUtil.hpp"
@@ -36,6 +38,11 @@ Vec3f DiskTexture::maximum() const
 Vec3f DiskTexture::operator[](const Vec<float, 2> &uv) const
 {
     return (uv - Vec2f(0.5f)).lengthSq() < 0.25f ? Vec3f(1.0f) : Vec3f(0.0f);
+}
+
+Vec3f DiskTexture::operator[](const IntersectionInfo &info) const
+{
+    return (*this)[info.uv];
 }
 
 void DiskTexture::derivatives(const Vec2f &/*uv*/, Vec2f &derivs) const

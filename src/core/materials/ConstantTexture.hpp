@@ -25,7 +25,8 @@ public:
     virtual Vec3f minimum() const override;
     virtual Vec3f maximum() const override;
 
-    virtual Vec3f operator[](const Vec2f &uv) const override;
+    virtual Vec3f operator[](const Vec2f &uv) const override final;
+    virtual Vec3f operator[](const IntersectionInfo &info) const override;
     virtual void derivatives(const Vec2f &uv, Vec2f &derivs) const override;
 
     virtual void makeSamplable(TextureMapJacobian jacobian) override;
