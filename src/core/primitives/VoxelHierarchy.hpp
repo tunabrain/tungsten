@@ -132,6 +132,26 @@ class VoxelHierarchy
         return false;
     }
 
+    template<typename Visitor>
+    void iterateNonZeroVoxels(Visitor visitor, int level, int idx, int bx, int by, int bz)
+    {
+        for (int z = 0; z < BrickSize; ++z) {
+            for (int y = 0; y < BrickSize; ++y) {
+                for (int x = 0; x < BrickSize; ++x) {
+                    ElementType &value = _grids[level][idx].at(x, y, z);
+                    if (!value)
+                        continue;
+
+                    if (level)
+                        iterateNonZeroVoxels(visitor, level - 1, value - 1, (bx + x)*BrickSize,
+                                (by + y)*BrickSize, (bz + z)*BrickSize);
+                    else
+                        visitor(value, bx + x, by + y, bz + z);
+                }
+            }
+        }
+    }
+
 public:
     VoxelHierarchy(Vec3f offset, const ElementType *data)
     : _offset(offset)
@@ -182,6 +202,29 @@ public:
             return false;
 
         return dda<NumLevels - 1>(_grids[NumLevels - 1][0], o, ray.dir(), tMin, tMax, std::abs(dT), Vec3i(0), intersect);
+    }
+
+    ElementType *at(int x, int y, int z)
+    {
+        int idx = 0;
+        for (int i = NumLevels - 1; i > 0; --i) {
+            int px = x/(1 << (SizePower*i)) % BrickSize;
+            int py = y/(1 << (SizePower*i)) % BrickSize;
+            int pz = z/(1 << (SizePower*i)) % BrickSize;
+
+            idx = _grids[i][idx].at(px, py, pz);
+            if (!idx)
+                return nullptr;
+            idx--;
+        }
+
+        return &_grids[0][idx].at(x % BrickSize, y % BrickSize, z % BrickSize);
+    }
+
+    template<typename Visitor>
+    void iterateNonZeroVoxels(Visitor visitor)
+    {
+        iterateNonZeroVoxels(visitor, NumLevels - 1, 0, 0, 0, 0);
     }
 };
 
