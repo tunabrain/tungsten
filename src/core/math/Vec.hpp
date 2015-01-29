@@ -537,6 +537,19 @@ public:
 };
 
 template<unsigned Size>
+class hash<Tungsten::Vec<Tungsten::uint32, Size>>
+{
+public:
+    std::size_t operator()(const Tungsten::Vec<Tungsten::uint32, Size> &v) const {
+        // See http://www.boost.org/doc/libs/1_33_1/doc/html/hash_combine.html
+        Tungsten::uint32 result = 0;
+        for (unsigned i = 0; i < Size; ++i)
+            result ^= v[i] + 0x9E3779B9 + (result << 6) + (result >> 2);
+        return result;
+    }
+};
+
+template<unsigned Size>
 class hash<Tungsten::Vec<Tungsten::int32, Size>>
 {
 public:
@@ -544,7 +557,7 @@ public:
         // See http://www.boost.org/doc/libs/1_33_1/doc/html/hash_combine.html
         Tungsten::uint32 result = 0;
         for (unsigned i = 0; i < Size; ++i)
-            result ^= v[i] + 0x9E3779B9 + (result << 6) + (result >> 2);
+            result ^= static_cast<Tungsten::uint32>(v[i]) + 0x9E3779B9 + (result << 6) + (result >> 2);
         return result;
     }
 };
