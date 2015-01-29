@@ -44,6 +44,7 @@ class TraceableMinecraftMap : public Primitive
     Box3f _bounds;
     std::unique_ptr<TriangleMesh> _proxy;
     std::vector<std::unique_ptr<HierarchicalGrid>> _grids;
+    std::unordered_map<Vec2i, HierarchicalGrid *> _regions;
 
     std::vector<std::unique_ptr<BiomeTileTexture>> _biomes;
     std::unordered_map<Vec2i, const BiomeTileTexture *> _biomeMap;
@@ -51,12 +52,14 @@ class TraceableMinecraftMap : public Primitive
 
     void getTexProperties(const std::string &path, int w, int h, int &tileW, int &tileH,
             bool &clamp, bool &linear);
-    void loadTexture(ResourcePackLoader &pack, const std::string &path);
-    void loadTextures(ResourcePackLoader &pack);
 
-    void buildModel(const ModelRef &model);
+    void loadTexture(ResourcePackLoader &pack, const std::string &path,
+            std::shared_ptr<BitmapTexture> &albedo, std::shared_ptr<BitmapTexture> &opacity);
+    std::shared_ptr<Bsdf> fetchBsdf(ResourcePackLoader &pack, const TexturedQuad &quad);
 
     void buildBiomeColors(ResourcePackLoader &pack, int x, int z, uint8 *biomes);
+
+    void buildModel(ResourcePackLoader &pack, const ModelRef &model);
     void buildModels(ResourcePackLoader &pack);
 
 public:
@@ -102,6 +105,25 @@ public:
     virtual void cleanupAfterRender() override;
 
     virtual Primitive *clone() override;
+
+    inline uint32 getBlock(int x, int y, int z) const
+    {
+        if (y < 0 || y >= 256)
+            return 0;
+
+        // Deal with round-to-zero division
+        int cx = x < 0 ? -((-x - 1)/256 + 1) : x/256;
+        int cz = z < 0 ? -((-z - 1)/256 + 1) : z/256;
+        int rx = x < 0 ? ((256 - ((-x) % 256)) % 256) : (x % 256);
+        int rz = z < 0 ? ((256 - ((-z) % 256)) % 256) : (z % 256);
+
+        auto iter = _regions.find(Vec2i(cx, cz));
+        if (iter == _regions.end())
+            return 0;
+
+        ElementType *ref = iter->second->at(rx, y, rz);
+        return ref ? *ref : 0;
+    }
 };
 
 }

@@ -104,11 +104,9 @@ void TraceableMinecraftMap::getTexProperties(const std::string &path, int w, int
     }
 }
 
-void TraceableMinecraftMap::loadTexture(ResourcePackLoader &pack, const std::string &name)
+void TraceableMinecraftMap::loadTexture(ResourcePackLoader &pack, const std::string &name,
+        std::shared_ptr<BitmapTexture> &albedo, std::shared_ptr<BitmapTexture> &opacity)
 {
-    if (_bsdfCache.count(name))
-        return;
-
     std::string path = pack.textureBasePath() + name + ".png";
 
     int w, h;
@@ -136,26 +134,68 @@ void TraceableMinecraftMap::loadTexture(ResourcePackLoader &pack, const std::str
             alpha[i] = tile[i*4 + 3];
     }
 
-    std::shared_ptr<Texture> texture(std::make_shared<BitmapTexture>(name + ".png", tile.release(),
-            tileW, tileH, BitmapTexture::TexelType::RGB_LDR, linear, clamp));
-    std::shared_ptr<Bsdf> bsdf(std::make_shared<LambertBsdf>());
-    bsdf->setAlbedo(texture);
+    albedo = std::make_shared<BitmapTexture>(name + ".png", tile.release(),
+            tileW, tileH, BitmapTexture::TexelType::RGB_LDR, linear, clamp);
 
     if (!opaque)
-        bsdf = std::make_shared<TransparencyBsdf>(std::make_shared<BitmapTexture>(name + ".png", alpha.release(),
-                tileW, tileH, BitmapTexture::TexelType::SCALAR_LDR, linear, clamp), bsdf);
-
-    _bsdfCache.insert(std::make_pair(name, bsdf));
+        opacity = std::make_shared<BitmapTexture>(name + ".png", alpha.release(),
+                tileW, tileH, BitmapTexture::TexelType::SCALAR_LDR, linear, clamp);
 }
 
-void TraceableMinecraftMap::loadTextures(ResourcePackLoader &pack)
+std::shared_ptr<Bsdf> TraceableMinecraftMap::fetchBsdf(ResourcePackLoader &pack, const TexturedQuad &quad)
+{
+    std::string key = quad.texture;
+
+    if (!quad.overlay.empty())
+        key += "&" + quad.overlay;
+
+    if (quad.tintIndex == ResourcePackLoader::TINT_FOLIAGE)
+        key += "-BIOME_FOLIAGE";
+    else if (quad.tintIndex == ResourcePackLoader::TINT_GRASS)
+        key += "-BIOME_GRASS";
+
+    auto iter = _bsdfCache.find(key);
+    if (iter != _bsdfCache.end())
+        return iter->second;
+
+    std::shared_ptr<BitmapTexture> albedo, opacity;
+    loadTexture(pack, quad.texture, albedo, opacity);
+
+    if (!albedo)
+        return nullptr;
+
+    std::shared_ptr<BitmapTexture> overlayAlbedo, overlayMask;
+    if (!quad.overlay.empty())
+        loadTexture(pack, quad.overlay, overlayAlbedo, overlayMask);
+
+    std::shared_ptr<BitmapTexture> substrate, overlay, overlayOpacity;
+    if (overlayAlbedo) {
+        substrate = albedo;
+        overlay = overlayAlbedo;
+        overlayOpacity = overlayMask;
+    } else {
+        overlay = albedo;
+    }
+
+    std::shared_ptr<Texture> base;
+    if (overlayAlbedo || quad.tintIndex != ResourcePackLoader::TINT_NONE)
+        base = std::make_shared<BiomeTexture>(substrate, overlay, overlayOpacity, _biomeMap, quad.tintIndex);
+    else
+        base = albedo;
+
+    std::shared_ptr<Bsdf> bsdf(std::make_shared<LambertBsdf>());
+    bsdf->setAlbedo(base);
+
+    if (opacity)
+        bsdf = std::make_shared<TransparencyBsdf>(opacity, bsdf);
+
+    _bsdfCache.insert(std::make_pair(key, bsdf));
+
+    return std::move(bsdf);
+}
+
 void TraceableMinecraftMap::buildBiomeColors(ResourcePackLoader &pack, int rx, int rz, uint8 *biomes)
 {
-    for (const BlockDescriptor &desc : pack.blockDescriptors())
-        for (const BlockVariant &var : desc.variants())
-            for (const ModelRef &model : var.models())
-                for (const TexturedQuad &quad : *model.builtModel())
-                    loadTexture(pack, quad.texture);
     std::unique_ptr<uint8[]> grassTop(new uint8[256*256*4]), grassBottom(new uint8[256*256*4]);
     std::unique_ptr<uint8[]> foliageTop(new uint8[256*256*4]), foliageBottom(new uint8[256*256*4]);
     std::unique_ptr<uint8[]> tmp(new uint8[256*256*4]);
@@ -220,7 +260,7 @@ void TraceableMinecraftMap::buildBiomeColors(ResourcePackLoader &pack, int rx, i
     _biomeMap.insert(std::make_pair(Vec2i(rx, rz), _biomes.back().get()));
 }
 
-void TraceableMinecraftMap::buildModel(const ModelRef &model)
+void TraceableMinecraftMap::buildModel(ResourcePackLoader &pack, const ModelRef &model)
 {
     if (!model.builtModel())
         return;
@@ -237,32 +277,18 @@ void TraceableMinecraftMap::buildModel(const ModelRef &model)
     std::vector<TriangleI> tris;
 
     std::vector<std::shared_ptr<Bsdf>> bsdfs;
-    std::unordered_map<std::string, int> mapping;
-    std::unordered_set<Vec<float, 12>> duplicates;
+    std::unordered_map<const Bsdf *, int> mapping;
 
     for (const TexturedQuad &quad : *model.builtModel()) {
-        if (!mapping.count(quad.texture)) {
-            mapping.insert(std::make_pair(quad.texture, int(bsdfs.size())));
-            if (_bsdfCache.count(quad.texture))
-                bsdfs.push_back(_bsdfCache[quad.texture]);
-            else
-                bsdfs.push_back(_missingBsdf);
-        }
-        int material = mapping[quad.texture];
+        std::shared_ptr<Bsdf> bsdf = fetchBsdf(pack, quad);
+        if (!bsdf)
+            bsdf = _missingBsdf;
 
-        Vec3f p0 = tform*quad.p0;
-        Vec3f p1 = tform*quad.p1;
-        Vec3f p2 = tform*quad.p2;
-        Vec3f p3 = tform*quad.p3;
-        Vec<float, 12> key(
-            p0.x(), p0.y(), p0.z(),
-            p1.x(), p1.y(), p1.z(),
-            p2.x(), p2.y(), p2.z(),
-            p3.x(), p3.y(), p3.z()
-        );
-        if (duplicates.count(key))
-            continue;
-        duplicates.insert(key);
+        if (!mapping.count(bsdf.get())) {
+            mapping.insert(std::make_pair(bsdf.get(), bsdfs.size()));
+            bsdfs.push_back(bsdf);
+        }
+        int material = mapping[bsdf.get()];
 
         Vec2f uv0(quad.uv0.x(), 1.0f - quad.uv0.y());
         Vec2f uv1(quad.uv1.x(), 1.0f - quad.uv1.y());
@@ -297,7 +323,8 @@ void TraceableMinecraftMap::buildModels(ResourcePackLoader &pack)
     for (const BlockDescriptor &desc : pack.blockDescriptors())
         for (const BlockVariant &var : desc.variants())
             for (const ModelRef &model : var.models())
-                buildModel(model);
+                buildModel(pack, model);
+}
 }
 
 void TraceableMinecraftMap::fromJson(const rapidjson::Value &v, const Scene &scene)
@@ -312,7 +339,6 @@ void TraceableMinecraftMap::fromJson(const rapidjson::Value &v, const Scene &sce
     _bounds = Box3f();
 
     ResourcePackLoader pack(_packPath);
-    loadTextures(pack);
     buildModels(pack);
 
     MapLoader<ElementType> loader(_mapPath);
@@ -336,6 +362,7 @@ void TraceableMinecraftMap::fromJson(const rapidjson::Value &v, const Scene &sce
         std::cout << "Building grid " << _grids.size() + 1 << std::endl;
 
         _grids.emplace_back(new HierarchicalGrid(bounds.min(), data));
+        _regions[Vec2i(x, z)] = _grids.back().get();
     });
 
     for (auto &m : _models)
