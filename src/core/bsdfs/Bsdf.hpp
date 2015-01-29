@@ -34,7 +34,7 @@ protected:
 
     Vec3f albedo(const IntersectionInfo *info) const
     {
-        return (*_albedo)[info->uv];
+        return (*_albedo)[*info];
     }
 
 public:

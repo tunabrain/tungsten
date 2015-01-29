@@ -63,7 +63,7 @@ bool ThinSheetBsdf::sample(SurfaceScatterEvent &event) const
         return true;
     }
 
-    float thickness = (*_thickness)[event.info->uv].x();
+    float thickness = (*_thickness)[*event.info].x();
 
     float cosThetaT;
     if (_enableInterference) {
@@ -88,7 +88,7 @@ Vec3f ThinSheetBsdf::eval(const SurfaceScatterEvent &event) const
     if (!event.requestedLobe.isForward() || -event.wi != event.wo)
         return Vec3f(0.0f);
 
-    float thickness = (*_thickness)[event.info->uv].x();
+    float thickness = (*_thickness)[*event.info].x();
 
     float cosThetaT;
     Vec3f transmittance;

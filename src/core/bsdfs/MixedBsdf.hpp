@@ -7,6 +7,7 @@
 
 namespace Tungsten {
 
+struct IntersectionInfo;
 class Scene;
 
 class MixedBsdf : public Bsdf
@@ -14,7 +15,7 @@ class MixedBsdf : public Bsdf
     std::shared_ptr<Bsdf> _bsdf0, _bsdf1;
     std::shared_ptr<Texture> _ratio;
 
-    bool adjustedRatio(BsdfLobes requestedLobe, Vec2f uv, float &ratio) const;
+    bool adjustedRatio(BsdfLobes requestedLobe, const IntersectionInfo *info, float &ratio) const;
 
 public:
     MixedBsdf();

@@ -52,7 +52,7 @@ bool TransparencyBsdf::sample(SurfaceScatterEvent &event) const
 Vec3f TransparencyBsdf::eval(const SurfaceScatterEvent &event) const
 {
     if (event.requestedLobe.isForward())
-        return (-event.wi == event.wo) ? Vec3f(1.0f - (*_opacity)[event.info->uv].x()) : Vec3f(0.0f);
+        return (-event.wi == event.wo) ? Vec3f(1.0f - (*_opacity)[*event.info].x()) : Vec3f(0.0f);
     else
         return _base->eval(event);
 }

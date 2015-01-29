@@ -16,13 +16,13 @@
 
 namespace Tungsten {
 
-bool MixedBsdf::adjustedRatio(BsdfLobes requestedLobe, Vec2f uv, float &ratio) const
+bool MixedBsdf::adjustedRatio(BsdfLobes requestedLobe, const IntersectionInfo *info, float &ratio) const
 {
     bool sample0 = requestedLobe.test(_bsdf0->lobes());
     bool sample1 = requestedLobe.test(_bsdf1->lobes());
 
     if (sample0 && sample1)
-        ratio = (*_ratio)[uv].x();
+        ratio = (*_ratio)[*info].x();
     else if (sample0)
         ratio = 1.0f;
     else if (sample1)
@@ -70,7 +70,7 @@ rapidjson::Value MixedBsdf::toJson(Allocator &allocator) const
 bool MixedBsdf::sample(SurfaceScatterEvent &event) const
 {
     float ratio;
-    if (!adjustedRatio(event.requestedLobe, event.info->uv, ratio))
+    if (!adjustedRatio(event.requestedLobe, event.info, ratio))
         return false;
 
     if (event.supplementalSampler->next1D() < ratio) {
@@ -99,14 +99,14 @@ bool MixedBsdf::sample(SurfaceScatterEvent &event) const
 
 Vec3f MixedBsdf::eval(const SurfaceScatterEvent &event) const
 {
-    float ratio = (*_ratio)[event.info->uv].x();
+    float ratio = (*_ratio)[*event.info].x();
     return albedo(event.info)*(_bsdf0->eval(event)*ratio + _bsdf1->eval(event)*(1.0f - ratio));
 }
 
 float MixedBsdf::pdf(const SurfaceScatterEvent &event) const
 {
     float ratio;
-    if (!adjustedRatio(event.requestedLobe, event.info->uv, ratio))
+    if (!adjustedRatio(event.requestedLobe, event.info, ratio))
         return 0.0f;
     return _bsdf0->pdf(event)*ratio + _bsdf1->pdf(event)*(1.0f - ratio);
 }

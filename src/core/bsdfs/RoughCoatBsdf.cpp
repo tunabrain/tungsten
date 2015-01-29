@@ -110,7 +110,7 @@ bool RoughCoatBsdf::sample(SurfaceScatterEvent &event) const
     float specularProbability = specularWeight/(specularWeight + substrateWeight);
 
     if (sampleR && (event.sampler->next1D() < specularProbability || !sampleT)) {
-        float roughness = (*_roughness)[event.info->uv].x();
+        float roughness = (*_roughness)[*event.info].x();
         if (!RoughDielectricBsdf::sampleBase(event, true, false, roughness, _ior, _distribution))
             return false;
         if (sampleT) {
@@ -148,8 +148,8 @@ bool RoughCoatBsdf::sample(SurfaceScatterEvent &event) const
         if (sampleR) {
             Vec3f brdfSubstrate = event.throughput*event.pdf;
             float  pdfSubstrate = event.pdf*(1.0f - specularProbability);
-            Vec3f brdfSpecular = RoughDielectricBsdf::evalBase(event, true, false, (*_roughness)[event.info->uv].x(), _ior, _distribution);
-            float pdfSpecular  = RoughDielectricBsdf::pdfBase(event, true, false, (*_roughness)[event.info->uv].x(), _ior, _distribution);
+            Vec3f brdfSpecular = RoughDielectricBsdf::evalBase(event, true, false, (*_roughness)[*event.info].x(), _ior, _distribution);
+            float pdfSpecular  = RoughDielectricBsdf::pdfBase(event, true, false, (*_roughness)[*event.info].x(), _ior, _distribution);
             pdfSpecular *= specularProbability;
 
             event.throughput = (brdfSpecular + brdfSubstrate)/(pdfSpecular + pdfSubstrate);
@@ -170,7 +170,7 @@ Vec3f RoughCoatBsdf::eval(const SurfaceScatterEvent &event) const
 
     Vec3f glossyR(0.0f);
     if (sampleR)
-        glossyR = RoughDielectricBsdf::evalBase(event, true, false, (*_roughness)[event.info->uv].x(), _ior, _distribution);
+        glossyR = RoughDielectricBsdf::evalBase(event, true, false, (*_roughness)[*event.info].x(), _ior, _distribution);
 
 
     Vec3f substrateR(0.0f);
@@ -229,7 +229,7 @@ float RoughCoatBsdf::pdf(const SurfaceScatterEvent &event) const
 
     float glossyPdf = 0.0f;
     if (sampleR)
-        glossyPdf = RoughDielectricBsdf::pdfBase(event, true, false, (*_roughness)[event.info->uv].x(), _ior, _distribution);
+        glossyPdf = RoughDielectricBsdf::pdfBase(event, true, false, (*_roughness)[*event.info].x(), _ior, _distribution);
 
     float substratePdf = 0.0f;
     if (sampleT) {

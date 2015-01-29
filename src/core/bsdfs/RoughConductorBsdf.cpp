@@ -70,7 +70,7 @@ bool RoughConductorBsdf::sample(SurfaceScatterEvent &event) const
 
     // TODO Re-enable this?
     //float sampleRoughness = (1.2f - 0.2f*std::sqrt(std::abs(event.wi.z())))*_roughness;
-    float roughness = (*_roughness)[event.info->uv].x();
+    float roughness = (*_roughness)[*event.info].x();
     float sampleRoughness = roughness;
     float alpha = Microfacet::roughnessToAlpha(_distribution, roughness);
     float sampleAlpha = Microfacet::roughnessToAlpha(_distribution, sampleRoughness);
@@ -100,7 +100,7 @@ Vec3f RoughConductorBsdf::eval(const SurfaceScatterEvent &event) const
     if (event.wi.z() <= 0.0f || event.wo.z() <= 0.0f)
         return Vec3f(0.0f);
 
-    float roughness = (*_roughness)[event.info->uv].x();
+    float roughness = (*_roughness)[*event.info].x();
     float alpha = Microfacet::roughnessToAlpha(_distribution, roughness);
 
     Vec3f hr = (event.wi + event.wo).normalized();
@@ -122,7 +122,7 @@ float RoughConductorBsdf::pdf(const SurfaceScatterEvent &event) const
 
     // TODO Re-enable this?
     //float sampleRoughness = (1.2f - 0.2f*std::sqrt(event.wi.z()))*_roughness;
-    float roughness = (*_roughness)[event.info->uv].x();
+    float roughness = (*_roughness)[*event.info].x();
     float sampleRoughness = roughness;
     float sampleAlpha = Microfacet::roughnessToAlpha(_distribution, sampleRoughness);
 
