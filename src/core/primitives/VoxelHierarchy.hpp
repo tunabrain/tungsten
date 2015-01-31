@@ -114,7 +114,7 @@ class VoxelHierarchy
                            (corner + iP) << SizePower, intersect))
                         return true;
                 } else {
-                    if (intersect(element - 1, _offset + Vec3f(corner + iP)))
+                    if (intersect(element - 1, _offset + Vec3f(corner + iP), tMin))
                         return true;
                 }
             }
@@ -173,7 +173,14 @@ public:
     }
 
     template<typename LAMBDA>
-    bool trace(Ray &ray, LAMBDA intersect) const
+    inline bool trace(Ray &ray, const Vec3f &dT, float tMin, LAMBDA intersect) const
+    {
+        return dda<NumLevels - 1>(_grids[NumLevels - 1][0], ray.pos() - _offset, ray.dir(),
+                tMin, ray.farT(), std::abs(dT), Vec3i(0), intersect);
+    }
+
+    template<typename LAMBDA>
+    inline bool trace(Ray &ray, LAMBDA intersect) const
     {
         Vec3f dT = 1.0f/ray.dir();
 
