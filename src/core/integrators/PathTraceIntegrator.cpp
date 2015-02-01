@@ -11,7 +11,8 @@ PathTraceIntegrator::PathTraceIntegrator()
   _enableConsistencyChecks(false),
   _enableTwoSidedShading(true),
   _minBounces(0),
-  _maxBounces(64)
+  _maxBounces(64),
+  _threadId(0)
 {
 }
 
@@ -134,7 +135,7 @@ Vec3f PathTraceIntegrator::lightSample(const TangentFrame &frame,
 {
     LightSample sample(event.sampler, event.info->p);
 
-    if (!light.sampleInboundDirection(sample))
+    if (!light.sampleInboundDirection(_threadId, sample))
         return Vec3f(0.0f);
 
     event.wo = frame.toLocal(sample.d);
@@ -209,7 +210,7 @@ Vec3f PathTraceIntegrator::bsdfSample(const TangentFrame &frame,
 
     Vec3f bsdfF = e*event.throughput;
 
-    bsdfF *= SampleWarp::powerHeuristic(event.pdf, light.inboundPdf(data, info, event.info->p, wo));
+    bsdfF *= SampleWarp::powerHeuristic(event.pdf, light.inboundPdf(_threadId, data, info, event.info->p, wo));
 
     return bsdfF;
 }
@@ -223,7 +224,7 @@ Vec3f PathTraceIntegrator::volumeLightSample(VolumeScatterEvent &event,
 {
     LightSample sample(event.sampler, event.p);
 
-    if (!light.sampleInboundDirection(sample))
+    if (!light.sampleInboundDirection(_threadId, sample))
         return Vec3f(0.0f);
     event.wo = sample.d;
 
@@ -269,7 +270,7 @@ Vec3f PathTraceIntegrator::volumePhaseSample(const Primitive &light,
 
     Vec3f phaseF = e*event.throughput;
 
-    phaseF *= SampleWarp::powerHeuristic(event.pdf, light.inboundPdf(data, info, event.p, event.wo));
+    phaseF *= SampleWarp::powerHeuristic(event.pdf, light.inboundPdf(_threadId, data, info, event.p, event.wo));
 
     return phaseF;
 }
@@ -323,7 +324,7 @@ const Primitive *PathTraceIntegrator::chooseLight(SampleGenerator &sampler, cons
     float total = 0.0f;
     unsigned numNonNegative = 0;
     for (size_t i = 0; i < _lightPdf.size(); ++i) {
-        _lightPdf[i] = _scene->lights()[i]->approximateRadiance(p);
+        _lightPdf[i] = _scene->lights()[i]->approximateRadiance(_threadId, p);
         if (_lightPdf[i] >= 0.0f) {
             total += _lightPdf[i];
             numNonNegative++;
@@ -484,10 +485,13 @@ bool PathTraceIntegrator::handleSurface(IntersectionTemporary &data, Intersectio
     return true;
 }
 
-void PathTraceIntegrator::setScene(const TraceableScene *scene)
+void PathTraceIntegrator::setScene(TraceableScene *scene)
 {
     _scene = scene;
     _lightPdf.resize(scene->lights().size());
+
+    for (const auto &prim : scene->lights())
+        prim->makeSamplable(_threadId);
 }
 
 void PathTraceIntegrator::fromJson(const rapidjson::Value &v, const Scene &/*scene*/)
@@ -588,9 +592,10 @@ Vec3f PathTraceIntegrator::traceSample(Vec2u pixel, SampleGenerator &sampler, Un
     }
 }
 
-Integrator *PathTraceIntegrator::cloneThreadSafe(uint32 /*threadId*/, const TraceableScene *scene) const
+Integrator *PathTraceIntegrator::cloneThreadSafe(uint32 threadId, TraceableScene *scene) const
 {
     PathTraceIntegrator *integrator = new PathTraceIntegrator(*this);
+    integrator->_threadId = threadId;
     integrator->setScene(scene);
     return integrator;
 }

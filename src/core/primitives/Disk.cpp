@@ -127,11 +127,12 @@ bool Disk::isSamplable() const
     return true;
 }
 
-void Disk::makeSamplable()
+void Disk::makeSamplable(uint32 /*threadIndex*/)
 {
 }
 
-float Disk::inboundPdf(const IntersectionTemporary &/*data*/, const IntersectionInfo &/*info*/, const Vec3f &p, const Vec3f &d) const
+float Disk::inboundPdf(uint32 /*threadIndex*/, const IntersectionTemporary &/*data*/,
+        const IntersectionInfo &/*info*/, const Vec3f &p, const Vec3f &d) const
 {
     float cosTheta = std::abs(_n.dot(d));
     float t = _n.dot(_center - p)/_n.dot(d);
@@ -139,7 +140,7 @@ float Disk::inboundPdf(const IntersectionTemporary &/*data*/, const Intersection
     return t*t/(cosTheta*_r*_r*PI);
 }
 
-bool Disk::sampleInboundDirection(LightSample &sample) const
+bool Disk::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
 {
     if (_n.dot(sample.p - _center) < 0.0f)
         return false;
@@ -157,7 +158,7 @@ bool Disk::sampleInboundDirection(LightSample &sample) const
     return true;
 }
 
-bool Disk::sampleOutboundDirection(LightSample &sample) const
+bool Disk::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
 {
     Vec2f lQ = SampleWarp::uniformDisk(sample.sampler->next2D()).xy();
     sample.p = _center + lQ.x()*_frame.bitangent + lQ.y()*_frame.tangent;
@@ -186,7 +187,7 @@ bool Disk::isInfinite() const
     return false;
 }
 
-float Disk::approximateRadiance(const Vec3f &p) const
+float Disk::approximateRadiance(uint32 /*threadIndex*/, const Vec3f &p) const
 {
     if (!isEmissive())
         return 0.0f;

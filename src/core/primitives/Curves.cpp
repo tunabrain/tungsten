@@ -472,22 +472,22 @@ bool Curves::isSamplable() const
     return false;
 }
 
-void Curves::makeSamplable()
+void Curves::makeSamplable(uint32 /*threadIndex*/)
 {
 }
 
-float Curves::inboundPdf(const IntersectionTemporary &/*data*/, const IntersectionInfo &/*info*/,
+float Curves::inboundPdf(uint32 /*threadIndex*/, const IntersectionTemporary &/*data*/, const IntersectionInfo &/*info*/,
         const Vec3f &/*p*/, const Vec3f &/*d*/) const
 {
     return 0.0f;
 }
 
-bool Curves::sampleInboundDirection(LightSample &/*sample*/) const
+bool Curves::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &/*sample*/) const
 {
     return false;
 }
 
-bool Curves::sampleOutboundDirection(LightSample &/*sample*/) const
+bool Curves::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &/*sample*/) const
 {
     return false;
 }
@@ -507,7 +507,7 @@ bool Curves::isInfinite() const
     return false;
 }
 
-float Curves::approximateRadiance(const Vec3f &/*p*/) const
+float Curves::approximateRadiance(uint32 /*threadIndex*/, const Vec3f &/*p*/) const
 {
     return -1.0f;
 }

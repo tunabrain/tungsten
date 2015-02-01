@@ -52,19 +52,19 @@ public:
             Vec3f &T, Vec3f &B) const = 0;
 
     virtual bool isSamplable() const = 0;
-    virtual void makeSamplable() = 0;
+    virtual void makeSamplable(uint32 threadIndex) = 0;
 
-    virtual float inboundPdf(const IntersectionTemporary &data, const IntersectionInfo &info,
-            const Vec3f &p, const Vec3f &d) const = 0;
-    virtual bool sampleInboundDirection(LightSample &sample) const = 0;
-    virtual bool sampleOutboundDirection(LightSample &sample) const = 0;
+    virtual float inboundPdf(uint32 threadIndex, const IntersectionTemporary &data,
+            const IntersectionInfo &info, const Vec3f &p, const Vec3f &d) const = 0;
+    virtual bool sampleInboundDirection(uint32 threadIndex, LightSample &sample) const = 0;
+    virtual bool sampleOutboundDirection(uint32 threadIndex, LightSample &sample) const = 0;
 
     virtual bool invertParametrization(Vec2f uv, Vec3f &pos) const = 0;
 
     virtual bool isDelta() const = 0;
     virtual bool isInfinite() const = 0;
 
-    virtual float approximateRadiance(const Vec3f &p) const = 0;
+    virtual float approximateRadiance(uint32 threadIndex, const Vec3f &p) const = 0;
 
     virtual Box3f bounds() const = 0;
 
@@ -83,12 +83,12 @@ public:
     void setupTangentFrame(const IntersectionTemporary &data,
             const IntersectionInfo &info, TangentFrame &dst) const;
 
-    bool isEmissive() const
+    virtual bool isEmissive() const
     {
         return _emission.operator bool();
     }
 
-    Vec3f emission(const IntersectionTemporary &data, const IntersectionInfo &info) const
+    virtual Vec3f emission(const IntersectionTemporary &data, const IntersectionInfo &info) const
     {
         if (!_emission)
             return Vec3f(0.0f);

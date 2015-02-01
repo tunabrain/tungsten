@@ -99,19 +99,19 @@ public:
             Vec3f &T, Vec3f &B) const override;
 
     virtual bool isSamplable() const override;
-    virtual void makeSamplable() override;
+    virtual void makeSamplable(uint32 threadIndex) override;
 
-    virtual float inboundPdf(const IntersectionTemporary &data, const IntersectionInfo &info,
-            const Vec3f &p, const Vec3f &d) const override;
-    virtual bool sampleInboundDirection(LightSample &sample) const override;
-    virtual bool sampleOutboundDirection(LightSample &sample) const override;
+    virtual float inboundPdf(uint32 threadIndex, const IntersectionTemporary &data,
+            const IntersectionInfo &info, const Vec3f &p, const Vec3f &d) const override;
+    virtual bool sampleInboundDirection(uint32 threadIndex, LightSample &sample) const override;
+    virtual bool sampleOutboundDirection(uint32 threadIndex, LightSample &sample) const override;
 
     virtual bool invertParametrization(Vec2f uv, Vec3f &pos) const override;
 
     virtual bool isDelta() const override;
     virtual bool isInfinite() const override;
 
-    virtual float approximateRadiance(const Vec3f &p) const override;
+    virtual float approximateRadiance(uint32 threadIndex, const Vec3f &p) const override;
 
     virtual Box3f bounds() const override;
 

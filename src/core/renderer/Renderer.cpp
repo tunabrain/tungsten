@@ -19,7 +19,7 @@ CONSTEXPR uint32 Renderer::TileSize;
 CONSTEXPR uint32 Renderer::VarianceTileSize;
 CONSTEXPR uint32 Renderer::AdaptiveThreshold;
 
-Renderer::Renderer(const TraceableScene &scene)
+Renderer::Renderer(TraceableScene &scene)
 : _sampler(0xBA5EBA11),
   _scene(scene)
 {

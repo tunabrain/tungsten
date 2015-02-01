@@ -104,7 +104,6 @@ public:
 
             if (m->isEmissive()) {
                 lightCount++;
-                m->makeSamplable();
                 if (m->isSamplable())
                     _lights.push_back(m);
             }
@@ -166,7 +165,7 @@ public:
         _intersector = nullptr;
     }
 
-    Integrator *cloneThreadSafeIntegrator(uint32 threadId) const
+    Integrator *cloneThreadSafeIntegrator(uint32 threadId)
     {
         return _integratorBase.cloneThreadSafe(threadId, this);
     }
@@ -239,6 +238,11 @@ public:
     const std::vector<std::shared_ptr<Primitive>> &primitives() const
     {
         return _primitives;
+    }
+
+    std::vector<std::shared_ptr<Primitive>> &lights()
+    {
+        return _lights;
     }
 
     const std::vector<std::shared_ptr<Primitive>> &lights() const

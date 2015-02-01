@@ -128,19 +128,19 @@ bool Quad::isSamplable() const
     return true;
 }
 
-void Quad::makeSamplable()
+void Quad::makeSamplable(uint32 /*threadIndex*/)
 {
 }
 
-float Quad::inboundPdf(const IntersectionTemporary &/*data*/, const IntersectionInfo &/*info*/,
-        const Vec3f &p, const Vec3f &d) const {
+float Quad::inboundPdf(uint32 /*threadIndex*/, const IntersectionTemporary &/*data*/,
+        const IntersectionInfo &/*info*/, const Vec3f &p, const Vec3f &d) const {
     float cosTheta = std::abs(_n.dot(d));
     float t = _n.dot(_base - p)/_n.dot(d);
 
     return t*t/(cosTheta*_area);
 }
 
-bool Quad::sampleInboundDirection(LightSample &sample) const
+bool Quad::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
 {
     if (_n.dot(sample.p - _base) < 0.0f)
         return false;
@@ -156,7 +156,7 @@ bool Quad::sampleInboundDirection(LightSample &sample) const
     return true;
 }
 
-bool Quad::sampleOutboundDirection(LightSample &sample) const
+bool Quad::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
 {
     Vec2f xi = sample.sampler->next2D();
     sample.p = _base + xi.x()*_edge0 + xi.y()*_edge1;
@@ -183,7 +183,7 @@ bool Quad::isInfinite() const
     return false;
 }
 
-float Quad::approximateRadiance(const Vec3f &p) const
+float Quad::approximateRadiance(uint32 /*threadIndex*/, const Vec3f &p) const
 {
     if (!isEmissive())
         return 0.0f;

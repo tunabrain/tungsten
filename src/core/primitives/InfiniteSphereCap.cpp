@@ -92,17 +92,17 @@ bool InfiniteSphereCap::isSamplable() const
     return _doSample;
 }
 
-void InfiniteSphereCap::makeSamplable()
+void InfiniteSphereCap::makeSamplable(uint32 /*threadIndex*/)
 {
 }
 
-float InfiniteSphereCap::inboundPdf(const IntersectionTemporary &/*data*/, const IntersectionInfo &/*info*/,
-        const Vec3f &/*p*/, const Vec3f &/*d*/) const
+float InfiniteSphereCap::inboundPdf(uint32 /*threadIndex*/, const IntersectionTemporary &/*data*/,
+        const IntersectionInfo &/*info*/, const Vec3f &/*p*/, const Vec3f &/*d*/) const
 {
     return SampleWarp::uniformSphericalCapPdf(_cosCapAngle);
 }
 
-bool InfiniteSphereCap::sampleInboundDirection(LightSample &sample) const
+bool InfiniteSphereCap::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
 {
     Vec3f dir = SampleWarp::uniformSphericalCap(sample.sampler->next2D(), _cosCapAngle);
     sample.d = _capFrame.toGlobal(dir);
@@ -111,7 +111,7 @@ bool InfiniteSphereCap::sampleInboundDirection(LightSample &sample) const
     return true;
 }
 
-bool InfiniteSphereCap::sampleOutboundDirection(LightSample &/*sample*/) const
+bool InfiniteSphereCap::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &/*sample*/) const
 {
     return false;
 }
@@ -131,7 +131,7 @@ bool InfiniteSphereCap::isInfinite() const
     return true;
 }
 
-float InfiniteSphereCap::approximateRadiance(const Vec3f &/*p*/) const
+float InfiniteSphereCap::approximateRadiance(uint32 /*threadIndex*/, const Vec3f &/*p*/) const
 {
     if (!isEmissive() || !isSamplable())
         return 0.0f;

@@ -108,12 +108,12 @@ bool InfiniteSphere::isSamplable() const
     return _doSample;
 }
 
-void InfiniteSphere::makeSamplable()
+void InfiniteSphere::makeSamplable(uint32 /*threadIndex*/)
 {
     _emission->makeSamplable(MAP_SPHERICAL);
 }
 
-float InfiniteSphere::inboundPdf(const IntersectionTemporary &data, const IntersectionInfo &/*info*/,
+float InfiniteSphere::inboundPdf(uint32 /*threadIndex*/, const IntersectionTemporary &data, const IntersectionInfo &/*info*/,
         const Vec3f &/*p*/, const Vec3f &/*d*/) const
 {
     if (_emission->isConstant()) {
@@ -126,7 +126,7 @@ float InfiniteSphere::inboundPdf(const IntersectionTemporary &data, const Inters
     }
 }
 
-bool InfiniteSphere::sampleInboundDirection(LightSample &sample) const
+bool InfiniteSphere::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
 {
     if (_emission->isConstant()) {
         sample.d = SampleWarp::uniformSphere(sample.sampler->next2D());
@@ -143,7 +143,7 @@ bool InfiniteSphere::sampleInboundDirection(LightSample &sample) const
     }
 }
 
-bool InfiniteSphere::sampleOutboundDirection(LightSample &/*sample*/) const
+bool InfiniteSphere::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &/*sample*/) const
 {
     return false;
 }
@@ -163,7 +163,7 @@ bool InfiniteSphere::isInfinite() const
     return true;
 }
 
-float InfiniteSphere::approximateRadiance(const Vec3f &/*p*/) const
+float InfiniteSphere::approximateRadiance(uint32 /*threadIndex*/, const Vec3f &/*p*/) const
 {
     if (!isEmissive() || !isSamplable())
         return 0.0f;

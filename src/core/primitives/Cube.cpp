@@ -146,22 +146,22 @@ bool Cube::isSamplable() const
     return false;
 }
 
-void Cube::makeSamplable()
+void Cube::makeSamplable(uint32 /*threadIndex*/)
 {
 }
 
-float Cube::inboundPdf(const IntersectionTemporary &/*data*/, const IntersectionInfo &/*info*/,
-        const Vec3f &/*p*/, const Vec3f &/*d*/) const
+float Cube::inboundPdf(uint32 /*threadIndex*/, const IntersectionTemporary &/*data*/,
+        const IntersectionInfo &/*info*/, const Vec3f &/*p*/, const Vec3f &/*d*/) const
 {
     return 0.0f;
 }
 
-bool Cube::sampleInboundDirection(LightSample &/*sample*/) const
+bool Cube::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &/*sample*/) const
 {
     return false;
 }
 
-bool Cube::sampleOutboundDirection(LightSample &/*sample*/) const
+bool Cube::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &/*sample*/) const
 {
     return false;
 }
@@ -181,7 +181,7 @@ bool Cube::isInfinite() const
     return false;
 }
 
-float Cube::approximateRadiance(const Vec3f &/*p*/) const
+float Cube::approximateRadiance(uint32 /*threadIndex*/, const Vec3f &/*p*/) const
 {
     return 0.0f;
 }

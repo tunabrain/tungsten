@@ -54,7 +54,7 @@ class Renderer
     void renderTile(uint32 id, uint32 tileId);
 
 public:
-    Renderer(const TraceableScene &scene);
+    Renderer(TraceableScene &scene);
     ~Renderer();
 
     void startRender(std::function<void()> completionCallback, uint32 sppFrom, uint32 sppTo);

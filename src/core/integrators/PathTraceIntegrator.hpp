@@ -42,6 +42,7 @@ class PathTraceIntegrator : public Integrator
     int _minBounces;
     int _maxBounces;
     std::vector<float> _lightPdf;
+    uint32 _threadId;
 
     SurfaceScatterEvent makeLocalScatterEvent(IntersectionTemporary &data, IntersectionInfo &info,
             Ray &ray, SampleGenerator *sampler, UniformSampler *supplementalSampler) const;
@@ -133,7 +134,7 @@ class PathTraceIntegrator : public Integrator
                        Vec3f &throughput, Vec3f &emission, bool &wasSpecular,
                        Medium::MediumState &state);
 
-    void setScene(const TraceableScene *scene);
+    void setScene(TraceableScene *scene);
 
 public:
     PathTraceIntegrator();
@@ -142,7 +143,7 @@ public:
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
     virtual Vec3f traceSample(Vec2u pixel, SampleGenerator &sampler, UniformSampler &supplementalSampler) override;
-    virtual Integrator *cloneThreadSafe(uint32 threadId, const TraceableScene *scene) const override;
+    virtual Integrator *cloneThreadSafe(uint32 threadId, TraceableScene *scene) const override;
 };
 
 }

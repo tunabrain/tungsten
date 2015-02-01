@@ -20,7 +20,7 @@ public:
     }
 
     virtual Vec3f traceSample(Vec2u pixel, SampleGenerator &sampler, UniformSampler &supplementalSampler) = 0;
-    virtual Integrator *cloneThreadSafe(uint32 threadId, const TraceableScene *scene) const = 0;
+    virtual Integrator *cloneThreadSafe(uint32 threadId, TraceableScene *scene) const = 0;
 };
 
 }

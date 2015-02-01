@@ -352,11 +352,14 @@ const TriangleMesh &TriangleMesh::asTriangleMesh()
 
 bool TriangleMesh::isSamplable() const
 {
-    return _triSampler.operator bool();
+    return true;
 }
 
-void TriangleMesh::makeSamplable()
+void TriangleMesh::makeSamplable(uint32 /*threadIndex*/)
 {
+    if (_triSampler)
+        return;
+
     std::vector<float> areas(_tris.size());
     _totalArea = 0.0f;
     for (size_t i = 0; i < _tris.size(); ++i) {
@@ -369,13 +372,13 @@ void TriangleMesh::makeSamplable()
     _triSampler.reset(new Distribution1D(std::move(areas)));
 }
 
-float TriangleMesh::inboundPdf(const IntersectionTemporary &/*data*/, const IntersectionInfo &info,
-        const Vec3f &p, const Vec3f &d) const
+float TriangleMesh::inboundPdf(uint32 /*threadIndex*/, const IntersectionTemporary &/*data*/,
+        const IntersectionInfo &info, const Vec3f &p, const Vec3f &d) const
 {
     return (p - info.p).lengthSq()/(-d.dot(info.Ng.normalized())*_totalArea);
 }
 
-bool TriangleMesh::sampleInboundDirection(LightSample &sample) const
+bool TriangleMesh::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
 {
     float u = sample.sampler->next1D();
     int idx;
@@ -400,7 +403,7 @@ bool TriangleMesh::sampleInboundDirection(LightSample &sample) const
     return true;
 }
 
-bool TriangleMesh::sampleOutboundDirection(LightSample &sample) const
+bool TriangleMesh::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
 {
     float u = sample.sampler->next1D();
     int idx;
@@ -436,7 +439,7 @@ bool TriangleMesh::isInfinite() const
 }
 
 // Questionable, but there is no cheap and realiable way to compute this factor
-float TriangleMesh::approximateRadiance(const Vec3f &/*p*/) const
+float TriangleMesh::approximateRadiance(uint32 /*threadIndex*/, const Vec3f &/*p*/) const
 {
     return -1.0f;
 }

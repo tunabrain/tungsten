@@ -127,13 +127,13 @@ bool Skydome::isSamplable() const
     return _doSample;
 }
 
-void Skydome::makeSamplable()
+void Skydome::makeSamplable(uint32 /*threadIndex*/)
 {
     _sky->makeSamplable(MAP_SPHERICAL);
 }
 
-float Skydome::inboundPdf(const IntersectionTemporary &data, const IntersectionInfo &/*info*/,
-        const Vec3f &/*p*/, const Vec3f &/*d*/) const
+float Skydome::inboundPdf(uint32 /*threadIndex*/, const IntersectionTemporary &data,
+        const IntersectionInfo &/*info*/, const Vec3f &/*p*/, const Vec3f &/*d*/) const
 {
     const SkydomeIntersection *isect = data.as<SkydomeIntersection>();
     float sinTheta;
@@ -141,7 +141,7 @@ float Skydome::inboundPdf(const IntersectionTemporary &data, const IntersectionI
     return INV_PI*INV_TWO_PI*_sky->pdf(MAP_SPHERICAL, uv)/sinTheta;
 }
 
-bool Skydome::sampleInboundDirection(LightSample &sample) const
+bool Skydome::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
 {
     Vec2f uv = _sky->sample(MAP_SPHERICAL, sample.sampler->next2D());
     float sinTheta;
@@ -151,7 +151,7 @@ bool Skydome::sampleInboundDirection(LightSample &sample) const
     return true;
 }
 
-bool Skydome::sampleOutboundDirection(LightSample &/*sample*/) const
+bool Skydome::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &/*sample*/) const
 {
     return false;
 }
@@ -171,7 +171,7 @@ bool Skydome::isInfinite() const
     return true;
 }
 
-float Skydome::approximateRadiance(const Vec3f &/*p*/) const
+float Skydome::approximateRadiance(uint32 /*threadIndex*/, const Vec3f &/*p*/) const
 {
     return FOUR_PI*_sky->average().max();
 }

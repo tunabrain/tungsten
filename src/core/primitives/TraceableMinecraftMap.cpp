@@ -608,22 +608,22 @@ bool TraceableMinecraftMap::isSamplable() const
     return false;
 }
 
-void TraceableMinecraftMap::makeSamplable()
+void TraceableMinecraftMap::makeSamplable(uint32 /*threadIndex*/)
 {
 }
 
-float TraceableMinecraftMap::inboundPdf(const IntersectionTemporary &/*data*/, const IntersectionInfo &/*info*/,
-        const Vec3f &/*p*/, const Vec3f &/*d*/) const
+float TraceableMinecraftMap::inboundPdf(uint32 /*threadIndex*/, const IntersectionTemporary &/*data*/,
+        const IntersectionInfo &/*info*/, const Vec3f &/*p*/, const Vec3f &/*d*/) const
 {
     return 0.0f;
 }
 
-bool TraceableMinecraftMap::sampleInboundDirection(LightSample &/*sample*/) const
+bool TraceableMinecraftMap::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &/*sample*/) const
 {
     return false;
 }
 
-bool TraceableMinecraftMap::sampleOutboundDirection(LightSample &/*sample*/) const
+bool TraceableMinecraftMap::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &/*sample*/) const
 {
     return false;
 }
@@ -643,7 +643,7 @@ bool TraceableMinecraftMap::isInfinite() const
     return false;
 }
 
-float TraceableMinecraftMap::approximateRadiance(const Vec3f &/*p*/) const
+float TraceableMinecraftMap::approximateRadiance(uint32 /*threadIndex*/, const Vec3f &/*p*/) const
 {
     return -1.0f;
 }

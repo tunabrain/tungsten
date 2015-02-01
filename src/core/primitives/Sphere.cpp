@@ -133,19 +133,19 @@ bool Sphere::isSamplable() const
     return true;
 }
 
-void Sphere::makeSamplable()
+void Sphere::makeSamplable(uint32 /*threadIndex*/)
 {
 }
 
-float Sphere::inboundPdf(const IntersectionTemporary &/*data*/, const IntersectionInfo &/*info*/,
-        const Vec3f &p, const Vec3f &/*d*/) const
+float Sphere::inboundPdf(uint32 /*threadIndex*/, const IntersectionTemporary &/*data*/,
+        const IntersectionInfo &/*info*/, const Vec3f &p, const Vec3f &/*d*/) const
 {
     float dist = (_pos - p).length();
     float cosTheta = std::sqrt(max(dist*dist - _radius*_radius, 0.0f))/dist;
     return SampleWarp::uniformSphericalCapPdf(cosTheta);
 }
 
-bool Sphere::sampleInboundDirection(LightSample &sample) const
+bool Sphere::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
 {
     Vec3f L = _pos - sample.p;
     float d = L.length();
@@ -161,7 +161,7 @@ bool Sphere::sampleInboundDirection(LightSample &sample) const
     return true;
 }
 
-bool Sphere::sampleOutboundDirection(LightSample &sample) const
+bool Sphere::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
 {
     sample.p = SampleWarp::uniformSphere(sample.sampler->next2D());
     sample.d = SampleWarp::cosineHemisphere(sample.sampler->next2D());
@@ -192,7 +192,7 @@ bool Sphere::isInfinite() const
     return false;
 }
 
-float Sphere::approximateRadiance(const Vec3f &p) const
+float Sphere::approximateRadiance(uint32 /*threadIndex*/, const Vec3f &p) const
 {
     if (!isEmissive())
         return 0.0f;
