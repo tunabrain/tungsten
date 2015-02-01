@@ -369,8 +369,6 @@ void TraceableMinecraftMap::fromJson(const rapidjson::Value &v, const Scene &sce
 
         buildBiomeColors(pack, x, z, biomes);
 
-        std::cout << "Building grid " << _grids.size() + 1 << std::endl;
-
         _grids.emplace_back(new HierarchicalGrid(bounds.min(), data));
         _regions[Vec2i(x, z)] = _grids.back().get();
     });
