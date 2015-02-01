@@ -51,6 +51,7 @@ class TraceableMinecraftMap : public Primitive
     std::vector<std::shared_ptr<Bsdf>> _bsdfs;
     std::unordered_map<std::string, int> _bsdfCache;
     std::unordered_map<const ModelRef *, int> _modelToPrimitive;
+    std::unordered_map<uint32, int> _liquidMap;
 
     aligned_vector<Triangle4> _geometry;
     std::vector<TriangleInfo> _triInfo;
@@ -77,6 +78,8 @@ class TraceableMinecraftMap : public Primitive
     void convertQuads(ResourcePackLoader &pack, const std::vector<TexturedQuad> &model, const Mat4f &transform);
     void buildModel(ResourcePackLoader &pack, const ModelRef &model);
     void buildModels(ResourcePackLoader &pack);
+
+    int resolveLiquidBlock(ResourcePackLoader &pack, int x, int y, int z);
 
     void resolveBlocks(ResourcePackLoader &pack);
 

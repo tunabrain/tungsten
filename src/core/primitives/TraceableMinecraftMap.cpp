@@ -101,6 +101,7 @@ void TraceableMinecraftMap::loadTexture(ResourcePackLoader &pack, const std::str
     bool linear, clamp;
     getTexProperties(path, w, h, tileW, tileH, clamp, linear);
 
+    int yOffset = ((h/tileH)/2)*tileH;
     bool opaque = true;
     std::unique_ptr<uint8[]> tile(new uint8[tileW*tileH*4]), alpha;
     for (int y = 0; y < tileH; ++y) {
@@ -310,6 +311,142 @@ void TraceableMinecraftMap::buildModels(ResourcePackLoader &pack)
                 buildModel(pack, model);
 }
 
+int TraceableMinecraftMap::resolveLiquidBlock(ResourcePackLoader &pack, int x, int y, int z)
+{
+    uint32 blocks[18];
+    int levels[9] = {0};
+    int isAir[9] = {0};
+
+    for (int ny = y, idx = 0; ny <= y + 1; ++ny) {
+        for (int nz = z - 1; nz <= z + 1; ++nz) {
+            for (int nx = x - 1; nx <= x + 1; ++nx, ++idx) {
+                blocks[idx] = getBlock(nx, ny, nz);
+                if (idx < 9 && blocks[idx] == 0)
+                    isAir[idx] = 1;
+                if (ny > y && pack.isLiquid(blocks[idx]))
+                    levels[idx - 9] = 9;
+                else if (pack.isLiquid(blocks[idx]))
+                    levels[idx] = pack.liquidLevel(blocks[idx]);
+            }
+        }
+    }
+    bool isLava = pack.isLava(blocks[4]);
+    bool hasFace[] = {
+        pack.isLiquid(blocks[3]),
+        pack.isLiquid(blocks[5]),
+        pack.isLiquid(getBlock(x, y - 1, z)),
+        pack.isLiquid(blocks[13]),
+        pack.isLiquid(blocks[1]),
+        pack.isLiquid(blocks[7]),
+    };
+
+    int heights[] = {
+        max(levels[0], levels[1], levels[3], levels[4]),
+        max(levels[1], levels[2], levels[4], levels[5]),
+        max(levels[3], levels[4], levels[6], levels[7]),
+        max(levels[4], levels[5], levels[7], levels[8])
+    };
+    int scale[] = {
+        1 + isAir[0] + isAir[1] + isAir[3] + isAir[4],
+        1 + isAir[1] + isAir[2] + isAir[4] + isAir[5],
+        1 + isAir[3] + isAir[4] + isAir[6] + isAir[7],
+        1 + isAir[4] + isAir[5] + isAir[7] + isAir[8]
+    };
+    for (int i = 0; i < 4; ++i)
+        if (heights[i] >= 8)
+            scale[i] = 1;
+
+    uint32 key = 0;
+    for (int i = 0; i < 4; ++i)
+        key = (key << 4) | uint32(heights[i]);
+    for (int i = 0; i < 6; ++i)
+        key = (key << 1) | (hasFace[i] ? 1 : 0);
+    key = (key << 1) | (isLava ? 1 : 0);
+
+    auto iter = _liquidMap.find(key);
+    if (iter != _liquidMap.end())
+        return iter->second;
+
+    static Vec3f faceVerts[6][4] = {
+        {{0.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f}},
+        {{1.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 1.0f}},
+        {{0.0f, 0.0f, 1.0f}, {1.0f, 0.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
+        {{0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 1.0f}},
+        {{1.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+        {{0.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}},
+    };
+    static const int indices[6][4] = {
+        {0, 2, 2, 0}, {3, 1, 1, 3}, {2, 3, 1, 0},
+        {0, 1, 3, 2}, {1, 0, 0, 1}, {2, 3, 3, 2}
+    };
+    static const int indexToUv[4][4] = {{4, 5, 7, 8}, {3, 4, 6, 7}, {1, 2, 4, 5}, {0, 1, 3, 4}};
+    CONSTEXPR float neg = 0.5f - 0.70711f;
+    CONSTEXPR float pos = 0.5f + 0.70711f;
+    static const Vec2f uvs[10][4] = {
+        {{0.5f,  pos}, { neg, 0.5f}, {0.5f,  neg}, { pos, 0.5f}},
+        {{1.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 1.0f}, {1.0f, 1.0f}},
+        {{ pos, 0.5f}, {0.5f,  pos}, { neg, 0.5f}, {0.5f,  neg}},
+
+        {{1.0f, 1.0f}, {1.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 1.0f}},
+        {{1.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 1.0f}, {1.0f, 1.0f}},
+        {{0.0f, 0.0f}, {0.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 0.0f}},
+
+        {{ neg, 0.5f}, {0.5f,  neg}, { pos, 0.5f}, {0.5f,  pos}},
+        {{0.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 0.0f}, {0.0f, 0.0f}},
+        {{0.5f,  neg}, { pos, 0.5f}, {0.5f,  pos}, { neg, 0.5f}},
+
+        {{1.0f, -1.0f}, {-1.0f, -1.0f}, {-1.0f, 1.0f}, {1.0f, 1.0f}},
+    };
+
+    std::vector<TexturedQuad> model;
+
+    auto buildVertex = [&](int i, int t, int uvIndex, Vec3f &posDst, Vec2f &uvDst) {
+        int idx = indices[i][t];
+        posDst = faceVerts[i][t];
+        posDst.y() *= heights[idx]/(9.0f*scale[idx]);
+
+        Vec3f x = faceVerts[i][1] - faceVerts[i][0];
+        Vec3f y = faceVerts[i][3] - faceVerts[i][0];
+        float u = x.dot(posDst - faceVerts[i][0])/x.lengthSq();
+        float v = y.dot(posDst - faceVerts[i][0])/y.lengthSq();
+        uvDst = uvs[uvIndex][0]*(1.0f - u - v) + uvs[uvIndex][1]*u + uvs[uvIndex][3]*v;
+        uvDst = uvDst*0.5f + 0.5f;
+    };
+
+    for (int i = 0; i < 6; ++i) {
+        if (hasFace[i])
+            continue;
+
+        int maxDiff = 0;
+        int idx = 4;
+        if (i/2 == 1) {
+            for (int j = 0, k = 3, l = 2; j < 4; l = k, k = j, ++j) {
+                int diffS = heights[indices[i][k]] - heights[indices[i][j]];
+                int diffD = heights[indices[i][l]] - heights[indices[i][j]];
+                if (diffS > maxDiff) maxDiff = diffS, idx = indexToUv[indices[i][k]][indices[i][j]];
+                if (diffD > maxDiff) maxDiff = diffD, idx = indexToUv[indices[i][l]][indices[i][j]];
+            }
+            if (idx == 4)
+                idx = 9;
+        }
+
+        TexturedQuad quad;
+        quad.texture = pack.liquidTexture(isLava, idx == 9);
+        quad.tintIndex = -1;
+        buildVertex(i, 0, idx, quad.p0, quad.uv0);
+        buildVertex(i, 1, idx, quad.p1, quad.uv1);
+        buildVertex(i, 2, idx, quad.p2, quad.uv2);
+        buildVertex(i, 3, idx, quad.p3, quad.uv3);
+        model.emplace_back(std::move(quad));
+    }
+
+    convertQuads(pack, model, Mat4f());
+
+    _liquidMap.insert(std::make_pair(key, int(_modelSpan.size()) - 1));
+
+    return _modelSpan.size() - 1;
+}
+
 void TraceableMinecraftMap::resolveBlocks(ResourcePackLoader &pack)
 {
     struct DeferredBlock
@@ -321,22 +458,28 @@ void TraceableMinecraftMap::resolveBlocks(ResourcePackLoader &pack)
 
     for (auto &region : _regions) {
         region.second->iterateNonZeroVoxels([&](ElementType &voxel, int x, int y, int z) {
+            int globalX = region.first.x()*256 + x;
+            int globalZ = region.first.y()*256 + z;
             if (pack.isSpecialBlock(voxel)) {
-                const ModelRef *ref = pack.mapSpecialBlock(*this, region.first.x()*256 + x, y,
-                        region.first.y()*256 + z, x + 256*y + 256*256*z, voxel);
+                const ModelRef *ref = pack.mapSpecialBlock(*this, globalX, y, globalZ,
+                        x + 256*y + 256*256*z, voxel);
                 ElementType value = 0;
                 auto iter = _modelToPrimitive.find(ref);
                 if (iter != _modelToPrimitive.end())
                     value = iter->second + 1;
 
                 deferredBlocks.push_back(DeferredBlock{voxel, value});
+            } else if (pack.isLiquid(voxel)) {
+                deferredBlocks.push_back(DeferredBlock{
+                    voxel, ElementType(resolveLiquidBlock(pack, globalX, y, globalZ)) + 1
+                });
             }
         });
     }
 
     for (auto &region : _regions) {
         region.second->iterateNonZeroVoxels([&](ElementType &voxel, int x, int y, int z) {
-            if (!pack.isSpecialBlock(voxel)) {
+            if (!pack.isSpecialBlock(voxel) && !pack.isLiquid(voxel)) {
                 const ModelRef *ref = pack.mapBlock(voxel, x + 256*y + 256*256*z);
                 auto iter = _modelToPrimitive.find(ref);
                 if (iter == _modelToPrimitive.end())

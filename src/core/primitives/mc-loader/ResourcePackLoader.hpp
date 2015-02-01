@@ -49,6 +49,11 @@ class ResourcePackLoader {
         FLAG_CONNECTS_REDSTONE = 0x08,
         FLAG_FLAMMABLE         = 0x10,
     };
+
+    static CONSTEXPR int ID_WATER_FLOWING = 8;
+    static CONSTEXPR int ID_WATER         = 9;
+    static CONSTEXPR int ID_LAVA_FLOWING  = 10;
+    static CONSTEXPR int ID_LAVA          = 11;
     static CONSTEXPR int ID_REDSTONE      = 55;
     static CONSTEXPR int ID_SNOW          = 78;
     static CONSTEXPR int ID_SNOW_BLOCK    = 80;
@@ -155,6 +160,32 @@ public:
         return _blockFlags[id >> 4] & FLAG_OPAQUE;
     }
 
+    bool isWater(uint32 id) const
+    {
+        return (id >> 4) == ID_WATER || (id >> 4) == ID_WATER_FLOWING;
+    }
+
+    bool isLava(uint32 id) const
+    {
+        return (id >> 4) == ID_LAVA || (id >> 4) == ID_LAVA_FLOWING;
+    }
+
+    bool isLiquid(uint32 id) const
+    {
+        return isLava(id) || isWater(id);
+    }
+
+    int liquidLevel(uint32 id) const
+    {
+        return ((id & 8) != 0) ? 8 : (8 - (id & 0x7));
+    }
+
+    std::string liquidTexture(bool lava, bool still) const
+    {
+        if (still)
+            return lava ? "blocks/lava_still" : "blocks/water_still";
+        else
+            return lava ? "blocks/lava_flow" : "blocks/water_flow";
     }
 };
 
