@@ -14,6 +14,7 @@ const char *ResourcePackLoader::stateBase = "assets/minecraft/blockstates/";
 const char *ResourcePackLoader::textureBase = "assets/minecraft/textures/";
 const char *ResourcePackLoader::blockMapPath = "mapping.json";
 const char *ResourcePackLoader::biomePath = "biomes.json";
+const char *ResourcePackLoader::emitterPath = "emitters.json";
 
 ResourcePackLoader::ResourcePackLoader(const std::string packPath)
 : _packPath(FileUtils::addSeparator(packPath))
@@ -24,6 +25,7 @@ ResourcePackLoader::ResourcePackLoader(const std::string packPath)
     buildBlockMapping();
     fixTintIndices();
     generateBiomeColors();
+    loadEmitters();
 }
 
 ResourcePackLoader::SpecialCase ResourcePackLoader::caseStringToType(const std::string &special) const
@@ -429,6 +431,32 @@ void ResourcePackLoader::generateBiomeColors()
         _biomes[165 + i].grassBottom = _biomes[165 + i].grassTop = Vec3f(0.56f, 0.5f, 0.3f);
         _biomes[ 37 + i].foliageBottom = _biomes[ 37 + i].foliageTop = Vec3f(0.62f, 0.5f, 0.3f);
         _biomes[165 + i].foliageBottom = _biomes[165 + i].foliageTop = Vec3f(0.62f, 0.5f, 0.3f);
+    }
+}
+
+void ResourcePackLoader::loadEmitters()
+{
+    std::string json = FileUtils::loadText(_packPath + emitterPath);
+    if (json.empty())
+        return;
+
+    rapidjson::Document document;
+    document.Parse<0>(json.c_str());
+    if (document.HasParseError() || !document.IsArray())
+        return;
+
+    for (unsigned i = 0; i < document.Size(); ++i) {
+        std::string texture;
+        float scale = 1.0f;
+        Vec3f emission(0.0f);
+
+        if (!JsonUtils::fromJson(document[i], "texture", texture))
+            continue;
+
+        JsonUtils::fromJson(document[i], "emission_color", emission);
+        JsonUtils::fromJson(document[i], "emission_scale", scale);
+
+        _emitters.insert(std::make_pair(std::move(texture), emission/255.0f*scale));
     }
 }
 

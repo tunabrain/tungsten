@@ -15,7 +15,8 @@ namespace Tungsten {
 class TraceableMinecraftMap;
 class File;
 
-struct BiomeColor {
+struct BiomeColor
+{
     Vec3f foliageBottom, foliageTop;
     Vec3f grassBottom, grassTop;
     float height;
@@ -102,7 +103,7 @@ private:
 
     std::vector<const BlockVariant *> _blockMapping;
     std::unordered_map<uint32, const BlockVariant *> _specialMapping;
-
+    std::unordered_map<std::string, Vec3f> _emitters;
 
     std::vector<BiomeColor> _biomes;
 
@@ -122,6 +123,7 @@ private:
     void loadModels(File dir, std::string base = "");
     void fixTintIndices();
     void generateBiomeColors();
+    void loadEmitters();
 
 public:
     static const char *modelBase;
@@ -129,6 +131,7 @@ public:
     static const char *textureBase;
     static const char *blockMapPath;
     static const char *biomePath;
+    static const char *emitterPath;
 
     ResourcePackLoader(const std::string packPath);
 
@@ -148,6 +151,20 @@ public:
     std::string textureBasePath() const
     {
         return _packPath + textureBase;
+    }
+
+    bool isEmissive(const std::string &texture) const
+    {
+        return _emitters.count(texture);
+    }
+
+    Vec3f emission(const std::string &texture) const
+    {
+        auto iter = _emitters.find(texture);
+        if (iter == _emitters.end())
+            return Vec3f(0.0f);
+        else
+            return iter->second;
     }
 
     bool isSpecialBlock(uint32 id) const
