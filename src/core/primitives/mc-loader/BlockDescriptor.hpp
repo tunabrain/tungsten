@@ -43,6 +43,11 @@ public:
     {
         return _variants;
     }
+
+    std::vector<BlockVariant> &variants()
+    {
+        return _variants;
+    }
 };
 
 }

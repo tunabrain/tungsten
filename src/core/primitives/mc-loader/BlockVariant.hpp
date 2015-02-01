@@ -27,9 +27,19 @@ public:
             _models.emplace_back(v, resolver);
     }
 
+    std::string &variant()
+    {
+        return _variant;
+    }
+
     const std::string &variant() const
     {
         return _variant;
+    }
+
+    std::vector<ModelRef> &models()
+    {
+        return _models;
     }
 
     const std::vector<ModelRef> &models() const

@@ -69,7 +69,7 @@ class TraceableMinecraftMap : public Primitive
             bool &clamp, bool &linear);
 
     void loadTexture(ResourcePackLoader &pack, const std::string &path,
-            std::shared_ptr<BitmapTexture> &albedo, std::shared_ptr<BitmapTexture> &opacity);
+            std::shared_ptr<BitmapTexture> &albedo, std::shared_ptr<BitmapTexture> &opacity, Vec4c tint);
     int fetchBsdf(ResourcePackLoader &pack, const TexturedQuad &quad);
 
     void buildBiomeColors(ResourcePackLoader &pack, int x, int z, uint8 *biomes);

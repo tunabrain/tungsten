@@ -87,7 +87,7 @@ void TraceableMinecraftMap::getTexProperties(const std::string &path, int w, int
 }
 
 void TraceableMinecraftMap::loadTexture(ResourcePackLoader &pack, const std::string &name,
-        std::shared_ptr<BitmapTexture> &albedo, std::shared_ptr<BitmapTexture> &opacity)
+        std::shared_ptr<BitmapTexture> &albedo, std::shared_ptr<BitmapTexture> &opacity, Vec4c tint)
 {
     std::string path = pack.textureBasePath() + name + ".png";
 
@@ -106,7 +106,7 @@ void TraceableMinecraftMap::loadTexture(ResourcePackLoader &pack, const std::str
     for (int y = 0; y < tileH; ++y) {
         for (int x = 0; x < tileW; ++x) {
             for (int i = 0; i < 4; ++i)
-                tile[i + 4*(x + y*tileW)] = img[i + 4*(x + y*w)];
+                tile[i + 4*(x + y*tileW)] = (int(img[i + 4*(x + (y + yOffset)*w)])*tint[i]) >> 8;
             opaque = opaque && (tile[3 + 4*(x + y*tileW)] == 0xFF);
         }
     }
@@ -131,24 +131,30 @@ int TraceableMinecraftMap::fetchBsdf(ResourcePackLoader &pack, const TexturedQua
     if (!quad.overlay.empty())
         key += "&" + quad.overlay;
 
+    Vec4c filter(255);
     if (quad.tintIndex == ResourcePackLoader::TINT_FOLIAGE)
         key += "-BIOME_FOLIAGE";
     else if (quad.tintIndex == ResourcePackLoader::TINT_GRASS)
         key += "-BIOME_GRASS";
+    else if (quad.tintIndex != ResourcePackLoader::TINT_NONE) {
+        int level = quad.tintIndex - ResourcePackLoader::TINT_REDSTONE0;
+        key += tfm::format("-REDSTONE_TINT%i", level);
+        filter = Vec4c(Vec4i((191*level)/15 + 64, (64*level)/15, 0, 255));
+    }
 
     auto iter = _bsdfCache.find(key);
     if (iter != _bsdfCache.end())
         return iter->second;
 
     std::shared_ptr<BitmapTexture> albedo, opacity;
-    loadTexture(pack, quad.texture, albedo, opacity);
+    loadTexture(pack, quad.texture, albedo, opacity, filter);
 
     if (!albedo)
         return 0;
 
     std::shared_ptr<BitmapTexture> overlayAlbedo, overlayMask;
     if (!quad.overlay.empty())
-        loadTexture(pack, quad.overlay, overlayAlbedo, overlayMask);
+        loadTexture(pack, quad.overlay, overlayAlbedo, overlayMask, Vec4c(255));
 
     std::shared_ptr<BitmapTexture> substrate, overlay, overlayOpacity;
     if (overlayAlbedo) {

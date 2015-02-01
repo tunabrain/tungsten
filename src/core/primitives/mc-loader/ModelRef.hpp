@@ -73,6 +73,11 @@ public:
     {
         return _builtModel;
     }
+
+    void setBuiltModel(const std::vector<TexturedQuad> *model)
+    {
+        _builtModel = model;
+    }
 };
 
 }
