@@ -477,7 +477,7 @@ float TraceableMinecraftMap::approximateRadiance(const Vec3f &/*p*/) const
 
 Box3f TraceableMinecraftMap::bounds() const
 {
-    return Box3f(Vec3f(0.0f), Vec3f(256.0f));
+    return _bounds;
 }
 
 const TriangleMesh &TraceableMinecraftMap::asTriangleMesh()
