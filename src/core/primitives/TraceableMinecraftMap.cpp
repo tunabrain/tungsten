@@ -25,10 +25,17 @@
 
 namespace Tungsten {
 
+struct MapIntersection
+{
+    float u, v;
+    uint32 id;
+};
+
 TraceableMinecraftMap::TraceableMinecraftMap()
 : _missingBsdf(std::make_shared<LambertBsdf>())
 {
     _missingBsdf->setAlbedo(std::make_shared<ConstantTexture>(0.2f));
+    _bsdfs.emplace_back(_missingBsdf);
 }
 
 TraceableMinecraftMap::TraceableMinecraftMap(const TraceableMinecraftMap &o)
@@ -39,8 +46,6 @@ TraceableMinecraftMap::TraceableMinecraftMap(const TraceableMinecraftMap &o)
 
     _missingBsdf = o._missingBsdf;
     _bsdfCache = o._bsdfCache;
-    _models = o._models;
-}
 }
 
 void TraceableMinecraftMap::getTexProperties(const std::string &path, int w, int h,
@@ -119,7 +124,7 @@ void TraceableMinecraftMap::loadTexture(ResourcePackLoader &pack, const std::str
                 tileW, tileH, BitmapTexture::TexelType::SCALAR_LDR, linear, clamp);
 }
 
-std::shared_ptr<Bsdf> TraceableMinecraftMap::fetchBsdf(ResourcePackLoader &pack, const TexturedQuad &quad)
+int TraceableMinecraftMap::fetchBsdf(ResourcePackLoader &pack, const TexturedQuad &quad)
 {
     std::string key = quad.texture;
 
@@ -139,7 +144,7 @@ std::shared_ptr<Bsdf> TraceableMinecraftMap::fetchBsdf(ResourcePackLoader &pack,
     loadTexture(pack, quad.texture, albedo, opacity);
 
     if (!albedo)
-        return nullptr;
+        return 0;
 
     std::shared_ptr<BitmapTexture> overlayAlbedo, overlayMask;
     if (!quad.overlay.empty())
@@ -166,9 +171,10 @@ std::shared_ptr<Bsdf> TraceableMinecraftMap::fetchBsdf(ResourcePackLoader &pack,
     if (opacity)
         bsdf = std::make_shared<TransparencyBsdf>(opacity, bsdf);
 
-    _bsdfCache.insert(std::make_pair(key, bsdf));
+    _bsdfCache.insert(std::make_pair(key, int(_bsdfs.size())));
+    _bsdfs.emplace_back(std::move(bsdf));
 
-    return std::move(bsdf);
+    return _bsdfs.size() - 1;
 }
 
 void TraceableMinecraftMap::buildBiomeColors(ResourcePackLoader &pack, int rx, int rz, uint8 *biomes)
@@ -237,6 +243,42 @@ void TraceableMinecraftMap::buildBiomeColors(ResourcePackLoader &pack, int rx, i
     _biomeMap.insert(std::make_pair(Vec2i(rx, rz), _biomes.back().get()));
 }
 
+void TraceableMinecraftMap::convertQuads(ResourcePackLoader &pack, const std::vector<TexturedQuad> &model, const Mat4f &transform)
+{
+    int base = _geometry.size()*4;
+    int simdBase = base/4;
+    int numTris = model.size()*2;
+    int numSimdTris = (numTris + 3)/4;
+    _geometry.resize(simdBase + numSimdTris);
+    _triInfo.resize(base + numTris);
+
+    _modelSpan.emplace_back(simdBase, simdBase + numSimdTris);
+
+    int idx = base;
+    for (const TexturedQuad &quad : model) {
+        int material = fetchBsdf(pack, quad);
+
+        Vec2f uv0(quad.uv0.x(), 1.0f - quad.uv0.y());
+        Vec2f uv1(quad.uv1.x(), 1.0f - quad.uv1.y());
+        Vec2f uv2(quad.uv2.x(), 1.0f - quad.uv2.y());
+        Vec2f uv3(quad.uv3.x(), 1.0f - quad.uv3.y());
+        Vec3f p0 = transform*quad.p0;
+        Vec3f p1 = transform*quad.p1;
+        Vec3f p2 = transform*quad.p2;
+        Vec3f p3 = transform*quad.p3;
+
+        Vec3f Ng = ((p1 - p0).cross(p2 - p0)).normalized();
+
+        _triInfo[idx + 0] = TriangleInfo{Ng, uv0, uv2, uv1, material};
+        _triInfo[idx + 1] = TriangleInfo{Ng, uv0, uv3, uv2, material};
+
+        _geometry[idx/4].set(idx % 4, p0, p2, p1, idx); idx++;
+        _geometry[idx/4].set(idx % 4, p0, p3, p2, idx); idx++;
+    }
+    for (int i = idx; i < ((idx + 3)/4)*4; ++i)
+        _geometry[i/4].set(i % 4, Vec3f(0.0f), Vec3f(0.0f), Vec3f(0.0f), 0);
+}
+
 void TraceableMinecraftMap::buildModel(ResourcePackLoader &pack, const ModelRef &model)
 {
     if (!model.builtModel())
@@ -249,50 +291,9 @@ void TraceableMinecraftMap::buildModel(ResourcePackLoader &pack, const ModelRef 
         *Mat4f::rotXYZ(Vec3f(0.0f, 0.0f, float(model.zRot())))
         *Mat4f::scale(Vec3f(1.0f/16.0f))
         *Mat4f::translate(Vec3f(-8.0f));
+    _modelToPrimitive.insert(std::make_pair(&model, _modelSpan.size()));
 
-    std::vector<Vertex> verts;
-    std::vector<TriangleI> tris;
-
-    std::vector<std::shared_ptr<Bsdf>> bsdfs;
-    std::unordered_map<const Bsdf *, int> mapping;
-
-    for (const TexturedQuad &quad : *model.builtModel()) {
-        std::shared_ptr<Bsdf> bsdf = fetchBsdf(pack, quad);
-        if (!bsdf)
-            bsdf = _missingBsdf;
-
-        if (!mapping.count(bsdf.get())) {
-            mapping.insert(std::make_pair(bsdf.get(), bsdfs.size()));
-            bsdfs.push_back(bsdf);
-        }
-        int material = mapping[bsdf.get()];
-
-        Vec2f uv0(quad.uv0.x(), 1.0f - quad.uv0.y());
-        Vec2f uv1(quad.uv1.x(), 1.0f - quad.uv1.y());
-        Vec2f uv2(quad.uv2.x(), 1.0f - quad.uv2.y());
-        Vec2f uv3(quad.uv3.x(), 1.0f - quad.uv3.y());
-
-        verts.emplace_back(tform*quad.p0, uv0);
-        verts.emplace_back(tform*quad.p1, uv1);
-        verts.emplace_back(tform*quad.p2, uv2);
-        verts.emplace_back(tform*quad.p0, uv0);
-        verts.emplace_back(tform*quad.p2, uv2);
-        verts.emplace_back(tform*quad.p3, uv3);
-
-        tris.emplace_back(verts.size() - 6, verts.size() - 4, verts.size() - 5, material);
-        tris.emplace_back(verts.size() - 3, verts.size() - 1, verts.size() - 2, material);
-    }
-
-    _modelToPrimitive.insert(std::make_pair(&model, _models.size()));
-
-    _models.emplace_back(std::make_shared<TriangleMesh>(
-        std::move(verts),
-        std::move(tris),
-        std::move(bsdfs),
-        tfm::format("%s-%04d", model.modelPath(), _models.size()),
-        false,
-        true)
-    );
+    convertQuads(pack, *model.builtModel(), tform);
 }
 
 void TraceableMinecraftMap::buildModels(ResourcePackLoader &pack)
@@ -376,9 +377,6 @@ void TraceableMinecraftMap::fromJson(const rapidjson::Value &v, const Scene &sce
 
     resolveBlocks(pack);
 
-    for (auto &m : _models)
-        m->prepareForRender();
-
     _chunkBvh.reset(new Bvh::BinaryBvh(std::move(prims), 1));
 }
 
@@ -393,19 +391,37 @@ rapidjson::Value TraceableMinecraftMap::toJson(Allocator &allocator) const
 
 bool TraceableMinecraftMap::intersect(Ray &ray, IntersectionTemporary &data) const
 {
-    bool hit = false;
-    _chunkBvh->trace(ray, [&](Ray &ray, uint32 id, float /*tMin*/) {
-        _grids[id]->trace(ray, [&](uint32 idx, const Vec3f &offset) {
+    MapIntersection *isect = data.as<MapIntersection>();
+
+    isect->blockIsect = false;
+    isect->face = 0;
+
+    float farT = ray.farT();
+    Vec3f dT = std::abs(1.0f/ray.dir());
+
+    _chunkBvh->trace(ray, [&](Ray &ray, uint32 id, float tMin) {
+        _grids[id]->trace(ray, dT, tMin, [&](uint32 idx, const Vec3f &offset, float /*t*/) {
             Vec3f oldPos = ray.pos();
             ray.setPos(oldPos - offset);
 
-            hit = _models[idx]->intersect(ray, data);
+            int start = _modelSpan[idx].first;
+            int end   = _modelSpan[idx].second;
+
+            for (int i = start; i < end; ++i)
+                intersectTriangle4(ray, _geometry[i], isect->u, isect->v, isect->id);
+
             ray.setPos(oldPos);
-            return hit;
+            return ray.farT() < farT;
         });
     });
 
-    return hit;
+    if (ray.farT() < farT) {
+        data.primitive = this;
+
+        return true;
+    }
+
+    return false;
 }
 
 bool TraceableMinecraftMap::occluded(const Ray &ray) const
@@ -420,8 +436,18 @@ bool TraceableMinecraftMap::hitBackside(const IntersectionTemporary &/*data*/) c
     return false;
 }
 
-void TraceableMinecraftMap::intersectionInfo(const IntersectionTemporary &/*data*/, IntersectionInfo &/*info*/) const
+void TraceableMinecraftMap::intersectionInfo(const IntersectionTemporary &data, IntersectionInfo &info) const
 {
+    const MapIntersection *isect = data.as<MapIntersection>();
+
+    uint32 id = isect->id;
+    info.Ng = info.Ns = _triInfo[id].Ng;
+    Vec2f uv0 = _triInfo[id].uv0;
+    Vec2f uv1 = _triInfo[id].uv1;
+    Vec2f uv2 = _triInfo[id].uv2;
+    info.uv = (1.0f - isect->u - isect->v)*uv0 + isect->u*uv1 + isect->v*uv2;
+    info.bsdf = _bsdfs[_triInfo[id].material].get();
+    info.primitive = this;
 }
 
 bool TraceableMinecraftMap::tangentSpace(const IntersectionTemporary &/*data*/, const IntersectionInfo &/*info*/,
@@ -491,12 +517,12 @@ const TriangleMesh &TraceableMinecraftMap::asTriangleMesh()
 
 int TraceableMinecraftMap::numBsdfs() const
 {
-    return 1;
+    return _bsdfs.size();
 }
 
-std::shared_ptr<Bsdf> &TraceableMinecraftMap::bsdf(int /*index*/)
+std::shared_ptr<Bsdf> &TraceableMinecraftMap::bsdf(int index)
 {
-    return _missingBsdf;
+    return _bsdfs[index];
 }
 
 void TraceableMinecraftMap::prepareForRender()

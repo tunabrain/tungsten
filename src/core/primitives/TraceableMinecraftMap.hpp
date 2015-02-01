@@ -3,12 +3,15 @@
 
 #include "VoxelHierarchy.hpp"
 #include "Primitive.hpp"
+#include "Triangle4.hpp"
 
 #include "materials/BitmapTexture.hpp"
 
 #include "bsdfs/Bsdf.hpp"
 
 #include "bvh/BinaryBvh.hpp"
+
+#include "AlignedAllocator.hpp"
 
 #include <unordered_map>
 #include <memory>
@@ -32,14 +35,26 @@ class TraceableMinecraftMap : public Primitive
 {
     typedef uint32 ElementType;
     typedef VoxelHierarchy<2, 4, ElementType> HierarchicalGrid;
+    template<typename T> using aligned_vector = std::vector<T, AlignedAllocator<T, 4096>>;
+
+    struct TriangleInfo
+    {
+        Vec3f Ng;
+        Vec2f uv0, uv1, uv2;
+        int material;
+    };
 
     std::string _mapPath;
     std::string _packPath;
 
     std::shared_ptr<Bsdf> _missingBsdf;
-    std::unordered_map<std::string, std::shared_ptr<Bsdf>> _bsdfCache;
+    std::vector<std::shared_ptr<Bsdf>> _bsdfs;
+    std::unordered_map<std::string, int> _bsdfCache;
     std::unordered_map<const ModelRef *, int> _modelToPrimitive;
-    std::vector<std::shared_ptr<Primitive>> _models;
+
+    aligned_vector<Triangle4> _geometry;
+    std::vector<TriangleInfo> _triInfo;
+    std::vector<std::pair<int, int>> _modelSpan;
 
     Box3f _bounds;
     std::unique_ptr<TriangleMesh> _proxy;
@@ -55,10 +70,11 @@ class TraceableMinecraftMap : public Primitive
 
     void loadTexture(ResourcePackLoader &pack, const std::string &path,
             std::shared_ptr<BitmapTexture> &albedo, std::shared_ptr<BitmapTexture> &opacity);
-    std::shared_ptr<Bsdf> fetchBsdf(ResourcePackLoader &pack, const TexturedQuad &quad);
+    int fetchBsdf(ResourcePackLoader &pack, const TexturedQuad &quad);
 
     void buildBiomeColors(ResourcePackLoader &pack, int x, int z, uint8 *biomes);
 
+    void convertQuads(ResourcePackLoader &pack, const std::vector<TexturedQuad> &model, const Mat4f &transform);
     void buildModel(ResourcePackLoader &pack, const ModelRef &model);
     void buildModels(ResourcePackLoader &pack);
 
