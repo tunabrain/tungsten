@@ -41,29 +41,6 @@ TraceableMinecraftMap::TraceableMinecraftMap(const TraceableMinecraftMap &o)
     _bsdfCache = o._bsdfCache;
     _models = o._models;
 }
-
-void TraceableMinecraftMap::saveTestScene()
-{
-    int w = int(std::sqrt(_models.size()));
-
-    for (size_t i = 0; i < _models.size(); ++i) {
-        const TriangleMesh &m = *static_cast<const TriangleMesh *>(_models[i].get());
-        MeshIO::save(tfm::format("mctest/%s.wo3", m.name()), m.verts(), m.tris());
-
-        float x = (i % w)*2.0f;
-        float z = (i / w)*2.0f;
-
-        Mat4f offset = Mat4f::translate(Vec3f(x, 0.0f, z));
-        _models[i]->setTransform(offset*_models[i]->transform());
-    }
-
-    Scene::save("mctest/test.json", Scene(
-        ".",
-        _models,
-        std::vector<std::shared_ptr<Bsdf>>(),
-        std::make_shared<TextureCache>(),
-        std::make_shared<PinholeCamera>()
-    ));
 }
 
 void TraceableMinecraftMap::getTexProperties(const std::string &path, int w, int h,
