@@ -123,7 +123,6 @@ public:
                     break;
                 }
             }
-            std::cout << "Single primitive only!" << std::endl;
         } else {
             _scene = new embree::VirtualScene(finiteCount, "bvh2");
             embree::VirtualScene::Object *objects = _scene->objects;
