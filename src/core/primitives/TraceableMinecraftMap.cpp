@@ -13,6 +13,7 @@
 
 #include "bsdfs/TransparencyBsdf.hpp"
 #include "bsdfs/LambertBsdf.hpp"
+#include "bsdfs/NullBsdf.hpp"
 
 #include "math/Mat4f.hpp"
 
@@ -29,13 +30,14 @@ struct MapIntersection
 {
     float u, v;
     uint32 id;
+    bool wasPrimary;
 };
 
 TraceableMinecraftMap::TraceableMinecraftMap()
 : _missingBsdf(std::make_shared<LambertBsdf>())
 {
     _missingBsdf->setAlbedo(std::make_shared<ConstantTexture>(0.2f));
-    _bsdfs.emplace_back(_missingBsdf);
+    _materials.emplace_back(Material{_missingBsdf, nullptr, Vec3f(0.0f)});
 }
 
 TraceableMinecraftMap::TraceableMinecraftMap(const TraceableMinecraftMap &o)
@@ -172,16 +174,23 @@ int TraceableMinecraftMap::fetchBsdf(ResourcePackLoader &pack, const TexturedQua
     else
         base = albedo;
 
-    std::shared_ptr<Bsdf> bsdf(std::make_shared<LambertBsdf>());
-    bsdf->setAlbedo(base);
+    std::shared_ptr<Bsdf> bsdf;
+    std::shared_ptr<BitmapTexture> emission;
+    if (pack.isEmissive(quad.texture)) {
+        emission = albedo;
+        bsdf = std::make_shared<NullBsdf>();
+    } else {
+        bsdf = std::make_shared<LambertBsdf>();
+        bsdf->setAlbedo(base);
+    }
 
     if (opacity)
         bsdf = std::make_shared<TransparencyBsdf>(opacity, bsdf);
 
-    _bsdfCache.insert(std::make_pair(key, int(_bsdfs.size())));
-    _bsdfs.emplace_back(std::move(bsdf));
+    _bsdfCache.insert(std::make_pair(key, int(_materials.size())));
+    _materials.emplace_back(Material{std::move(bsdf), emission, pack.emission(quad.texture)});
 
-    return _bsdfs.size() - 1;
+    return _materials.size() - 1;
 }
 
 void TraceableMinecraftMap::buildBiomeColors(ResourcePackLoader &pack, int rx, int rz, uint8 *biomes)
@@ -539,9 +548,7 @@ rapidjson::Value TraceableMinecraftMap::toJson(Allocator &allocator) const
 bool TraceableMinecraftMap::intersect(Ray &ray, IntersectionTemporary &data) const
 {
     MapIntersection *isect = data.as<MapIntersection>();
-
-    isect->blockIsect = false;
-    isect->face = 0;
+    isect->wasPrimary = ray.isPrimaryRay();
 
     float farT = ray.farT();
     Vec3f dT = std::abs(1.0f/ray.dir());
@@ -593,7 +600,7 @@ void TraceableMinecraftMap::intersectionInfo(const IntersectionTemporary &data, 
     Vec2f uv1 = _triInfo[id].uv1;
     Vec2f uv2 = _triInfo[id].uv2;
     info.uv = (1.0f - isect->u - isect->v)*uv0 + isect->u*uv1 + isect->v*uv2;
-    info.bsdf = _bsdfs[_triInfo[id].material].get();
+    info.bsdf = _materials[_triInfo[id].material].bsdf.get();
     info.primitive = this;
 }
 
@@ -664,12 +671,12 @@ const TriangleMesh &TraceableMinecraftMap::asTriangleMesh()
 
 int TraceableMinecraftMap::numBsdfs() const
 {
-    return _bsdfs.size();
+    return _materials.size();
 }
 
 std::shared_ptr<Bsdf> &TraceableMinecraftMap::bsdf(int index)
 {
-    return _bsdfs[index];
+    return _materials[index].bsdf;
 }
 
 void TraceableMinecraftMap::prepareForRender()
@@ -689,6 +696,29 @@ void TraceableMinecraftMap::cleanupAfterRender()
 Primitive *TraceableMinecraftMap::clone()
 {
     return new TraceableMinecraftMap(*this);
+}
+
+bool TraceableMinecraftMap::isEmissive() const
+{
+    return true;
+}
+
+Vec3f TraceableMinecraftMap::emission(const IntersectionTemporary &data, const IntersectionInfo &info) const
+{
+    const MapIntersection *isect = data.as<MapIntersection>();
+
+    const Material &material = _materials[_triInfo[isect->id].material];
+
+    const BitmapTexture *emitter = material.emission.get();
+
+    if (emitter) {
+        if (isect->wasPrimary)
+            return (*emitter)[info.uv];
+        else
+            return material.emissionColor;
+    } else {
+        return Vec3f(0.0f);
+    }
 }
 
 }

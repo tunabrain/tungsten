@@ -43,12 +43,18 @@ class TraceableMinecraftMap : public Primitive
         Vec2f uv0, uv1, uv2;
         int material;
     };
+    struct Material
+    {
+        std::shared_ptr<Bsdf> bsdf;
+        std::shared_ptr<BitmapTexture> emission;
+        Vec3f emissionColor;
+    };
 
     std::string _mapPath;
     std::string _packPath;
 
     std::shared_ptr<Bsdf> _missingBsdf;
-    std::vector<std::shared_ptr<Bsdf>> _bsdfs;
+    std::vector<Material> _materials;
     std::unordered_map<std::string, int> _bsdfCache;
     std::unordered_map<const ModelRef *, int> _modelToPrimitive;
     std::unordered_map<uint32, int> _liquidMap;
@@ -124,6 +130,9 @@ public:
     virtual void cleanupAfterRender() override;
 
     virtual Primitive *clone() override;
+
+    virtual bool isEmissive() const override;
+    virtual Vec3f emission(const IntersectionTemporary &data, const IntersectionInfo &info) const override;
 
     inline uint32 getBlock(int x, int y, int z) const
     {
