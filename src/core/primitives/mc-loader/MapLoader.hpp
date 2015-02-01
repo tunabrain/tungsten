@@ -56,7 +56,7 @@ class MapLoader
                         _regionGrid[base + x + 256*y + 256*256*z] = blockId;
 
                         if (blockId)
-                            _regionHeight = max(_regionHeight, chunkY*16 + y);
+                            _regionHeight = max(_regionHeight, chunkY*16 + y + 1);
                     }
                 }
             }
