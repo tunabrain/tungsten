@@ -16,12 +16,13 @@ class Ray
     float _time;
     float _footprint;
     float _diameter;
+    bool _primaryRay;
 
 public:
     Ray() = default;
 
     Ray(const Vec3f &pos, const Vec3f &dir, float nearT = 1e-4f, float farT = 1e30f, float time = 0.0f)
-    : _pos(pos), _dir(dir), _nearT(nearT), _farT(farT), _time(time), _footprint(0.0f), _diameter(0.0f)
+    : _pos(pos), _dir(dir), _nearT(nearT), _farT(farT), _time(time), _footprint(0.0f), _diameter(0.0f), _primaryRay(false)
     {
     }
 
@@ -115,6 +116,16 @@ public:
     void setDiameter(float diameter)
     {
         _diameter = diameter;
+    }
+
+    bool isPrimaryRay() const
+    {
+        return _primaryRay;
+    }
+
+    void setPrimaryRay(bool value)
+    {
+        _primaryRay = value;
     }
 
     void advanceFootprint()

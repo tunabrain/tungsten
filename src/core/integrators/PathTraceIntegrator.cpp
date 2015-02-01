@@ -413,6 +413,7 @@ bool PathTraceIntegrator::handleVolume(SampleGenerator &sampler, UniformSampler 
         if (!medium->scatter(event))
             return false;
         ray = ray.scatter(event.p, event.wo, 0.0f, event.pdf);
+        ray.setPrimaryRay(false);
         throughput *= event.throughput;
         hitSurface = false;
     } else {
@@ -445,6 +446,7 @@ bool PathTraceIntegrator::handleSurface(IntersectionTemporary &data, Intersectio
         if (!GeneralizedShadowRays)
             wasSpecular = true;
     } else {
+        ray.setPrimaryRay(false);
         if (_enableLightSampling) {
             if ((wasSpecular || !info.primitive->isSamplable()) && bounce >= _minBounces)
                 emission += info.primitive->emission(data, info)*throughput;
@@ -530,6 +532,7 @@ Vec3f PathTraceIntegrator::traceSample(Vec2u pixel, SampleGenerator &sampler, Un
     Vec3f throughput(1.0f);
     if (!_scene->cam().generateSample(pixel, sampler, throughput, ray))
         return Vec3f(0.0f);
+    ray.setPrimaryRay(true);
 
     IntersectionTemporary data;
     Medium::MediumState state;
