@@ -386,6 +386,17 @@ void Scene::fromJson(const rapidjson::Value &v, const Scene &scene)
 
     if (renderer && renderer->value.IsObject())
         _rendererSettings.fromJson(renderer->value, *this);
+
+    for (size_t i = 0; i < _primitives.size(); ++i) {
+        auto helperPrimitives = _primitives[i]->createHelperPrimitives();
+        if (!helperPrimitives.empty()) {
+            _primitives.reserve(_primitives.size() + helperPrimitives.size());
+            for (size_t t = 0; t < helperPrimitives.size(); ++t) {
+                _helperPrimitives.insert(helperPrimitives[t].get());
+                _primitives.emplace_back(std::move(helperPrimitives[t]));
+            }
+        }
+    }
 }
 
 rapidjson::Value Scene::toJson(Allocator &allocator) const
@@ -402,7 +413,8 @@ rapidjson::Value Scene::toJson(Allocator &allocator) const
 
     rapidjson::Value primitives(rapidjson::kArrayType);
     for (const std::shared_ptr<Primitive> &t : _primitives)
-        primitives.PushBack(t->toJson(allocator), allocator);
+        if (!_helperPrimitives.count(t.get()))
+            primitives.PushBack(t->toJson(allocator), allocator);
 
     v.AddMember("media", media, allocator);
     v.AddMember("bsdfs", bsdfs, allocator);

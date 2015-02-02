@@ -18,6 +18,7 @@
 #include "io/JsonSerializable.hpp"
 #include "io/JsonUtils.hpp"
 
+#include <vector>
 #include <memory>
 
 namespace Tungsten {
@@ -82,6 +83,11 @@ public:
 
     void setupTangentFrame(const IntersectionTemporary &data,
             const IntersectionInfo &info, TangentFrame &dst) const;
+
+    virtual std::vector<std::shared_ptr<Primitive>> createHelperPrimitives()
+    {
+        return std::vector<std::shared_ptr<Primitive>>();
+    }
 
     virtual bool isEmissive() const
     {

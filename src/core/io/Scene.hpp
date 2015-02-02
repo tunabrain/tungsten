@@ -41,6 +41,8 @@ class Scene : public JsonSerializable
     std::shared_ptr<Camera> _camera;
     std::shared_ptr<Integrator> _integrator;
 
+    std::unordered_set<const Primitive *> _helperPrimitives;
+
     RendererSettings _rendererSettings;
 
     std::shared_ptr<Medium>     instantiateMedium    (std::string type, const rapidjson::Value &value) const;
