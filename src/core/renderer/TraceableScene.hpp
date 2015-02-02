@@ -65,9 +65,8 @@ class TraceableScene
     std::vector<std::shared_ptr<Medium>> &_media;
     std::vector<std::shared_ptr<Primitive>> _lights;
     std::vector<std::shared_ptr<Primitive>> _infinites;
+    std::vector<const Primitive *> _finites;
     RendererSettings _settings;
-
-    Primitive *_singlePrimitive = nullptr;
 
     embree::VirtualScene *_scene = nullptr;
     embree::Intersector1 *_intersector = nullptr;
@@ -115,14 +114,7 @@ public:
             _infinites.push_back(defaultLight);
         }
 
-        if (finiteCount == 1) {
-            for (std::shared_ptr<Primitive> &m : _primitives) {
-                if (!m->isInfinite() && !m->isDelta()) {
-                    _singlePrimitive = m.get();
-                    break;
-                }
-            }
-        } else {
+        if (_settings.useSceneBvh()) {
             _scene = new embree::VirtualScene(finiteCount, "bvh2");
             embree::VirtualScene::Object *objects = _scene->objects;
             for (std::shared_ptr<Primitive> &m : _primitives) {
@@ -147,6 +139,10 @@ public:
 
             embree::rtcBuildAccel(_scene, "objectsplit");
             _intersector = embree::rtcQueryIntersector1(_scene, "fast");
+        } else {
+            for (std::shared_ptr<Primitive> &m : _primitives)
+                if (!m->isInfinite() && !m->isDelta())
+                    _finites.push_back(m.get());
         }
     }
 
@@ -175,14 +171,15 @@ public:
         info.primitive = nullptr;
         data.primitive = nullptr;
 
-        if (_singlePrimitive) {
-            _singlePrimitive->intersect(ray, data);
-        } else {
+        if (_settings.useSceneBvh()) {
             PerRayData rayData{data, ray};
             embree::Ray eRay(EmbreeUtil::convert(ray));
             eRay.userData = &rayData;
 
             _intersector->intersect(eRay);
+        } else {
+            for (const Primitive *prim : _finites)
+                prim->intersect(ray, data);
         }
 
         if (data.primitive) {

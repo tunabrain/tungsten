@@ -11,12 +11,14 @@ class Scene;
 class RendererSettings : public JsonSerializable
 {
     bool _useAdaptiveSampling;
+    bool _useSceneBvh;
     bool _useSobol;
 
 public:
     RendererSettings()
     : _useAdaptiveSampling(true),
-      _useSobol(false)
+      _useSceneBvh(true),
+      _useSobol(true)
     {
     }
 
@@ -24,6 +26,7 @@ public:
     {
         JsonUtils::fromJson(v, "adaptive_sampling", _useAdaptiveSampling);
         JsonUtils::fromJson(v, "stratified_sampler", _useSobol);
+        JsonUtils::fromJson(v, "scene_bvh", _useSceneBvh);
     }
 
     virtual rapidjson::Value toJson(Allocator &allocator) const
@@ -31,6 +34,7 @@ public:
         rapidjson::Value v(JsonSerializable::toJson(allocator));
         v.AddMember("adaptive_sampling", _useAdaptiveSampling, allocator);
         v.AddMember("stratified_sampler", _useSobol, allocator);
+        v.AddMember("scene_bvh", _useSceneBvh, allocator);
         return std::move(v);
     }
 
@@ -42,6 +46,11 @@ public:
     bool useSobol() const
     {
         return _useSobol;
+    }
+
+    bool useSceneBvh() const
+    {
+        return _useSceneBvh;
     }
 };
 
