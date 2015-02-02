@@ -1,17 +1,17 @@
 #ifndef TRACEABLEMAP_HPP_
 #define TRACEABLEMAP_HPP_
 
+#include "MultiQuadLight.hpp"
 #include "VoxelHierarchy.hpp"
+#include "QuadMaterial.hpp"
+#include "QuadGeometry.hpp"
 #include "Primitive.hpp"
-#include "Triangle4.hpp"
 
 #include "materials/BitmapTexture.hpp"
 
 #include "bsdfs/Bsdf.hpp"
 
 #include "bvh/BinaryBvh.hpp"
-
-#include "AlignedAllocator.hpp"
 
 #include <unordered_map>
 #include <memory>
@@ -37,31 +37,17 @@ class TraceableMinecraftMap : public Primitive
     typedef VoxelHierarchy<2, 4, ElementType> HierarchicalGrid;
     template<typename T> using aligned_vector = std::vector<T, AlignedAllocator<T, 4096>>;
 
-    struct TriangleInfo
-    {
-        Vec3f Ng;
-        Vec2f uv0, uv1, uv2;
-        int material;
-    };
-    struct Material
-    {
-        std::shared_ptr<Bsdf> bsdf;
-        std::shared_ptr<BitmapTexture> emission;
-        Vec3f emissionColor;
-    };
-
     std::string _mapPath;
     std::string _packPath;
 
     std::shared_ptr<Bsdf> _missingBsdf;
-    std::vector<Material> _materials;
+    std::vector<QuadMaterial> _materials;
     std::unordered_map<std::string, int> _bsdfCache;
     std::unordered_map<const ModelRef *, int> _modelToPrimitive;
     std::unordered_map<uint32, int> _liquidMap;
 
-    aligned_vector<Triangle4> _geometry;
-    std::vector<TriangleInfo> _triInfo;
-    std::vector<std::pair<int, int>> _modelSpan;
+    QuadGeometry _geometry;
+    QuadGeometry _emitterTemplates;
 
     Box3f _bounds;
     std::unique_ptr<TriangleMesh> _proxy;
@@ -71,6 +57,7 @@ class TraceableMinecraftMap : public Primitive
     std::vector<std::unique_ptr<BiomeTileTexture>> _biomes;
     std::unordered_map<Vec2i, const BiomeTileTexture *> _biomeMap;
     std::unique_ptr<Bvh::BinaryBvh> _chunkBvh;
+    std::shared_ptr<MultiQuadLight> _lights;
 
     void getTexProperties(const std::string &path, int w, int h, int &tileW, int &tileH,
             bool &clamp, bool &linear);
@@ -131,8 +118,7 @@ public:
 
     virtual Primitive *clone() override;
 
-    virtual bool isEmissive() const override;
-    virtual Vec3f emission(const IntersectionTemporary &data, const IntersectionInfo &info) const override;
+    virtual std::vector<std::shared_ptr<Primitive>> createHelperPrimitives() override;
 
     inline uint32 getBlock(int x, int y, int z) const
     {

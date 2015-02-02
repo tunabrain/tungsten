@@ -28,8 +28,7 @@ namespace Tungsten {
 
 struct MapIntersection
 {
-    float u, v;
-    uint32 id;
+    QuadGeometry::Intersection isect;
     bool wasPrimary;
 };
 
@@ -37,7 +36,7 @@ TraceableMinecraftMap::TraceableMinecraftMap()
 : _missingBsdf(std::make_shared<LambertBsdf>())
 {
     _missingBsdf->setAlbedo(std::make_shared<ConstantTexture>(0.2f));
-    _materials.emplace_back(Material{_missingBsdf, nullptr, Vec3f(0.0f)});
+    _materials.emplace_back(QuadMaterial{_missingBsdf, nullptr, Vec3f(0.0f)});
 }
 
 TraceableMinecraftMap::TraceableMinecraftMap(const TraceableMinecraftMap &o)
@@ -188,7 +187,7 @@ int TraceableMinecraftMap::fetchBsdf(ResourcePackLoader &pack, const TexturedQua
         bsdf = std::make_shared<TransparencyBsdf>(opacity, bsdf);
 
     _bsdfCache.insert(std::make_pair(key, int(_materials.size())));
-    _materials.emplace_back(Material{std::move(bsdf), emission, pack.emission(quad.texture)});
+    _materials.emplace_back(QuadMaterial{std::move(bsdf), emission, pack.emission(quad.texture)});
 
     return _materials.size() - 1;
 }
@@ -261,38 +260,20 @@ void TraceableMinecraftMap::buildBiomeColors(ResourcePackLoader &pack, int rx, i
 
 void TraceableMinecraftMap::convertQuads(ResourcePackLoader &pack, const std::vector<TexturedQuad> &model, const Mat4f &transform)
 {
-    int base = _geometry.size()*4;
-    int simdBase = base/4;
-    int numTris = model.size()*2;
-    int numSimdTris = (numTris + 3)/4;
-    _geometry.resize(simdBase + numSimdTris);
-    _triInfo.resize(base + numTris);
+    _emitterTemplates.beginModel();
+    _geometry.beginModel();
 
-    _modelSpan.emplace_back(simdBase, simdBase + numSimdTris);
-
-    int idx = base;
     for (const TexturedQuad &quad : model) {
         int material = fetchBsdf(pack, quad);
 
-        Vec2f uv0(quad.uv0.x(), 1.0f - quad.uv0.y());
-        Vec2f uv1(quad.uv1.x(), 1.0f - quad.uv1.y());
-        Vec2f uv2(quad.uv2.x(), 1.0f - quad.uv2.y());
-        Vec2f uv3(quad.uv3.x(), 1.0f - quad.uv3.y());
-        Vec3f p0 = transform*quad.p0;
-        Vec3f p1 = transform*quad.p1;
-        Vec3f p2 = transform*quad.p2;
-        Vec3f p3 = transform*quad.p3;
-
-        Vec3f Ng = ((p1 - p0).cross(p2 - p0)).normalized();
-
-        _triInfo[idx + 0] = TriangleInfo{Ng, uv0, uv2, uv1, material};
-        _triInfo[idx + 1] = TriangleInfo{Ng, uv0, uv3, uv2, material};
-
-        _geometry[idx/4].set(idx % 4, p0, p2, p1, idx); idx++;
-        _geometry[idx/4].set(idx % 4, p0, p3, p2, idx); idx++;
+        if (_materials[material].emission)
+            _emitterTemplates.addQuad(quad, material, transform);
+        else
+            _geometry.addQuad(quad, material, transform);
     }
-    for (int i = idx; i < ((idx + 3)/4)*4; ++i)
-        _geometry[i/4].set(i % 4, Vec3f(0.0f), Vec3f(0.0f), Vec3f(0.0f), 0);
+
+    _emitterTemplates.endModel();
+    _geometry.endModel();
 }
 
 void TraceableMinecraftMap::buildModel(ResourcePackLoader &pack, const ModelRef &model)
@@ -307,7 +288,7 @@ void TraceableMinecraftMap::buildModel(ResourcePackLoader &pack, const ModelRef 
         *Mat4f::rotXYZ(Vec3f(0.0f, 0.0f, float(model.zRot())))
         *Mat4f::scale(Vec3f(1.0f/16.0f))
         *Mat4f::translate(Vec3f(-8.0f));
-    _modelToPrimitive.insert(std::make_pair(&model, _modelSpan.size()));
+    _modelToPrimitive.insert(std::make_pair(&model, _geometry.size()));
 
     convertQuads(pack, *model.builtModel(), tform);
 }
@@ -449,11 +430,11 @@ int TraceableMinecraftMap::resolveLiquidBlock(ResourcePackLoader &pack, int x, i
         model.emplace_back(std::move(quad));
     }
 
+    _liquidMap.insert(std::make_pair(key, _geometry.size()));
+
     convertQuads(pack, model, Mat4f());
 
-    _liquidMap.insert(std::make_pair(key, int(_modelSpan.size()) - 1));
-
-    return _modelSpan.size() - 1;
+    return _geometry.size() - 1;
 }
 
 void TraceableMinecraftMap::resolveBlocks(ResourcePackLoader &pack)
@@ -500,6 +481,23 @@ void TraceableMinecraftMap::resolveBlocks(ResourcePackLoader &pack)
     }
     for (DeferredBlock &block : deferredBlocks)
         block.dst = block.value;
+
+    std::cout << _emitterTemplates.size() << std::endl;
+
+    QuadGeometry emitters;
+
+    for (auto &region : _regions) {
+        region.second->iterateNonZeroVoxels([&](ElementType &voxel, int x, int y, int z) {
+            int globalX = region.first.x()*256 + x;
+            int globalZ = region.first.y()*256 + z;
+            if (voxel && _emitterTemplates.nonEmpty(voxel - 1))
+                emitters.addQuads(_emitterTemplates, voxel - 1, Mat4f::translate(Vec3f(Vec3i(globalX, y, globalZ))));
+        });
+    }
+
+    std::cout << emitters.size() << std::endl;
+
+    _lights = std::make_shared<MultiQuadLight>(std::move(emitters), _materials);
 }
 
 void TraceableMinecraftMap::fromJson(const rapidjson::Value &v, const Scene &scene)
@@ -558,11 +556,7 @@ bool TraceableMinecraftMap::intersect(Ray &ray, IntersectionTemporary &data) con
             Vec3f oldPos = ray.pos();
             ray.setPos(oldPos - offset);
 
-            int start = _modelSpan[idx].first;
-            int end   = _modelSpan[idx].second;
-
-            for (int i = start; i < end; ++i)
-                intersectTriangle4(ray, _geometry[i], isect->u, isect->v, isect->id);
+            _geometry.intersect(ray, idx, isect->isect);
 
             ray.setPos(oldPos);
             return ray.farT() < farT;
@@ -594,13 +588,9 @@ void TraceableMinecraftMap::intersectionInfo(const IntersectionTemporary &data, 
 {
     const MapIntersection *isect = data.as<MapIntersection>();
 
-    uint32 id = isect->id;
-    info.Ng = info.Ns = _triInfo[id].Ng;
-    Vec2f uv0 = _triInfo[id].uv0;
-    Vec2f uv1 = _triInfo[id].uv1;
-    Vec2f uv2 = _triInfo[id].uv2;
-    info.uv = (1.0f - isect->u - isect->v)*uv0 + isect->u*uv1 + isect->v*uv2;
-    info.bsdf = _materials[_triInfo[id].material].bsdf.get();
+    info.Ng = info.Ns = _geometry.normal(isect->isect);
+    info.uv = _geometry.uv(isect->isect);
+    info.bsdf = _materials[_geometry.material(isect->isect)].bsdf.get();
     info.primitive = this;
 }
 
@@ -612,7 +602,7 @@ bool TraceableMinecraftMap::tangentSpace(const IntersectionTemporary &/*data*/, 
 
 bool TraceableMinecraftMap::isSamplable() const
 {
-    return false;
+    return true;
 }
 
 void TraceableMinecraftMap::makeSamplable(uint32 /*threadIndex*/)
@@ -698,27 +688,9 @@ Primitive *TraceableMinecraftMap::clone()
     return new TraceableMinecraftMap(*this);
 }
 
-bool TraceableMinecraftMap::isEmissive() const
+std::vector<std::shared_ptr<Primitive>> TraceableMinecraftMap::createHelperPrimitives()
 {
-    return true;
-}
-
-Vec3f TraceableMinecraftMap::emission(const IntersectionTemporary &data, const IntersectionInfo &info) const
-{
-    const MapIntersection *isect = data.as<MapIntersection>();
-
-    const Material &material = _materials[_triInfo[isect->id].material];
-
-    const BitmapTexture *emitter = material.emission.get();
-
-    if (emitter) {
-        if (isect->wasPrimary)
-            return (*emitter)[info.uv];
-        else
-            return material.emissionColor;
-    } else {
-        return Vec3f(0.0f);
-    }
+    return std::vector<std::shared_ptr<Primitive>>(1, _lights);
 }
 
 }
