@@ -101,7 +101,7 @@ class NbtTag
 		case TAG_DOUBLE: readBigEndian(s, _data.d); break;
 		case TAG_BYTE_ARRAY: loadArray<int32, int8>(s); break;
 		case TAG_INT_ARRAY: loadArray<int32, int32>(s); break;
-		case TAG_STRING: loadArray<int16, int8>(s); break;
+		case TAG_STRING: loadArray<uint16, int8>(s); break;
 		case TAG_LIST: {
 			int8 byteTag = s.get();
 			if (byteTag < 0 || byteTag >= TAG_COUNT)
@@ -184,7 +184,7 @@ public:
 		if (_type == TAG_END)
 			return;
 
-		loadArray<int16, uint8>(s);
+		loadArray<uint16, uint8>(s);
 		if (_data.c.data) {
 		    _name = std::string(as<const char>(), size_t(_data.c.length));
 		    delete[] as<uint8>();
