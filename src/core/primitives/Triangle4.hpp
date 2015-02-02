@@ -34,6 +34,16 @@ struct Triangle4
         }
         id[k] = id_;
     }
+
+    void get(uint32 k, Vec3f &p0_, Vec3f &p1_, Vec3f &p2_, uint32 &id_) const
+    {
+        for (int i = 0; i < 3; ++i) {
+            p0_[i] = p0[i][k];
+            p1_[i] = p1[i][k];
+            p2_[i] = p2[i][k];
+        }
+        id_ = id[k];
+    }
 };
 
 inline Vec<float4, 3> transpose(const Vec3f &p)
