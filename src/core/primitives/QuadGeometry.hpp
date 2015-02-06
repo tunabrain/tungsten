@@ -62,7 +62,7 @@ public:
         Vec3f p2 = transform*quad.p2;
         Vec3f p3 = transform*quad.p3;
 
-        Vec3f Ng = ((p1 - p0).cross(p2 - p0)).normalized();
+        Vec3f Ng = ((p2 - p0).cross(p1 - p0)).normalized();
 
         _triInfo.emplace_back(TriangleInfo{Ng, p0, p2, p1, uv0, uv2, uv1, material});
         _triInfo.emplace_back(TriangleInfo{Ng, p3, p2, p0, uv3, uv2, uv0, material});
