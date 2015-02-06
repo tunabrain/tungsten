@@ -33,37 +33,37 @@ public:
     {
     }
 
-    const TVec &min() const
+    inline const TVec &min() const
     {
         return _min;
     }
 
-    const TVec &max() const
+    inline const TVec &max() const
     {
         return _max;
     }
 
-    TVec &min()
+    inline TVec &min()
     {
         return _min;
     }
 
-    TVec &max()
+    inline TVec &max()
     {
         return _max;
     }
 
-    TVec center() const
+    inline TVec center() const
     { 
         return (_min + _max)/ElementType(2);
     }
 
-    TVec diagonal() const
+    inline TVec diagonal() const
     {
         return Tungsten::max(_max - _min, TVec(ElementType(0)));
     }
 
-    ElementType area() const
+    inline ElementType area() const
     {
         TVec d(diagonal());
         if (Size == 2)
@@ -73,7 +73,7 @@ public:
         return ElementType(0);
     }
 
-    bool empty() const
+    inline bool empty() const
     {
         TVec diag(diagonal());
         for (unsigned i = 0; i < Size; ++i)
@@ -100,15 +100,15 @@ public:
         _max = Tungsten::max(_max, box._max);
     }
 
-    bool contains(const TVec &p) const
+    inline bool contains(const TVec &p) const
     {
-        for (int i = 0; i < Size; i++)
+        for (unsigned i = 0; i < Size; i++)
             if (p[i] < _min[i] || p[i] > _max[i])
                 return false;
         return true;
     }
 
-    bool contains(const Box &box) const
+    inline bool contains(const Box &box) const
     {
         for (unsigned i = 0; i < Size; i++)
             if (box._max[i] < _min[i] || box._min[i] > _max[i])
