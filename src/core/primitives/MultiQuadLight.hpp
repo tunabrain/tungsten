@@ -1,8 +1,10 @@
 #ifndef MULTIQUADLIGHT_HPP_
 #define MULTIQUADLIGHT_HPP_
 
+#include "SolidAngleBvh.hpp"
 #include "QuadMaterial.hpp"
 #include "QuadGeometry.hpp"
+#include "EmissiveBvh.hpp"
 #include "Primitive.hpp"
 
 #include "bvh/BinaryBvh.hpp"
@@ -14,28 +16,37 @@ namespace Tungsten {
 
 class BitmapTexture;
 
-struct EmissiveQuad
-{
-    Vec3f p0, p1, p2, p3;
-    Vec3f emission;
-};
-
 class MultiQuadLight : public Primitive
 {
     struct ThreadlocalSampleInfo
     {
         std::vector<float> sampleWeights;
+        std::vector<int> insideIds;
+        int insideCount;
+        float outsideWeight;
         Vec3f lastQuery;
+    };
+    struct PrecomputedQuad
+    {
+        Vec3f center;
+        Vec3f Ngu;
     };
 
     QuadGeometry _geometry;
     const std::vector<QuadMaterial> &_materials;
 
     Box3f _bounds;
-    std::vector<std::unique_ptr<ThreadlocalSampleInfo>> _samplers;
+    mutable std::vector<std::unique_ptr<ThreadlocalSampleInfo>> _samplers;
     std::unique_ptr<Bvh::BinaryBvh> _bvh;
+    std::unique_ptr<EmissiveBvh> _sampleBvh;
+    std::unique_ptr<SolidAngleBvh> _evalBvh;
     std::unique_ptr<TriangleMesh> _proxy;
+    std::vector<PrecomputedQuad> _precomputedQuads;
 
+    void buildSampleWeights(uint32 threadIndex, const Vec3f &p) const;
+
+    void constructSampleBounds();
+    void constructSphericalBounds();
 
 public:
     MultiQuadLight(QuadGeometry geometry, const std::vector<QuadMaterial> &materials);
