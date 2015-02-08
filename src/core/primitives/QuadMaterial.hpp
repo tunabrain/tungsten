@@ -5,6 +5,9 @@
 
 #include "bsdfs/Bsdf.hpp"
 
+#include "math/Box.hpp"
+#include "math/Vec.hpp"
+
 #include <memory>
 
 namespace Tungsten {
@@ -12,8 +15,14 @@ namespace Tungsten {
 struct QuadMaterial
 {
     std::shared_ptr<Bsdf> bsdf;
+    std::shared_ptr<Bsdf> emitterBsdf;
+
+    Box2f opaqueBounds;
+    Box2f emitterOpaqueBounds;
+
     std::shared_ptr<BitmapTexture> emission;
-    Vec3f emissionColor;
+    float primaryScale, secondaryScale;
+    float sampleWeight;
 };
 
 }

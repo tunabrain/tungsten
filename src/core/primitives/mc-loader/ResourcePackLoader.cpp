@@ -442,21 +442,30 @@ void ResourcePackLoader::loadEmitters()
 
     rapidjson::Document document;
     document.Parse<0>(json.c_str());
-    if (document.HasParseError() || !document.IsArray())
+    if (document.HasParseError()) {
+        std::cout << "Failed to parse emitter info: " << document.GetParseError() << std::endl;
         return;
+    }
+    if (!document.IsArray()) {
+        std::cout << "Failed to parse emitter info: JSON must be an array" << std::endl;
+        return;
+    }
 
     for (unsigned i = 0; i < document.Size(); ++i) {
-        std::string texture;
-        float scale = 1.0f;
-        Vec3f emission(0.0f);
+        std::string texture, mask;
+        float primaryScale = 1.0f;
+        float secondaryScale = 1.0f;
 
         if (!JsonUtils::fromJson(document[i], "texture", texture))
             continue;
 
-        JsonUtils::fromJson(document[i], "emission_color", emission);
-        JsonUtils::fromJson(document[i], "emission_scale", scale);
+        JsonUtils::fromJson(document[i], "mask", mask);
+        JsonUtils::fromJson(document[i], "primary_scale", primaryScale);
+        JsonUtils::fromJson(document[i], "secondary_scale", secondaryScale);
 
-        _emitters.insert(std::make_pair(std::move(texture), emission/255.0f*scale));
+        _emitters.insert(std::make_pair(std::move(texture), EmitterInfo{
+            primaryScale, secondaryScale, mask
+        }));
     }
 }
 

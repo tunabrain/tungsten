@@ -22,6 +22,13 @@ struct BiomeColor
     float height;
 };
 
+struct EmitterInfo
+{
+    float primaryScale;
+    float secondaryScale;
+    std::string mask;
+};
+
 class ResourcePackLoader {
     enum SpecialCase
     {
@@ -103,7 +110,7 @@ private:
 
     std::vector<const BlockVariant *> _blockMapping;
     std::unordered_map<uint32, const BlockVariant *> _specialMapping;
-    std::unordered_map<std::string, Vec3f> _emitters;
+    std::unordered_map<std::string, EmitterInfo> _emitters;
 
     std::vector<BiomeColor> _biomes;
 
@@ -148,6 +155,11 @@ public:
         return _biomes;
     }
 
+    const std::string &packPath() const
+    {
+        return _packPath;
+    }
+
     std::string textureBasePath() const
     {
         return _packPath + textureBase;
@@ -158,13 +170,13 @@ public:
         return _emitters.count(texture);
     }
 
-    Vec3f emission(const std::string &texture) const
+    const EmitterInfo *emitterInfo(const std::string &texture) const
     {
         auto iter = _emitters.find(texture);
         if (iter == _emitters.end())
-            return Vec3f(0.0f);
+            return nullptr;
         else
-            return iter->second;
+            return &iter->second;
     }
 
     bool isSpecialBlock(uint32 id) const

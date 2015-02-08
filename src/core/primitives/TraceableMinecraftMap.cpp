@@ -36,7 +36,10 @@ TraceableMinecraftMap::TraceableMinecraftMap()
 : _missingBsdf(std::make_shared<LambertBsdf>())
 {
     _missingBsdf->setAlbedo(std::make_shared<ConstantTexture>(0.2f));
-    _materials.emplace_back(QuadMaterial{_missingBsdf, nullptr, Vec3f(0.0f)});
+
+    _materials.emplace_back();
+    _materials.back().bsdf = _missingBsdf;
+    _materials.back().opaqueBounds = Box2f(Vec2f(0.0f), Vec2f(1.0f));
 }
 
 TraceableMinecraftMap::TraceableMinecraftMap(const TraceableMinecraftMap &o)
@@ -88,7 +91,8 @@ void TraceableMinecraftMap::getTexProperties(const std::string &path, int w, int
 }
 
 void TraceableMinecraftMap::loadTexture(ResourcePackLoader &pack, const std::string &name,
-        std::shared_ptr<BitmapTexture> &albedo, std::shared_ptr<BitmapTexture> &opacity, Vec4c tint)
+        std::shared_ptr<BitmapTexture> &albedo, std::shared_ptr<BitmapTexture> &opacity,
+        Box2f &opaqueBounds, Vec4c tint, const uint8 *mask, int maskW, int maskH)
 {
     std::string path = pack.textureBasePath() + name + ".png";
 
@@ -104,14 +108,29 @@ void TraceableMinecraftMap::loadTexture(ResourcePackLoader &pack, const std::str
 
     int yOffset = ((h/tileH)/2)*tileH;
     bool opaque = true;
+    Box2i bounds;
     std::unique_ptr<uint8[]> tile(new uint8[tileW*tileH*4]), alpha;
     for (int y = 0; y < tileH; ++y) {
         for (int x = 0; x < tileW; ++x) {
             for (int i = 0; i < 4; ++i)
-                tile[i + 4*(x + y*tileW)] = (int(img[i + 4*(x + (y + yOffset)*w)])*tint[i]) >> 8;
-            opaque = opaque && (tile[3 + 4*(x + y*tileW)] == 0xFF);
+                tile[i + 4*(x + y*tileW)] = (uint32(img[i + 4*(x + (y + yOffset)*w)])*tint[i])/255;
+            uint8 &alpha = tile[3 + 4*(x + y*tileW)];
+
+            if (mask)
+                alpha = (alpha*uint32(mask[(x*maskW)/tileW + ((y*maskH)/tileH)*maskW]))/255;
+
+            opaque = opaque && (alpha == 0xFF);
+            if (alpha > 0) {
+                bounds.grow(Vec2i(x, y));
+                bounds.grow(Vec2i(x + 1, y + 1));
+            }
+            if (alpha == 0)
+                for (int i = 0; i < 3; ++i)
+                    tile[i + 4*(x + y*tileW)] = 0;
         }
     }
+    opaqueBounds = Box2f(Vec2f(bounds.min())/float(tileW), Vec2f(bounds.max())/float(tileH));
+
     if (!opaque) {
         alpha.reset(new uint8[tileH*tileW]);
         for (int i = 0; i < tileH*tileW; ++i)
@@ -124,6 +143,52 @@ void TraceableMinecraftMap::loadTexture(ResourcePackLoader &pack, const std::str
     if (!opaque)
         opacity = std::make_shared<BitmapTexture>(name + ".png", alpha.release(),
                 tileW, tileH, BitmapTexture::TexelType::SCALAR_LDR, linear, clamp);
+}
+
+void TraceableMinecraftMap::loadMaskedBsdf(std::shared_ptr<Bsdf> &bsdf, Box2f &opaqueBounds,
+        std::shared_ptr<BitmapTexture> &emission, ResourcePackLoader &pack, const TexturedQuad &quad,
+        Vec4c filter, bool emissive, const uint8 *mask, int maskW, int maskH)
+{
+    std::shared_ptr<BitmapTexture> albedo, opacity;
+    loadTexture(pack, quad.texture, albedo, opacity, opaqueBounds, filter, mask, maskW, maskH);
+
+    if (!albedo || opaqueBounds.empty())
+        return;
+
+    std::shared_ptr<BitmapTexture> overlayAlbedo, overlayMask;
+    Box2f overlayBounds;
+    if (!quad.overlay.empty())
+        loadTexture(pack, quad.overlay, overlayAlbedo, overlayMask, overlayBounds, Vec4c(255), mask, maskW, maskH);
+
+    std::shared_ptr<BitmapTexture> substrate, overlay, overlayOpacity;
+    if (overlayAlbedo) {
+        substrate = albedo;
+        overlay = overlayAlbedo;
+        overlayOpacity = overlayMask;
+    } else {
+        overlay = albedo;
+    }
+
+    std::shared_ptr<Texture> base;
+    bool hasBiomeTint =
+        quad.tintIndex == ResourcePackLoader::TINT_FOLIAGE ||
+        quad.tintIndex == ResourcePackLoader::TINT_GRASS;
+
+    if (overlayAlbedo || hasBiomeTint)
+        base = std::make_shared<BiomeTexture>(substrate, overlay, overlayOpacity, _biomeMap, quad.tintIndex);
+    else
+        base = albedo;
+
+    if (emissive) {
+        emission = albedo;
+        bsdf = std::make_shared<NullBsdf>();
+    } else {
+        bsdf = std::make_shared<LambertBsdf>();
+        bsdf->setAlbedo(base);
+    }
+
+    if (opacity)
+        bsdf = std::make_shared<TransparencyBsdf>(opacity, bsdf);
 }
 
 int TraceableMinecraftMap::fetchBsdf(ResourcePackLoader &pack, const TexturedQuad &quad)
@@ -148,46 +213,39 @@ int TraceableMinecraftMap::fetchBsdf(ResourcePackLoader &pack, const TexturedQua
     if (iter != _bsdfCache.end())
         return iter->second;
 
-    std::shared_ptr<BitmapTexture> albedo, opacity;
-    loadTexture(pack, quad.texture, albedo, opacity, filter);
+    _materials.emplace_back();
+    QuadMaterial &material = _materials.back();
 
-    if (!albedo)
-        return 0;
+    bool isEmissive = pack.isEmissive(quad.texture);
 
-    std::shared_ptr<BitmapTexture> overlayAlbedo, overlayMask;
-    if (!quad.overlay.empty())
-        loadTexture(pack, quad.overlay, overlayAlbedo, overlayMask, Vec4c(255));
+    std::unique_ptr<uint8[]> emitterMask;
+    int emitterMaskW, emitterMaskH;
+    if (isEmissive) {
+        const EmitterInfo &info = *pack.emitterInfo(quad.texture);
+        if (!info.mask.empty())
+            emitterMask = ImageIO::loadLdr(pack.packPath() + info.mask,
+                    TexelConversion::REQUEST_AVERAGE, emitterMaskW, emitterMaskH, false);
 
-    std::shared_ptr<BitmapTexture> substrate, overlay, overlayOpacity;
-    if (overlayAlbedo) {
-        substrate = albedo;
-        overlay = overlayAlbedo;
-        overlayOpacity = overlayMask;
-    } else {
-        overlay = albedo;
+        material.primaryScale = info.primaryScale;
+        material.secondaryScale = info.secondaryScale;
     }
 
-    std::shared_ptr<Texture> base;
-    if (overlayAlbedo || quad.tintIndex != ResourcePackLoader::TINT_NONE)
-        base = std::make_shared<BiomeTexture>(substrate, overlay, overlayOpacity, _biomeMap, quad.tintIndex);
-    else
-        base = albedo;
+    if (isEmissive) {
+        loadMaskedBsdf(material.emitterBsdf, material.emitterOpaqueBounds, material.emission, pack,
+                quad, filter, true, emitterMask.get(), emitterMaskW, emitterMaskH);
 
-    std::shared_ptr<Bsdf> bsdf;
-    std::shared_ptr<BitmapTexture> emission;
-    if (pack.isEmissive(quad.texture)) {
-        emission = albedo;
-        bsdf = std::make_shared<NullBsdf>();
-    } else {
-        bsdf = std::make_shared<LambertBsdf>();
-        bsdf->setAlbedo(base);
+        material.sampleWeight = material.emission->maximum().max()*material.secondaryScale;
     }
 
-    if (opacity)
-        bsdf = std::make_shared<TransparencyBsdf>(opacity, bsdf);
+    if (emitterMask)
+        for (int i = 0; i < emitterMaskW*emitterMaskH; ++i)
+            emitterMask[i] = 0xFF - emitterMask[i];
 
-    _bsdfCache.insert(std::make_pair(key, int(_materials.size())));
-    _materials.emplace_back(QuadMaterial{std::move(bsdf), emission, pack.emission(quad.texture)});
+    if (!isEmissive || emitterMask)
+        loadMaskedBsdf(material.bsdf, material.opaqueBounds, material.emission, pack,
+                quad, filter, false, emitterMask.get(), emitterMaskW, emitterMaskH);
+
+    _bsdfCache.insert(std::make_pair(key, int(_materials.size()) - 1));
 
     return _materials.size() - 1;
 }
@@ -266,10 +324,10 @@ void TraceableMinecraftMap::convertQuads(ResourcePackLoader &pack, const std::ve
     for (const TexturedQuad &quad : model) {
         int material = fetchBsdf(pack, quad);
 
-        if (_materials[material].emission)
-            _emitterTemplates.addQuad(quad, material, transform);
-        else
-            _geometry.addQuad(quad, material, transform);
+        if (_materials[material].emitterBsdf)
+            _emitterTemplates.addQuad(quad, material, transform, _materials[material].emitterOpaqueBounds);
+        if (_materials[material].bsdf)
+            _geometry.addQuad(quad, material, transform, _materials[material].opaqueBounds);
     }
 
     _emitterTemplates.endModel();
@@ -393,7 +451,7 @@ int TraceableMinecraftMap::resolveLiquidBlock(ResourcePackLoader &pack, int x, i
     auto buildVertex = [&](int i, int t, int uvIndex, Vec3f &posDst, Vec2f &uvDst) {
         int idx = indices[i][t];
         posDst = faceVerts[i][t];
-        posDst.y() *= heights[idx]/(9.0f*scale[idx]);
+        posDst.y() *= heights[idx]/(9.0f*min(scale[idx], 4));
 
         Vec3f x = faceVerts[i][1] - faceVerts[i][0];
         Vec3f y = faceVerts[i][3] - faceVerts[i][0];
@@ -481,8 +539,6 @@ void TraceableMinecraftMap::resolveBlocks(ResourcePackLoader &pack)
     }
     for (DeferredBlock &block : deferredBlocks)
         block.dst = block.value;
-
-    std::cout << _emitterTemplates.size() << std::endl;
 
     QuadGeometry emitters;
 

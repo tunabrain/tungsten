@@ -62,8 +62,12 @@ class TraceableMinecraftMap : public Primitive
     void getTexProperties(const std::string &path, int w, int h, int &tileW, int &tileH,
             bool &clamp, bool &linear);
 
-    void loadTexture(ResourcePackLoader &pack, const std::string &path,
-            std::shared_ptr<BitmapTexture> &albedo, std::shared_ptr<BitmapTexture> &opacity, Vec4c tint);
+    void loadTexture(ResourcePackLoader &pack, const std::string &path, std::shared_ptr<BitmapTexture> &albedo,
+            std::shared_ptr<BitmapTexture> &opacity, Box2f &opaqueBounds, Vec4c tint, const uint8 *mask,
+            int maskW, int maskH);
+    void loadMaskedBsdf(std::shared_ptr<Bsdf> &bsdf, Box2f &opaqueBounds, std::shared_ptr<BitmapTexture> &emission,
+            ResourcePackLoader &pack, const TexturedQuad &quad, Vec4c filter, bool emissive,
+            const uint8 *mask, int maskW, int maskH);
     int fetchBsdf(ResourcePackLoader &pack, const TexturedQuad &quad);
 
     void buildBiomeColors(ResourcePackLoader &pack, int x, int z, uint8 *biomes);

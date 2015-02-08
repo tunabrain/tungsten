@@ -41,6 +41,24 @@ private:
     std::vector<std::pair<int, int>> _simdSpan, _modelSpan;
     int _triangleOffset;
 
+    void clipPointToRect(Vec3f &p, Vec2f &uv, const Box2f &bounds, const TexturedQuad &quad) const
+    {
+        for (int i = 0; i < 2; ++i) {
+            float offset;
+            if (uv[i] < bounds.min()[i])
+                offset = bounds.min()[i] - uv[i];
+            else if (uv[i] > bounds.max()[i])
+                offset = bounds.max()[i] - uv[i];
+            else
+                offset = 0.0f;
+            if (std::abs(quad.uv0[i] - quad.uv1[i]) > std::abs(quad.uv0[i] - quad.uv3[i]))
+                p += (quad.p0 - quad.p1)*(offset/(quad.uv0[i] - quad.uv1[i]));
+            else
+                p += (quad.p0 - quad.p3)*(offset/(quad.uv0[i] - quad.uv3[i]));
+        }
+        uv = clamp(uv, bounds.min(), bounds.max());
+    }
+
 public:
     QuadGeometry() = default;
 
@@ -51,16 +69,33 @@ public:
         _triangleOffset = 0;
     }
 
-    void addQuad(const TexturedQuad &quad, int material, const Mat4f &transform)
+    void addQuad(const TexturedQuad &quad, int material, const Mat4f &transform, Box2f uvBounds)
     {
-        Vec2f uv0(quad.uv0.x(), 1.0f - quad.uv0.y());
-        Vec2f uv1(quad.uv1.x(), 1.0f - quad.uv1.y());
-        Vec2f uv2(quad.uv2.x(), 1.0f - quad.uv2.y());
-        Vec2f uv3(quad.uv3.x(), 1.0f - quad.uv3.y());
-        Vec3f p0 = transform*quad.p0;
-        Vec3f p1 = transform*quad.p1;
-        Vec3f p2 = transform*quad.p2;
-        Vec3f p3 = transform*quad.p3;
+        Vec2f uv0 = quad.uv0, uv1 = quad.uv1, uv2 = quad.uv2, uv3 = quad.uv3;
+        Vec3f  p0 = quad. p0,  p1 = quad. p1,  p2 = quad. p2,  p3 = quad. p3;
+        if (uvBounds.min() != 0.0f || uvBounds.max() != 1.0f) {
+            Box2f quadBounds;
+            quadBounds.grow(quad.uv0);
+            quadBounds.grow(quad.uv1);
+            quadBounds.grow(quad.uv2);
+            quadBounds.grow(quad.uv3);
+            uvBounds.intersect(quadBounds);
+            if (uvBounds.empty())
+                return;
+
+            clipPointToRect(p0, uv0, uvBounds, quad);
+            clipPointToRect(p1, uv1, uvBounds, quad);
+            clipPointToRect(p2, uv2, uvBounds, quad);
+            clipPointToRect(p3, uv3, uvBounds, quad);
+        }
+        p0 = transform*p0;
+        p1 = transform*p1;
+        p2 = transform*p2;
+        p3 = transform*p3;
+        uv0.y() = 1.0f - uv0.y();
+        uv1.y() = 1.0f - uv1.y();
+        uv2.y() = 1.0f - uv2.y();
+        uv3.y() = 1.0f - uv3.y();
 
         Vec3f Ng = ((p2 - p0).cross(p1 - p0)).normalized();
 

@@ -4,7 +4,6 @@
 #include "SolidAngleBvh.hpp"
 #include "QuadMaterial.hpp"
 #include "QuadGeometry.hpp"
-#include "EmissiveBvh.hpp"
 #include "Primitive.hpp"
 
 #include "bvh/BinaryBvh.hpp"
@@ -38,15 +37,14 @@ class MultiQuadLight : public Primitive
     Box3f _bounds;
     mutable std::vector<std::unique_ptr<ThreadlocalSampleInfo>> _samplers;
     std::unique_ptr<Bvh::BinaryBvh> _bvh;
-    std::unique_ptr<EmissiveBvh> _sampleBvh;
-    std::unique_ptr<SolidAngleBvh> _evalBvh;
+    std::unique_ptr<SolidAngleBvh> _sampleBvh;
     std::unique_ptr<TriangleMesh> _proxy;
     std::vector<PrecomputedQuad> _precomputedQuads;
+    std::vector<float> _triangleAreas;
 
-    void buildSampleWeights(uint32 threadIndex, const Vec3f &p) const;
+    inline float approximateQuadContribution(const Vec3f &p, uint32 quad) const;
 
     void constructSampleBounds();
-    void constructSphericalBounds();
 
 public:
     MultiQuadLight(QuadGeometry geometry, const std::vector<QuadMaterial> &materials);
