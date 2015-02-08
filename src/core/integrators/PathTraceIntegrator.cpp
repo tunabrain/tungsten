@@ -157,6 +157,7 @@ Vec3f PathTraceIntegrator::lightSample(const TangentFrame &frame,
         return Vec3f(0.0f);
 
     Ray ray = parentRay.scatter(sample.p, sample.d, epsilon, sample.pdf);
+    ray.setPrimaryRay(false);
 
     IntersectionTemporary data;
     IntersectionInfo info;
@@ -200,6 +201,7 @@ Vec3f PathTraceIntegrator::bsdfSample(const TangentFrame &frame,
     }
 
     Ray ray = parentRay.scatter(event.info->p, wo, epsilon, event.pdf);
+    ray.setPrimaryRay(false);
 
     IntersectionTemporary data;
     IntersectionInfo info;
@@ -233,6 +235,7 @@ Vec3f PathTraceIntegrator::volumeLightSample(VolumeScatterEvent &event,
         return Vec3f(0.0f);
 
     Ray ray = parentRay.scatter(sample.p, sample.d, 0.0f, sample.pdf);
+    ray.setPrimaryRay(false);
 
     IntersectionTemporary data;
     IntersectionInfo info;
@@ -260,6 +263,7 @@ Vec3f PathTraceIntegrator::volumePhaseSample(const Primitive &light,
         return Vec3f(0.0f);
 
     Ray ray = parentRay.scatter(event.p, event.wo, 0.0f, event.pdf);
+    ray.setPrimaryRay(false);
 
     IntersectionTemporary data;
     IntersectionInfo info;
@@ -446,7 +450,6 @@ bool PathTraceIntegrator::handleSurface(IntersectionTemporary &data, Intersectio
         if (!GeneralizedShadowRays)
             wasSpecular = true;
     } else {
-        ray.setPrimaryRay(false);
         if (_enableLightSampling) {
             if ((wasSpecular || !info.primitive->isSamplable()) && bounce >= _minBounces)
                 emission += info.primitive->emission(data, info)*throughput;
@@ -469,6 +472,8 @@ bool PathTraceIntegrator::handleSurface(IntersectionTemporary &data, Intersectio
 
         throughput *= event.throughput;
         wasSpecular = event.sampledLobe.hasSpecular();
+        if (!wasSpecular)
+            ray.setPrimaryRay(false);
     }
 
     bool geometricBackside = (wo.dot(info.Ng) < 0.0f);
