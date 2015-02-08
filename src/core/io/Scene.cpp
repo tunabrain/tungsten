@@ -9,7 +9,7 @@
 #include "primitives/InfiniteSphereCap.hpp"
 #include "primitives/InfiniteSphere.hpp"
 #include "primitives/TriangleMesh.hpp"
-#include "primitives/SkyDome.hpp"
+#include "primitives/Skydome.hpp"
 #include "primitives/Sphere.hpp"
 #include "primitives/Curves.hpp"
 #include "primitives/Cube.hpp"
