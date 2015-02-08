@@ -35,9 +35,9 @@ BitmapTexture::BitmapTexture(const std::string &path, void *texels, int w, int h
 
         for (int y = 0; y < _h; ++y) {
             for (int x = 0; x < _w; ++x) {
-                _min = min(_min, getRgb(0, 0));
-                _max = max(_max, getRgb(0, 0));
-                _avg += getRgb(0, 0)/float(_w*_h);
+                _min = min(_min, getRgb(x, y));
+                _max = max(_max, getRgb(x, y));
+                _avg += getRgb(x, y)/float(_w*_h);
             }
         }
     } else {
@@ -46,9 +46,9 @@ BitmapTexture::BitmapTexture(const std::string &path, void *texels, int w, int h
 
         for (int y = 0; y < _h; ++y) {
             for (int x = 0; x < _w; ++x) {
-                minT = min(minT, getScalar(0, 0));
-                maxT = max(maxT, getScalar(0, 0));
-                avgT += getScalar(0, 0)/float(_w*_h);
+                minT = min(minT, getScalar(x, y));
+                maxT = max(maxT, getScalar(x, y));
+                avgT += getScalar(x, y)/float(_w*_h);
             }
         }
         _min = Vec3f(minT);
