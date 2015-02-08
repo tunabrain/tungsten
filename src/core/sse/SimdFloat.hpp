@@ -150,7 +150,14 @@ public:
     SimdFloat operator^(const SimdFloat &o) const { return _mm_xor_ps(_a, o._a); }
 
     SimdFloat operator&(const SimdBool<4> &o) const { return _mm_and_ps(_a, o._b); }
-    SimdFloat blend(const SimdFloat &o, const SimdBool<4> &mask) const { return _mm_blendv_ps(_a, o._a, mask._b); }
+    SimdFloat blend(const SimdFloat &o, const SimdBool<4> &mask) const
+    {
+#ifdef __SSE4_1__
+        return _mm_blendv_ps(_a, o._a, mask._b);
+#else
+        return _mm_or_ps(_mm_and_ps(o._a, mask._b), _mm_andnot_ps(mask._b, _a));
+#endif
+    }
 
     SimdFloat &operator+=(const SimdFloat &o) { _a = _mm_add_ps(_a, o._a); return *this; }
     SimdFloat &operator-=(const SimdFloat &o) { _a = _mm_sub_ps(_a, o._a); return *this; }
