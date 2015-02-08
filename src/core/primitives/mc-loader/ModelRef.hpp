@@ -9,6 +9,7 @@
 #include <vector>
 
 namespace Tungsten {
+namespace MinecraftLoader {
 
 class ModelRef
 {
@@ -80,6 +81,7 @@ public:
     }
 };
 
+}
 }
 
 #endif /* MODELREF_HPP_ */

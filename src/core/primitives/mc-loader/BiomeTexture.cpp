@@ -3,6 +3,7 @@
 #include "ResourcePackLoader.hpp"
 
 namespace Tungsten {
+namespace MinecraftLoader {
 
 BiomeTexture::BiomeTexture(std::shared_ptr<BitmapTexture> substrate,
         std::shared_ptr<BitmapTexture> overlay,
@@ -104,4 +105,5 @@ float BiomeTexture::pdf(TextureMapJacobian jacobian, const Vec2f &uv) const
     return _substrate->pdf(jacobian, uv);
 }
 
+}
 }

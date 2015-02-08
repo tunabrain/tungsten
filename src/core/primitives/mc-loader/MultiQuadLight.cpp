@@ -12,6 +12,7 @@
 #include <iostream>
 
 namespace Tungsten {
+namespace MinecraftLoader {
 
 struct QuadLightIntersection
 {
@@ -354,4 +355,5 @@ Vec3f MultiQuadLight::emission(const IntersectionTemporary &data, const Intersec
     return (*emitter)[info.uv]*(isect->wasPrimary ? material.primaryScale : material.secondaryScale);
 }
 
+}
 }

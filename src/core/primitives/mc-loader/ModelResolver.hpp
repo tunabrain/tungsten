@@ -9,6 +9,7 @@
 #include <vector>
 
 namespace Tungsten {
+namespace MinecraftLoader {
 
 class ModelResolver
 {
@@ -94,6 +95,7 @@ public:
     }
 };
 
+}
 }
 
 #endif /* MODELRESOLVER_HPP_ */

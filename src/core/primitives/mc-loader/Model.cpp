@@ -2,6 +2,7 @@
 #include "ModelResolver.hpp"
 
 namespace Tungsten {
+namespace MinecraftLoader {
 
 void Model::instantiateQuads(std::vector<TexturedQuad> &dst, ModelResolver &resolver) const
 {
@@ -15,4 +16,5 @@ void Model::instantiateQuads(std::vector<TexturedQuad> &dst, ModelResolver &reso
         resolver.insertTexture(tex.first, tex.second);
 }
 
+}
 }

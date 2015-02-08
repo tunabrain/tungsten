@@ -11,6 +11,7 @@
 #include <vector>
 
 namespace Tungsten {
+namespace MinecraftLoader {
 
 class SolidAngleBvh
 {
@@ -257,6 +258,7 @@ public:
     }
 };
 
+}
 }
 
 #endif /* SOLIDANGLEBVH_HPP_ */

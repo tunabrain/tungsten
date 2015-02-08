@@ -10,6 +10,7 @@
 #include <array>
 
 namespace Tungsten {
+namespace MinecraftLoader {
 
 class CubeFace
 {
@@ -71,6 +72,7 @@ public:
     }
 };
 
+}
 }
 
 #endif /* CUBEFACE_HPP_ */

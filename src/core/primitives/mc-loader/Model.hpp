@@ -11,6 +11,7 @@
 #include <vector>
 
 namespace Tungsten {
+namespace MinecraftLoader {
 
 class ModelResolver;
 
@@ -62,6 +63,7 @@ public:
     void instantiateQuads(std::vector<TexturedQuad> &dst, ModelResolver &resolver) const;
 };
 
+}
 }
 
 #endif /* MODEL_HPP_ */

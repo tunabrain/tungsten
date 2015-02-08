@@ -6,6 +6,7 @@
 #include <string>
 
 namespace Tungsten {
+namespace MinecraftLoader {
 
 struct TexturedQuad
 {
@@ -22,6 +23,7 @@ struct TexturedQuad
     Vec2f uv3;
 };
 
+}
 }
 
 #endif /* TEXTUREDQUAD_HPP_ */

@@ -4,6 +4,7 @@
 #include <string>
 
 namespace Tungsten {
+namespace MinecraftLoader {
 
 enum NamedFace {
     FACE_WEST    = 0,
@@ -46,6 +47,7 @@ static inline NamedFace stringToCubeFace(const std::string &s)
     return FACE_INVALID;
 }
 
+}
 }
 
 #endif /* NAMEDFACE_HPP_ */

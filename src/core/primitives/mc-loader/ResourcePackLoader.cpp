@@ -8,6 +8,7 @@
 #include "io/JsonUtils.hpp"
 
 namespace Tungsten {
+namespace MinecraftLoader {
 
 const char *ResourcePackLoader::modelBase = "assets/minecraft/models/";
 const char *ResourcePackLoader::stateBase = "assets/minecraft/blockstates/";
@@ -698,5 +699,5 @@ const ModelRef *ResourcePackLoader::mapSpecialBlock(const TraceableMinecraftMap 
     return &variant->models()[model];
 }
 
-
+}
 }

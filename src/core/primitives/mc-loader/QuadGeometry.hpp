@@ -14,6 +14,7 @@
 #include <vector>
 
 namespace Tungsten {
+namespace MinecraftLoader {
 
 class QuadGeometry
 {
@@ -217,6 +218,7 @@ public:
     }
 };
 
+}
 }
 
 #endif /* QUADGEOMETRY_HPP_ */

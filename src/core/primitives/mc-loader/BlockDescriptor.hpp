@@ -10,6 +10,7 @@
 #include <vector>
 
 namespace Tungsten {
+namespace MinecraftLoader {
 
 class BlockDescriptor
 {
@@ -50,6 +51,7 @@ public:
     }
 };
 
+}
 }
 
 #endif /* BLOCKDESCRIPTOR_HPP_ */

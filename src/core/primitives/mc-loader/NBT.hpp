@@ -9,6 +9,7 @@
 #include <cstring>
 
 namespace Tungsten {
+namespace MinecraftLoader {
 
 class NbtTag
 {
@@ -299,6 +300,7 @@ public:
     }
 };
 
+}
 }
 
 #endif /* NBT_HPP_ */

@@ -11,6 +11,7 @@
 #include <vector>
 
 namespace Tungsten {
+namespace MinecraftLoader {
 
 class TraceableMinecraftMap;
 class File;
@@ -218,6 +219,7 @@ public:
     }
 };
 
+}
 }
 
 #endif /* RESOURCEPACKLOADER_HPP_ */

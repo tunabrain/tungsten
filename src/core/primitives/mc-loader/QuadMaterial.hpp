@@ -11,6 +11,7 @@
 #include <memory>
 
 namespace Tungsten {
+namespace MinecraftLoader {
 
 struct QuadMaterial
 {
@@ -25,6 +26,7 @@ struct QuadMaterial
     float sampleWeight;
 };
 
+}
 }
 
 #endif /* QUADMATERIAL_HPP_ */

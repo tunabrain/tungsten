@@ -24,6 +24,7 @@
 #include <unordered_set>
 
 namespace Tungsten {
+namespace MinecraftLoader {
 
 struct MapIntersection
 {
@@ -748,4 +749,5 @@ std::vector<std::shared_ptr<Primitive>> TraceableMinecraftMap::createHelperPrimi
     return std::vector<std::shared_ptr<Primitive>>(1, _lights);
 }
 
+}
 }

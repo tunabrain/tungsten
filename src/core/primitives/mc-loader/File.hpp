@@ -8,6 +8,7 @@
 #include <dirent.h>
 
 namespace Tungsten {
+namespace MinecraftLoader {
 
 class File
 {
@@ -153,6 +154,7 @@ public:
     }
 };
 
+}
 }
 
 #endif /* FILE_HPP_ */

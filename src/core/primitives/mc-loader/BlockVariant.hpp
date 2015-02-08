@@ -9,6 +9,7 @@
 #include <vector>
 
 namespace Tungsten {
+namespace MinecraftLoader {
 
 class BlockVariant
 {
@@ -48,7 +49,7 @@ public:
     }
 };
 
-
+}
 }
 
 #endif /* BLOCKVARIANT_HPP_ */

@@ -6,6 +6,7 @@
 #include <vector>
 
 namespace Tungsten {
+namespace MinecraftLoader {
 
 class EmissiveBvh
 {
@@ -103,6 +104,7 @@ public:
     }
 };
 
+}
 }
 
 #endif /* EMISSIVEBVH_HPP_ */

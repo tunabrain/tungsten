@@ -8,6 +8,7 @@
 #include <memory>
 
 namespace Tungsten {
+namespace MinecraftLoader {
 
 class BiomeTileTexture;
 
@@ -46,6 +47,7 @@ public:
     virtual float pdf(TextureMapJacobian jacobian, const Vec2f &uv) const override;
 };
 
+}
 }
 
 #endif /* BIOMETEXTURE_HPP_ */

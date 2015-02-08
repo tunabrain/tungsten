@@ -16,6 +16,9 @@ namespace Tungsten {
 
 class BitmapTexture;
 
+namespace MinecraftLoader {
+
+
 class MultiQuadLight : public Primitive
 {
     struct ThreadlocalSampleInfo
@@ -92,7 +95,6 @@ public:
 };
 
 }
-
-
+}
 
 #endif /* MULTIQUADLIGHT_HPP_ */

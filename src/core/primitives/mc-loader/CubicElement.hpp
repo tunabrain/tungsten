@@ -14,6 +14,7 @@
 #include <vector>
 
 namespace Tungsten {
+namespace MinecraftLoader {
 
 class CubicElement
 {
@@ -130,6 +131,7 @@ public:
     }
 };
 
+}
 }
 
 #endif /* CUBICELEMENT_HPP_ */

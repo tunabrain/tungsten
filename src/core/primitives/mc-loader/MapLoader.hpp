@@ -13,6 +13,7 @@
 #include <cstdio>
 
 namespace Tungsten {
+namespace MinecraftLoader {
 
 template<typename ElementType>
 class MapLoader
@@ -168,6 +169,7 @@ public:
     }
 };
 
+}
 }
 
 #endif /* MAPLOADER_HPP_ */

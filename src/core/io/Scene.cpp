@@ -159,7 +159,7 @@ std::shared_ptr<Primitive> Scene::instantiatePrimitive(std::string type, const r
     else if (type == "cube")
         result = std::make_shared<Cube>();
     else if (type == "minecraft_map")
-        result = std::make_shared<TraceableMinecraftMap>();
+        result = std::make_shared<MinecraftLoader::TraceableMinecraftMap>();
     else if (type == "skydome")
         result = std::make_shared<Skydome>();
     else

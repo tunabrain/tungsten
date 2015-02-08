@@ -20,10 +20,13 @@
 
 namespace Tungsten {
 
+class Scene;
+
+namespace MinecraftLoader {
+
 class ResourcePackLoader;
 class TexturedQuad;
 class ModelRef;
-class Scene;
 
 struct BiomeTileTexture
 {
@@ -145,6 +148,7 @@ public:
     }
 };
 
+}
 }
 
 #endif /* TRACEABLEMAP_HPP_ */
