@@ -1,7 +1,6 @@
 #include "BiomeTexture.hpp"
+#include "TraceableMinecraftMap.hpp"
 #include "ResourcePackLoader.hpp"
-
-#include "../TraceableMinecraftMap.hpp"
 
 namespace Tungsten {
 

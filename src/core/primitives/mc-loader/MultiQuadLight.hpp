@@ -4,7 +4,8 @@
 #include "SolidAngleBvh.hpp"
 #include "QuadMaterial.hpp"
 #include "QuadGeometry.hpp"
-#include "Primitive.hpp"
+
+#include "primitives/Primitive.hpp"
 
 #include "bvh/BinaryBvh.hpp"
 

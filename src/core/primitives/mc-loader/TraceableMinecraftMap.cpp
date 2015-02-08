@@ -1,13 +1,12 @@
 #include "TraceableMinecraftMap.hpp"
+#include "ResourcePackLoader.hpp"
+#include "BiomeTexture.hpp"
+#include "MapLoader.hpp"
+#include "ModelRef.hpp"
 
 #include "primitives/TriangleMesh.hpp"
 
 #include "materials/ConstantTexture.hpp"
-
-#include "mc-loader/ResourcePackLoader.hpp"
-#include "mc-loader/BiomeTexture.hpp"
-#include "mc-loader/MapLoader.hpp"
-#include "mc-loader/ModelRef.hpp"
 
 #include "cameras/PinholeCamera.hpp"
 

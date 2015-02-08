@@ -2,10 +2,11 @@
 #define TRACEABLEMAP_HPP_
 
 #include "MultiQuadLight.hpp"
-#include "VoxelHierarchy.hpp"
 #include "QuadMaterial.hpp"
 #include "QuadGeometry.hpp"
-#include "Primitive.hpp"
+
+#include "primitives/VoxelHierarchy.hpp"
+#include "primitives/Primitive.hpp"
 
 #include "materials/BitmapTexture.hpp"
 

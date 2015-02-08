@@ -1,5 +1,5 @@
 #include "ResourcePackLoader.hpp"
-#include "../TraceableMinecraftMap.hpp"
+#include "TraceableMinecraftMap.hpp"
 #include "File.hpp"
 
 #include "materials/BitmapTexture.hpp"

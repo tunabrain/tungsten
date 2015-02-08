@@ -5,7 +5,7 @@
 
 #include "integrators/PathTraceIntegrator.hpp"
 
-#include "primitives/TraceableMinecraftMap.hpp"
+#include "primitives/mc-loader/TraceableMinecraftMap.hpp"
 #include "primitives/InfiniteSphereCap.hpp"
 #include "primitives/InfiniteSphere.hpp"
 #include "primitives/TriangleMesh.hpp"

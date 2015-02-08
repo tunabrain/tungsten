@@ -1,9 +1,9 @@
 #ifndef QUADGEOMETRY_HPP_
 #define QUADGEOMETRY_HPP_
 
-#include "Triangle4.hpp"
+#include "TexturedQuad.hpp"
 
-#include "mc-loader/TexturedQuad.hpp"
+#include "primitives/Triangle4.hpp"
 
 #include "math/Mat4f.hpp"
 #include "math/Box.hpp"

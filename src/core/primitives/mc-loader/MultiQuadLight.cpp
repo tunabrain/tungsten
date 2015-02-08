@@ -1,5 +1,6 @@
 #include "MultiQuadLight.hpp"
-#include "TriangleMesh.hpp"
+
+#include "primitives/TriangleMesh.hpp"
 
 #include "sampling/SampleGenerator.hpp"
 #include "sampling/SampleWarp.hpp"
