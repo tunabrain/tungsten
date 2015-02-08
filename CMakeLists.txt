@@ -12,21 +12,17 @@ else()
     message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} seems to have no C++11 support. Please try again with a more recent compiler version.")
 endif()
 
+# AVX does not do much benefit at the moment, but breaks compilation on some platforms.
+# Disabled for now until AVX becomes important enough to reconsider.
+set(USE_AVX FALSE CACHE BOOL "Use AVX.")
+set(USE_AVX2 FALSE CACHE BOOL "Use AVX2.")
+
 include(OptimizeForArchitecture)
 OptimizeForArchitecture()
-# Used by Embree
-set(__AVX__ 0)
 
 if (MSVC)
     # Needed by MSVC, but not added by OptimizeForArchitexture()
     add_definitions(-D__SSE__)
-endif()
-
-# AVX does not do much benefit at the moment, but breaks compilation on some platforms.
-# Disabled for now until AVX becomes important enough to reconsider.
-if (USE_AVX)
-    remove_definitions(-D__AVX__ -D__AVX2__)
-    set (USE_AVX false)
 endif()
 
 if (USE_AVX)
