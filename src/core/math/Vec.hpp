@@ -31,7 +31,7 @@ public:
 
     template<typename... Ts>
     Vec(const ElementType &a, const ElementType &b, const Ts &... ts)
-    : _v{{a, b, ts...}}
+    : _v({{a, b, ts...}})
     {
     }
 
