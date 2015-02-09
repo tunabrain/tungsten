@@ -168,7 +168,7 @@ public:
 
     bool isEmissive(const std::string &texture) const
     {
-        return _emitters.count(texture);
+        return _emitters.count(texture) != 0;
     }
 
     const EmitterInfo *emitterInfo(const std::string &texture) const

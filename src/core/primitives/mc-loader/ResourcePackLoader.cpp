@@ -591,10 +591,10 @@ const ModelRef *ResourcePackLoader::mapSpecialBlock(const TraceableMinecraftMap 
         uint32 southBlock = map.getBlock(x, y, z + 1) >> 4;
         uint32  eastBlock = map.getBlock(x + 1, y, z) >> 4;
         uint32  westBlock = map.getBlock(x - 1, y, z) >> 4;
-        bool connectsNorth = _blockFlags[northBlock] & FLAG_CONNECTS_REDSTONE;
-        bool connectsSouth = _blockFlags[southBlock] & FLAG_CONNECTS_REDSTONE;
-        bool connectsEast  = _blockFlags[ eastBlock] & FLAG_CONNECTS_REDSTONE;
-        bool connectsWest  = _blockFlags[ westBlock] & FLAG_CONNECTS_REDSTONE;
+        bool connectsNorth = (_blockFlags[northBlock] & FLAG_CONNECTS_REDSTONE) != 0;
+        bool connectsSouth = (_blockFlags[southBlock] & FLAG_CONNECTS_REDSTONE) != 0;
+        bool connectsEast  = (_blockFlags[ eastBlock] & FLAG_CONNECTS_REDSTONE) != 0;
+        bool connectsWest  = (_blockFlags[ westBlock] & FLAG_CONNECTS_REDSTONE) != 0;
         bool upBlocked = map.getBlock(x, y + 1, z) != 0;
 
         if (connectsNorth) north = 1;
