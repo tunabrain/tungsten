@@ -28,9 +28,14 @@ class BinaryBvh
 
     class TinyBvhNode
     {
+        union PointerOrIndex {
+            TinyBvhNode *node;
+            uint64 index;
+        };
+
         Vec3pf _box;
-        TinyBvhNode *_lChild;
-        TinyBvhNode *_rChild;
+        PointerOrIndex _lChild;
+        PointerOrIndex _rChild;
 
     public:
         const Vec3pf &bbox() const
@@ -49,57 +54,57 @@ class BinaryBvh
 
         uint32 primIndex() const
         {
-            return uint64(_lChild) & 0xFFFFFFFFU;
+            return _lChild.index & 0xFFFFFFFFU;
         }
 
         uint32 childCount() const
         {
-            return uint64(_lChild) >> 32;
+            return _lChild.index >> 32;
         }
 
         void setPrimIndex(uint32 count, uint32 idx)
         {
-            _lChild = (TinyBvhNode *)((uint64(count) << 32) | idx);
+            _lChild.index = (uint64(count) << 32) | uint64(idx);
         }
 
         TinyBvhNode *lChild()
         {
-            return _lChild;
+            return _lChild.node;
         }
 
         const TinyBvhNode *lChild() const
         {
-            return _lChild;
+            return _lChild.node;
         }
 
         void setLchild(TinyBvhNode *child)
         {
-            _lChild = child;
+            _lChild.node = child;
         }
 
         TinyBvhNode *rChild()
         {
-            return _rChild;
+            return _rChild.node;
         }
 
         const TinyBvhNode *rChild() const
         {
-            return _rChild;
+            return _rChild.node;
         }
 
         void setRchild(TinyBvhNode *child)
         {
-            _rChild = child;
+            _rChild.node = child;
         }
 
         bool isLeaf() const
         {
-            return _rChild == nullptr;
+            return _rChild.node == nullptr;
         }
 
         bool isNode() const
         {
-            return _rChild != nullptr;
+            return _rChild.node != nullptr;
         }
     };
 
