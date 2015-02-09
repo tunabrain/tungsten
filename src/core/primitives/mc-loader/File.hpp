@@ -3,9 +3,15 @@
 
 #include "io/FileUtils.hpp"
 
+#include "Platform.hpp"
+
 #include <functional>
+#ifdef _MSC_VER
+#include <dirent/dirent.h>
+#else
 #include <sys/stat.h>
 #include <dirent.h>
+#endif
 
 namespace Tungsten {
 namespace MinecraftLoader {
