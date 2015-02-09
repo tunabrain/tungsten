@@ -25,7 +25,7 @@ class Scene;
 namespace MinecraftLoader {
 
 class ResourcePackLoader;
-class TexturedQuad;
+struct TexturedQuad;
 class ModelRef;
 
 struct BiomeTileTexture
