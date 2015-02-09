@@ -131,7 +131,7 @@ std::unique_ptr<uint8[], void(*)(void *)> loadPng(const std::string &file,
     uint32 uw, uh;
     lodepng_decode32_file(&dst, &uw, &uh, file.c_str());
     if (!dst)
-        return std::unique_ptr<uint8[], void(*)(void *)>(nullptr, free);
+        return std::unique_ptr<uint8[], void(*)(void *)>((uint8 *)0, free);
 
     w = uw;
     h = uh;
@@ -149,7 +149,7 @@ std::unique_ptr<uint8[], void(*)(void *)> loadStbi(const std::string &file,
 std::unique_ptr<uint8[]> loadLdr(const std::string &file, TexelConversion request, int &w, int &h, bool gammaCorrect)
 {
     int channels;
-    std::unique_ptr<uint8[], void(*)(void *)> img(nullptr, free);
+    std::unique_ptr<uint8[], void(*)(void *)> img((uint8 *)0, free);
     if (FileUtils::testExtension(file, "png"))
         img = loadPng(file, w, h, channels);
     else
