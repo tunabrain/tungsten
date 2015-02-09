@@ -13,6 +13,12 @@
 namespace Tungsten {
 namespace MinecraftLoader {
 
+namespace SolidAngleBvhParams {
+    static CONSTEXPR float InitialCoverageThreshold = 0.5f;
+    static CONSTEXPR float InitialThreshold = 1.0f - (1.0f - InitialCoverageThreshold)*(1.0f - InitialCoverageThreshold);
+    static CONSTEXPR float SubdivisionFactor = 0.5f;
+}
+
 class SolidAngleBvh
 {
     struct Node {
@@ -23,10 +29,6 @@ class SolidAngleBvh
         uint32 parent;
         uint32 padding; // Pad size to 32 bytes
     };
-
-    static CONSTEXPR float InitialCoverageThreshold = 0.5f;
-    static CONSTEXPR float InitialThreshold = 1.0f - (1.0f - InitialCoverageThreshold)*(1.0f - InitialCoverageThreshold);
-    static CONSTEXPR float SubdivisionFactor = 0.5f;
 
     template<typename T> using aligned_vector = std::vector<T, AlignedAllocator<T, 4096>>;
 
@@ -150,7 +152,7 @@ public:
     inline float approximateContribution(const Vec3f &p, LeafWeight leafWeight) const
     {
         float result = 0.0f;
-        traverse(p, InitialThreshold, 0, [&](float weight, uint32 /*id*/) {
+        traverse(p, SolidAngleBvhParams::InitialThreshold, 0, [&](float weight, uint32 /*id*/) {
             result += weight;
         }, [&](uint32 id) {
             result += leafWeight(id & 0x7FFFFFFFu);
@@ -172,8 +174,8 @@ public:
 
         float pdf = 1.0f;
 
-        float coverageThreshold = InitialCoverageThreshold;
-        float threshold = InitialThreshold;
+        float coverageThreshold = SolidAngleBvhParams::InitialCoverageThreshold;
+        float threshold = SolidAngleBvhParams::InitialThreshold;
 
         prim |= 0x80000000u;
         node = 0;
@@ -200,7 +202,7 @@ public:
                 return 0.0f;
 
             pdf *= specificWeight/totalWeight;
-            coverageThreshold *= SubdivisionFactor;
+            coverageThreshold *= SolidAngleBvhParams::SubdivisionFactor;
             threshold = 1.0f - sqr(1.0f - coverageThreshold);
         }
 
@@ -211,8 +213,8 @@ public:
     inline std::pair<int, float> sampleLight(const Vec3f &p, float *cdf, int *ids, float xi,
             LeafWeight leafWeight) const
     {
-        float coverageThreshold = InitialCoverageThreshold;
-        float threshold = InitialThreshold;
+        float coverageThreshold = SolidAngleBvhParams::InitialCoverageThreshold;
+        float threshold = SolidAngleBvhParams::InitialThreshold;
 
         int sampleIndex = 1;
         cdf[0] = 0.0f;
@@ -231,7 +233,7 @@ public:
             });
 
             if (cdf[sampleIndex - 1] == 0.0f)
-                return std::make_pair(-1.0f, 0.0f);
+                return std::make_pair(-1, 0.0f);
 
             int idx = sampleIndex - 1;
             float P = xi*cdf[sampleIndex - 1];
@@ -249,7 +251,7 @@ public:
                 return std::make_pair(ids[idx] & 0x7FFFFFFFu, pdf);
 
             sampleIndex = 1;
-            coverageThreshold *= SubdivisionFactor;
+            coverageThreshold *= SolidAngleBvhParams::SubdivisionFactor;
             threshold = 1.0f - sqr(1.0f - coverageThreshold);
             node = ids[idx];
         }
