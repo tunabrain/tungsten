@@ -9,4 +9,9 @@
 #define FORCE_INLINE
 #endif
 
+#ifdef _MSC_VER 
+#define strncasecmp _strnicmp
+#define strcasecmp _stricmp
+#endif
+
 #endif /* PLATFORM_HPP_ */
