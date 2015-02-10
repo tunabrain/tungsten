@@ -64,6 +64,10 @@ public:
     Path operator/(const char *o) const;
     Path operator+(const char *o) const;
 
+    bool operator==(const Path &o) const;
+    bool operator!=(const Path &o) const;
+    bool operator<(const Path &o) const;
+
     FileIterator begin() const;
     FileIterator end() const;
     FileIterable files(const Path &extensionFilter = Path()) const;

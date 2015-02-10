@@ -382,6 +382,22 @@ Path Path::operator+(const char *o) const
 
     return std::move(copy);
 }
+
+bool Path::operator==(const Path &o) const
+{
+    return _path == o._path;
+}
+
+bool Path::operator!=(const Path &o) const
+{
+    return _path != o._path;
+}
+
+bool Path::operator<(const Path &o) const
+{
+    return _path < o._path;
+}
+
 FileIterator Path::begin() const
 {
     return FileIterator(*this, false, false, Path());
