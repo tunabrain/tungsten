@@ -7,6 +7,10 @@
 
 namespace Tungsten {
 
+class DirectoryIterable;
+class FileIterable;
+class FileIterator;
+
 class Path
 {
     std::string _workingDirectory;
@@ -54,6 +58,11 @@ public:
     Path operator+(const Path &o) const;
     Path operator/(const std::string &o) const;
     Path operator+(const std::string &o) const;
+
+    FileIterator begin() const;
+    FileIterator end() const;
+    FileIterable files(const Path &extensionFilter = Path()) const;
+    DirectoryIterable directories() const;
 
     friend std::ostream &operator<< (std::ostream &stream, const Path &p) {
         return stream << p._path;

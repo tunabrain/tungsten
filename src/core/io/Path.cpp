@@ -1,4 +1,5 @@
 #include "Path.hpp"
+#include "FileIterables.hpp"
 #include "FileUtils.hpp"
 
 #ifdef _MSC_VER
@@ -347,6 +348,26 @@ Path Path::operator+(const std::string &o) const
     copy += o;
 
     return std::move(copy);
+}
+
+FileIterator Path::begin() const
+{
+    return FileIterator(*this, false, false, Path());
+}
+
+FileIterator Path::end() const
+{
+    return FileIterator();
+}
+
+FileIterable Path::files(const Path &extensionFilter) const
+{
+    return FileIterable(*this, extensionFilter);
+}
+
+DirectoryIterable Path::directories() const
+{
+    return DirectoryIterable(*this);
 }
 
 }
