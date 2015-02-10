@@ -9,38 +9,22 @@
 
 namespace Tungsten {
 
-// WARNING: Do not assume any functions operating on paths to be thread-safe or re-entrant.
+class Path;
+
+// WARNING: Do not assume any functions operating on the file system to be thread-safe or re-entrant.
 // The underlying operating system API as well as the implementation here do not make this safe.
 namespace FileUtils {
 
-bool isRootDirectory(const std::string &path);
-bool isRelativePath(const std::string &path);
+bool changeCurrentDir(const Path &dir);
+Path getCurrentDir();
 
-std::string addSeparator(std::string path);
-std::string stripSeparator(std::string path);
+Path getExecutablePath();
 
-std::string stripExt(std::string path);
-std::string stripParent(std::string path);
+bool createDirectory(const Path &path, bool recursive = true);
 
-std::string extractExt(std::string path);
-std::string extractParent(std::string path);
-std::string extractBase(std::string path);
+std::string loadText(const Path &path);
 
-bool testExtension(const std::string &path, const std::string &ext);
-
-std::string toAbsolutePath(const std::string &path);
-
-bool changeCurrentDir(const std::string &dir);
-std::string getCurrentDir();
-
-std::string getExecutablePath();
-
-bool fileExists(const std::string &path);
-bool createDirectory(const std::string &path, bool recursive = true);
-
-std::string loadText(const std::string &path);
-
-bool copyFile(const std::string &src, const std::string &dst, bool createDstDir);
+bool copyFile(const Path &src, const Path &dst, bool createDstDir);
 
 template<typename T>
 inline void streamRead(std::istream &in, T &dst)

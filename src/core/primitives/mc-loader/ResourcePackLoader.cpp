@@ -1,11 +1,12 @@
 #include "ResourcePackLoader.hpp"
 #include "TraceableMinecraftMap.hpp"
-#include "File.hpp"
 
 #include "materials/BitmapTexture.hpp"
 
+#include "io/FileIterables.hpp"
 #include "io/FileUtils.hpp"
 #include "io/JsonUtils.hpp"
+#include "io/Path.hpp"
 
 namespace Tungsten {
 namespace MinecraftLoader {
@@ -17,10 +18,10 @@ const char *ResourcePackLoader::blockMapPath = "mapping.json";
 const char *ResourcePackLoader::biomePath = "biomes.json";
 const char *ResourcePackLoader::emitterPath = "emitters.json";
 
-ResourcePackLoader::ResourcePackLoader(const std::string packPath)
-: _packPath(FileUtils::addSeparator(packPath))
+ResourcePackLoader::ResourcePackLoader(const Path &packPath)
+: _packPath(packPath)
 {
-    loadModels(File(_packPath + modelBase));
+    loadModels(_packPath/modelBase);
     _resolver.reset(new ModelResolver(_models));
     loadStates();
     buildBlockMapping();
@@ -207,7 +208,7 @@ void ResourcePackLoader::buildBlockMapping()
     _blockFlags.resize(4096, FLAG_OPAQUE | FLAG_CONNECTS_FENCE | FLAG_CONNECTS_PANE);
     _blockFlags[0] = 0;
 
-    std::string json = FileUtils::loadText(_packPath + blockMapPath);
+    std::string json = FileUtils::loadText(_packPath/blockMapPath);
     if (json.empty())
         return;
 
@@ -310,9 +311,8 @@ void ResourcePackLoader::duplicateRedstoneLevels(BlockDescriptor &state)
 
 void ResourcePackLoader::loadStates()
 {
-    File stateFolder(_packPath + stateBase);
-    for (File iter = stateFolder.beginScan(File::extFilter("json")); iter.valid(); iter = stateFolder.scan()) {
-        std::string json = FileUtils::loadText(iter.path().c_str());
+    for (const Path &p : (_packPath/stateBase).files("json")) {
+        std::string json = FileUtils::loadText(p);
         if (json.empty())
             continue;
 
@@ -321,21 +321,22 @@ void ResourcePackLoader::loadStates()
         if (document.HasParseError() || !document.IsObject())
             continue;
 
-        _blockDescriptors.emplace_back(iter.baseName(), document, *_resolver);
+        _blockDescriptors.emplace_back(p.baseName().asString(), document, *_resolver);
         if (_blockDescriptors.back().name() == "redstone_wire")
             duplicateRedstoneLevels(_blockDescriptors.back());
     }
 }
 
-void ResourcePackLoader::loadModels(File dir, std::string base)
+void ResourcePackLoader::loadModels(const Path &dir, std::string base)
 {
-    base = FileUtils::addSeparator(base);
+    if (!base.empty())
+        base += '/';
 
-    for (File iter = dir.beginScan(File::dirFilter()); iter.valid(); iter = dir.scan())
-        loadModels(iter, base + iter.name());
+    for (const Path &p : dir.directories())
+        loadModels(p, base + p.fileName().asString());
 
-    for (File iter = dir.beginScan(File::extFilter("json")); iter.valid(); iter = dir.scan()) {
-        std::string json = FileUtils::loadText(iter.path().c_str());
+    for (const Path &p : dir.files("json")) {
+        std::string json = FileUtils::loadText(p);
         if (json.empty())
             continue;
 
@@ -344,7 +345,7 @@ void ResourcePackLoader::loadModels(File dir, std::string base)
         if (document.HasParseError() || !document.IsObject())
             continue;
 
-        _models.emplace_back(base + iter.baseName(), document);
+        _models.emplace_back(base + p.fileName().asString(), document);
     }
 }
 
@@ -379,13 +380,15 @@ void ResourcePackLoader::generateBiomeColors()
     };
     _biomes.resize(256, defaultColor);
 
-    BitmapTexture grass(_packPath + textureBase + "colormap/grass.png", TexelConversion::REQUEST_RGB, false, true, true);
-    BitmapTexture foliage(_packPath + textureBase + "colormap/foliage.png", TexelConversion::REQUEST_RGB, false, true, true);
+    BitmapTexture grass((_packPath/textureBase)/"colormap/grass.png", TexelConversion::REQUEST_RGB, false, true, true);
+    BitmapTexture foliage((_packPath/textureBase)/"colormap/foliage.png", TexelConversion::REQUEST_RGB, false, true, true);
+    grass.loadResources();
+    foliage.loadResources();
 
     if (!grass.isValid() || !foliage.isValid())
         return;
 
-    std::string json = FileUtils::loadText(_packPath + biomePath);
+    std::string json = FileUtils::loadText(_packPath/biomePath);
     if (json.empty())
         return;
 
@@ -435,7 +438,7 @@ void ResourcePackLoader::generateBiomeColors()
 
 void ResourcePackLoader::loadEmitters()
 {
-    std::string json = FileUtils::loadText(_packPath + emitterPath);
+    std::string json = FileUtils::loadText(_packPath/emitterPath);
     if (json.empty())
         return;
 

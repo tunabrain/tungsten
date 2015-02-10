@@ -7,6 +7,8 @@
 
 #include "sampling/Distribution1D.hpp"
 
+#include "io/Path.hpp"
+
 #include <embree/include/embree.h>
 #include <memory>
 #include <vector>
@@ -18,7 +20,7 @@ class Scene;
 
 class TriangleMesh : public Primitive
 {
-    std::string _path;
+    Path _path;
     bool _smoothed;
     bool _backfaceCulling;
 
@@ -56,7 +58,7 @@ public:
     virtual void loadResources() override;
     virtual void saveResources() override;
 
-    void saveAsObj(const std::string &path) const;
+    void saveAsObj(const Path &path) const;
     void calcSmoothVertexNormals();
     void computeBounds();
 
@@ -126,7 +128,7 @@ public:
         _smoothed = v;
     }
 
-    const std::string& path() const
+    const Path& path() const
     {
         return _path;
     }

@@ -10,6 +10,7 @@
 #include "JsonSerializable.hpp"
 #include "TextureCache.hpp"
 #include "ImageIO.hpp"
+#include "Path.hpp"
 
 #include "integrators/Integrator.hpp"
 
@@ -31,8 +32,8 @@ namespace Tungsten {
 
 class Scene : public JsonSerializable
 {
-    std::string _srcDir;
-    std::string _path;
+    Path _srcDir;
+    Path _path;
 
     std::vector<std::shared_ptr<Primitive>> _primitives;
     std::vector<std::shared_ptr<Medium>> _media;
@@ -67,9 +68,9 @@ class Scene : public JsonSerializable
 public:
     Scene();
 
-    Scene(const std::string &srcDir, std::shared_ptr<TextureCache> cache);
+    Scene(const Path &srcDir, std::shared_ptr<TextureCache> cache);
 
-    Scene(const std::string &srcDir,
+    Scene(const Path &srcDir,
           std::vector<std::shared_ptr<Primitive>> primitives,
           std::vector<std::shared_ptr<Bsdf>> bsdfs,
           std::shared_ptr<TextureCache> cache,
@@ -137,12 +138,12 @@ public:
         return _camera;
     }
 
-    void setPath(const std::string &p)
+    void setPath(const Path &p)
     {
         _path = p;
     }
 
-    const std::string path() const
+    const Path &path() const
     {
         return _path;
     }
@@ -152,8 +153,8 @@ public:
         return _rendererSettings;
     }
 
-    static Scene *load(const std::string &path, std::shared_ptr<TextureCache> cache = nullptr);
-    static void save(const std::string &path, const Scene &scene);
+    static Scene *load(const Path &path, std::shared_ptr<TextureCache> cache = nullptr);
+    static void save(const Path &path, const Scene &scene);
 };
 
 }

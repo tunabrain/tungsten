@@ -29,9 +29,9 @@ namespace Tungsten {
 
 namespace ImageIO {
 
-bool isHdr(const std::string &file)
+bool isHdr(const Path &path)
 {
-    return FileUtils::testExtension(file, "pfm") || stbi_is_hdr(file.c_str());
+    return path.testExtension("pfm") || stbi_is_hdr(path.absolute().asString().c_str());
 }
 
 template<typename T>
@@ -51,9 +51,9 @@ static T convertToScalar(TexelConversion request, T r, T g, T b, T a, bool haveA
     }
 }
 
-static std::unique_ptr<float[]> loadPfm(const std::string &file, TexelConversion request, int &w, int &h)
+static std::unique_ptr<float[]> loadPfm(const Path &path, TexelConversion request, int &w, int &h)
 {
-    std::ifstream in(file, std::ios_base::in | std::ios_base::binary);
+    std::ifstream in(path.absolute().asString(), std::ios_base::in | std::ios_base::binary);
     if (!in.good())
         return nullptr;
 
@@ -94,10 +94,11 @@ static std::unique_ptr<float[]> loadPfm(const std::string &file, TexelConversion
     return std::move(texels);
 }
 
-std::unique_ptr<float[]> loadStbiHdr(const std::string &file, TexelConversion request, int &w, int &h)
+std::unique_ptr<float[]> loadStbiHdr(const Path &path, TexelConversion request, int &w, int &h)
 {
     int channels;
-    std::unique_ptr<float[], void(*)(void *)> img(stbi_loadf(file.c_str(), &w, &h, &channels, 0), stbi_image_free);
+    std::unique_ptr<float[], void(*)(void *)> img(stbi_loadf(path.absolute().asString().c_str(),
+            &w, &h, &channels, 0), stbi_image_free);
 
     // We only expect Radiance HDR for now, which only has RGB support.
     if (!img || channels != 3)
@@ -116,20 +117,19 @@ std::unique_ptr<float[]> loadStbiHdr(const std::string &file, TexelConversion re
     return std::move(texels);
 }
 
-std::unique_ptr<float[]> loadHdr(const std::string &file, TexelConversion request, int &w, int &h)
+std::unique_ptr<float[]> loadHdr(const Path &path, TexelConversion request, int &w, int &h)
 {
-    if (FileUtils::testExtension(file, "pfm"))
-        return std::move(loadPfm(file, request, w, h));
+    if (path.testExtension("pfm"))
+        return std::move(loadPfm(path, request, w, h));
     else
-        return std::move(loadStbiHdr(file, request, w, h));
+        return std::move(loadStbiHdr(path, request, w, h));
 }
 
-std::unique_ptr<uint8[], void(*)(void *)> loadPng(const std::string &file,
-        int &w, int &h, int &channels)
+std::unique_ptr<uint8[], void(*)(void *)> loadPng(const Path &path, int &w, int &h, int &channels)
 {
     uint8 *dst = nullptr;
     uint32 uw, uh;
-    lodepng_decode32_file(&dst, &uw, &uh, file.c_str());
+    lodepng_decode32_file(&dst, &uw, &uh, path.absolute().asString().c_str());
     if (!dst)
         return std::unique_ptr<uint8[], void(*)(void *)>((uint8 *)0, free);
 
@@ -140,20 +140,20 @@ std::unique_ptr<uint8[], void(*)(void *)> loadPng(const std::string &file,
     return std::unique_ptr<uint8[], void(*)(void *)>(dst, free);
 }
 
-std::unique_ptr<uint8[], void(*)(void *)> loadStbi(const std::string &file,
-        int &w, int &h, int &channels)
+std::unique_ptr<uint8[], void(*)(void *)> loadStbi(const Path &path, int &w, int &h, int &channels)
 {
-    return std::unique_ptr<uint8[], void(*)(void *)>(stbi_load(file.c_str(), &w, &h, &channels, 4), stbi_image_free);
+    return std::unique_ptr<uint8[], void(*)(void *)>(stbi_load(path.absolute().asString().c_str(),
+            &w, &h, &channels, 4), stbi_image_free);
 }
 
-std::unique_ptr<uint8[]> loadLdr(const std::string &file, TexelConversion request, int &w, int &h, bool gammaCorrect)
+std::unique_ptr<uint8[]> loadLdr(const Path &path, TexelConversion request, int &w, int &h, bool gammaCorrect)
 {
     int channels;
     std::unique_ptr<uint8[], void(*)(void *)> img((uint8 *)0, free);
-    if (FileUtils::testExtension(file, "png"))
-        img = loadPng(file, w, h, channels);
+    if (path.testExtension("png"))
+        img = loadPng(path, w, h, channels);
     else
-        img = loadStbi(file, w, h, channels);
+        img = loadStbi(path, w, h, channels);
 
     if (!img)
         return nullptr;
@@ -177,12 +177,12 @@ std::unique_ptr<uint8[]> loadLdr(const std::string &file, TexelConversion reques
     return std::move(texels);
 }
 
-bool savePfm(const std::string &file, const float *img, int w, int h, int channels)
+bool savePfm(const Path &path, const float *img, int w, int h, int channels)
 {
     if (channels != 1 && channels != 3)
         return false;
 
-    std::ofstream out(file, std::ios_base::out | std::ios_base::binary);
+    std::ofstream out(path.absolute().asString(), std::ios_base::out | std::ios_base::binary);
     if (!out.good())
         return false;
 
@@ -194,27 +194,27 @@ bool savePfm(const std::string &file, const float *img, int w, int h, int channe
     return true;
 }
 
-bool savePng(const std::string &file, const uint8 *img, int w, int h, int channels)
+bool savePng(const Path &path, const uint8 *img, int w, int h, int channels)
 {
     if (channels <= 0 || channels > 4)
         return false;
 
     LodePNGColorType types[] = {LCT_GREY, LCT_GREY_ALPHA, LCT_RGB, LCT_RGBA};
-    return lodepng_encode_file(file.c_str(), img, w, h, types[channels - 1], 8) == 0;
+    return lodepng_encode_file(path.absolute().asString().c_str(), img, w, h, types[channels - 1], 8) == 0;
 }
 
-bool saveHdr(const std::string &file, const float *img, int w, int h, int channels)
+bool saveHdr(const Path &path, const float *img, int w, int h, int channels)
 {
-    if (FileUtils::testExtension(file, "pfm"))
-        return savePfm(file, img, w, h, channels);
+    if (path.testExtension("pfm"))
+        return savePfm(path, img, w, h, channels);
 
     return false;
 }
 
-bool saveLdr(const std::string &file, const uint8 *img, int w, int h, int channels)
+bool saveLdr(const Path &path, const uint8 *img, int w, int h, int channels)
 {
-    if (FileUtils::testExtension(file, "png"))
-        return savePng(file, img, w, h, channels);
+    if (path.testExtension("png"))
+        return savePng(path, img, w, h, channels);
 
     return false;
 }

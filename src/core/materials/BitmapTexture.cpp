@@ -19,7 +19,7 @@ struct Rgba
     }
 };
 
-BitmapTexture::BitmapTexture(const std::string &path, TexelConversion conversion,
+BitmapTexture::BitmapTexture(const Path &path, TexelConversion conversion,
         bool gammaCorrect, bool linear, bool clamp)
 : _path(path),
   _texelConversion(conversion),
@@ -157,7 +157,7 @@ void BitmapTexture::fromJson(const rapidjson::Value &/*v*/, const Scene &/*scene
 
 rapidjson::Value BitmapTexture::toJson(Allocator &allocator) const
 {
-    return std::move(rapidjson::Value(_path.c_str(), allocator));
+    return std::move(rapidjson::Value(_path.asString().c_str(), allocator));
 }
 
 void BitmapTexture::loadResources()

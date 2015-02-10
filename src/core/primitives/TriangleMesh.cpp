@@ -105,7 +105,7 @@ void TriangleMesh::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     Primitive::fromJson(v, scene);
 
-    _path = JsonUtils::as<std::string>(v, "file");
+    JsonUtils::fromJson(v, "file", _path);
     JsonUtils::fromJson(v, "smooth", _smoothed);
     JsonUtils::fromJson(v, "backface_culling", _backfaceCulling);
 
@@ -124,7 +124,7 @@ rapidjson::Value TriangleMesh::toJson(Allocator &allocator) const
 {
     rapidjson::Value v = Primitive::toJson(allocator);
     v.AddMember("type", "mesh", allocator);
-    v.AddMember("file", _path.c_str(), allocator);
+    v.AddMember("file", _path.asString().c_str(), allocator);
     v.AddMember("smooth", _smoothed, allocator);
     v.AddMember("backface_culling", _backfaceCulling, allocator);
     if (_bsdfs.size() == 1) {
@@ -148,7 +148,7 @@ void TriangleMesh::saveResources()
     MeshIO::save(_path, _verts, _tris);
 }
 
-void TriangleMesh::saveAsObj(const std::string &path) const
+void TriangleMesh::saveAsObj(const Path &path) const
 {
     MeshIO::save(path, _verts, _tris);
 }

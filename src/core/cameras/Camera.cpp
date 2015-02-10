@@ -44,18 +44,18 @@ void Camera::precompute()
     _invTransform = _transform.pseudoInvert();
 }
 
-std::string Camera::incrementalFilename(const std::string &dstFile, const std::string &suffix) const
+Path Camera::incrementalFilename(const Path &dstFile, const std::string &suffix) const
 {
-    std::string dstPath = FileUtils::stripExt(dstFile) + suffix + "." + FileUtils::extractExt(dstFile);
+    Path dstPath = (dstFile.stripExtension() + suffix) + dstFile.extension();
     if (_overwriteOutputFiles)
         return std::move(dstPath);
 
-    std::string barePath = FileUtils::stripExt(dstPath);
-    std::string extension = FileUtils::extractExt(dstPath);
+    Path barePath = dstPath.stripExtension();
+    Path extension = dstPath.extension();
 
     int index = 0;
-    while (FileUtils::fileExists(dstPath))
-        dstPath = tfm::format("%s%05d.%s", barePath, ++index, extension);
+    while (dstPath.exists())
+        dstPath = (barePath + tfm::format("%05d", ++index)) + extension;
 
     return std::move(dstPath);
 }
@@ -113,11 +113,11 @@ rapidjson::Value Camera::toJson(Allocator &allocator) const
 {
     rapidjson::Value v = JsonSerializable::toJson(allocator);
     if (!_outputFile.empty())
-        v.AddMember("output_file", _outputFile.c_str(), allocator);
+        v.AddMember("output_file", _outputFile.asString().c_str(), allocator);
     if (!_hdrOutputFile.empty())
-        v.AddMember("hdr_output_file", _hdrOutputFile.c_str(), allocator);
+        v.AddMember("hdr_output_file", _hdrOutputFile.asString().c_str(), allocator);
     if (!_varianceOutputFile.empty())
-        v.AddMember("variance_output_file", _varianceOutputFile.c_str(), allocator);
+        v.AddMember("variance_output_file", _varianceOutputFile.asString().c_str(), allocator);
     v.AddMember("overwrite_output_files", _overwriteOutputFiles, allocator);
     v.AddMember("tonemap", _tonemapString.c_str(), allocator);
     v.AddMember("position", JsonUtils::toJsonValue<float, 3>(_pos,    allocator), allocator);

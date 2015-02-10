@@ -36,7 +36,6 @@ public:
     void freezeWorkingDirectory();
     void clearWorkingDirectory();
 
-    std::string absolutePath() const;
     const std::string &asString() const;
 
     Path extension() const;
@@ -46,6 +45,7 @@ public:
     Path stripParent() const;
     Path stripExtension() const;
     Path setExtension(const Path &ext) const;
+    Path absolute() const;
 
     void ensureSeparator();
     void stripSeparator();

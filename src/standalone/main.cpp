@@ -70,7 +70,7 @@ int main(int argc, const char *argv[])
         }
 
         try {
-            DirectoryChange context(FileUtils::extractParent(scene->path()));
+            DirectoryChange context(scene->path().parent());
 
             int maxSpp = scene->camera()->spp();
             std::unique_ptr<TraceableScene> flattenedScene(scene->makeTraceable());

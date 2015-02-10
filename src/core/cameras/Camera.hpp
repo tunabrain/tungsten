@@ -7,6 +7,7 @@
 #include "math/Vec.hpp"
 
 #include "io/JsonSerializable.hpp"
+#include "io/Path.hpp"
 
 #include <rapidjson/document.h>
 #include <vector>
@@ -22,9 +23,9 @@ class SampleGenerator;
 
 class Camera : public JsonSerializable
 {
-    std::string _outputFile;
-    std::string _hdrOutputFile;
-    std::string _varianceOutputFile;
+    Path _outputFile;
+    Path _hdrOutputFile;
+    Path _varianceOutputFile;
     std::string _tonemapString;
     bool _overwriteOutputFiles;
 
@@ -51,7 +52,7 @@ protected:
 private:
     void precompute();
 
-    std::string incrementalFilename(const std::string &dstFile, const std::string &suffix) const;
+    Path incrementalFilename(const Path &dstFile, const std::string &suffix) const;
     void saveBuffers(Renderer &renderer, const std::string &suffix) const;
 
 public:
@@ -130,17 +131,17 @@ public:
         return _spp;
     }
 
-    const std::string &outputFile() const
+    const Path &outputFile() const
     {
         return _outputFile;
     }
 
-    const std::string &hdrOutputFile() const
+    const Path &hdrOutputFile() const
     {
         return _hdrOutputFile;
     }
 
-    const std::string &varianceOutputFile() const
+    const Path &varianceOutputFile() const
     {
         return _varianceOutputFile;
     }

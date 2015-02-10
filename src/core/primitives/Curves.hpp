@@ -5,6 +5,8 @@
 
 #include "bvh/BinaryBvh.hpp"
 
+#include "io/Path.hpp"
+
 #include <memory>
 #include <vector>
 
@@ -23,8 +25,7 @@ class Curves : public Primitive
         MODE_RIBBON
     };
 
-    std::string _path;
-    std::string _dir;
+    Path _path;
     std::string _modeString;
 
     CurveMode _mode;

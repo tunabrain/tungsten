@@ -24,7 +24,7 @@ class FileIterator::OpenDir {
 
 public:
     OpenDir(const Path &p)
-    : _dir(opendir(p.absolutePath().c_str()))
+    : _dir(opendir(p.absolute().asString().c_str()))
     {
     }
 

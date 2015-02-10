@@ -2,15 +2,16 @@
 #define DIRECTORYCHANGE_HPP_
 
 #include "FileUtils.hpp"
+#include "Path.hpp"
 
 namespace Tungsten {
 
 class DirectoryChange
 {
-    std::string _previousDir;
+    Path _previousDir;
 
 public:
-    DirectoryChange(const std::string &path)
+    DirectoryChange(const Path &path)
     {
         if (!path.empty()) {
             _previousDir = FileUtils::getCurrentDir();

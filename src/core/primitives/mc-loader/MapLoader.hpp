@@ -3,8 +3,10 @@
 
 #include "ResourcePackLoader.hpp"
 #include "MemBuf.hpp"
-#include "File.hpp"
 #include "NBT.hpp"
+
+#include "io/FileIterables.hpp"
+#include "io/Path.hpp"
 
 #include <tinyformat/tinyformat.hpp>
 #include <miniz/miniz.h>
@@ -21,7 +23,7 @@ class MapLoader
     static const size_t CompressedChunkSize = 1024*1024;
     static const size_t DecompressedChunkSize = 5*1024*1024;
 
-    std::string _path;
+    Path _path;
 
     std::unique_ptr<uint8[]> _locationTable, _timestampTable;
     std::unique_ptr<uint8[]> _compressedChunk, _decompressedChunk;
@@ -125,7 +127,7 @@ class MapLoader
     }
 
 public:
-    MapLoader(const std::string &path)
+    MapLoader(const Path &path)
     : _path(path),
       _regionHeight(0)
     {
@@ -138,25 +140,21 @@ public:
     }
 
     void loadRegions(const std::function<void(int, int, int, ElementType *, uint8 *)> &regionHandler) {
-        File dir(_path);
-        if (!dir.exists() || !dir.isDirectory())
+        if (!_path.exists() || !_path.isDirectory())
             return;
-        File region(dir.file("region"));
+        Path region(_path/"region");
         if (!region.exists() || !region.isDirectory())
             return;
 
-        for (File iter = region.beginScan(File::fileFilter()); iter.valid(); iter = region.scan()) {
-            if (!FileUtils::testExtension(iter.path(), "mca"))
-                continue;
-
-            std::string base = iter.baseName();
+        for (const Path &p : region.files("mca")) {
+            std::string base = p.baseName().asString();
             if (base.length() < 2 || tolower(base.front()) != 'r' || base[1] != '.')
                 continue;
             int x, z;
             if (std::sscanf(base.c_str() + 2, "%i.%i", &x, &z) != 2)
                 continue;
 
-            std::ifstream in(iter.path(), std::ios_base::in | std::ios_base::binary);
+            std::ifstream in(p.absolute().asString(), std::ios_base::in | std::ios_base::binary);
             if (!in.good())
                 continue;
             loadRegion(in);

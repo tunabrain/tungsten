@@ -46,7 +46,7 @@ namespace Tungsten {
 
 class SceneXmlWriter
 {
-    std::string _folder;
+    Path _folder;
     std::ostream &_stream;
     std::string _indent;
     std::stack<std::string> _blocks;
@@ -203,7 +203,7 @@ class SceneXmlWriter
             assign("name", name);
         assign("type", "bitmap");
         beginPost();
-        convert("filename", c->path());
+        convert("filename", c->path().asString());
         convert("filterType", "trilinear");
         end();
     }
@@ -537,17 +537,17 @@ class SceneXmlWriter
         begin("shape");
         assign("type", "obj");
         beginPost();
-        std::string objFile(FileUtils::stripExt(prim->path()) + ".obj");
-        std::string fullObjFile;
+        Path objFile = prim->path().setExtension(".obj");
+        Path fullObjFile;
         if (_folder.empty())
             fullObjFile = objFile;
         else {
-            fullObjFile = _folder + "/" + objFile;
-            if (!FileUtils::createDirectory(FileUtils::extractParent(fullObjFile)))
+            fullObjFile = _folder/objFile;
+            if (!FileUtils::createDirectory(fullObjFile.parent()))
                 DBG("Unable to create target folder for obj at: '%s'", fullObjFile);
         }
         prim->saveAsObj(fullObjFile);
-        convert("filename", objFile);
+        convert("filename", objFile.asString());
         convert("toWorld", prim->transform());
     }
 
@@ -583,7 +583,7 @@ class SceneXmlWriter
             assign("type", "envmap");
             beginPost();
             convert("toWorld", prim->transform()*Mat4f::rotXYZ(Vec3f(0.0f, 90.0f, 0.0f)));
-            convert("filename", FileUtils::stripExt(tex->path()) + ".hdr");
+            convert("filename", tex->path().setExtension(".hdr").asString());
             end();
         } else {
             DBG("Infinite sphere has to be a constant or bitmap textured light source!");
@@ -667,8 +667,8 @@ class SceneXmlWriter
     }
 
 public:
-    SceneXmlWriter(const std::string &folder, Scene &scene, std::ostream &stream)
-    : _folder(FileUtils::stripSeparator(folder)),
+    SceneXmlWriter(const Path &folder, Scene &scene, std::ostream &stream)
+    : _folder(folder),
       _stream(stream),
       _scene(scene)
     {

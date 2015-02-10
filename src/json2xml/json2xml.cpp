@@ -8,9 +8,9 @@
 
 using namespace Tungsten;
 
-bool convert(const std::string &src, const std::string &dst)
+bool convert(const Path &src, const Path &dst)
 {
-    std::string dstDir(FileUtils::extractParent(dst));
+    Path dstDir = dst.parent();
     if (!dstDir.empty() && !FileUtils::createDirectory(dstDir)) {
         std::cerr << "Unable to create target directory '" << dstDir <<"'\n";
         return false;
@@ -18,7 +18,7 @@ bool convert(const std::string &src, const std::string &dst)
 
     Scene *scene;
     try {
-        scene = Scene::load(src.c_str());
+        scene = Scene::load(src);
         scene->loadResources();
     } catch (std::runtime_error &e) {
         std::cerr << "Scene loader encountered an unrecoverable error: \n" << e.what() << std::endl;
@@ -30,7 +30,7 @@ bool convert(const std::string &src, const std::string &dst)
         return false;
     }
 
-    std::ofstream out(dst);
+    std::ofstream out(dst.absolute().asString());
     if (!out.good()) {
         std::cerr << "Unable to write to target file '" << dst << "'\n";
         return false;
@@ -56,10 +56,10 @@ int main(int argc, const char *argv[])
     embree::rtcStartThreads(8);
 
     if (argc == 3) {
-        convert(argv[1], argv[2]);
+        convert(Path(argv[1]), Path(argv[2]));
     } else {
         for (int i = 1; i < argc; ++i)
-            convert(argv[i], FileUtils::stripExt(argv[i]) + ".xml");
+            convert(Path(argv[i]), Path(argv[i]).setExtension("xml"));
     }
 
     return 0;

@@ -91,13 +91,13 @@ void MainWindow::newScene()
 
 void MainWindow::openScene()
 {
-    std::string dir = (!_scene || _scene->path().empty()) ?
+    Path dir = (!_scene || _scene->path().empty()) ?
             FileUtils::getCurrentDir() :
             _scene->path();
     QString file = QFileDialog::getOpenFileName(
         nullptr,
         "Open file...",
-        QString::fromStdString(dir),
+        QString::fromStdString(dir.absolute().asString()),
         "Scene files (*.json)"
     );
 
@@ -108,14 +108,14 @@ void MainWindow::openScene()
 void MainWindow::reloadScene()
 {
     if (_scene)
-        openScene(QString::fromStdString(_scene->path()));
+        openScene(QString::fromStdString(_scene->path().absolute().asString()));
 }
 
 void MainWindow::openScene(const QString &path)
 {
     Scene *newScene = nullptr;
     try {
-        newScene = Scene::load(path.toStdString());
+        newScene = Scene::load(Path(path.toStdString()));
         newScene->loadResources();
     } catch (const std::runtime_error &e) {
         QMessageBox::warning(
@@ -150,18 +150,18 @@ void MainWindow::saveScene()
 void MainWindow::saveSceneAs()
 {
     if (_scene) {
-        std::string dir = _scene->path().empty() ?
+        Path dir = _scene->path().empty() ?
                 FileUtils::getCurrentDir() :
                 _scene->path();
         QString file = QFileDialog::getSaveFileName(
             nullptr,
             "Save file as...",
-            QString::fromStdString(dir),
+            QString::fromStdString(dir.absolute().asString()),
             "Scene files (*.json)"
         );
 
         if (!file.isEmpty()) {
-            _scene->setPath(file.toStdString());
+            _scene->setPath(Path(file.toStdString()));
             saveScene();
         }
     }

@@ -341,7 +341,6 @@ void Curves::fromJson(const rapidjson::Value &v, const Scene &scene)
     Primitive::fromJson(v, scene);
     JsonUtils::fromJson(v, "file", _path);
     JsonUtils::fromJson(v, "mode", _modeString);
-    _dir = FileUtils::getCurrentDir();
 
     init();
 }
@@ -350,7 +349,7 @@ rapidjson::Value Curves::toJson(Allocator &allocator) const
 {
     rapidjson::Value v = Primitive::toJson(allocator);
     v.AddMember("type", "curves", allocator);
-    v.AddMember("file", _path.c_str(), allocator);
+    v.AddMember("file", _path.asString().c_str(), allocator);
     v.AddMember("mode", _modeString.c_str(), allocator);
     JsonUtils::addObjectMember(v, "bsdf", *_bsdf, allocator);
     return std::move(v);
@@ -580,11 +579,8 @@ void Curves::prepareForRender()
 void Curves::cleanupAfterRender()
 {
     _bvh.reset();
-    std::string dir = FileUtils::getCurrentDir();
-    FileUtils::changeCurrentDir(_dir);
     // TODO
     loadCurves();
-    FileUtils::changeCurrentDir(dir);
 }
 
 

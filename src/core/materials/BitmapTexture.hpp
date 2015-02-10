@@ -4,6 +4,7 @@
 #include "Texture.hpp"
 
 #include "io/ImageIO.hpp"
+#include "io/Path.hpp"
 
 namespace Tungsten {
 
@@ -22,7 +23,7 @@ public:
 private:
     typedef JsonSerializable::Allocator Allocator;
 
-    std::string _path;
+    Path _path;
     TexelConversion _texelConversion;
     bool _gammaCorrect;
     bool _linear, _clamp;
@@ -54,7 +55,7 @@ private:
     void init(void *texels, int w, int h, TexelType texelType);
 
 public:
-    BitmapTexture(const std::string &path, TexelConversion conversion, bool gammaCorrect, bool linear, bool clamp);
+    BitmapTexture(const Path &path, TexelConversion conversion, bool gammaCorrect, bool linear, bool clamp);
     BitmapTexture(void *texels, int w, int h, TexelType texelType, bool linear, bool clamp);
 
     ~BitmapTexture();
@@ -78,7 +79,7 @@ public:
     virtual Vec2f sample(TextureMapJacobian jacobian, const Vec2f &uv) const override;
     virtual float pdf(TextureMapJacobian jacobian, const Vec2f &uv) const override;
 
-    const std::string &path() const
+    const Path &path() const
     {
         return _path;
     }

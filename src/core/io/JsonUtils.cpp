@@ -1,4 +1,5 @@
 #include "JsonUtils.hpp"
+#include "Path.hpp"
 
 namespace Tungsten {
 
@@ -85,6 +86,17 @@ bool fromJson(const rapidjson::Value &v, Mat4f &dst)
     for (unsigned i = 0; i < 16; ++i)
         dst[i] = as<float>(v[i]);
     return true;
+}
+
+bool fromJson(const rapidjson::Value &v, Path &dst)
+{
+    std::string path;
+    bool result = fromJson(v, path);
+
+    dst = Path(path);
+    dst.freezeWorkingDirectory();
+
+    return result;
 }
 
 rapidjson::Value toJsonValue(float value, rapidjson::Document::AllocatorType &/*allocator*/)

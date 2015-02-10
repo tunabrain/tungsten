@@ -258,12 +258,18 @@ std::shared_ptr<Bsdf> ObjLoader::convertObjMaterial(const ObjMaterial &mat)
         return _errorMaterial;
 
     if (mat.hasDiffuseMap()) {
-        auto texture = _textureCache->fetchTexture(mat.diffuseMap, TexelConversion::REQUEST_RGB);
+        Path path(mat.diffuseMap);
+        path.freezeWorkingDirectory();
+
+        auto texture = _textureCache->fetchTexture(path, TexelConversion::REQUEST_RGB);
         if (texture)
             result->setAlbedo(texture);
     }
     if (mat.hasAlphaMap()) {
-        auto texture = _textureCache->fetchTexture(mat.alphaMap, TexelConversion::REQUEST_AUTO);
+        Path path(mat.alphaMap);
+        path.freezeWorkingDirectory();
+
+        auto texture = _textureCache->fetchTexture(path, TexelConversion::REQUEST_AUTO);
         if (texture)
             result = std::make_shared<TransparencyBsdf>(texture, result);
     }
@@ -334,8 +340,12 @@ std::shared_ptr<Primitive> ObjLoader::finalizeMesh()
         ObjMaterial &mat = _materials[_currentMaterial];
         if (mat.isEmissive())
             emission = std::make_shared<ConstantTexture>(mat.emission);
-        if (mat.hasBumpMap())
-            bump = _textureCache->fetchTexture(mat.bumpMap, TexelConversion::REQUEST_AVERAGE);
+        if (mat.hasBumpMap()) {
+            Path path(mat.bumpMap);
+            path.freezeWorkingDirectory();
+
+            bump = _textureCache->fetchTexture(path, TexelConversion::REQUEST_AVERAGE);
+        }
     }
 
     std::string name = _meshName.empty() ? generateDummyName() : _meshName;
@@ -365,14 +375,14 @@ void ObjLoader::loadFile(std::ifstream &in)
     }
 }
 
-ObjLoader::ObjLoader(std::ifstream &in, const std::string &path, std::shared_ptr<TextureCache> cache)
+ObjLoader::ObjLoader(std::ifstream &in, const Path &path, std::shared_ptr<TextureCache> cache)
 : _geometryOnly(false),
   _errorMaterial(std::make_shared<ErrorBsdf>()),
   _textureCache(std::move(cache)),
   _currentMaterial(-1),
   _meshSmoothed(false)
 {
-    DirectoryChange context(FileUtils::extractParent(path));
+    DirectoryChange context(path.parent());
 
     loadFile(in);
 
@@ -388,9 +398,9 @@ ObjLoader::ObjLoader(std::ifstream &in)
     loadFile(in);
 }
 
-Scene *ObjLoader::load(const std::string &path, std::shared_ptr<TextureCache> cache)
+Scene *ObjLoader::load(const Path &path, std::shared_ptr<TextureCache> cache)
 {
-    std::ifstream file(path, std::ios::in | std::ios::binary);
+    std::ifstream file(path.absolute().asString(), std::ios::in | std::ios::binary);
 
     if (file.good()) {
         if (!cache)
@@ -403,7 +413,7 @@ Scene *ObjLoader::load(const std::string &path, std::shared_ptr<TextureCache> ca
         cam->setPos(loader._bounds.center() - Vec3f(0.0f, 0.0f, loader._bounds.diagonal().z()));
 
         return new Scene(
-            FileUtils::extractParent(path),
+            path.parent(),
             std::move(loader._meshes),
             std::vector<std::shared_ptr<Bsdf>>(),
             std::move(cache),
@@ -414,9 +424,9 @@ Scene *ObjLoader::load(const std::string &path, std::shared_ptr<TextureCache> ca
     }
 }
 
-bool ObjLoader::loadGeometryOnly(const std::string &path, std::vector<Vertex> &verts, std::vector<TriangleI> &tris)
+bool ObjLoader::loadGeometryOnly(const Path &path, std::vector<Vertex> &verts, std::vector<TriangleI> &tris)
 {
-    std::ifstream file(path, std::ios::in | std::ios::binary);
+    std::ifstream file(path.absolute().asString(), std::ios::in | std::ios::binary);
     if (!file.good())
         return false;
 

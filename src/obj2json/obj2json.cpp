@@ -13,14 +13,14 @@ int main(int argc, const char *argv[])
         return 1;
     }
 
-    std::string dst(argv[2]);
-    std::string dstDir(FileUtils::extractParent(dst));
+    Path dst(argv[2]);
+    Path dstDir = dst.parent();
     if (!dstDir.empty() && !FileUtils::createDirectory(dstDir)) {
         std::cerr << "Unable to create target directory '" << dstDir <<"'\n";
         return 1;
     }
 
-    Scene *scene = ObjLoader::load(argv[1]);
+    Scene *scene = ObjLoader::load(Path(argv[1]));
 
     if (!scene) {
         std::cerr << "Unable to open input file '" << argv[1] << "'\n";

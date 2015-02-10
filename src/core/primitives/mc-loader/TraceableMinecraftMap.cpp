@@ -52,7 +52,7 @@ TraceableMinecraftMap::TraceableMinecraftMap(const TraceableMinecraftMap &o)
     _bsdfCache = o._bsdfCache;
 }
 
-void TraceableMinecraftMap::getTexProperties(const std::string &path, int w, int h,
+void TraceableMinecraftMap::getTexProperties(const Path &path, int w, int h,
         int &tileW, int &tileH, bool &clamp, bool &linear)
 {
     tileW = w;
@@ -60,11 +60,11 @@ void TraceableMinecraftMap::getTexProperties(const std::string &path, int w, int
     linear = false;
     clamp = false;
 
-    File meta(path + ".mcmeta");
+    Path meta(path + ".mcmeta");
     if (!meta.exists())
         return;
 
-    std::string json = FileUtils::loadText(meta.path().c_str());
+    std::string json = FileUtils::loadText(meta);
     if (json.empty())
         return;
 
@@ -94,7 +94,7 @@ void TraceableMinecraftMap::loadTexture(ResourcePackLoader &pack, const std::str
         std::shared_ptr<BitmapTexture> &albedo, std::shared_ptr<BitmapTexture> &opacity,
         Box2f &opaqueBounds, Vec4c tint, const uint8 *mask, int maskW, int maskH)
 {
-    std::string path = pack.textureBasePath() + name + ".png";
+    Path path = pack.textureBasePath()/name + ".png";
 
     int w, h;
     std::unique_ptr<uint8[]> img = ImageIO::loadLdr(path, TexelConversion::REQUEST_RGB, w, h);
@@ -223,7 +223,7 @@ int TraceableMinecraftMap::fetchBsdf(ResourcePackLoader &pack, const TexturedQua
     if (isEmissive) {
         const EmitterInfo &info = *pack.emitterInfo(quad.texture);
         if (!info.mask.empty())
-            emitterMask = ImageIO::loadLdr(pack.packPath() + info.mask,
+            emitterMask = ImageIO::loadLdr(pack.packPath()/info.mask,
                     TexelConversion::REQUEST_AVERAGE, emitterMaskW, emitterMaskH, false);
 
         material.primaryScale = info.primaryScale;
@@ -594,8 +594,8 @@ rapidjson::Value TraceableMinecraftMap::toJson(Allocator &allocator) const
 {
     rapidjson::Value v = Primitive::toJson(allocator);
     v.AddMember("type", "minecraft_map", allocator);
-    v.AddMember("map_path", _mapPath.c_str(), allocator);
-    v.AddMember("resource_path", _packPath.c_str(), allocator);
+    v.AddMember("map_path", _mapPath.asString().c_str(), allocator);
+    v.AddMember("resource_path", _packPath.asString().c_str(), allocator);
     return std::move(v);
 }
 

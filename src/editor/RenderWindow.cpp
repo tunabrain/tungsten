@@ -189,7 +189,7 @@ void RenderWindow::finishRender()
         startRender();
     else {
         if (_scene) {
-            DirectoryChange context(FileUtils::extractParent(_scene->path()));
+            DirectoryChange context(_scene->path().parent());
             _scene->camera()->saveOutputs(*_renderer);
         }
         _renderer.reset();

@@ -5,6 +5,8 @@
 #include "ModelResolver.hpp"
 #include "Model.hpp"
 
+#include "io/Path.hpp"
+
 #include <unordered_map>
 #include <memory>
 #include <string>
@@ -14,7 +16,6 @@ namespace Tungsten {
 namespace MinecraftLoader {
 
 class TraceableMinecraftMap;
-class File;
 
 struct BiomeColor
 {
@@ -101,7 +102,7 @@ public:
     };
 
 private:
-    std::string _packPath;
+    Path _packPath;
 
     std::vector<BlockDescriptor> _blockDescriptors;
     std::vector<Model> _models;
@@ -128,7 +129,7 @@ private:
 
     void duplicateRedstoneLevels(BlockDescriptor &state);
     void loadStates();
-    void loadModels(File dir, std::string base = "");
+    void loadModels(const Path &dir, std::string base = "");
     void fixTintIndices();
     void generateBiomeColors();
     void loadEmitters();
@@ -141,7 +142,7 @@ public:
     static const char *biomePath;
     static const char *emitterPath;
 
-    ResourcePackLoader(const std::string packPath);
+    ResourcePackLoader(const Path &packPath);
 
     const ModelRef *mapBlock(uint16 id, int idx) const;
     const ModelRef *mapSpecialBlock(const TraceableMinecraftMap &map, int x, int y, int z, int idx, uint32 id) const;
@@ -156,14 +157,14 @@ public:
         return _biomes;
     }
 
-    const std::string &packPath() const
+    const Path &packPath() const
     {
         return _packPath;
     }
 
-    std::string textureBasePath() const
+    Path textureBasePath() const
     {
-        return _packPath + textureBase;
+        return _packPath/textureBase;
     }
 
     bool isEmissive(const std::string &texture) const

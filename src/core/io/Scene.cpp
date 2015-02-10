@@ -61,7 +61,7 @@ Scene::Scene()
 {
 }
 
-Scene::Scene(const std::string &srcDir, std::shared_ptr<TextureCache> cache)
+Scene::Scene(const Path &srcDir, std::shared_ptr<TextureCache> cache)
 : _srcDir(srcDir),
   _textureCache(std::move(cache)),
   _camera(std::make_shared<PinholeCamera>()),
@@ -69,7 +69,7 @@ Scene::Scene(const std::string &srcDir, std::shared_ptr<TextureCache> cache)
 {
 }
 
-Scene::Scene(const std::string &srcDir,
+Scene::Scene(const Path &srcDir,
       std::vector<std::shared_ptr<Primitive>> primitives,
       std::vector<std::shared_ptr<Bsdf>> bsdfs,
       std::shared_ptr<TextureCache> cache,
@@ -199,7 +199,7 @@ std::shared_ptr<Texture> Scene::instantiateTexture(std::string type, const rapid
 {
     std::shared_ptr<Texture> result;
     if (type == "bitmap")
-        return _textureCache->fetchTexture(JsonUtils::as<std::string>(value, "path"), conversion);
+        return _textureCache->fetchTexture(JsonUtils::as<Path>(value, "path"), conversion);
     else if (type == "constant")
         result = std::make_shared<ConstantTexture>();
     else if (type == "checker")
@@ -268,7 +268,7 @@ std::shared_ptr<Texture> Scene::fetchTexture(const rapidjson::Value &v, TexelCon
     // unless the user expects e.g. a ConstantTexture with Vec3 argument to select the green
     // channel when used in a TransparencyBsdf.
     if (v.IsString())
-        return _textureCache->fetchTexture(v.GetString(), conversion);
+        return _textureCache->fetchTexture(JsonUtils::as<Path>(v), conversion);
     else if (v.IsNumber())
         return std::make_shared<ConstantTexture>(JsonUtils::as<float>(v));
     else if (v.IsArray())
@@ -458,9 +458,9 @@ TraceableScene *Scene::makeTraceable()
     return new TraceableScene(*_camera, *_integrator, _primitives, _media, _rendererSettings);
 }
 
-Scene *Scene::load(const std::string &path, std::shared_ptr<TextureCache> cache)
+Scene *Scene::load(const Path &path, std::shared_ptr<TextureCache> cache)
 {
-    std::string json = FileUtils::loadText(path.c_str());
+    std::string json = FileUtils::loadText(path);
     if (json.empty())
         throw std::runtime_error(tfm::format("Unable to open file at '%s'", path));
 
@@ -469,19 +469,19 @@ Scene *Scene::load(const std::string &path, std::shared_ptr<TextureCache> cache)
     if (document.HasParseError())
         throw std::runtime_error(tfm::format("JSON parse error: %s", document.GetParseError()));
 
-    DirectoryChange context(FileUtils::extractParent(path));
+    DirectoryChange context(path.parent());
 
     if (!cache)
         cache = std::make_shared<TextureCache>();
 
-    Scene *scene = new Scene(FileUtils::extractParent(path), std::move(cache));
+    Scene *scene = new Scene(path.parent(), std::move(cache));
     scene->fromJson(document, *scene);
     scene->setPath(path);
 
     return scene;
 }
 
-void Scene::save(const std::string &path, const Scene &scene)
+void Scene::save(const Path &path, const Scene &scene)
 {
     rapidjson::Document document;
     document.SetObject();
@@ -489,7 +489,7 @@ void Scene::save(const std::string &path, const Scene &scene)
     *(static_cast<rapidjson::Value *>(&document)) = scene.toJson(document.GetAllocator());
 
     std::unique_ptr<char[]> buffer(new char[4*1024]);
-    FILE *fp = fopen(path.c_str(), "wb");
+    FILE *fp = fopen(path.absolute().asString().c_str(), "wb");
     rapidjson::FileWriteStream out(fp, buffer.get(), 4*1024);
 
     rapidjson::PrettyWriter<rapidjson::FileWriteStream> writer(out);

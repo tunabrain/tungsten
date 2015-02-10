@@ -430,19 +430,18 @@ void PreviewWindow::addModel()
     QString file = QFileDialog::getOpenFileName(
         nullptr,
         "Open file...",
-        QString::fromStdString(FileUtils::getCurrentDir()),
+        QString::fromStdString(FileUtils::getCurrentDir().absolute().asString()),
         "Mesh files (*.obj;*.json)"
     );
 
     if (!file.isEmpty()) {
-        std::string p = file.toStdString();
-        std::string ext = FileUtils::extractExt(p);
+        Path p(file.toStdString());
 
         Scene *scene = nullptr;
         try {
-            if (ext == "obj")
-                scene = ObjLoader::load(p.c_str(), _scene->textureCache());
-            else if (ext == "json")
+            if (p.testExtension("obj"))
+                scene = ObjLoader::load(p, _scene->textureCache());
+            else if (p.testExtension("json"))
                 scene = Scene::load(p, _scene->textureCache());
 
             if (scene)
@@ -506,8 +505,8 @@ void PreviewWindow::initializeGL()
 
     _fbo.reset(new RenderTarget());
 
-    std::string exePath = FileUtils::getExecutablePath();
-    std::string shaderBasePath = FileUtils::extractParent(exePath) + "/data/shaders/";
+    Path exePath = FileUtils::getExecutablePath();
+    std::string shaderBasePath = (exePath.parent()/"data/shaders/").asString();
 
     _shader.reset(
         new Shader(shaderBasePath.c_str(), "Preamble.txt", "MeshPreview.vert", "MeshPreview.geom", "MeshPreview.frag", 1));

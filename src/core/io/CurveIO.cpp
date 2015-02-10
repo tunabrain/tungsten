@@ -94,9 +94,9 @@ void initializeRandomNormals(CurveData &data)
     extrudeMinimumTorsionNormals(data);
 }
 
-bool loadHair(const std::string &path, CurveData &data)
+bool loadHair(const Path &path, CurveData &data)
 {
-    std::ifstream in(path, std::ios_base::in | std::ios_base::binary);
+    std::ifstream in(path.absolute().asString(), std::ios_base::in | std::ios_base::binary);
     if (!in.good())
         return false;
 
@@ -186,12 +186,12 @@ bool loadHair(const std::string &path, CurveData &data)
     return true;
 }
 
-bool saveHair(const std::string &path, const CurveData &data)
+bool saveHair(const Path &path, const CurveData &data)
 {
     if (!data.nodeData || !data.curveEnds)
         return false;
 
-    std::ofstream out(path, std::ios_base::out | std::ios_base::binary);
+    std::ofstream out(path.absolute().asString(), std::ios_base::out | std::ios_base::binary);
     if (!out.good())
         return false;
 
@@ -229,16 +229,16 @@ bool saveHair(const std::string &path, const CurveData &data)
     return true;
 }
 
-bool load(const std::string &path, CurveData &data)
+bool load(const Path &path, CurveData &data)
 {
-    if (FileUtils::testExtension(path, "hair"))
+    if (path.testExtension("hair"))
         return loadHair(path, data);
     return false;
 }
 
-bool save(const std::string &path, const CurveData &data)
+bool save(const Path &path, const CurveData &data)
 {
-    if (FileUtils::testExtension(path, "hair"))
+    if (path.testExtension("hair"))
         return saveHair(path, data);
     return false;
 }

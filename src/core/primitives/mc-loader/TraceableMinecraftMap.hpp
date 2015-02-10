@@ -41,8 +41,8 @@ class TraceableMinecraftMap : public Primitive
     typedef VoxelHierarchy<2, 4, ElementType> HierarchicalGrid;
     template<typename T> using aligned_vector = std::vector<T, AlignedAllocator<T, 4096>>;
 
-    std::string _mapPath;
-    std::string _packPath;
+    Path _mapPath;
+    Path _packPath;
 
     std::shared_ptr<Bsdf> _missingBsdf;
     std::vector<QuadMaterial> _materials;
@@ -63,10 +63,10 @@ class TraceableMinecraftMap : public Primitive
     std::unique_ptr<Bvh::BinaryBvh> _chunkBvh;
     std::shared_ptr<MultiQuadLight> _lights;
 
-    void getTexProperties(const std::string &path, int w, int h, int &tileW, int &tileH,
+    void getTexProperties(const Path &path, int w, int h, int &tileW, int &tileH,
             bool &clamp, bool &linear);
 
-    void loadTexture(ResourcePackLoader &pack, const std::string &path, std::shared_ptr<BitmapTexture> &albedo,
+    void loadTexture(ResourcePackLoader &pack, const std::string &name, std::shared_ptr<BitmapTexture> &albedo,
             std::shared_ptr<BitmapTexture> &opacity, Box2f &opaqueBounds, Vec4c tint, const uint8 *mask,
             int maskW, int maskH);
     void loadMaskedBsdf(std::shared_ptr<Bsdf> &bsdf, Box2f &opaqueBounds, std::shared_ptr<BitmapTexture> &emission,

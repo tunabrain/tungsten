@@ -10,9 +10,9 @@ namespace Tungsten {
 
 namespace MeshIO {
 
-bool loadWo3(const std::string &path, std::vector<Vertex> &verts, std::vector<TriangleI> &tris)
+bool loadWo3(const Path &path, std::vector<Vertex> &verts, std::vector<TriangleI> &tris)
 {
-    std::ifstream stream(path, std::ios_base::in | std::ios_base::binary);
+    std::ifstream stream(path.absolute().asString(), std::ios_base::in | std::ios_base::binary);
     if (!stream.good())
         return false;
 
@@ -27,9 +27,9 @@ bool loadWo3(const std::string &path, std::vector<Vertex> &verts, std::vector<Tr
     return true;
 }
 
-bool saveWo3(const std::string &path, const std::vector<Vertex> &verts, const std::vector<TriangleI> &tris)
+bool saveWo3(const Path &path, const std::vector<Vertex> &verts, const std::vector<TriangleI> &tris)
 {
-    std::ofstream stream(path, std::ios_base::out | std::ios_base::binary);
+    std::ofstream stream(path.absolute().asString(), std::ios_base::out | std::ios_base::binary);
     if (!stream.good())
         return false;
 
@@ -41,14 +41,14 @@ bool saveWo3(const std::string &path, const std::vector<Vertex> &verts, const st
     return true;
 }
 
-bool loadObj(const std::string &path, std::vector<Vertex> &verts, std::vector<TriangleI> &tris)
+bool loadObj(const Path &path, std::vector<Vertex> &verts, std::vector<TriangleI> &tris)
 {
     return ObjLoader::loadGeometryOnly(path, verts, tris);
 }
 
-bool saveObj(const std::string &path, const std::vector<Vertex> &verts, const std::vector<TriangleI> &tris)
+bool saveObj(const Path &path, const std::vector<Vertex> &verts, const std::vector<TriangleI> &tris)
 {
-    std::ofstream stream(path, std::ios_base::out | std::ios_base::binary);
+    std::ofstream stream(path.absolute().asString(), std::ios_base::out | std::ios_base::binary);
     if (!stream.good())
         return false;
 
@@ -67,20 +67,20 @@ bool saveObj(const std::string &path, const std::vector<Vertex> &verts, const st
     return true;
 }
 
-bool load(const std::string &path, std::vector<Vertex> &verts, std::vector<TriangleI> &tris)
+bool load(const Path &path, std::vector<Vertex> &verts, std::vector<TriangleI> &tris)
 {
-    if (FileUtils::testExtension(path, "wo3"))
+    if (path.testExtension("wo3"))
         return loadWo3(path, verts, tris);
-    else if (FileUtils::testExtension(path, "obj"))
+    else if (path.testExtension("obj"))
         return loadObj(path, verts, tris);
     return false;
 }
 
-bool save(const std::string &path, const std::vector<Vertex> &verts, const std::vector<TriangleI> &tris)
+bool save(const Path &path, const std::vector<Vertex> &verts, const std::vector<TriangleI> &tris)
 {
-    if (FileUtils::testExtension(path, "wo3"))
+    if (path.testExtension("wo3"))
         return saveWo3(path, verts, tris);
-    else if (FileUtils::testExtension(path, "obj"))
+    else if (path.testExtension("obj"))
         return saveObj(path, verts, tris);
     return false;
 }

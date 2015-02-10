@@ -3,6 +3,7 @@
 
 #include "TextureCache.hpp"
 #include "ObjMaterial.hpp"
+#include "Path.hpp"
 
 #include "primitives/Triangle.hpp"
 #include "primitives/Vertex.hpp"
@@ -70,12 +71,12 @@ class ObjLoader
     std::shared_ptr<Primitive> tryInstantiateQuad(const std::string &name, std::shared_ptr<Bsdf> &bsdf);
     std::shared_ptr<Primitive> finalizeMesh();
 
-    ObjLoader(std::ifstream &in, const std::string &path, std::shared_ptr<TextureCache> cache);
+    ObjLoader(std::ifstream &in, const Path &path, std::shared_ptr<TextureCache> cache);
     ObjLoader(std::ifstream &in);
 
 public:
-    static Scene *load(const std::string &path, std::shared_ptr<TextureCache> cache = nullptr);
-    static bool loadGeometryOnly(const std::string &path, std::vector<Vertex> &verts, std::vector<TriangleI> &tris);
+    static Scene *load(const Path &path, std::shared_ptr<TextureCache> cache = nullptr);
+    static bool loadGeometryOnly(const Path &path, std::vector<Vertex> &verts, std::vector<TriangleI> &tris);
 };
 
 }

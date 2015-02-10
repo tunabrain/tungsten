@@ -8,6 +8,7 @@
 #include "math/Angle.hpp"
 
 #include "io/FileUtils.hpp"
+#include "io/Path.hpp"
 
 namespace Tungsten {
 
@@ -25,8 +26,8 @@ void ShapePainter::initialize()
     _vbo->setStandardAttributes(VBO_ATT_POSITION | VBO_ATT_COLOR);
     _vbo->initBuffer();
 
-    std::string exePath = FileUtils::getExecutablePath();
-    std::string shaderBasePath = FileUtils::extractParent(exePath) + "/data/shaders/";
+    Path exePath = FileUtils::getExecutablePath();
+    std::string shaderBasePath = (exePath.parent()/"data/shaders/").asString();
 
     _defaultShader =
         new Shader(shaderBasePath.c_str(), "Preamble.txt", "Primitive.vert", nullptr, "Primitive.frag", 1);

@@ -29,13 +29,6 @@ static bool isSeparator(char p)
 #endif
 }
 
-static void ensureSeparator(std::string &s)
-{
-    if (s.empty() || isSeparator(s.back()))
-        return;
-    s += '/';
-}
-
 static SizeType findFilenamePos(const std::string &s)
 {
     if (s.empty() || (isSeparator(s.back()) && s.size() == 1))
@@ -154,7 +147,7 @@ bool Path::isRelative() const
 bool Path::isDirectory() const
 {
     struct stat buffer;
-    if (stat(absolutePath().c_str(), &buffer) == -1)
+    if (stat(absolute().asString().c_str(), &buffer) == -1)
         return false;
     return S_ISDIR(buffer.st_mode);
 }
@@ -162,7 +155,7 @@ bool Path::isDirectory() const
 bool Path::isFile() const
 {
     struct stat buffer;
-    if (stat(absolutePath().c_str(), &buffer) == -1)
+    if (stat(absolute().asString().c_str(), &buffer) == -1)
         return false;
     return S_ISREG(buffer.st_mode);
 }
@@ -172,7 +165,7 @@ bool Path::exists() const
     if(empty())
         return false;
     struct stat buffer;
-    return (stat(absolutePath().c_str(), &buffer) == 0);
+    return (stat(absolute().asString().c_str(), &buffer) == 0);
 }
 
 bool Path::empty() const
@@ -187,26 +180,14 @@ size_t Path::size() const
 
 void Path::freezeWorkingDirectory()
 {
-    _workingDirectory = FileUtils::getCurrentDir();
-    Tungsten::ensureSeparator(_workingDirectory);
+    Path dir = FileUtils::getCurrentDir();
+    dir.ensureSeparator();
+    _workingDirectory = dir.asString();
 }
 
 void Path::clearWorkingDirectory()
 {
     _workingDirectory.clear();
-}
-
-std::string Path::absolutePath() const
-{
-    if (isAbsolute())
-        return _path;
-    else if (!_workingDirectory.empty())
-        return _workingDirectory + _path;
-    else {
-        std::string dir = FileUtils::getCurrentDir();
-        Tungsten::ensureSeparator(dir);
-        return dir + _path;
-    }
 }
 
 const std::string &Path::asString() const
@@ -290,9 +271,20 @@ Path Path::setExtension(const Path &ext) const
         return stripExtension() + ext;
 }
 
+Path Path::absolute() const
+{
+    if (isAbsolute())
+        return *this;
+    else if (!_workingDirectory.empty())
+        return Path(_workingDirectory, _workingDirectory + _path);
+    else
+        return FileUtils::getCurrentDir()/_path;
+}
+
 void Path::ensureSeparator()
 {
-    Tungsten::ensureSeparator(_path);
+    if (!_path.empty() && !isSeparator(_path.back()))
+        _path += '/';
 }
 
 void Path::stripSeparator()

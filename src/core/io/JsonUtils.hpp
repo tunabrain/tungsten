@@ -13,6 +13,8 @@
 
 namespace Tungsten {
 
+class Path;
+
 namespace JsonUtils {
 
 const rapidjson::Value &fetchMember(const rapidjson::Value &v, const char *name);
@@ -26,6 +28,7 @@ bool fromJson(const rapidjson::Value &v, uint64 &dst);
 bool fromJson(const rapidjson::Value &v, int64 &dst);
 bool fromJson(const rapidjson::Value &v, std::string &dst);
 bool fromJson(const rapidjson::Value &v, Mat4f &dst);
+bool fromJson(const rapidjson::Value &v, Path &dst);
 
 template<typename ElementType, unsigned Size>
 bool fromJson(const rapidjson::Value &v, Vec<ElementType, Size> &dst);
