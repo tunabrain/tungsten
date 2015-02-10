@@ -194,8 +194,13 @@ std::string Path::absolutePath() const
 {
     if (isAbsolute())
         return _path;
-    else
+    else if (!_workingDirectory.empty())
         return _workingDirectory + _path;
+    else {
+        std::string dir = FileUtils::getCurrentDir();
+        Tungsten::ensureSeparator(dir);
+        return dir + _path;
+    }
 }
 
 const std::string &Path::path() const
