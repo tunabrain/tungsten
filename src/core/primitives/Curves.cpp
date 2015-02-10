@@ -266,7 +266,8 @@ void Curves::loadCurves()
     data.nodeColor = &_nodeColor;
     data.nodeNormal = &_nodeNormals;
 
-    CurveIO::load(_path, data);
+    if (!CurveIO::load(_path, data))
+        DBG("Unable to load curves at %s", _path);
 
     _nodeCount = _nodeData.size();
     _curveCount = _curveEnds.size();
@@ -511,7 +512,7 @@ bool Curves::invertParametrization(Vec2f /*uv*/, Vec3f &/*pos*/) const
 
 bool Curves::isDelta() const
 {
-    return false;
+    return _nodeCount == 0 || _curveCount == 0;
 }
 
 bool Curves::isInfinite() const

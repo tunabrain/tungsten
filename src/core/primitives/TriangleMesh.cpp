@@ -140,7 +140,8 @@ rapidjson::Value TriangleMesh::toJson(Allocator &allocator) const
 
 void TriangleMesh::loadResources()
 {
-    MeshIO::load(_path, _verts, _tris);
+    if (!MeshIO::load(_path, _verts, _tris))
+        DBG("Unable to load triangle mesh at %s", _path);
 }
 
 void TriangleMesh::saveResources()
@@ -433,7 +434,7 @@ bool TriangleMesh::invertParametrization(Vec2f /*uv*/, Vec3f &/*pos*/) const
 
 bool TriangleMesh::isDelta() const
 {
-    return false;
+    return _verts.empty() || _tris.empty();
 }
 
 bool TriangleMesh::isInfinite() const
@@ -455,6 +456,9 @@ Box3f TriangleMesh::bounds() const
 void TriangleMesh::prepareForRender()
 {
     computeBounds();
+
+    if (_verts.empty() || _tris.empty())
+        return;
 
     _geom = embree::rtcNewTriangleMesh(_tris.size(), _verts.size(), "bvh2");
     embree::RTCVertex   *vs = embree::rtcMapPositionBuffer(_geom);
