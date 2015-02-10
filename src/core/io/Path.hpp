@@ -20,7 +20,8 @@ class Path
 
 public:
     Path() = default;
-    Path(const std::string &path);
+    explicit Path(const std::string &path);
+    Path(const char *path);
 
     bool testExtension(const Path &ext) const;
     bool isRootDirectory() const;
@@ -53,11 +54,15 @@ public:
     Path &operator+=(const Path &o);
     Path &operator/=(const std::string &o);
     Path &operator+=(const std::string &o);
+    Path &operator/=(const char *o);
+    Path &operator+=(const char *o);
 
     Path operator/(const Path &o) const;
     Path operator+(const Path &o) const;
     Path operator/(const std::string &o) const;
     Path operator+(const std::string &o) const;
+    Path operator/(const char *o) const;
+    Path operator+(const char *o) const;
 
     FileIterator begin() const;
     FileIterator end() const;

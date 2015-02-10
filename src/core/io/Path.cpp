@@ -83,6 +83,11 @@ Path::Path(const std::string &path)
 {
 }
 
+Path::Path(const char *path)
+: _path(path)
+{
+}
+
 bool Path::testExtension(const Path &ext) const
 {
     if (size() <= ext.size())
@@ -324,6 +329,18 @@ Path &Path::operator+=(const std::string &o)
     return *this;
 }
 
+Path &Path::operator/=(const char *o)
+{
+    ensureSeparator();
+    return *this += o;
+}
+
+Path &Path::operator+=(const char *o)
+{
+    _path += o;
+    return *this;
+}
+
 Path Path::operator/(const Path &o) const
 {
     return *this / o.path();
@@ -350,6 +367,21 @@ Path Path::operator+(const std::string &o) const
     return std::move(copy);
 }
 
+Path Path::operator/(const char *o) const
+{
+    Path copy(*this);
+    copy.ensureSeparator();
+    copy += o;
+    return std::move(copy);
+}
+
+Path Path::operator+(const char *o) const
+{
+    Path copy(*this);
+    copy += o;
+
+    return std::move(copy);
+}
 FileIterator Path::begin() const
 {
     return FileIterator(*this, false, false, Path());
