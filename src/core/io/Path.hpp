@@ -37,7 +37,7 @@ public:
     void clearWorkingDirectory();
 
     std::string absolutePath() const;
-    const std::string &path() const;
+    const std::string &asString() const;
 
     Path extension() const;
     Path fileName() const;

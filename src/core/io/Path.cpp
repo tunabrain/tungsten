@@ -97,7 +97,7 @@ bool Path::testExtension(const Path &ext) const
 
     // Sinze extensions don't normally contain localized characters, this should work fine
     for (size_t i = 0; i < ext.size(); ++i)
-        if (toupper(_path[size() - ext.size() + i]) != toupper(ext.path()[i]))
+        if (toupper(_path[size() - ext.size() + i]) != toupper(ext.asString()[i]))
             return false;
 
     return true;
@@ -209,7 +209,7 @@ std::string Path::absolutePath() const
     }
 }
 
-const std::string &Path::path() const
+const std::string &Path::asString() const
 {
     return _path;
 }
@@ -284,7 +284,7 @@ Path Path::setExtension(const Path &ext) const
 {
     if (empty() || isSeparator(_path.back()) || isRootDirectory())
         return *this;
-    else if (!ext.empty() && ext.path().front() != '.')
+    else if (!ext.empty() && ext.asString().front() != '.')
         return stripExtension() + "." + ext;
     else
         return stripExtension() + ext;
@@ -309,12 +309,12 @@ void Path::stripSeparator()
 
 Path &Path::operator/=(const Path &o)
 {
-    return *this /= o.path();
+    return *this /= o.asString();
 }
 
 Path &Path::operator+=(const Path &o)
 {
-    return *this += o.path();
+    return *this += o.asString();
 }
 
 Path &Path::operator/=(const std::string &o)
@@ -343,12 +343,12 @@ Path &Path::operator+=(const char *o)
 
 Path Path::operator/(const Path &o) const
 {
-    return *this / o.path();
+    return *this / o.asString();
 }
 
 Path Path::operator+(const Path &o) const
 {
-    return *this + o.path();
+    return *this + o.asString();
 }
 
 Path Path::operator/(const std::string &o) const
