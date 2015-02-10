@@ -231,7 +231,7 @@ void Skydome::prepareForRender()
     for (int y = SizeY/2; y < min(SizeY/2 + 2, SizeY); ++y)
         std::memcpy(img.get() + y*SizeX, img.get() + (SizeY/2 - 1)*SizeX, SizeX*sizeof(img[0]));
 
-    _sky = std::make_shared<BitmapTexture>("", img.release(), SizeX, SizeY, BitmapTexture::TexelType::RGB_HDR, true, false);
+    _sky = std::make_shared<BitmapTexture>(img.release(), SizeX, SizeY, BitmapTexture::TexelType::RGB_HDR, true, false);
     _emission = _sky;
 }
 

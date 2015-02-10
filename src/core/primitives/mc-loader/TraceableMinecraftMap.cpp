@@ -137,12 +137,12 @@ void TraceableMinecraftMap::loadTexture(ResourcePackLoader &pack, const std::str
             alpha[i] = tile[i*4 + 3];
     }
 
-    albedo = std::make_shared<BitmapTexture>(name + ".png", tile.release(),
-            tileW, tileH, BitmapTexture::TexelType::RGB_LDR, linear, clamp);
+    albedo = std::make_shared<BitmapTexture>(tile.release(), tileW, tileH,
+            BitmapTexture::TexelType::RGB_LDR, linear, clamp);
 
     if (!opaque)
-        opacity = std::make_shared<BitmapTexture>(name + ".png", alpha.release(),
-                tileW, tileH, BitmapTexture::TexelType::SCALAR_LDR, linear, clamp);
+        opacity = std::make_shared<BitmapTexture>(alpha.release(), tileW, tileH,
+                BitmapTexture::TexelType::SCALAR_LDR, linear, clamp);
 }
 
 void TraceableMinecraftMap::loadMaskedBsdf(std::shared_ptr<Bsdf> &bsdf, Box2f &opaqueBounds,
@@ -296,8 +296,8 @@ void TraceableMinecraftMap::buildBiomeColors(ResourcePackLoader &pack, int rx, i
         tmp.swap(dst);
     };
     auto makeTexture = [](uint8 *tex) {
-        return std::unique_ptr<BitmapTexture>(new BitmapTexture("", tex,
-                256, 256, BitmapTexture::TexelType::RGB_LDR, true, true));
+        return std::unique_ptr<BitmapTexture>(new BitmapTexture(tex, 256, 256,
+                BitmapTexture::TexelType::RGB_LDR, true, true));
     };
 
     blurColors(grassTop);

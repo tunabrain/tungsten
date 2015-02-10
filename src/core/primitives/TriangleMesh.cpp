@@ -118,8 +118,6 @@ void TriangleMesh::fromJson(const rapidjson::Value &v, const Scene &scene)
     } else {
         _bsdfs.emplace_back(scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf")));
     }
-
-    MeshIO::load(_path, _verts, _tris);
 }
 
 rapidjson::Value TriangleMesh::toJson(Allocator &allocator) const
@@ -140,7 +138,12 @@ rapidjson::Value TriangleMesh::toJson(Allocator &allocator) const
     return std::move(v);
 }
 
-void TriangleMesh::saveData()
+void TriangleMesh::loadResources()
+{
+    MeshIO::load(_path, _verts, _tris);
+}
+
+void TriangleMesh::saveResources()
 {
     MeshIO::save(_path, _verts, _tris);
 }

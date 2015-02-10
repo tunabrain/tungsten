@@ -19,42 +19,27 @@ struct Rgba
     }
 };
 
-BitmapTexture::BitmapTexture(const std::string &path, void *texels, int w, int h,
-        TexelType texelType, bool linear, bool clamp)
+BitmapTexture::BitmapTexture(const std::string &path, TexelConversion conversion,
+        bool gammaCorrect, bool linear, bool clamp)
 : _path(path),
-  _texels(texels),
-  _w(w),
-  _h(h),
-  _texelType(texelType),
+  _texelConversion(conversion),
+  _gammaCorrect(gammaCorrect),
   _linear(linear),
-  _clamp(clamp)
+  _clamp(clamp),
+  _valid(false),
+  _min(0.0f), _max(0.0f), _avg(0.0f),
+  _texels(nullptr),
+  _w(0), _h(0),
+  _texelType(TexelType::SCALAR_LDR)
 {
-    if (isRgb()) {
-        _max = _min = getRgb(0, 0);
-        _avg = Vec3f(0.0f);
+}
 
-        for (int y = 0; y < _h; ++y) {
-            for (int x = 0; x < _w; ++x) {
-                _min = min(_min, getRgb(x, y));
-                _max = max(_max, getRgb(x, y));
-                _avg += getRgb(x, y)/float(_w*_h);
-            }
-        }
-    } else {
-        float minT, maxT, avgT = 0.0f;
-        minT = maxT = getScalar(0, 0);
-
-        for (int y = 0; y < _h; ++y) {
-            for (int x = 0; x < _w; ++x) {
-                minT = min(minT, getScalar(x, y));
-                maxT = max(maxT, getScalar(x, y));
-                avgT += getScalar(x, y)/float(_w*_h);
-            }
-        }
-        _min = Vec3f(minT);
-        _max = Vec3f(maxT);
-        _avg = Vec3f(avgT);
-    }
+BitmapTexture::BitmapTexture(void *texels, int w, int h, TexelType texelType, bool linear, bool clamp)
+: _linear(linear),
+  _clamp(clamp),
+  _valid(true)
+{
+    init(texels, w, h, texelType);
 }
 
 BitmapTexture::~BitmapTexture()
@@ -131,6 +116,41 @@ BitmapTexture::TexelType BitmapTexture::getTexelType(bool isRgb, bool isHdr)
         return TexelType::SCALAR_LDR;
 }
 
+void BitmapTexture::init(void *texels, int w, int h, TexelType texelType)
+{
+    _texels = texels;
+    _w = w;
+    _h = h;
+    _texelType = texelType;
+
+    if (isRgb()) {
+        _max = _min = getRgb(0, 0);
+        _avg = Vec3f(0.0f);
+
+        for (int y = 0; y < _h; ++y) {
+            for (int x = 0; x < _w; ++x) {
+                _min = min(_min, getRgb(x, y));
+                _max = max(_max, getRgb(x, y));
+                _avg += getRgb(x, y)/float(_w*_h);
+            }
+        }
+    } else {
+        float minT, maxT, avgT = 0.0f;
+        minT = maxT = getScalar(0, 0);
+
+        for (int y = 0; y < _h; ++y) {
+            for (int x = 0; x < _w; ++x) {
+                minT = min(minT, getScalar(x, y));
+                maxT = max(maxT, getScalar(x, y));
+                avgT += getScalar(x, y)/float(_w*_h);
+            }
+        }
+        _min = Vec3f(minT);
+        _max = Vec3f(maxT);
+        _avg = Vec3f(avgT);
+    }
+}
+
 void BitmapTexture::fromJson(const rapidjson::Value &/*v*/, const Scene &/*scene*/)
 {
 }
@@ -138,6 +158,36 @@ void BitmapTexture::fromJson(const rapidjson::Value &/*v*/, const Scene &/*scene
 rapidjson::Value BitmapTexture::toJson(Allocator &allocator) const
 {
     return std::move(rapidjson::Value(_path.c_str(), allocator));
+}
+
+void BitmapTexture::loadResources()
+{
+    bool isRgb = _texelConversion == TexelConversion::REQUEST_RGB;
+    bool isHdr = ImageIO::isHdr(_path);
+
+    int w, h;
+    void *pixels = nullptr;
+    if (isHdr)
+        pixels = ImageIO::loadHdr(_path, _texelConversion, w, h).release();
+    else
+        pixels = ImageIO::loadLdr(_path, _texelConversion, w, h, _gammaCorrect).release();
+
+    if (!pixels) {
+        uint8 *dummy = new uint8[4];
+        dummy[0] = dummy[3] = 0xFF;
+        dummy[1] = dummy[2] = 0;
+
+        pixels = dummy;
+        w = h = 2;
+        isRgb = false;
+        isHdr = false;
+
+        DBG("Unable to load texture at '%s'", _path);
+    } else {
+        _valid = true;
+    }
+
+    init(pixels, w, h, getTexelType(isRgb, isHdr));
 }
 
 bool BitmapTexture::isConstant() const
@@ -289,25 +339,6 @@ Vec2f BitmapTexture::sample(TextureMapJacobian jacobian, const Vec2f &uv) const
 float BitmapTexture::pdf(TextureMapJacobian jacobian, const Vec2f &uv) const
 {
     return _distribution[jacobian]->pdf(int((1.0f - uv.y())*_h), int(uv.x()*_w))*_w*_h;
-}
-
-std::shared_ptr<BitmapTexture> BitmapTexture::loadTexture(const std::string &path,
-        TexelConversion conversion, bool gammaCorrect)
-{
-    bool isRgb = conversion == TexelConversion::REQUEST_RGB;
-    bool isHdr = ImageIO::isHdr(path);
-
-    int w, h;
-    void *pixels;
-    if (isHdr)
-        pixels = ImageIO::loadHdr(path, conversion, w, h).release();
-    else
-        pixels = ImageIO::loadLdr(path, conversion, w, h, gammaCorrect).release();
-
-    if (!pixels)
-        return nullptr;
-
-    return std::make_shared<BitmapTexture>(path, pixels, w, h, getTexelType(isRgb, isHdr), true, false);
 }
 
 }

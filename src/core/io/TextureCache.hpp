@@ -22,6 +22,7 @@ public:
 
     std::shared_ptr<BitmapTexture> &fetchTexture(const std::string &path, TexelConversion conversion);
 
+    void loadResources();
     void prune();
 
     const std::map<KeyType, std::shared_ptr<BitmapTexture>> &textures() const

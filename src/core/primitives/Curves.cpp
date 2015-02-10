@@ -344,8 +344,6 @@ void Curves::fromJson(const rapidjson::Value &v, const Scene &scene)
     _dir = FileUtils::getCurrentDir();
 
     init();
-
-    loadCurves();
 }
 
 rapidjson::Value Curves::toJson(Allocator &allocator) const
@@ -356,6 +354,21 @@ rapidjson::Value Curves::toJson(Allocator &allocator) const
     v.AddMember("mode", _modeString.c_str(), allocator);
     JsonUtils::addObjectMember(v, "bsdf", *_bsdf, allocator);
     return std::move(v);
+}
+
+void Curves::loadResources()
+{
+    loadCurves();
+}
+
+void Curves::saveResources()
+{
+    CurveIO::CurveData data;
+    data.curveEnds = &_curveEnds;
+    data.nodeData  = &_nodeData;
+    data.nodeColor = &_nodeColor;
+
+    CurveIO::save(_path, data);
 }
 
 bool Curves::intersect(Ray &ray, IntersectionTemporary &data) const
@@ -588,16 +601,6 @@ std::shared_ptr<Bsdf> &Curves::bsdf(int /*index*/)
 Primitive *Curves::clone()
 {
     return new Curves(*this);
-}
-
-void Curves::saveData()
-{
-    CurveIO::CurveData data;
-    data.curveEnds = &_curveEnds;
-    data.nodeData  = &_nodeData;
-    data.nodeColor = &_nodeColor;
-
-    CurveIO::save(_path, data);
 }
 
 }

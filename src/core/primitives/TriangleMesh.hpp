@@ -53,7 +53,9 @@ public:
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
-    virtual void saveData() override;
+    virtual void loadResources() override;
+    virtual void saveResources() override;
+
     void saveAsObj(const std::string &path) const;
     void calcSmoothVertexNormals();
     void computeBounds();

@@ -11,12 +11,16 @@ std::shared_ptr<BitmapTexture> &TextureCache::fetchTexture(const std::string &pa
     auto iter = _textures.find(key);
 
     if (iter == _textures.end())
-        iter = _textures.insert(std::make_pair(key, BitmapTexture::loadTexture(path, conversion))).first;
-
-    if (!iter->second)
-        DBG("Unable to load texture at '%s'", path);
+        iter = _textures.insert(std::make_pair(key, std::make_shared<BitmapTexture>(path,
+                conversion, true, true, false))).first;
 
     return iter->second;
+}
+
+void TextureCache::loadResources()
+{
+    for (auto &i : _textures)
+        i.second->loadResources();
 }
 
 void TextureCache::prune()

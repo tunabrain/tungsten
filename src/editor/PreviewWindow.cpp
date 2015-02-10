@@ -109,7 +109,7 @@ void PreviewWindow::addStatusWidgets(QStatusBar *statusBar)
 void PreviewWindow::saveSceneData()
 {
     for (Primitive *p : _dirtyPrimitives)
-        p->saveData();
+        p->saveResources();
     _dirtyPrimitives.clear();
 }
 
@@ -439,10 +439,21 @@ void PreviewWindow::addModel()
         std::string ext = FileUtils::extractExt(p);
 
         Scene *scene = nullptr;
-        if (ext == "obj")
-            scene = ObjLoader::load(p.c_str(), _scene->textureCache());
-        else if (ext == "json")
-            scene = Scene::load(p, _scene->textureCache());
+        try {
+            if (ext == "obj")
+                scene = ObjLoader::load(p.c_str(), _scene->textureCache());
+            else if (ext == "json")
+                scene = Scene::load(p, _scene->textureCache());
+
+            if (scene)
+                scene->loadResources();
+        } catch (const std::runtime_error &e) {
+            QMessageBox::warning(
+                this,
+                "Loading model failed",
+                QString::fromStdString(tfm::format("Encountered an error while loading model:\n\n%s", e.what()))
+            );
+        }
         if (!scene)
             return;
 

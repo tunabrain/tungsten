@@ -426,6 +426,21 @@ rapidjson::Value Scene::toJson(Allocator &allocator) const
     return std::move(v);
 }
 
+void Scene::loadResources()
+{
+    for (const std::shared_ptr<Medium> &b : _media)
+        b->loadResources();
+    for (const std::shared_ptr<Bsdf> &b : _bsdfs)
+        b->loadResources();
+    for (const std::shared_ptr<Primitive> &t : _primitives)
+        t->loadResources();
+    _camera->loadResources();
+    _integrator->loadResources();
+    _rendererSettings.loadResources();
+
+    _textureCache->loadResources();
+}
+
 void Scene::deletePrimitives(const std::unordered_set<Primitive *> &primitives)
 {
     std::vector<std::shared_ptr<Primitive>> newPrims;

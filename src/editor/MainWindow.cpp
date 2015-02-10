@@ -116,6 +116,7 @@ void MainWindow::openScene(const QString &path)
     Scene *newScene = nullptr;
     try {
         newScene = Scene::load(path.toStdString());
+        newScene->loadResources();
     } catch (const std::runtime_error &e) {
         QMessageBox::warning(
             this,

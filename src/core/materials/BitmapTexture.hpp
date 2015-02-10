@@ -23,13 +23,16 @@ private:
     typedef JsonSerializable::Allocator Allocator;
 
     std::string _path;
+    TexelConversion _texelConversion;
+    bool _gammaCorrect;
+    bool _linear, _clamp;
+    bool _valid;
 
     Vec3f _min, _max, _avg;
     void *_texels;
     int _w;
     int _h;
     TexelType _texelType;
-    bool _linear, _clamp;
 
     std::unique_ptr<Distribution2D> _distribution[MAP_JACOBIAN_COUNT];
 
@@ -46,14 +49,20 @@ private:
     inline Vec3f getRgb(int x, int y) const;
     inline float weight(int x, int y) const;
 
-    static TexelType getTexelType(bool isRgb, bool isHdr);
+    TexelType getTexelType(bool isRgb, bool isHdr);
+
+    void init(void *texels, int w, int h, TexelType texelType);
 
 public:
-    BitmapTexture(const std::string &path, void *texels, int w, int h, TexelType texelType, bool linear, bool clamp);
+    BitmapTexture(const std::string &path, TexelConversion conversion, bool gammaCorrect, bool linear, bool clamp);
+    BitmapTexture(void *texels, int w, int h, TexelType texelType, bool linear, bool clamp);
+
     ~BitmapTexture();
 
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
+
+    virtual void loadResources() override;
 
     virtual bool isConstant() const override;
 
@@ -84,8 +93,10 @@ public:
         return _h;
     }
 
-    static std::shared_ptr<BitmapTexture> loadTexture(const std::string &path,
-            TexelConversion conversion, bool gammaCorrect = true);
+    bool isValid() const
+    {
+        return _valid;
+    }
 };
 
 }

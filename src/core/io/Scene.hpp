@@ -78,6 +78,8 @@ public:
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene);
     virtual rapidjson::Value toJson(Allocator &allocator) const;
 
+    virtual void loadResources() override;
+
     std::shared_ptr<Medium> fetchMedium(const rapidjson::Value &v) const;
     std::shared_ptr<Bsdf> fetchBsdf(const rapidjson::Value &v) const;
     std::shared_ptr<Texture> fetchTexture(const rapidjson::Value &v, TexelConversion conversion) const;

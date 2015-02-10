@@ -19,6 +19,7 @@ bool convert(const std::string &src, const std::string &dst)
     Scene *scene;
     try {
         scene = Scene::load(src.c_str());
+        scene->loadResources();
     } catch (std::runtime_error &e) {
         std::cerr << "Scene loader encountered an unrecoverable error: \n" << e.what() << std::endl;
         return false;

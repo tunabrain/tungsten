@@ -379,12 +379,10 @@ void ResourcePackLoader::generateBiomeColors()
     };
     _biomes.resize(256, defaultColor);
 
-    std::shared_ptr<BitmapTexture> grass(BitmapTexture::loadTexture(
-            _packPath + textureBase + "colormap/grass.png", TexelConversion::REQUEST_RGB, false));
-    std::shared_ptr<BitmapTexture> foliage(BitmapTexture::loadTexture(
-            _packPath + textureBase + "colormap/foliage.png", TexelConversion::REQUEST_RGB, false));
+    BitmapTexture grass(_packPath + textureBase + "colormap/grass.png", TexelConversion::REQUEST_RGB, false, true, true);
+    BitmapTexture foliage(_packPath + textureBase + "colormap/foliage.png", TexelConversion::REQUEST_RGB, false, true, true);
 
-    if (!grass || !foliage)
+    if (!grass.isValid() || !foliage.isValid())
         return;
 
     std::string json = FileUtils::loadText(_packPath + biomePath);
@@ -407,10 +405,10 @@ void ResourcePackLoader::generateBiomeColors()
         float tempBottom = clamp(temperature, 0.0f, 1.0f);
         float rainfallBottom = clamp(rainfall, 0.0f, 1.0f)*tempBottom;
 
-        _biomes[id].foliageBottom = (*foliage)[Vec2f(1.0f - tempBottom, rainfallBottom)];
-        _biomes[id].grassBottom   = (*grass)  [Vec2f(1.0f - tempBottom, rainfallBottom)];
-        _biomes[id].foliageTop    = (*foliage)[Vec2f(1.0f, 0.0f)];
-        _biomes[id].grassTop      = (*grass  )[Vec2f(1.0f, 0.0f)];
+        _biomes[id].foliageBottom = foliage[Vec2f(1.0f - tempBottom, rainfallBottom)];
+        _biomes[id].grassBottom   = grass  [Vec2f(1.0f - tempBottom, rainfallBottom)];
+        _biomes[id].foliageTop    = foliage[Vec2f(1.0f, 0.0f)];
+        _biomes[id].grassTop      = grass  [Vec2f(1.0f, 0.0f)];
         _biomes[id].height        = tempBottom/coolingRate;
     }
 

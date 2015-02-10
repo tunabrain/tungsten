@@ -61,6 +61,9 @@ public:
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
+    virtual void loadResources() override;
+    virtual void saveResources() override;
+
     virtual bool intersect(Ray &ray, IntersectionTemporary &data) const override;
     virtual bool occluded(const Ray &ray) const override;
     virtual bool hitBackside(const IntersectionTemporary &data) const override;
@@ -91,8 +94,6 @@ public:
     virtual std::shared_ptr<Bsdf> &bsdf(int index) override;
 
     virtual Primitive *clone() override;
-
-    virtual void saveData() override;
 };
 
 }
