@@ -46,6 +46,7 @@ public:
     Path stripExtension() const;
     Path setExtension(const Path &ext) const;
     Path absolute() const;
+    Path normalizeSeparators() const;
     Path ensureSeparator() const;
     Path stripSeparator() const;
 
