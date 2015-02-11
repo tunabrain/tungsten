@@ -82,4 +82,15 @@ typedef std::shared_ptr<Path> PathPtr;
 
 }
 
+namespace std {
+
+template<> struct hash<Tungsten::Path>
+{
+    std::size_t operator()(const Tungsten::Path &v) const {
+        return std::hash<std::string>()(v.asString());
+    }
+};
+
+}
+
 #endif /* PATH_HPP_ */
