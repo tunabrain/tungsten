@@ -431,4 +431,9 @@ DirectoryIterable Path::directories() const
     return DirectoryIterable(*this);
 }
 
+RecursiveIterable Path::recursive() const
+{
+    return RecursiveIterable(*this);
+}
+
 }

@@ -7,6 +7,7 @@
 
 namespace Tungsten {
 
+class RecursiveIterable;
 class DirectoryIterable;
 class FileIterable;
 class FileIterator;
@@ -73,6 +74,7 @@ public:
     FileIterator end() const;
     FileIterable files(const Path &extensionFilter = Path()) const;
     DirectoryIterable directories() const;
+    RecursiveIterable recursive() const;
 
     friend std::ostream &operator<< (std::ostream &stream, const Path &p) {
         return stream << p._path;

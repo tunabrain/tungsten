@@ -1,6 +1,7 @@
 #ifndef FILEITERABLES_HPP_
 #define FILEITERABLES_HPP_
 
+#include "RecursiveFileIterator.hpp"
 #include "FileIterator.hpp"
 
 namespace Tungsten {
@@ -46,6 +47,27 @@ public:
     FileIterator end() const
     {
         return FileIterator();
+    }
+};
+
+class RecursiveIterable
+{
+    Path _path;
+
+public:
+    RecursiveIterable(const Path &p)
+    : _path(p)
+    {
+    }
+
+    RecursiveFileIterator begin() const
+    {
+        return RecursiveFileIterator(_path);
+    }
+
+    RecursiveFileIterator end() const
+    {
+        return RecursiveFileIterator();
     }
 };
 
