@@ -23,7 +23,7 @@ public:
 private:
     typedef JsonSerializable::Allocator Allocator;
 
-    Path _path;
+    PathPtr _path;
     TexelConversion _texelConversion;
     bool _gammaCorrect;
     bool _linear, _clamp;
@@ -56,6 +56,7 @@ private:
 
 public:
     BitmapTexture(const Path &path, TexelConversion conversion, bool gammaCorrect, bool linear, bool clamp);
+    BitmapTexture(PathPtr path, TexelConversion conversion, bool gammaCorrect, bool linear, bool clamp);
     BitmapTexture(void *texels, int w, int h, TexelType texelType, bool linear, bool clamp);
 
     ~BitmapTexture();
@@ -79,7 +80,7 @@ public:
     virtual Vec2f sample(TextureMapJacobian jacobian, const Vec2f &uv) const override;
     virtual float pdf(TextureMapJacobian jacobian, const Vec2f &uv) const override;
 
-    const Path &path() const
+    const PathPtr &path() const
     {
         return _path;
     }

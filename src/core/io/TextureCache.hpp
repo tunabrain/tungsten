@@ -20,7 +20,7 @@ class TextureCache
 public:
     TextureCache() = default;
 
-    std::shared_ptr<BitmapTexture> &fetchTexture(const Path &path, TexelConversion conversion);
+    std::shared_ptr<BitmapTexture> &fetchTexture(PathPtr path, TexelConversion conversion);
 
     void loadResources();
     void prune();

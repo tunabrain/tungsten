@@ -65,13 +65,14 @@ TriangleMesh::TriangleMesh(std::vector<Vertex> verts, std::vector<TriangleI> tri
              std::vector<std::shared_ptr<Bsdf>> bsdfs,
              const std::string &name, bool smoothed, bool backfaceCull)
 : Primitive(name),
-  _path(std::string(name).append(".wo3")),
+  _path(std::make_shared<Path>(std::string(name).append(".wo3"))),
   _smoothed(smoothed),
   _backfaceCulling(backfaceCull),
   _verts(std::move(verts)),
   _tris(std::move(tris)),
   _bsdfs(std::move(bsdfs))
 {
+    _path->freezeWorkingDirectory();
 }
 
 Vec3f TriangleMesh::unnormalizedGeometricNormalAt(int triangle) const
@@ -105,7 +106,7 @@ void TriangleMesh::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     Primitive::fromJson(v, scene);
 
-    JsonUtils::fromJson(v, "file", _path);
+    _path = scene.fetchResource(v, "file");
     JsonUtils::fromJson(v, "smooth", _smoothed);
     JsonUtils::fromJson(v, "backface_culling", _backfaceCulling);
 
@@ -124,7 +125,8 @@ rapidjson::Value TriangleMesh::toJson(Allocator &allocator) const
 {
     rapidjson::Value v = Primitive::toJson(allocator);
     v.AddMember("type", "mesh", allocator);
-    v.AddMember("file", _path.asString().c_str(), allocator);
+    if (_path)
+        v.AddMember("file", _path->asString().c_str(), allocator);
     v.AddMember("smooth", _smoothed, allocator);
     v.AddMember("backface_culling", _backfaceCulling, allocator);
     if (_bsdfs.size() == 1) {
@@ -140,13 +142,14 @@ rapidjson::Value TriangleMesh::toJson(Allocator &allocator) const
 
 void TriangleMesh::loadResources()
 {
-    if (!MeshIO::load(_path, _verts, _tris))
-        DBG("Unable to load triangle mesh at %s", _path);
+    if (_path && !MeshIO::load(*_path, _verts, _tris))
+        DBG("Unable to load triangle mesh at %s", *_path);
 }
 
 void TriangleMesh::saveResources()
 {
-    MeshIO::save(_path, _verts, _tris);
+    if (_path)
+        MeshIO::save(*_path, _verts, _tris);
 }
 
 void TriangleMesh::saveAsObj(const Path &path) const

@@ -3,6 +3,7 @@
 
 #include <rapidjson/document.h>
 #include <unordered_set>
+#include <unordered_map>
 #include <memory>
 #include <vector>
 #include <map>
@@ -43,6 +44,7 @@ class Scene : public JsonSerializable
     std::shared_ptr<Integrator> _integrator;
 
     std::unordered_set<const Primitive *> _helperPrimitives;
+    mutable std::unordered_map<Path, PathPtr> _resources;
 
     RendererSettings _rendererSettings;
 
@@ -86,6 +88,8 @@ public:
     std::shared_ptr<Texture> fetchTexture(const rapidjson::Value &v, TexelConversion conversion) const;
     bool textureFromJsonMember(const rapidjson::Value &v, const char *field, TexelConversion conversion,
             std::shared_ptr<Texture> &dst) const;
+    PathPtr fetchResource(const rapidjson::Value &v) const;
+    PathPtr fetchResource(const rapidjson::Value &v, const char *field) const;
 
     const Primitive *findPrimitive(const std::string &name) const;
 
@@ -151,6 +155,11 @@ public:
     RendererSettings rendererSettings() const
     {
         return _rendererSettings;
+    }
+
+    std::unordered_map<Path, PathPtr> &resources()
+    {
+        return _resources;
     }
 
     static Scene *load(const Path &path, std::shared_ptr<TextureCache> cache = nullptr);

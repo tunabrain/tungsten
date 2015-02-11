@@ -560,43 +560,57 @@ void TraceableMinecraftMap::fromJson(const rapidjson::Value &v, const Scene &sce
 {
     Primitive::fromJson(v, scene);
 
-    JsonUtils::fromJson(v, "map_path", _mapPath);
-    JsonUtils::fromJson(v, "resource_path", _packPath);
-
-    Bvh::PrimVector prims;
-
-    _bounds = Box3f();
-
-    ResourcePackLoader pack(_packPath);
-    buildModels(pack);
-
-    MapLoader<ElementType> loader(_mapPath);
-    loader.loadRegions([&](int x, int z, int height, ElementType *data, uint8 *biomes) {
-        Box3f bounds(Vec3f(x*256.0f, 0.0f, z*256.0f), Vec3f((x + 1)*256.0f, float(height), (z + 1)*256.0f));
-        Vec3f centroid((x + 0.5f)*256.0f, height*0.5f, (z + 0.5f)*256.0f);
-
-        _bounds.grow(bounds);
-
-        prims.emplace_back(bounds, centroid, _grids.size());
-
-        buildBiomeColors(pack, x, z, biomes);
-
-        _grids.emplace_back(new HierarchicalGrid(bounds.min(), data));
-        _regions[Vec2i(x, z)] = _grids.back().get();
-    });
-
-    resolveBlocks(pack);
-
-    _chunkBvh.reset(new Bvh::BinaryBvh(std::move(prims), 1));
+    _mapPath = scene.fetchResource(v, "map_path");
+    _packPath = scene.fetchResource(v, "resource_path");
 }
 
 rapidjson::Value TraceableMinecraftMap::toJson(Allocator &allocator) const
 {
     rapidjson::Value v = Primitive::toJson(allocator);
     v.AddMember("type", "minecraft_map", allocator);
-    v.AddMember("map_path", _mapPath.asString().c_str(), allocator);
-    v.AddMember("resource_path", _packPath.asString().c_str(), allocator);
+    if (_mapPath)
+        v.AddMember("map_path", _mapPath->asString().c_str(), allocator);
+    if (_packPath)
+        v.AddMember("resource_path", _packPath->asString().c_str(), allocator);
     return std::move(v);
+}
+
+void TraceableMinecraftMap::loadResources()
+{
+    Bvh::PrimVector prims;
+
+    _bounds = Box3f();
+
+    if (_packPath && _mapPath) {
+        try {
+            ResourcePackLoader pack(*_packPath);
+            buildModels(pack);
+
+            MapLoader<ElementType> loader(*_mapPath);
+            loader.loadRegions([&](int x, int z, int height, ElementType *data, uint8 *biomes) {
+                Box3f bounds(Vec3f(x*256.0f, 0.0f, z*256.0f), Vec3f((x + 1)*256.0f, float(height), (z + 1)*256.0f));
+                Vec3f centroid((x + 0.5f)*256.0f, height*0.5f, (z + 0.5f)*256.0f);
+
+                _bounds.grow(bounds);
+
+                prims.emplace_back(bounds, centroid, _grids.size());
+
+                buildBiomeColors(pack, x, z, biomes);
+
+                _grids.emplace_back(new HierarchicalGrid(bounds.min(), data));
+                _regions[Vec2i(x, z)] = _grids.back().get();
+            });
+
+            resolveBlocks(pack);
+        } catch (const std::runtime_error &e) {
+            DBG("Failed to load Minecraft map: %s", e.what());
+
+            _bounds = Box3f();
+            prims.clear();
+        }
+    }
+
+    _chunkBvh.reset(new Bvh::BinaryBvh(std::move(prims), 1));
 }
 
 bool TraceableMinecraftMap::intersect(Ray &ray, IntersectionTemporary &data) const
@@ -746,7 +760,10 @@ Primitive *TraceableMinecraftMap::clone()
 
 std::vector<std::shared_ptr<Primitive>> TraceableMinecraftMap::createHelperPrimitives()
 {
-    return std::vector<std::shared_ptr<Primitive>>(1, _lights);
+    if (_lights)
+        return std::vector<std::shared_ptr<Primitive>>(1, _lights);
+    else
+        return std::vector<std::shared_ptr<Primitive>>();
 }
 
 }

@@ -203,7 +203,7 @@ class SceneXmlWriter
             assign("name", name);
         assign("type", "bitmap");
         beginPost();
-        convert("filename", c->path().asString());
+        convert("filename", c->path()->asString());
         convert("filterType", "trilinear");
         end();
     }
@@ -537,7 +537,7 @@ class SceneXmlWriter
         begin("shape");
         assign("type", "obj");
         beginPost();
-        Path objFile = prim->path().setExtension(".obj");
+        Path objFile = prim->path()->setExtension(".obj");
         Path fullObjFile;
         if (_folder.empty())
             fullObjFile = objFile;
@@ -583,7 +583,7 @@ class SceneXmlWriter
             assign("type", "envmap");
             beginPost();
             convert("toWorld", prim->transform()*Mat4f::rotXYZ(Vec3f(0.0f, 90.0f, 0.0f)));
-            convert("filename", tex->path().setExtension(".hdr").asString());
+            convert("filename", tex->path()->setExtension(".hdr").asString());
             end();
         } else {
             DBG("Infinite sphere has to be a constant or bitmap textured light source!");

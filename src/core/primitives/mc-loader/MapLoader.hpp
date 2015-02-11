@@ -140,11 +140,15 @@ public:
     }
 
     void loadRegions(const std::function<void(int, int, int, ElementType *, uint8 *)> &regionHandler) {
-        if (!_path.exists() || !_path.isDirectory())
+        if (!_path.exists() || !_path.isDirectory()) {
+            DBG("Failed to open minecraft map folder at '%s'", _path);
             return;
+        }
         Path region(_path/"region");
-        if (!region.exists() || !region.isDirectory())
+        if (!region.exists() || !region.isDirectory()) {
+            DBG("Failed to open region folder for minecraft map at '%s'", _path);
             return;
+        }
 
         for (const Path &p : region.files("mca")) {
             std::string base = p.baseName().asString();

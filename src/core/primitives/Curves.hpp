@@ -25,7 +25,7 @@ class Curves : public Primitive
         MODE_RIBBON
     };
 
-    Path _path;
+    PathPtr _path;
     std::string _modeString;
 
     CurveMode _mode;

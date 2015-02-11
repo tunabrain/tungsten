@@ -21,7 +21,13 @@ struct Rgba
 
 BitmapTexture::BitmapTexture(const Path &path, TexelConversion conversion,
         bool gammaCorrect, bool linear, bool clamp)
-: _path(path),
+: BitmapTexture(std::make_shared<Path>(path), conversion, gammaCorrect, linear, clamp)
+{
+}
+
+BitmapTexture::BitmapTexture(PathPtr path, TexelConversion conversion,
+        bool gammaCorrect, bool linear, bool clamp)
+: _path(std::move(path)),
   _texelConversion(conversion),
   _gammaCorrect(gammaCorrect),
   _linear(linear),
@@ -157,20 +163,24 @@ void BitmapTexture::fromJson(const rapidjson::Value &/*v*/, const Scene &/*scene
 
 rapidjson::Value BitmapTexture::toJson(Allocator &allocator) const
 {
-    return std::move(rapidjson::Value(_path.asString().c_str(), allocator));
+    return std::move(rapidjson::Value(_path->asString().c_str(), allocator));
 }
 
 void BitmapTexture::loadResources()
 {
-    bool isRgb = _texelConversion == TexelConversion::REQUEST_RGB;
-    bool isHdr = ImageIO::isHdr(_path);
-
+    bool isRgb, isHdr;
     int w, h;
     void *pixels = nullptr;
-    if (isHdr)
-        pixels = ImageIO::loadHdr(_path, _texelConversion, w, h).release();
-    else
-        pixels = ImageIO::loadLdr(_path, _texelConversion, w, h, _gammaCorrect).release();
+
+    if (_path) {
+        isRgb = _texelConversion == TexelConversion::REQUEST_RGB;
+        isHdr = ImageIO::isHdr(*_path);
+
+        if (isHdr)
+            pixels = ImageIO::loadHdr(*_path, _texelConversion, w, h).release();
+        else
+            pixels = ImageIO::loadLdr(*_path, _texelConversion, w, h, _gammaCorrect).release();
+    }
 
     if (!pixels) {
         uint8 *dummy = new uint8[4];
@@ -182,7 +192,8 @@ void BitmapTexture::loadResources()
         isRgb = false;
         isHdr = false;
 
-        DBG("Unable to load texture at '%s'", _path);
+        if (_path)
+            DBG("Unable to load texture at '%s'", *_path);
     } else {
         _valid = true;
     }

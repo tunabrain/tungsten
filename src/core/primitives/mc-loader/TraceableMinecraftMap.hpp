@@ -41,8 +41,8 @@ class TraceableMinecraftMap : public Primitive
     typedef VoxelHierarchy<2, 4, ElementType> HierarchicalGrid;
     template<typename T> using aligned_vector = std::vector<T, AlignedAllocator<T, 4096>>;
 
-    Path _mapPath;
-    Path _packPath;
+    PathPtr _mapPath;
+    PathPtr _packPath;
 
     std::shared_ptr<Bsdf> _missingBsdf;
     std::vector<QuadMaterial> _materials;
@@ -91,6 +91,8 @@ public:
 
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
+
+    virtual void loadResources() override;
 
     virtual bool intersect(Ray &ray, IntersectionTemporary &data) const override;
     virtual bool occluded(const Ray &ray) const override;

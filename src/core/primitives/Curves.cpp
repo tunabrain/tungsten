@@ -266,8 +266,8 @@ void Curves::loadCurves()
     data.nodeColor = &_nodeColor;
     data.nodeNormal = &_nodeNormals;
 
-    if (!CurveIO::load(_path, data))
-        DBG("Unable to load curves at %s", _path);
+    if (_path && !CurveIO::load(*_path, data))
+        DBG("Unable to load curves at %s", *_path);
 
     _nodeCount = _nodeData.size();
     _curveCount = _curveEnds.size();
@@ -340,7 +340,7 @@ void Curves::buildProxy()
 void Curves::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     Primitive::fromJson(v, scene);
-    JsonUtils::fromJson(v, "file", _path);
+    _path = scene.fetchResource(v, "file");
     JsonUtils::fromJson(v, "mode", _modeString);
 
     init();
@@ -350,7 +350,8 @@ rapidjson::Value Curves::toJson(Allocator &allocator) const
 {
     rapidjson::Value v = Primitive::toJson(allocator);
     v.AddMember("type", "curves", allocator);
-    v.AddMember("file", _path.asString().c_str(), allocator);
+    if (_path)
+        v.AddMember("file", _path->asString().c_str(), allocator);
     v.AddMember("mode", _modeString.c_str(), allocator);
     JsonUtils::addObjectMember(v, "bsdf", *_bsdf, allocator);
     return std::move(v);
@@ -368,7 +369,8 @@ void Curves::saveResources()
     data.nodeData  = &_nodeData;
     data.nodeColor = &_nodeColor;
 
-    CurveIO::save(_path, data);
+    if (_path)
+        CurveIO::save(*_path, data);
 }
 
 bool Curves::intersect(Ray &ray, IntersectionTemporary &data) const

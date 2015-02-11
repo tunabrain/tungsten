@@ -5,13 +5,13 @@
 
 namespace Tungsten {
 
-std::shared_ptr<BitmapTexture> &TextureCache::fetchTexture(const Path &path, TexelConversion conversion)
+std::shared_ptr<BitmapTexture> &TextureCache::fetchTexture(PathPtr path, TexelConversion conversion)
 {
-    KeyType key = std::make_pair(path.absolute(), conversion);
+    KeyType key = std::make_pair(path->absolute(), conversion);
     auto iter = _textures.find(key);
 
     if (iter == _textures.end())
-        iter = _textures.insert(std::make_pair(key, std::make_shared<BitmapTexture>(path,
+        iter = _textures.insert(std::make_pair(key, std::make_shared<BitmapTexture>(std::move(path),
                 conversion, true, true, false))).first;
 
     return iter->second;

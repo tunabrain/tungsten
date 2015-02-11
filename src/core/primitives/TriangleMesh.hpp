@@ -20,7 +20,7 @@ class Scene;
 
 class TriangleMesh : public Primitive
 {
-    Path _path;
+    PathPtr _path;
     bool _smoothed;
     bool _backfaceCulling;
 
@@ -128,7 +128,7 @@ public:
         _smoothed = v;
     }
 
-    const Path& path() const
+    const PathPtr& path() const
     {
         return _path;
     }

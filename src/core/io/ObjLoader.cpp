@@ -258,16 +258,16 @@ std::shared_ptr<Bsdf> ObjLoader::convertObjMaterial(const ObjMaterial &mat)
         return _errorMaterial;
 
     if (mat.hasDiffuseMap()) {
-        Path path(mat.diffuseMap);
-        path.freezeWorkingDirectory();
+        PathPtr path = std::make_shared<Path>(mat.diffuseMap);
+        path->freezeWorkingDirectory();
 
         auto texture = _textureCache->fetchTexture(path, TexelConversion::REQUEST_RGB);
         if (texture)
             result->setAlbedo(texture);
     }
     if (mat.hasAlphaMap()) {
-        Path path(mat.alphaMap);
-        path.freezeWorkingDirectory();
+        PathPtr path = std::make_shared<Path>(mat.alphaMap);
+        path->freezeWorkingDirectory();
 
         auto texture = _textureCache->fetchTexture(path, TexelConversion::REQUEST_AUTO);
         if (texture)
@@ -341,8 +341,8 @@ std::shared_ptr<Primitive> ObjLoader::finalizeMesh()
         if (mat.isEmissive())
             emission = std::make_shared<ConstantTexture>(mat.emission);
         if (mat.hasBumpMap()) {
-            Path path(mat.bumpMap);
-            path.freezeWorkingDirectory();
+            PathPtr path = std::make_shared<Path>(mat.bumpMap);
+            path->freezeWorkingDirectory();
 
             bump = _textureCache->fetchTexture(path, TexelConversion::REQUEST_AVERAGE);
         }

@@ -199,7 +199,7 @@ std::shared_ptr<Texture> Scene::instantiateTexture(std::string type, const rapid
 {
     std::shared_ptr<Texture> result;
     if (type == "bitmap")
-        return _textureCache->fetchTexture(JsonUtils::as<Path>(value, "path"), conversion);
+        return _textureCache->fetchTexture(fetchResource(value, "path"), conversion);
     else if (type == "constant")
         result = std::make_shared<ConstantTexture>();
     else if (type == "checker")
@@ -268,7 +268,7 @@ std::shared_ptr<Texture> Scene::fetchTexture(const rapidjson::Value &v, TexelCon
     // unless the user expects e.g. a ConstantTexture with Vec3 argument to select the green
     // channel when used in a TransparencyBsdf.
     if (v.IsString())
-        return _textureCache->fetchTexture(JsonUtils::as<Path>(v), conversion);
+        return _textureCache->fetchTexture(fetchResource(v), conversion);
     else if (v.IsNumber())
         return std::make_shared<ConstantTexture>(JsonUtils::as<float>(v));
     else if (v.IsArray())
@@ -293,6 +293,34 @@ bool Scene::textureFromJsonMember(const rapidjson::Value &v, const char *field, 
 
     dst = std::move(tex);
     return true;
+}
+PathPtr Scene::fetchResource(const rapidjson::Value &v) const
+{
+    std::string value;
+    if (!JsonUtils::fromJson(v, value))
+        return nullptr;
+
+    Path key = Path(value).absolute();
+
+    auto iter = _resources.find(key);
+    if (iter == _resources.end()) {
+        std::shared_ptr<Path> resource = std::make_shared<Path>(value);
+        resource->freezeWorkingDirectory();
+
+        _resources.insert(std::make_pair(key, resource));
+
+        return std::move(resource);
+    } else {
+        return iter->second;
+    }
+}
+
+PathPtr Scene::fetchResource(const rapidjson::Value &v, const char *field) const
+{
+    const rapidjson::Value::Member *member = v.FindMember(field);
+    if (!member)
+        return nullptr;
+    return fetchResource(member->value);
 }
 
 const Primitive *Scene::findPrimitive(const std::string &name) const
@@ -386,17 +414,6 @@ void Scene::fromJson(const rapidjson::Value &v, const Scene &scene)
 
     if (renderer && renderer->value.IsObject())
         _rendererSettings.fromJson(renderer->value, *this);
-
-    for (size_t i = 0; i < _primitives.size(); ++i) {
-        auto helperPrimitives = _primitives[i]->createHelperPrimitives();
-        if (!helperPrimitives.empty()) {
-            _primitives.reserve(_primitives.size() + helperPrimitives.size());
-            for (size_t t = 0; t < helperPrimitives.size(); ++t) {
-                _helperPrimitives.insert(helperPrimitives[t].get());
-                _primitives.emplace_back(std::move(helperPrimitives[t]));
-            }
-        }
-    }
 }
 
 rapidjson::Value Scene::toJson(Allocator &allocator) const
@@ -434,11 +451,23 @@ void Scene::loadResources()
         b->loadResources();
     for (const std::shared_ptr<Primitive> &t : _primitives)
         t->loadResources();
+
     _camera->loadResources();
     _integrator->loadResources();
     _rendererSettings.loadResources();
 
     _textureCache->loadResources();
+
+    for (size_t i = 0; i < _primitives.size(); ++i) {
+        auto helperPrimitives = _primitives[i]->createHelperPrimitives();
+        if (!helperPrimitives.empty()) {
+            _primitives.reserve(_primitives.size() + helperPrimitives.size());
+            for (size_t t = 0; t < helperPrimitives.size(); ++t) {
+                _helperPrimitives.insert(helperPrimitives[t].get());
+                _primitives.emplace_back(std::move(helperPrimitives[t]));
+            }
+        }
+    }
 }
 
 void Scene::deletePrimitives(const std::unordered_set<Primitive *> &primitives)

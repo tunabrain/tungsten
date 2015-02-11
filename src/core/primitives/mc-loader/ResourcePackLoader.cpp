@@ -21,7 +21,11 @@ const char *ResourcePackLoader::emitterPath = "emitters.json";
 ResourcePackLoader::ResourcePackLoader(const Path &packPath)
 : _packPath(packPath)
 {
+    if (!_packPath.exists())
+        FAIL("Unable to open resource pack at '%s'", _packPath);
     loadModels(_packPath/modelBase);
+    if (_models.empty())
+        FAIL("Failed to load models for resource pack at '%s'", _packPath);
     _resolver.reset(new ModelResolver(_models));
     loadStates();
     buildBlockMapping();
@@ -345,7 +349,7 @@ void ResourcePackLoader::loadModels(const Path &dir, std::string base)
         if (document.HasParseError() || !document.IsObject())
             continue;
 
-        _models.emplace_back(base + p.fileName().asString(), document);
+        _models.emplace_back(base + p.baseName().asString(), document);
     }
 }
 
