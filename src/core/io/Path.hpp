@@ -46,9 +46,8 @@ public:
     Path stripExtension() const;
     Path setExtension(const Path &ext) const;
     Path absolute() const;
-
-    void ensureSeparator();
-    void stripSeparator();
+    Path ensureSeparator() const;
+    Path stripSeparator() const;
 
     Path &operator/=(const Path &o);
     Path &operator+=(const Path &o);

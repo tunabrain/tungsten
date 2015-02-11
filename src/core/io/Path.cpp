@@ -180,9 +180,7 @@ size_t Path::size() const
 
 void Path::freezeWorkingDirectory()
 {
-    Path dir = FileUtils::getCurrentDir();
-    dir.ensureSeparator();
-    _workingDirectory = dir.asString();
+    _workingDirectory = FileUtils::getCurrentDir().ensureSeparator().asString();
 }
 
 void Path::clearWorkingDirectory()
@@ -281,22 +279,29 @@ Path Path::absolute() const
         return FileUtils::getCurrentDir()/_path;
 }
 
-void Path::ensureSeparator()
 {
+Path Path::ensureSeparator() const
+{
+    Path result(*this);
     if (!_path.empty() && !isSeparator(_path.back()))
-        _path += '/';
+        result._path += '/';
+    return std::move(result);
 }
 
-void Path::stripSeparator()
+Path Path::stripSeparator() const
 {
+    Path result(*this);
+
     if (size() == 1 && isSeparator(_path[0]))
-        return;
+        return std::move(result);
 #if _WIN32
     if (size() == 2 && isSeparator(_path[0]) && isSeparator(_path[1]))
-        return;
+        return std::move(result);
 #endif
     if (!empty() && isSeparator(_path.back()))
-        _path.pop_back();
+        result._path.pop_back();
+
+    return std::move(result);
 }
 
 Path &Path::operator/=(const Path &o)
@@ -311,7 +316,8 @@ Path &Path::operator+=(const Path &o)
 
 Path &Path::operator/=(const std::string &o)
 {
-    ensureSeparator();
+    if (!empty() && !isSeparator(_path.back()))
+        _path += '/';
     return *this += o;
 }
 
@@ -323,7 +329,8 @@ Path &Path::operator+=(const std::string &o)
 
 Path &Path::operator/=(const char *o)
 {
-    ensureSeparator();
+    if (!empty() && !isSeparator(_path.back()))
+        _path += '/';
     return *this += o;
 }
 
@@ -345,10 +352,7 @@ Path Path::operator+(const Path &o) const
 
 Path Path::operator/(const std::string &o) const
 {
-    Path copy(*this);
-    copy.ensureSeparator();
-    copy += o;
-    return std::move(copy);
+    return ensureSeparator() + o;
 }
 
 Path Path::operator+(const std::string &o) const
@@ -361,10 +365,7 @@ Path Path::operator+(const std::string &o) const
 
 Path Path::operator/(const char *o) const
 {
-    Path copy(*this);
-    copy.ensureSeparator();
-    copy += o;
-    return std::move(copy);
+    return ensureSeparator() + o;
 }
 
 Path Path::operator+(const char *o) const
