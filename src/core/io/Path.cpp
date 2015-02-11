@@ -71,6 +71,13 @@ Path::Path(const std::string &workingDirectory, const std::string &path)
 {
 }
 
+Path::Path(const Path &workingDirectory, const std::string &path)
+: _workingDirectory(workingDirectory.absolute().ensureSeparator().asString()),
+  _path(path)
+{
+
+}
+
 Path::Path(const std::string &path)
 : _path(path)
 {

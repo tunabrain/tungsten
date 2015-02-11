@@ -20,6 +20,7 @@ class Path
 
 public:
     Path() = default;
+    Path(const Path &workingDirectory, const std::string &path);
     explicit Path(const std::string &path);
     Path(const char *path);
 
