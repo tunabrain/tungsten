@@ -47,9 +47,9 @@ Path getCurrentDir()
         std::unique_ptr<char[]> tmpBuf(new char[size + 1]);
         size = GetCurrentDirectory(size + 1, tmpBuf.get());
         if (size)
-            return Path(std::string(tmpBuf.get(), size));
+            return Path(std::string(tmpBuf.get(), size)).normalizeSeparators();
     } else if (size != 0) {
-        return Path(std::string(tmpBuffer, size));
+        return Path(std::string(tmpBuffer, size)).normalizeSeparators();
     }
 #else
     if (getcwd(tmpBuffer, sizeof(tmpBuffer)))
@@ -67,9 +67,9 @@ Path getExecutablePath()
         std::unique_ptr<char[]> tmpBuf(new char[size + 1]);
         size = GetModuleFileNameA(nullptr, tmpBuf.get(), size + 1);
         if (size)
-            return Path(std::string(tmpBuf.get(), size));
+            return Path(std::string(tmpBuf.get(), size)).normalizeSeparators();
     } else if (size != 0) {
-        return Path(std::string(tmpBuffer, size));
+        return Path(std::string(tmpBuffer, size)).normalizeSeparators();
     }
 #else
     ssize_t size = readlink("/proc/self/exe", tmpBuffer, sizeof(tmpBuffer));
