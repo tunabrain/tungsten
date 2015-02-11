@@ -10,6 +10,7 @@
 
 #include <tinyformat/tinyformat.hpp>
 #include <miniz/miniz.h>
+#include <functional>
 #include <iostream>
 #include <memory>
 #include <cstdio>
