@@ -137,15 +137,14 @@ void ObjLoader::loadMaterialLibrary(const char *path)
 {
     std::string mtlPath = extractString(path);
 
-    std::ifstream in(mtlPath.c_str(), std::ios::in | std::ios::binary);
-
-    if (in.good()) {
+    InputStreamHandle in = FileUtils::openInputStream(Path(mtlPath));
+    if (in) {
         size_t previousTop = _materials.size();
 
         std::string strLine;
         uint32 matIndex = -1;
-        while (!in.eof() && !in.fail()) {
-            std::getline(in, strLine);
+        while (!in->eof() && !in->fail()) {
+            std::getline(*in, strLine);
             const char *line = strLine.c_str();
             skipWhitespace(line);
 
@@ -365,7 +364,7 @@ std::shared_ptr<Primitive> ObjLoader::finalizeMesh()
     return std::move(prim);
 }
 
-void ObjLoader::loadFile(std::ifstream &in)
+void ObjLoader::loadFile(std::istream &in)
 {
     std::string line;
     while (!in.fail() && !in.eof()) {
@@ -375,7 +374,7 @@ void ObjLoader::loadFile(std::ifstream &in)
     }
 }
 
-ObjLoader::ObjLoader(std::ifstream &in, const Path &path, std::shared_ptr<TextureCache> cache)
+ObjLoader::ObjLoader(std::istream &in, const Path &path, std::shared_ptr<TextureCache> cache)
 : _geometryOnly(false),
   _errorMaterial(std::make_shared<ErrorBsdf>()),
   _textureCache(std::move(cache)),
@@ -392,7 +391,7 @@ ObjLoader::ObjLoader(std::ifstream &in, const Path &path, std::shared_ptr<Textur
     }
 }
 
-ObjLoader::ObjLoader(std::ifstream &in)
+ObjLoader::ObjLoader(std::istream &in)
 : _geometryOnly(true)
 {
     loadFile(in);
@@ -400,13 +399,14 @@ ObjLoader::ObjLoader(std::ifstream &in)
 
 Scene *ObjLoader::load(const Path &path, std::shared_ptr<TextureCache> cache)
 {
-    std::ifstream file(path.absolute().asString(), std::ios::in | std::ios::binary);
 
-    if (file.good()) {
+    InputStreamHandle file = FileUtils::openInputStream(path);
+
+    if (file) {
         if (!cache)
             cache = std::make_shared<TextureCache>();
 
-        ObjLoader loader(file, path, cache);
+        ObjLoader loader(*file, path, cache);
 
         std::shared_ptr<Camera> cam(std::make_shared<PinholeCamera>());
         cam->setLookAt(loader._bounds.center());
@@ -426,11 +426,11 @@ Scene *ObjLoader::load(const Path &path, std::shared_ptr<TextureCache> cache)
 
 bool ObjLoader::loadGeometryOnly(const Path &path, std::vector<Vertex> &verts, std::vector<TriangleI> &tris)
 {
-    std::ifstream file(path.absolute().asString(), std::ios::in | std::ios::binary);
-    if (!file.good())
+    InputStreamHandle file = FileUtils::openInputStream(path);
+    if (!file)
         return false;
 
-    ObjLoader loader(file);
+    ObjLoader loader(*file);
 
     verts = std::move(loader._verts);
     tris  = std::move(loader._tris);

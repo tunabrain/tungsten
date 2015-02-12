@@ -3,7 +3,10 @@
 
 #include "IntTypes.hpp"
 
-#include <fstream>
+#include <rapidjson/document.h>
+#include <unordered_set>
+#include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -11,58 +14,107 @@ namespace Tungsten {
 
 class Path;
 
+typedef std::shared_ptr<std::istream> InputStreamHandle;
+typedef std::shared_ptr<std::ostream> OutputStreamHandle;
+
 // WARNING: Do not assume any functions operating on the file system to be thread-safe or re-entrant.
 // The underlying operating system API as well as the implementation here do not make this safe.
-namespace FileUtils {
-
-bool changeCurrentDir(const Path &dir);
-Path getCurrentDir();
-
-Path getExecutablePath();
-
-bool createDirectory(const Path &path, bool recursive = true);
-
-std::string loadText(const Path &path);
-
-bool copyFile(const Path &src, const Path &dst, bool createDstDir);
-
-template<typename T>
-inline void streamRead(std::istream &in, T &dst)
+class FileUtils
 {
-    in.read(reinterpret_cast<char *>(&dst), sizeof(T));
-}
+    FileUtils() {}
 
-template<typename T>
-inline void streamRead(std::istream &in, std::vector<T> &dst)
-{
-    in.read(reinterpret_cast<char *>(&dst[0]), dst.size()*sizeof(T));
-}
+    static void finalizeStream(std::ios *stream);
 
-template<typename T>
-inline void streamRead(std::istream &in, T *dst, size_t numElements)
-{
-    in.read(reinterpret_cast<char *>(dst), numElements*sizeof(T));
-}
+public:
+    static bool changeCurrentDir(const Path &dir);
+    static Path getCurrentDir();
 
-template<typename T>
-inline void streamWrite(std::ostream &out, const T &src)
-{
-    out.write(reinterpret_cast<const char *>(&src), sizeof(T));
-}
+    static Path getExecutablePath();
 
-template<typename T>
-inline void streamWrite(std::ostream &out, const std::vector<T> &src)
-{
-    out.write(reinterpret_cast<const char *>(&src[0]), src.size()*sizeof(T));
-}
+    static uint64 fileSize(const Path &path);
 
-template<typename T>
-inline void streamWrite(std::ostream &out, const T *dst, size_t numElements)
-{
-    out.write(reinterpret_cast<const char *>(dst), numElements*sizeof(T));
-}
+    static bool createDirectory(const Path &path, bool recursive = true);
 
-}
+    static std::string loadText(const Path &path);
+    static bool writeJson(const rapidjson::Document &document, const Path &p);
+
+    static bool copyFile(const Path &src, const Path &dst, bool createDstDir);
+
+    static InputStreamHandle openInputStream(const Path &p);
+    static OutputStreamHandle openOutputStream(const Path &p);
+
+    template<typename T>
+    static inline void streamRead(std::istream &in, T &dst)
+    {
+        in.read(reinterpret_cast<char *>(&dst), sizeof(T));
+    }
+
+    template<typename T>
+    static inline void streamRead(std::istream &in, std::vector<T> &dst)
+    {
+        in.read(reinterpret_cast<char *>(&dst[0]), dst.size()*sizeof(T));
+    }
+
+    template<typename T>
+    static inline void streamRead(std::istream &in, T *dst, size_t numElements)
+    {
+        in.read(reinterpret_cast<char *>(dst), numElements*sizeof(T));
+    }
+
+    template<typename T>
+    static inline void streamWrite(std::ostream &out, const T &src)
+    {
+        out.write(reinterpret_cast<const char *>(&src), sizeof(T));
+    }
+
+    template<typename T>
+    static inline void streamWrite(std::ostream &out, const std::vector<T> &src)
+    {
+        out.write(reinterpret_cast<const char *>(&src[0]), src.size()*sizeof(T));
+    }
+
+    template<typename T>
+    static inline void streamWrite(std::ostream &out, const T *src, size_t numElements)
+    {
+        out.write(reinterpret_cast<const char *>(src), numElements*sizeof(T));
+    }
+
+    template<typename T>
+    static inline void streamRead(InputStreamHandle &in, T &dst)
+    {
+        streamRead(*in, dst);
+    }
+
+    template<typename T>
+    static inline void streamRead(InputStreamHandle &in, std::vector<T> &dst)
+    {
+        streamRead(*in, dst);
+    }
+
+    template<typename T>
+    static inline void streamRead(InputStreamHandle &in, T *dst, size_t numElements)
+    {
+        streamRead(*in, dst, numElements);
+    }
+
+    template<typename T>
+    static inline void streamWrite(OutputStreamHandle &out, const T &src)
+    {
+        streamWrite(*out, src);
+    }
+
+    template<typename T>
+    static inline void streamWrite(OutputStreamHandle &out, const std::vector<T> &src)
+    {
+        streamWrite(*out, src);
+    }
+
+    template<typename T>
+    static inline void streamWrite(OutputStreamHandle &out, const T *src, size_t numElements)
+    {
+        streamWrite(*out, src, numElements);
+    }
+};
 
 }
 

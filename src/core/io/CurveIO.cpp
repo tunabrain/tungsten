@@ -10,7 +10,7 @@
 #include "math/Angle.hpp"
 #include "math/Mat4f.hpp"
 
-#include <fstream>
+#include "io/FileUtils.hpp"
 
 namespace Tungsten {
 
@@ -96,12 +96,12 @@ void initializeRandomNormals(CurveData &data)
 
 bool loadHair(const Path &path, CurveData &data)
 {
-    std::ifstream in(path.absolute().asString(), std::ios_base::in | std::ios_base::binary);
-    if (!in.good())
+    InputStreamHandle in = FileUtils::openInputStream(path);
+    if (!in)
         return false;
 
     char magic[5];
-    in.get(magic, 5);
+    in->get(magic, 5);
     if (std::string(magic) != "HAIR")
         return false;
 
@@ -130,7 +130,7 @@ bool loadHair(const Path &path, CurveData &data)
     FileUtils::streamRead(in, defaultColor);
 
     char fileInfo[89];
-    in.read(fileInfo, 88);
+    in->read(fileInfo, 88);
     fileInfo[88] = '\0';
 
     if (data.curveEnds) {
@@ -167,7 +167,7 @@ bool loadHair(const Path &path, CurveData &data)
     }
 
     if (hasTransparency)
-        in.seekg(sizeof(float)*nodeCount, std::ios_base::cur);
+        in->seekg(sizeof(float)*nodeCount, std::ios_base::cur);
 
     if (data.nodeColor) {
         if (hasColor) {
@@ -191,8 +191,8 @@ bool saveHair(const Path &path, const CurveData &data)
     if (!data.nodeData || !data.curveEnds)
         return false;
 
-    std::ofstream out(path.absolute().asString(), std::ios_base::out | std::ios_base::binary);
-    if (!out.good())
+    OutputStreamHandle out = FileUtils::openOutputStream(path);
+    if (!out)
         return false;
 
     char fileInfo[88] = "Hair file written by Tungsten";
@@ -201,10 +201,10 @@ bool saveHair(const Path &path, const CurveData &data)
     if (hasColor)
         descriptor |= 0x10;
 
-    out.put('H');
-    out.put('A');
-    out.put('I');
-    out.put('R');
+    out->put('H');
+    out->put('A');
+    out->put('I');
+    out->put('R');
     FileUtils::streamWrite(out, uint32(data.curveEnds->size()));
     FileUtils::streamWrite(out, uint32(data.nodeData->size()));
     FileUtils::streamWrite(out, descriptor);
@@ -212,7 +212,7 @@ bool saveHair(const Path &path, const CurveData &data)
     FileUtils::streamWrite(out, 0.0f);
     FileUtils::streamWrite(out, 0.0f);
     FileUtils::streamWrite(out, Vec3f(1.0f));
-    out.write(fileInfo, 88);
+    out->write(fileInfo, 88);
 
     const std::vector<uint32> &curveEnds = *data.curveEnds;
     for (size_t i = 0; i < curveEnds.size(); ++i) {

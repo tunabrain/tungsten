@@ -48,8 +48,6 @@
 
 #include "Debug.hpp"
 
-#include <rapidjson/filewritestream.h>
-#include <rapidjson/prettywriter.h>
 #include <rapidjson/document.h>
 #include <functional>
 
@@ -517,13 +515,7 @@ void Scene::save(const Path &path, const Scene &scene)
 
     *(static_cast<rapidjson::Value *>(&document)) = scene.toJson(document.GetAllocator());
 
-    std::unique_ptr<char[]> buffer(new char[4*1024]);
-    FILE *fp = fopen(path.absolute().asString().c_str(), "wb");
-    rapidjson::FileWriteStream out(fp, buffer.get(), 4*1024);
-
-    rapidjson::PrettyWriter<rapidjson::FileWriteStream> writer(out);
-    document.Accept(writer);
-    fclose(fp);
+    FileUtils::writeJson(document, path);
 }
 
 }

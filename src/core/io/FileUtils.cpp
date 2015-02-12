@@ -3,24 +3,28 @@
 
 #include "Debug.hpp"
 
+#include <rapidjson/prettywriter.h>
+#ifdef _MSC_VER
+#include <dirent/dirent.h>
+#else
+#include <sys/stat.h>
+#include <dirent.h>
+#endif
 #if _WIN32
 #include <windows.h>
 #else
-#include <sys/stat.h>
 #include <unistd.h>
 #include <limits.h>
 #include <stdlib.h>
 #include <libgen.h>
 #endif
 
-#include <iostream>
+#include <fstream>
 #include <cstring>
 #include <memory>
 #include <locale>
 
 namespace Tungsten {
-
-namespace FileUtils {
 
 typedef std::string::size_type SizeType;
 
@@ -30,7 +34,33 @@ static char tmpBuffer[2048];
 static char tmpBuffer[PATH_MAX*2];
 #endif
 
-bool changeCurrentDir(const Path &dir)
+class JsonOstreamWriter {
+    OutputStreamHandle _out;
+public:
+    typedef char Ch;    //!< Character type. Only support char.
+
+    JsonOstreamWriter(OutputStreamHandle out)
+    : _out(std::move(out))
+    {
+    }
+    void Put(char c) {
+        _out->put(c);
+    }
+    void PutN(char c, size_t n) {
+        for (size_t i = 0; i < n; ++i)
+            _out->put(c);
+    }
+    void Flush() {
+        _out->flush();
+    }
+};
+
+void FileUtils::finalizeStream(std::ios *stream)
+{
+    delete stream;
+}
+
+bool FileUtils::changeCurrentDir(const Path &dir)
 {
 #if _WIN32
     return SetCurrentDirectoryA(dir.absolute().asString().c_str()) != 0;
@@ -39,7 +69,7 @@ bool changeCurrentDir(const Path &dir)
 #endif
 }
 
-Path getCurrentDir()
+Path FileUtils::getCurrentDir()
 {
 #if _WIN32
     DWORD size = GetCurrentDirectory(sizeof(tmpBuffer), tmpBuffer);
@@ -59,7 +89,7 @@ Path getCurrentDir()
     return Path();
 }
 
-Path getExecutablePath()
+Path FileUtils::getExecutablePath()
 {
 #if _WIN32
     DWORD size = GetModuleFileNameA(nullptr, tmpBuffer, sizeof(tmpBuffer));
@@ -81,8 +111,23 @@ Path getExecutablePath()
     return Path();
 }
 
+uint64 FileUtils::fileSize(const Path &path)
+{
+#ifdef _WIN32
+    struct __stat64 info;
+    if (_stat64(path.absolute().asString().c_str(), &info) != 0 || !S_ISREG(info.st_mode))
+        return 0;
+    return info.st_size;
+#else
+    struct stat64 info;
+    if (stat64(path.absolute().asString().c_str(), &info) != 0 || !S_ISREG(info.st_mode))
+        return 0;
+    return info.st_size;
+#endif
+}
 
-bool createDirectory(const Path &path, bool recursive)
+
+bool FileUtils::createDirectory(const Path &path, bool recursive)
 {
     if (path.exists()) {
         return true;
@@ -103,23 +148,33 @@ bool createDirectory(const Path &path, bool recursive)
     }
 }
 
-std::string loadText(const Path &path)
+std::string FileUtils::loadText(const Path &path)
 {
-    std::ifstream in(path.absolute().asString(), std::ios_base::in | std::ios_base::binary);
-
-    if (!in.good())
+    uint64 size = fileSize(path);
+    InputStreamHandle in = openInputStream(path);
+    if (size == 0 || !in)
         FAIL("Unable to open file at '%s'", path);
 
-    in.seekg(0, std::ios::end);
-    size_t size = size_t(in.tellg());
     std::string text(size, '\0');
-    in.seekg(0);
-    in.read(&text[0], size);
+    in->read(&text[0], size);
 
     return std::move(text);
 }
 
-bool copyFile(const Path &src, const Path &dst, bool createDstDir)
+bool FileUtils::writeJson(const rapidjson::Document &document, const Path &p)
+{
+    OutputStreamHandle stream = openOutputStream(p);
+    if (!stream)
+        return false;
+
+    JsonOstreamWriter out(stream);
+    rapidjson::PrettyWriter<JsonOstreamWriter> writer(out);
+    document.Accept(writer);
+
+    return true;
+}
+
+bool FileUtils::copyFile(const Path &src, const Path &dst, bool createDstDir)
 {
     if (createDstDir) {
         Path parent(dst.parent());
@@ -130,12 +185,11 @@ bool copyFile(const Path &src, const Path &dst, bool createDstDir)
 #if _WIN32
     return CopyFile(src.absolute().asString().c_str(), dst.absolute().asString().c_str(), false) != 0;
 #else
-    std::ifstream srcStream(src.absolute().asString(), std::ios::in  | std::ios::binary);
-
-    if (srcStream.good()) {
-        std::ofstream dstStream(dst.absolute().asString(), std::ios::out | std::ios::binary);
-        if (dstStream.good()) {
-            dstStream << srcStream.rdbuf();
+    InputStreamHandle srcStream = openInputStream(src);
+    if (!srcStream) {
+        OutputStreamHandle dstStream = openOutputStream(dst);
+        if (dstStream) {
+            *dstStream << srcStream->rdbuf();
             return true;
         }
     }
@@ -143,6 +197,28 @@ bool copyFile(const Path &src, const Path &dst, bool createDstDir)
 #endif
 }
 
+InputStreamHandle FileUtils::openInputStream(const Path &p)
+{
+    std::shared_ptr<std::istream> in(new std::ifstream(p.absolute().asString(),
+            std::ios_base::in | std::ios_base::binary),
+            [](std::istream *stream){ finalizeStream(stream); });
+
+    if (!in->good())
+        return nullptr;
+
+    return std::move(in);
+}
+
+OutputStreamHandle FileUtils::openOutputStream(const Path &p)
+{
+    std::shared_ptr<std::ostream> out(new std::ofstream(p.absolute().asString(),
+            std::ios_base::out | std::ios_base::binary),
+            [](std::ostream *stream){ finalizeStream(stream); });
+
+    if (!out->good())
+        return nullptr;
+
+    return std::move(out);
 }
 
 }

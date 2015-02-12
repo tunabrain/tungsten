@@ -29,9 +29,35 @@ namespace Tungsten {
 
 namespace ImageIO {
 
+static int stbiReadCallback(void *user, char *data, int size)
+{
+    std::istream &in = *static_cast<std::istream *>(user);
+    in.read(data, size);
+    return in.gcount();
+}
+static void stbiSkipCallback(void *user, int n)
+{
+    std::istream &in = *static_cast<std::istream *>(user);
+    in.seekg(n, std::ios_base::cur);
+}
+static int stbiEofCallback(void *user)
+{
+    std::istream &in = *static_cast<std::istream *>(user);
+    return in.eof();
+}
+static const stbi_io_callbacks istreamCallback  = stbi_io_callbacks{
+    &stbiReadCallback, &stbiSkipCallback, &stbiEofCallback
+};
+
 bool isHdr(const Path &path)
 {
-    return path.testExtension("pfm") || stbi_is_hdr(path.absolute().asString().c_str());
+    if (path.testExtension("pfm"))
+        return true;
+
+    InputStreamHandle in = FileUtils::openInputStream(path);
+    if (!in)
+        return false;
+    return stbi_is_hdr_from_callbacks(&istreamCallback, in.get());
 }
 
 template<typename T>
@@ -53,12 +79,12 @@ static T convertToScalar(TexelConversion request, T r, T g, T b, T a, bool haveA
 
 static std::unique_ptr<float[]> loadPfm(const Path &path, TexelConversion request, int &w, int &h)
 {
-    std::ifstream in(path.absolute().asString(), std::ios_base::in | std::ios_base::binary);
-    if (!in.good())
+    InputStreamHandle in = FileUtils::openInputStream(path);
+    if (!in)
         return nullptr;
 
     std::string ident;
-    in >> ident;
+    *in >> ident;
     int channels;
     if (ident == "Pf")
         channels = 1;
@@ -68,16 +94,15 @@ static std::unique_ptr<float[]> loadPfm(const Path &path, TexelConversion reques
         return nullptr;
     int targetChannels = (request == TexelConversion::REQUEST_RGB) ? 3 : 1;
 
-    in >> w >> h;
+    *in >> w >> h;
     double s;
-    in >> s;
+    *in >> s;
     std::string tmp;
-    std::getline(in, tmp);
+    std::getline(*in, tmp);
 
     std::unique_ptr<float[]> img(new float[w*h*channels]);
     for (int y = 0; y < h; ++y)
-        in.read(reinterpret_cast<char *>(img.get() + (h - y - 1)*w*channels), w*channels*sizeof(float));
-    in.close();
+        in->read(reinterpret_cast<char *>(img.get() + (h - y - 1)*w*channels), w*channels*sizeof(float));
 
     if (channels == targetChannels)
         return std::move(img);
@@ -96,8 +121,12 @@ static std::unique_ptr<float[]> loadPfm(const Path &path, TexelConversion reques
 
 std::unique_ptr<float[]> loadStbiHdr(const Path &path, TexelConversion request, int &w, int &h)
 {
+    InputStreamHandle in = FileUtils::openInputStream(path);
+    if (!in)
+        return nullptr;
+
     int channels;
-    std::unique_ptr<float[], void(*)(void *)> img(stbi_loadf(path.absolute().asString().c_str(),
+    std::unique_ptr<float[], void(*)(void *)> img(stbi_loadf_from_callbacks(&istreamCallback, in.get(),
             &w, &h, &channels, 0), stbi_image_free);
 
     // We only expect Radiance HDR for now, which only has RGB support.
@@ -125,31 +154,49 @@ std::unique_ptr<float[]> loadHdr(const Path &path, TexelConversion request, int 
         return std::move(loadStbiHdr(path, request, w, h));
 }
 
-std::unique_ptr<uint8[], void(*)(void *)> loadPng(const Path &path, int &w, int &h, int &channels)
+typedef std::unique_ptr<uint8[], void(*)(void *)> DeletablePixels;
+static inline DeletablePixels makeVoidPixels()
 {
+    return DeletablePixels((uint8 *)0, [](void *){});
+}
+
+DeletablePixels loadPng(const Path &path, int &w, int &h, int &channels)
+{
+    uint64 size = FileUtils::fileSize(path);
+    InputStreamHandle in = FileUtils::openInputStream(path);
+    if (size == 0 || !in)
+        return makeVoidPixels();
+
+    std::unique_ptr<uint8[]> file(new uint8[size]);
+    FileUtils::streamRead(in, file.get(), size);
+
     uint8 *dst = nullptr;
     uint32 uw, uh;
-    lodepng_decode32_file(&dst, &uw, &uh, path.absolute().asString().c_str());
+    lodepng_decode_memory(&dst, &uw, &uh, file.get(), size, LCT_RGBA, 8);
     if (!dst)
-        return std::unique_ptr<uint8[], void(*)(void *)>((uint8 *)0, free);
+        return makeVoidPixels();
 
     w = uw;
     h = uh;
     channels = 4;
 
-    return std::unique_ptr<uint8[], void(*)(void *)>(dst, free);
+    return DeletablePixels(dst, free);
 }
 
-std::unique_ptr<uint8[], void(*)(void *)> loadStbi(const Path &path, int &w, int &h, int &channels)
+DeletablePixels loadStbi(const Path &path, int &w, int &h, int &channels)
 {
-    return std::unique_ptr<uint8[], void(*)(void *)>(stbi_load(path.absolute().asString().c_str(),
+    InputStreamHandle in = FileUtils::openInputStream(path);
+    if (!in)
+        return makeVoidPixels();
+
+    return DeletablePixels(stbi_load_from_callbacks(&istreamCallback, in.get(),
             &w, &h, &channels, 4), stbi_image_free);
 }
 
 std::unique_ptr<uint8[]> loadLdr(const Path &path, TexelConversion request, int &w, int &h, bool gammaCorrect)
 {
     int channels;
-    std::unique_ptr<uint8[], void(*)(void *)> img((uint8 *)0, free);
+    DeletablePixels img(makeVoidPixels());
     if (path.testExtension("png"))
         img = loadPng(path, w, h, channels);
     else
@@ -182,14 +229,14 @@ bool savePfm(const Path &path, const float *img, int w, int h, int channels)
     if (channels != 1 && channels != 3)
         return false;
 
-    std::ofstream out(path.absolute().asString(), std::ios_base::out | std::ios_base::binary);
-    if (!out.good())
+    OutputStreamHandle out = FileUtils::openOutputStream(path);
+    if (!out)
         return false;
 
-    out << ((channels == 1) ? "Pf" : "PF") << '\n';
-    out << w << " " << h << '\n';
-    out << -1.0 << '\n';
-    out.write(reinterpret_cast<const char *>(img), w*h*sizeof(float)*channels);
+    *out << ((channels == 1) ? "Pf" : "PF") << '\n';
+    *out << w << " " << h << '\n';
+    *out << -1.0 << '\n';
+    out->write(reinterpret_cast<const char *>(img), w*h*sizeof(float)*channels);
 
     return true;
 }
@@ -198,9 +245,21 @@ bool savePng(const Path &path, const uint8 *img, int w, int h, int channels)
 {
     if (channels <= 0 || channels > 4)
         return false;
+    OutputStreamHandle out = FileUtils::openOutputStream(path);
+    if (!out)
+        return false;
 
     LodePNGColorType types[] = {LCT_GREY, LCT_GREY_ALPHA, LCT_RGB, LCT_RGBA};
-    return lodepng_encode_file(path.absolute().asString().c_str(), img, w, h, types[channels - 1], 8) == 0;
+
+    uint8 *encoded = nullptr;
+    size_t encodedSize;
+    if (lodepng_encode_memory(&encoded, &encodedSize, img, w, h, types[channels - 1], 8) != 0)
+        return false;
+    DeletablePixels data(encoded, free);
+
+    FileUtils::streamWrite(out, data.get(), encodedSize);
+
+    return true;
 }
 
 bool saveHdr(const Path &path, const float *img, int w, int h, int channels)

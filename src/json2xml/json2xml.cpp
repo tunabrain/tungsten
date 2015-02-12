@@ -30,14 +30,14 @@ bool convert(const Path &src, const Path &dst)
         return false;
     }
 
-    std::ofstream out(dst.absolute().asString());
-    if (!out.good()) {
+    OutputStreamHandle out = FileUtils::openOutputStream(dst);
+    if (!out) {
         std::cerr << "Unable to write to target file '" << dst << "'\n";
         return false;
     }
 
     try {
-        SceneXmlWriter writer(dstDir, *scene, out);
+        SceneXmlWriter writer(dstDir, *scene, *out);
     } catch (std::runtime_error &e) {
         std::cerr << "SceneXmlWriter encountered an unrecoverable error: \n" << e.what() << std::endl;
         return false;

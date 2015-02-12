@@ -159,10 +159,10 @@ public:
             if (std::sscanf(base.c_str() + 2, "%i.%i", &x, &z) != 2)
                 continue;
 
-            std::ifstream in(p.absolute().asString(), std::ios_base::in | std::ios_base::binary);
-            if (!in.good())
+            InputStreamHandle in = FileUtils::openInputStream(p);
+            if (!in)
                 continue;
-            loadRegion(in);
+            loadRegion(*in);
 
             regionHandler(x*2 + 0, z*2 + 0, _regionHeight, _regionGrid.get(),                 _biomes.get());
             regionHandler(x*2 + 1, z*2 + 0, _regionHeight, _regionGrid.get() + 256*256*256,   _biomes.get() + 256*256);

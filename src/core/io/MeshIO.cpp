@@ -4,7 +4,6 @@
 #include "IntTypes.hpp"
 
 #include <tinyformat/tinyformat.hpp>
-#include <fstream>
 
 namespace Tungsten {
 
@@ -12,8 +11,9 @@ namespace MeshIO {
 
 bool loadWo3(const Path &path, std::vector<Vertex> &verts, std::vector<TriangleI> &tris)
 {
-    std::ifstream stream(path.absolute().asString(), std::ios_base::in | std::ios_base::binary);
-    if (!stream.good())
+
+    InputStreamHandle stream = FileUtils::openInputStream(path);
+    if (!stream)
         return false;
 
     uint64 numVerts, numTris;
@@ -29,8 +29,8 @@ bool loadWo3(const Path &path, std::vector<Vertex> &verts, std::vector<TriangleI
 
 bool saveWo3(const Path &path, const std::vector<Vertex> &verts, const std::vector<TriangleI> &tris)
 {
-    std::ofstream stream(path.absolute().asString(), std::ios_base::out | std::ios_base::binary);
-    if (!stream.good())
+    OutputStreamHandle stream = FileUtils::openOutputStream(path);
+    if (!stream)
         return false;
 
     FileUtils::streamWrite(stream, uint64(verts.size()));
@@ -48,18 +48,18 @@ bool loadObj(const Path &path, std::vector<Vertex> &verts, std::vector<TriangleI
 
 bool saveObj(const Path &path, const std::vector<Vertex> &verts, const std::vector<TriangleI> &tris)
 {
-    std::ofstream stream(path.absolute().asString(), std::ios_base::out | std::ios_base::binary);
-    if (!stream.good())
+    OutputStreamHandle stream = FileUtils::openOutputStream(path);
+    if (!stream)
         return false;
 
     for (const Vertex &v : verts)
-        stream << tfm::format("v %f %f %f\n", v.pos().x(), v.pos().y(), v.pos().z());
+        tfm::format(*stream, "v %f %f %f\n", v.pos().x(), v.pos().y(), v.pos().z());
     for (const Vertex &v : verts)
-        stream << tfm::format("vn %f %f %f\n", v.normal().x(), v.normal().y(), v.normal().z());
+        tfm::format(*stream, "vn %f %f %f\n", v.normal().x(), v.normal().y(), v.normal().z());
     for (const Vertex &v : verts)
-        stream << tfm::format("vt %f %f\n", v.uv().x(), v.uv().y());
+        tfm::format(*stream, "vt %f %f\n", v.uv().x(), v.uv().y());
     for (const TriangleI &t : tris)
-        stream << tfm::format("f %d/%d/%d %d/%d/%d %d/%d/%d\n",
+        tfm::format(*stream, "f %d/%d/%d %d/%d/%d %d/%d/%d\n",
             t.v0 + 1, t.v0 + 1, t.v0 + 1,
             t.v1 + 1, t.v1 + 1, t.v1 + 1,
             t.v2 + 1, t.v2 + 1, t.v2 + 1);
