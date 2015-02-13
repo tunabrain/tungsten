@@ -1,6 +1,8 @@
 #ifndef ZIPWRITER_HPP_
 #define ZIPWRITER_HPP_
 
+#include "io/FileUtils.hpp"
+
 #include <miniz/miniz.h>
 
 namespace Tungsten {
@@ -10,10 +12,11 @@ class Path;
 class ZipWriter
 {
     mz_zip_archive _archive;
-    bool _open;
+    OutputStreamHandle _out;
 
 public:
     ZipWriter(const Path &dst);
+    ZipWriter(OutputStreamHandle dst);
     ~ZipWriter();
 
     bool addFile(const Path &src, const Path &dst, int compressionLevel = 5);

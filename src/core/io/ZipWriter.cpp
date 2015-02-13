@@ -6,13 +6,33 @@
 
 namespace Tungsten {
 
-ZipWriter::ZipWriter(const Path &dst)
-: _open(false)
+static size_t zipStreamWriteFunc(void *userPtr, mz_uint64 file_ofs, const void *pBuf, size_t n)
 {
+    std::ostream &out = *static_cast<std::ostream *>(userPtr);
+    size_t pos = out.tellp();
+    if (file_ofs != pos)
+        out.seekp(file_ofs);
+    if (!out.good())
+        return 0;
+    out.write(reinterpret_cast<const char *>(pBuf), n);
+    return out.good() ? n : 0;
+}
+
+ZipWriter::ZipWriter(const Path &dst)
+: ZipWriter(FileUtils::openOutputStream(dst))
+{
+}
+
+ZipWriter::ZipWriter(OutputStreamHandle dst)
+: _out(std::move(dst))
+{
+    if (!_out)
+        FAIL("Failed to construct ZipWriter: Output stream is invalid");
     std::memset(&_archive, 0, sizeof(mz_zip_archive));
-    if (!mz_zip_writer_init_file(&_archive, dst.absolute().asString().c_str(), 0))
-        FAIL("Writing zip file at %s failed", dst.absolute());
-    _open = true;
+    _archive.m_pWrite = &zipStreamWriteFunc;
+    _archive.m_pIO_opaque = _out.get();
+    if (!mz_zip_writer_init(&_archive, 0))
+        FAIL("Initializing zip writer failed");
 }
 
 ZipWriter::~ZipWriter()
@@ -38,10 +58,10 @@ bool ZipWriter::addDirectory(const Path &dst)
 
 void ZipWriter::close()
 {
-    if (_open) {
-        _open = false;
+    if (_out) {
         mz_zip_writer_finalize_archive(&_archive);
         mz_zip_writer_end(&_archive);
+        _out.reset();
     }
 }
 
