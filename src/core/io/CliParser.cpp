@@ -1,7 +1,15 @@
 #include "CliParser.hpp"
+
+#include "Platform.hpp"
 #include "Debug.hpp"
 
 #include "math/MathUtil.hpp"
+
+#if _WIN32
+#include "io/UnicodeUtils.hpp"
+
+#include <windows.h>
+#endif
 
 namespace Tungsten {
 
@@ -30,6 +38,30 @@ void CliParser::wrapString(int width, int padding, const std::string &src) const
 
         pos = src.find_first_not_of(' ', wrapPos);
     }
+}
+
+std::vector<std::string> CliParser::retrieveUtf8Args(int argc, const char *argv[])
+{
+    std::vector<std::string> result;
+
+#if _WIN32
+    MARK_UNUSED(argc);
+    MARK_UNUSED(argv);
+
+    LPCWSTR args = GetCommandLineW();
+    int numArgs;
+    LPWSTR *splitArgs = CommandLineToArgvW(args, &numArgs);
+    if (splitArgs) {
+        for (int i = 0; i < numArgs; ++i)
+            result.emplace_back(UnicodeUtils::wcharToUtf8(splitArgs[i]));
+        LocalFree(splitArgs);
+    }
+#else
+    for (int i = 0; i < argc; ++i)
+        result.emplace_back(argv[i]);
+#endif
+
+    return std::move(result);
 }
 
 void CliParser::printHelpText(int maxWidth) const
@@ -78,8 +110,11 @@ void CliParser::addOption(char shortOpt, const std::string &longOpt,
     });
 }
 
-void CliParser::parse(int argc, const char *argv[])
+void CliParser::parse(int nativeArgc, const char *nativeArgv[])
 {
+    std::vector<std::string> argv = retrieveUtf8Args(nativeArgc, nativeArgv);
+    int argc = argv.size();
+
     bool operandsOnly = false;
     for (int i = 1; i < argc; ++i) {
         std::string arg(argv[i]);
@@ -111,7 +146,7 @@ void CliParser::parse(int argc, const char *argv[])
                     fail("Missing parameter for command line option %s", arg);
 
                 if (opt.hasParam)
-                    opt.param = param.empty() ? std::string(argv[++i]) : param;
+                    opt.param = param.empty() ? argv[++i] : param;
                 opt.isPresent = true;
             } else {
                 for (std::string::size_type j = 1; j < arg.size(); ++j) {
@@ -126,7 +161,7 @@ void CliParser::parse(int argc, const char *argv[])
                         fail("Missing parameter for command line option %s", arg);
 
                     if (opt.hasParam)
-                        opt.param = param.empty() ? std::string(argv[++i]) : param;
+                        opt.param = param.empty() ? argv[++i] : param;
                     opt.isPresent = true;
                 }
             }

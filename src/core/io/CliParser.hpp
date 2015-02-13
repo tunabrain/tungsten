@@ -33,6 +33,8 @@ class CliParser
 
     void wrapString(int width, int padding, const std::string &src) const;
 
+    std::vector<std::string> retrieveUtf8Args(int argc, const char *argv[]);
+
 public:
     CliParser(const std::string &programName);
 
