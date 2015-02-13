@@ -4,7 +4,8 @@
 #include "IntTypes.hpp"
 
 #include <rapidjson/document.h>
-#include <unordered_set>
+#include <unordered_map>
+#include <streambuf>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -24,6 +25,8 @@ class FileUtils
     FileUtils() {}
 
     static void finalizeStream(std::ios *stream);
+
+    static std::unordered_map<const std::ios *, std::unique_ptr<std::basic_streambuf<char>>> _streambufs;
 
 public:
     static bool changeCurrentDir(const Path &dir);

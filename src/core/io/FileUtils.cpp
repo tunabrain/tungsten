@@ -1,4 +1,6 @@
 #include "FileUtils.hpp"
+#include "FileStreambuf.hpp"
+#include "UnicodeUtils.hpp"
 #include "Path.hpp"
 
 #include "Debug.hpp"
@@ -21,17 +23,47 @@
 
 #include <fstream>
 #include <cstring>
+#include <cstdio>
 #include <memory>
 #include <locale>
 
 namespace Tungsten {
 
+std::unordered_map<const std::ios *, std::unique_ptr<std::basic_streambuf<char>>> FileUtils::_streambufs;
+
 typedef std::string::size_type SizeType;
 
 #if _WIN32
-static char tmpBuffer[2048];
+static wchar_t tmpBuffer[2048];
 #else
 static char tmpBuffer[PATH_MAX*2];
+#endif
+
+#if _WIN32
+typedef struct __stat64 StatStruct;
+
+static bool execStat(const Path &p, StatStruct &dst)
+{
+    // For whatever reason, _wstat64 does not support long paths,
+    // so we omit the \\?\ prefix here
+    std::string path = p.absolute().nativeSeparators().asString();
+    std::wstring wpath = UnicodeUtils::utf8ToWchar(path);
+    return _wstat64(wpath.c_str(), &dst) == 0;
+}
+
+static std::wstring makeWideLongPath(const Path &p)
+{
+    std::string path = p.absolute().nativeSeparators().asString();
+    return UnicodeUtils::utf8ToWchar("\\\\?\\" + path);
+}
+
+#else
+typedef struct stat64 StatStruct;
+
+static bool execStat(const Path &p, StatStruct &dst)
+{
+    return stat64(p.absolute().asString().c_str(), &dst) == 0;
+}
 #endif
 
 class JsonOstreamWriter {
@@ -57,13 +89,17 @@ public:
 
 void FileUtils::finalizeStream(std::ios *stream)
 {
+    auto iter = _streambufs.find(stream);
+    if (iter != _streambufs.end())
+        _streambufs.erase(iter);
+
     delete stream;
 }
 
 bool FileUtils::changeCurrentDir(const Path &dir)
 {
 #if _WIN32
-    return SetCurrentDirectoryA(dir.absolute().asString().c_str()) != 0;
+    return SetCurrentDirectoryW(makeWideLongPath(dir).c_str()) != 0;
 #else
     return chdir(dir.absolute().asString().c_str()) == 0;
 #endif
@@ -72,15 +108,20 @@ bool FileUtils::changeCurrentDir(const Path &dir)
 Path FileUtils::getCurrentDir()
 {
 #if _WIN32
-    DWORD size = GetCurrentDirectory(sizeof(tmpBuffer), tmpBuffer);
+    DWORD size = GetCurrentDirectoryW(sizeof(tmpBuffer), tmpBuffer);
+    std::string result;
     if (size >= sizeof(tmpBuffer)) {
-        std::unique_ptr<char[]> tmpBuf(new char[size + 1]);
-        size = GetCurrentDirectory(size + 1, tmpBuf.get());
+        std::unique_ptr<wchar_t[]> tmpBuf(new wchar_t[size + 1]);
+        size = GetCurrentDirectoryW(size + 1, tmpBuf.get());
         if (size)
-            return Path(std::string(tmpBuf.get(), size)).normalizeSeparators();
+            result = UnicodeUtils::wcharToUtf8(tmpBuf.get(), size);
     } else if (size != 0) {
-        return Path(std::string(tmpBuffer, size)).normalizeSeparators();
+        result = UnicodeUtils::wcharToUtf8(tmpBuffer, size);
     }
+    // Get rid of long path prefix if necessary
+    if (result.find("\\\\?\\") == 0)
+        result.erase(0, 4);
+    return Path(result).normalizeSeparators();
 #else
     if (getcwd(tmpBuffer, sizeof(tmpBuffer)))
         return Path(tmpBuffer);
@@ -92,14 +133,14 @@ Path FileUtils::getCurrentDir()
 Path FileUtils::getExecutablePath()
 {
 #if _WIN32
-    DWORD size = GetModuleFileNameA(nullptr, tmpBuffer, sizeof(tmpBuffer));
+    DWORD size = GetModuleFileNameW(nullptr, tmpBuffer, sizeof(tmpBuffer));
     if (size >= sizeof(tmpBuffer)) {
-        std::unique_ptr<char[]> tmpBuf(new char[size + 1]);
-        size = GetModuleFileNameA(nullptr, tmpBuf.get(), size + 1);
+        std::unique_ptr<wchar_t[]> tmpBuf(new wchar_t[size + 1]);
+        size = GetModuleFileNameW(nullptr, tmpBuf.get(), size + 1);
         if (size)
-            return Path(std::string(tmpBuf.get(), size)).normalizeSeparators();
+            return Path(UnicodeUtils::wcharToUtf8(tmpBuf.get(), size)).normalizeSeparators();
     } else if (size != 0) {
-        return Path(std::string(tmpBuffer, size)).normalizeSeparators();
+        return Path(UnicodeUtils::wcharToUtf8(tmpBuffer, size)).normalizeSeparators();
     }
 #else
     ssize_t size = readlink("/proc/self/exe", tmpBuffer, sizeof(tmpBuffer));
@@ -113,17 +154,10 @@ Path FileUtils::getExecutablePath()
 
 uint64 FileUtils::fileSize(const Path &path)
 {
-#ifdef _WIN32
-    struct __stat64 info;
-    if (_stat64(path.absolute().asString().c_str(), &info) != 0 || !S_ISREG(info.st_mode))
+    StatStruct info;
+    if (!execStat(path, info))
         return 0;
     return info.st_size;
-#else
-    struct stat64 info;
-    if (stat64(path.absolute().asString().c_str(), &info) != 0 || !S_ISREG(info.st_mode))
-        return 0;
-    return info.st_size;
-#endif
 }
 
 
@@ -136,7 +170,7 @@ bool FileUtils::createDirectory(const Path &path, bool recursive)
         if (!parent.empty() && !parent.exists() && (!recursive || !createDirectory(parent)))
             return false;
 #if _WIN32
-        return CreateDirectory(path.absolute().asString().c_str(), nullptr) != 0;
+        return CreateDirectoryW(makeWideLongPath(path).c_str(), nullptr) != 0;
 #else
 #ifdef __MINGW32__
         // MinGW implements mkdir, but removes the second parameter (???)
@@ -183,7 +217,7 @@ bool FileUtils::copyFile(const Path &src, const Path &dst, bool createDstDir)
     }
 
 #if _WIN32
-    return CopyFile(src.absolute().asString().c_str(), dst.absolute().asString().c_str(), false) != 0;
+    return CopyFileW(makeWideLongPath(src).c_str(), makeWideLongPath(dst).c_str(), false) != 0;
 #else
     InputStreamHandle srcStream = openInputStream(src);
     if (!srcStream) {
@@ -199,24 +233,46 @@ bool FileUtils::copyFile(const Path &src, const Path &dst, bool createDstDir)
 
 InputStreamHandle FileUtils::openInputStream(const Path &p)
 {
+#if _WIN32
+    AutoFilePtr file(_wfopen(makeWideLongPath(p).c_str(), L"rb"), std::fclose);
+    if (!file)
+        return nullptr;
+
+    std::unique_ptr<FileInputStreambuf> streambuf(new FileInputStreambuf(std::move(file)));
+    std::shared_ptr<std::istream> in(new std::istream(streambuf.get()),
+            [](std::istream *stream){ finalizeStream(stream); });
+    _streambufs.insert(std::make_pair(in.get(), std::move(streambuf)));
+#else
     std::shared_ptr<std::istream> in(new std::ifstream(p.absolute().asString(),
             std::ios_base::in | std::ios_base::binary),
             [](std::istream *stream){ finalizeStream(stream); });
 
     if (!in->good())
         return nullptr;
+#endif
 
     return std::move(in);
 }
 
 OutputStreamHandle FileUtils::openOutputStream(const Path &p)
 {
+#if _WIN32
+    AutoFilePtr file(_wfopen(makeWideLongPath(p).c_str(), L"wb"), std::fclose);
+    if (!file)
+        return nullptr;
+
+    std::unique_ptr<FileOutputStreambuf> streambuf(new FileOutputStreambuf(std::move(file)));
+    std::shared_ptr<std::ostream> out(new std::ostream(streambuf.get()),
+            [](std::ostream *stream){ finalizeStream(stream); });
+    _streambufs.insert(std::make_pair(out.get(), std::move(streambuf)));
+#else
     std::shared_ptr<std::ostream> out(new std::ofstream(p.absolute().asString(),
             std::ios_base::out | std::ios_base::binary),
             [](std::ostream *stream){ finalizeStream(stream); });
 
     if (!out->good())
         return nullptr;
+#endif
 
     return std::move(out);
 }
