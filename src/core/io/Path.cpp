@@ -300,6 +300,20 @@ Path Path::normalizeSeparators() const
     return std::move(path);
 }
 
+Path Path::nativeSeparators() const
+{
+    Path path(*this);
+#if _WIN32
+    for (char &c : path._workingDirectory)
+        if (c == '/')
+            c = '\\';
+    for (char &c : path._path)
+        if (c == '/')
+            c = '\\';
+#endif
+    return std::move(path);
+}
+
 Path Path::ensureSeparator() const
 {
     Path result(*this);
