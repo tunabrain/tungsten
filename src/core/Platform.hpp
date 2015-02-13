@@ -14,4 +14,6 @@
 #define strcasecmp _stricmp
 #endif
 
+#define MARK_UNUSED(x) (void)(x)
+
 #endif /* PLATFORM_HPP_ */
