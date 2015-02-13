@@ -12,59 +12,6 @@
 
 namespace Tungsten {
 
-class FileIterator::OpenDir {
-    DIR *_dir;
-
-    void close()
-    {
-        if (_dir)
-            closedir(_dir);
-        _dir = nullptr;
-    }
-
-public:
-    OpenDir(const Path &p)
-    : _dir(opendir(p.absolute().asString().c_str()))
-    {
-    }
-
-    ~OpenDir()
-    {
-        close();
-    }
-
-    template<typename FileAcceptor>
-    bool increment(Path &dst, Path &parent, FileAcceptor acceptor)
-    {
-        if (_dir) {
-            while (true) {
-                dirent *entry = readdir(_dir);
-                if (!entry) {
-                    close();
-                    return false;
-                }
-
-                if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
-                    continue;
-
-                Path path = parent/std::string(entry->d_name);
-                if (!acceptor(path))
-                    continue;
-                dst = path;
-
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    bool open() const
-    {
-        return _dir != nullptr;
-    }
-};
-
 FileIterator::FileIterator()
 : _openDir(nullptr)
 {
@@ -75,7 +22,7 @@ FileIterator::FileIterator(const Path &p, bool ignoreFiles, bool ignoreDirectori
   _ignoreFiles(ignoreFiles),
   _ignoreDirectories(ignoreDirectories),
   _extensionFilter(extensionFilter),
-  _openDir(std::make_shared<OpenDir>(p))
+  _openDir(FileUtils::openDirectory(p))
 {
     (*this)++;
 }

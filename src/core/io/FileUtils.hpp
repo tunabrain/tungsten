@@ -5,6 +5,7 @@
 
 #include <rapidjson/document.h>
 #include <unordered_map>
+#include <functional>
 #include <streambuf>
 #include <iostream>
 #include <memory>
@@ -17,6 +18,15 @@ class Path;
 
 typedef std::shared_ptr<std::istream> InputStreamHandle;
 typedef std::shared_ptr<std::ostream> OutputStreamHandle;
+
+class OpenDir
+{
+protected:
+    virtual ~OpenDir() {}
+public:
+    virtual bool increment(Path &dst, Path &parent, std::function<bool(const Path &)> acceptor) = 0;
+    virtual bool open() const = 0;
+};
 
 // WARNING: Do not assume any functions operating on the file system to be thread-safe or re-entrant.
 // The underlying operating system API as well as the implementation here do not make this safe.
@@ -45,6 +55,7 @@ public:
 
     static InputStreamHandle openInputStream(const Path &p);
     static OutputStreamHandle openOutputStream(const Path &p);
+    static std::shared_ptr<OpenDir> openDirectory(const Path &p);
 
     static bool exists(const Path &p);
     static bool isDirectory(const Path &p);

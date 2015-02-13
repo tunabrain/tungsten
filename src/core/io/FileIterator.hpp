@@ -1,6 +1,7 @@
 #ifndef FILEITERATOR_HPP_
 #define FILEITERATOR_HPP_
 
+#include "FileUtils.hpp"
 #include "Path.hpp"
 
 #include <memory>
@@ -14,7 +15,6 @@ class FileIterator
     bool _ignoreDirectories;
     Path _extensionFilter;
 
-    class OpenDir;
     std::shared_ptr<OpenDir> _openDir;
 
     Path _currentEntry;

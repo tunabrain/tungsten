@@ -66,6 +66,81 @@ static bool execStat(const Path &p, StatStruct &dst)
 }
 #endif
 
+class OpenFileSystemDir : public OpenDir
+{
+#if _WIN32
+    _WDIR *_dir;
+#else
+    DIR *_dir;
+#endif
+
+    void close()
+    {
+        if (_dir)
+#if _WIN32
+            _wclosedir(_dir);
+#else
+            closedir(_dir);
+#endif
+        _dir = nullptr;
+    }
+
+public:
+    OpenFileSystemDir(const Path &p)
+#if _WIN32
+    : _dir(_wopendir(makeWideLongPath(p).c_str()))
+#else
+    : _dir(opendir(p.absolute().asString().c_str()))
+#endif
+    {
+    }
+
+    ~OpenFileSystemDir()
+    {
+        close();
+    }
+
+    virtual bool increment(Path &dst, Path &parent, std::function<bool(const Path &)> acceptor) override final
+    {
+        if (_dir) {
+            while (true) {
+#if _WIN32
+                _wdirent *entry = _wreaddir(_dir);
+#else
+                dirent *entry = readdir(_dir);
+#endif
+                if (!entry) {
+                    close();
+                    return false;
+                }
+
+#if _WIN32
+                std::string fileName(UnicodeUtils::wcharToUtf8(entry->d_name, entry->d_namlen));
+#else
+                std::string fileName(entry->d_name, entry->d_namlen);
+#endif
+
+                if (fileName == "." || fileName == "..")
+                    continue;
+
+                Path path = parent/fileName;
+                if (!acceptor(path))
+                    continue;
+                dst = path;
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    virtual bool open() const override final
+    {
+        return _dir != nullptr;
+    }
+};
+
 class JsonOstreamWriter {
     OutputStreamHandle _out;
 public:
@@ -277,6 +352,10 @@ OutputStreamHandle FileUtils::openOutputStream(const Path &p)
     return std::move(out);
 }
 
+std::shared_ptr<OpenDir> FileUtils::openDirectory(const Path &p)
+{
+    return std::make_shared<OpenFileSystemDir>(p);
+}
 
 bool FileUtils::exists(const Path &p)
 {
