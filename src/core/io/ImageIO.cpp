@@ -155,9 +155,10 @@ std::unique_ptr<float[]> loadHdr(const Path &path, TexelConversion request, int 
 }
 
 typedef std::unique_ptr<uint8[], void(*)(void *)> DeletablePixels;
+static void nop(void *) {}
 static inline DeletablePixels makeVoidPixels()
 {
-    return DeletablePixels((uint8 *)0, [](void *){});
+    return DeletablePixels((uint8 *)0, &nop);
 }
 
 DeletablePixels loadPng(const Path &path, int &w, int &h, int &channels)
