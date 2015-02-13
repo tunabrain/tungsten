@@ -264,8 +264,25 @@ std::string FileUtils::loadText(const Path &path)
     if (size == 0 || !in)
         FAIL("Unable to open file at '%s'", path);
 
+    // Strip UTF-8 byte order mark if present (mostly a problem on
+    // windows platforms).
+    // We could also detect other byte order marks here (UTF-16/32),
+    // but generally we can't deal with these encodings anyway. Best
+    // to just leave it for now.
+    int offset = 0;
+    uint8 head[] = {0, 0, 0};
+    if (in->good()) head[0] = in->get();
+    if (in->good()) head[1] = in->get();
+    if (in->good()) head[2] = in->get();
+    if (head[0] == 0xEF && head[1] == 0xBB && head[2] == 0xBF)
+        size -= 3;
+    else
+        offset = 3;
+
     std::string text(size, '\0');
-    in->read(&text[0], size);
+    for (int i = 0; i < offset; ++i)
+        text[i] = head[sizeof(head) - offset + i];
+    in->read(&text[offset], size);
 
     return std::move(text);
 }
