@@ -46,6 +46,10 @@ public:
     static InputStreamHandle openInputStream(const Path &p);
     static OutputStreamHandle openOutputStream(const Path &p);
 
+    static bool exists(const Path &p);
+    static bool isDirectory(const Path &p);
+    static bool isFile(const Path &p);
+
     template<typename T>
     static inline void streamRead(std::istream &in, T &dst)
     {

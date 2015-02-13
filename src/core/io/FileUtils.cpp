@@ -277,4 +277,27 @@ OutputStreamHandle FileUtils::openOutputStream(const Path &p)
     return std::move(out);
 }
 
+
+bool FileUtils::exists(const Path &p)
+{
+    StatStruct info;
+    return execStat(p, info);
+}
+
+bool FileUtils::isDirectory(const Path &p)
+{
+    StatStruct info;
+    if (!execStat(p, info))
+        return false;
+    return S_ISDIR(info.st_mode);
+}
+
+bool FileUtils::isFile(const Path &p)
+{
+    StatStruct info;
+    if (!execStat(p, info))
+        return false;
+    return S_ISREG(info.st_mode);
+}
+
 }

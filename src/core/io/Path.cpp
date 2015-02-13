@@ -2,12 +2,6 @@
 #include "FileIterables.hpp"
 #include "FileUtils.hpp"
 
-#ifdef _MSC_VER
-#include <dirent/dirent.h>
-#else
-#include <sys/stat.h>
-#include <dirent.h>
-#endif
 #include <locale>
 
 namespace Tungsten {
@@ -153,26 +147,17 @@ bool Path::isRelative() const
 
 bool Path::isDirectory() const
 {
-    struct stat buffer;
-    if (stat(absolute().asString().c_str(), &buffer) == -1)
-        return false;
-    return S_ISDIR(buffer.st_mode);
+    return FileUtils::isDirectory(*this);
 }
 
 bool Path::isFile() const
 {
-    struct stat buffer;
-    if (stat(absolute().asString().c_str(), &buffer) == -1)
-        return false;
-    return S_ISREG(buffer.st_mode);
+    return FileUtils::isFile(*this);
 }
 
 bool Path::exists() const
 {
-    if(empty())
-        return false;
-    struct stat buffer;
-    return (stat(absolute().asString().c_str(), &buffer) == 0);
+    return FileUtils::exists(*this);
 }
 
 bool Path::empty() const
