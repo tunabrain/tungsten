@@ -117,7 +117,11 @@ public:
 #if _WIN32
                 std::string fileName(UnicodeUtils::wcharToUtf8(entry->d_name, entry->d_namlen));
 #else
+#  if _DIRENT_HAVE_D_NAMLEN
                 std::string fileName(entry->d_name, entry->d_namlen);
+#  else
+                std::string fileName(entry->d_name);
+#  endif
 #endif
 
                 if (fileName == "." || fileName == "..")
