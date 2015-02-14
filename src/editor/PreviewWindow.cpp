@@ -439,13 +439,14 @@ void PreviewWindow::addModel()
 
         Scene *scene = nullptr;
         try {
-            if (p.testExtension("obj"))
+            if (p.testExtension("obj")) {
                 scene = ObjLoader::load(p, _scene->textureCache());
-            else if (p.testExtension("json"))
+            } else if (p.testExtension("json")) {
                 scene = Scene::load(p, _scene->textureCache());
+                if (scene)
+                    scene->loadResources();
+            }
 
-            if (scene)
-                scene->loadResources();
         } catch (const std::runtime_error &e) {
             QMessageBox::warning(
                 this,

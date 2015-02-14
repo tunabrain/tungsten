@@ -412,6 +412,9 @@ Scene *ObjLoader::load(const Path &path, std::shared_ptr<TextureCache> cache)
         cam->setLookAt(loader._bounds.center());
         cam->setPos(loader._bounds.center() - Vec3f(0.0f, 0.0f, loader._bounds.diagonal().z()));
 
+        for (auto &i : cache->textures())
+            i.second->loadResources();
+
         return new Scene(
             path.parent(),
             std::move(loader._meshes),
