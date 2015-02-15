@@ -418,7 +418,7 @@ Scene *ObjLoader::load(const Path &path, std::shared_ptr<TextureCache> cache)
         return new Scene(
             path.parent(),
             std::move(loader._meshes),
-            std::vector<std::shared_ptr<Bsdf>>(),
+            std::move(loader._convertedMaterials),
             std::move(cache),
             cam
         );

@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include "io/DirectoryChange.hpp"
 #include "io/ObjLoader.hpp"
 #include "io/FileUtils.hpp"
 #include "io/Scene.hpp"
@@ -28,6 +29,9 @@ int main(int argc, const char *argv[])
     }
 
     Scene::save(dst, *scene);
+
+    DirectoryChange change(dstDir);
+    scene->saveResources();
 
     return 0;
 }

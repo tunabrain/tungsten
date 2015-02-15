@@ -72,7 +72,6 @@ TriangleMesh::TriangleMesh(std::vector<Vertex> verts, std::vector<TriangleI> tri
   _tris(std::move(tris)),
   _bsdfs(std::move(bsdfs))
 {
-    _path->freezeWorkingDirectory();
 }
 
 Vec3f TriangleMesh::unnormalizedGeometricNormalAt(int triangle) const
