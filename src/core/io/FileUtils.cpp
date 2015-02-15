@@ -46,7 +46,7 @@ static bool execStat(const Path &p, StatStruct &dst)
 {
     // For whatever reason, _wstat64 does not support long paths,
     // so we omit the \\?\ prefix here
-    std::string path = p.absolute().nativeSeparators().asString();
+    std::string path = p.absolute().stripSeparator().nativeSeparators().asString();
     std::wstring wpath = UnicodeUtils::utf8ToWchar(path);
     return _wstat64(wpath.c_str(), &dst) == 0;
 }
