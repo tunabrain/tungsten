@@ -562,7 +562,7 @@ Vec3f PathTraceIntegrator::traceSample(Vec2u pixel, SampleGenerator &sampler, Un
         if (throughput.max() == 0.0f)
             break;
 
-        float roulettePdf = throughput.max();
+        float roulettePdf = std::abs(throughput).max();
         if (bounce > 2 && roulettePdf < 0.1f) {
             if (supplementalSampler.next1D() < roulettePdf)
                 throughput /= roulettePdf;
