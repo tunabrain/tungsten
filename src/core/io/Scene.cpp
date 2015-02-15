@@ -468,6 +468,20 @@ void Scene::loadResources()
     }
 }
 
+void Scene::saveResources()
+{
+    for (const std::shared_ptr<Medium> &b : _media)
+        b->saveResources();
+    for (const std::shared_ptr<Bsdf> &b : _bsdfs)
+        b->saveResources();
+    for (const std::shared_ptr<Primitive> &t : _primitives)
+        t->saveResources();
+
+    _camera->saveResources();
+    _integrator->saveResources();
+    _rendererSettings.saveResources();
+}
+
 void Scene::deletePrimitives(const std::unordered_set<Primitive *> &primitives)
 {
     std::vector<std::shared_ptr<Primitive>> newPrims;

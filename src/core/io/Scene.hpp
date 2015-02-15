@@ -82,6 +82,7 @@ public:
     virtual rapidjson::Value toJson(Allocator &allocator) const;
 
     virtual void loadResources() override;
+    virtual void saveResources() override;
 
     std::shared_ptr<Medium> fetchMedium(const rapidjson::Value &v) const;
     std::shared_ptr<Bsdf> fetchBsdf(const rapidjson::Value &v) const;
