@@ -105,7 +105,7 @@ void RenderWindow::sceneChanged()
 
 QRgb RenderWindow::tonemap(const Vec3f &c) const
 {
-    Vec3i pixel(min(c*_pow2Exposure*255.0f, Vec3f(255.0f)));
+    Vec3i pixel(clamp(c*_pow2Exposure*255.0f, Vec3f(0.0f), Vec3f(255.0f)));
 
     return qRgb(pixel.x(), pixel.y(), pixel.z());
 }

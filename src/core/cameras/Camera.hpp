@@ -86,7 +86,7 @@ public:
 
     Vec3f tonemap(const Vec3f &c) const
     {
-        return Tonemap::tonemap(_tonemapOp, c);
+        return Tonemap::tonemap(_tonemapOp, max(c, Vec3f(0.0f)));
     }
 
     Vec3f getLinear(int x, int y) const
