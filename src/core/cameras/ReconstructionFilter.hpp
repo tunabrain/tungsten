@@ -98,6 +98,7 @@ public:
       _normalizationFactor(1.0f),
       _offset(0.0f)
     {
+        precompute();
     }
 
     void fromJson(const rapidjson::Value &v);
