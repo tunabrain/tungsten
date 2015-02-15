@@ -1,4 +1,4 @@
-Copyright (c) 2014 Benedikt Bitterli <mail (at) noobody (dot) org>
+Copyright (c) 2014 Benedikt Bitterli <benedikt.bitterli (at) gmail (dot) com>
 
 This software is provided 'as-is', without any express or implied warranty.
 In no event will the authors be held liable for any damages arising from
@@ -246,3 +246,112 @@ src/thirdparty/embree is a fast intersection library and may be obtained at http
     9. Accepting Warranty or Additional Liability. While redistributing the Work or Derivative Works thereof, You may choose to offer, and charge a fee for, acceptance of support, warranty, indemnity, or other liability obligations and/or rights consistent with this License. However, in accepting such obligations, You may act only on Your own behalf and on Your sole responsibility, not on behalf of any other Contributor, and only if You agree to indemnify, defend, and hold each Contributor harmless for any liability incurred by, or claims asserted against, such Contributor by reason of your accepting any such warranty or additional liability.
 
     END OF TERMS AND CONDITIONS
+    
+    
+src/thirdparty/skylight is an implementation of "An Analytic Model for Full Spectral Sky-Dome Radiance" and may be obtained here http://cgg.mff.cuni.cz/projects/SkylightModelling/
+    
+    This source is published under the following 3-clause BSD license.
+    
+    Copyright (c) 2012 - 2013, Lukas Hosek and Alexander Wilkie
+    All rights reserved.
+    
+    Redistribution and use in source and binary forms, with or without 
+    modification, are permitted provided that the following conditions are met:
+    
+        * Redistributions of source code must retain the above copyright
+          notice, this list of conditions and the following disclaimer.
+        * Redistributions in binary form must reproduce the above copyright
+          notice, this list of conditions and the following disclaimer in the
+          documentation and/or other materials provided with the distribution.
+        * None of the names of the contributors may be used to endorse or promote 
+          products derived from this software without specific prior written 
+          permission.
+    
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+    ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+    WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS BE LIABLE FOR ANY
+    DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+    (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+    ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+    
+src/thirdparty/miniz is a public domain minimal Zlib/Zip compressor/decompressor and may be obtained here https://code.google.com/p/miniz/
+    
+      This is free and unencumbered software released into the public domain.
+    
+      Anyone is free to copy, modify, publish, use, compile, sell, or
+      distribute this software, either in source code form or as a compiled
+      binary, for any purpose, commercial or non-commercial, and by any
+      means.
+    
+      In jurisdictions that recognize copyright laws, the author or authors
+      of this software dedicate any and all copyright interest in the
+      software to the public domain. We make this dedication for the benefit
+      of the public at large and to the detriment of our heirs and
+      successors. We intend this dedication to be an overt act of
+      relinquishment in perpetuity of all present and future rights to this
+      software under copyright law.
+    
+      THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+      EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+      MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+      IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+      OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+      ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+      OTHER DEALINGS IN THE SOFTWARE.
+    
+      For more information, please refer to <http://unlicense.org/>
+      
+src/thirdparty/dirent is a Windows compatibility implementation of dirent and may be obtained here http://softagalleria.net/dirent.php
+    
+     Copyright (C) 2006-2012 Toni Ronkko
+     
+     Permission is hereby granted, free of charge, to any person obtaining
+     a copy of this software and associated documentation files (the
+     ``Software''), to deal in the Software without restriction, including
+     without limitation the rights to use, copy, modify, merge, publish,
+     distribute, sublicense, and/or sell copies of the Software, and to
+     permit persons to whom the Software is furnished to do so, subject to
+     the following conditions:
+     
+     The above copyright notice and this permission notice shall be included
+     in all copies or substantial portions of the Software.
+     
+     THE SOFTWARE IS PROVIDED ``AS IS'', WITHOUT WARRANTY OF ANY KIND, EXPRESS
+     OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+     MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+     IN NO EVENT SHALL TONI RONKKO BE LIABLE FOR ANY CLAIM, DAMAGES OR
+     OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+     ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+     OTHER DEALINGS IN THE SOFTWARE.
+     
+     
+src/core/math/Bessel.hpp is a computation of the Bessel function of the first kind, ported from the Boost project. Boost may be obtained here http://www.boost.org/
+
+    Boost Software License - Version 1.0 - August 17th, 2003
+    
+    Permission is hereby granted, free of charge, to any person or organization
+    obtaining a copy of the software and accompanying documentation covered by
+    this license (the "Software") to use, reproduce, display, distribute,
+    execute, and transmit the Software, and to prepare derivative works of the
+    Software, and to permit third-parties to whom the Software is furnished to
+    do so, all subject to the following:
+    
+    The copyright notices in the Software and this entire statement, including
+    the above license grant, this restriction and the following disclaimer,
+    must be included in all copies of the Software, in whole or in part, and
+    all derivative works of the Software, unless such copies or derivative
+    works are solely in the form of machine-executable object code generated by
+    a source language processor.
+    
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE, TITLE AND NON-INFRINGEMENT. IN NO EVENT
+    SHALL THE COPYRIGHT HOLDERS OR ANYONE DISTRIBUTING THE SOFTWARE BE LIABLE
+    FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
+    ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+    DEALINGS IN THE SOFTWARE.
