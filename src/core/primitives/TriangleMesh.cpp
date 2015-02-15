@@ -32,7 +32,8 @@ struct MeshIntersection
 
 TriangleMesh::TriangleMesh()
 : _smoothed(false),
-  _backfaceCulling(false)
+  _backfaceCulling(false),
+  _recomputeNormals(false)
 {
 }
 
@@ -41,6 +42,7 @@ TriangleMesh::TriangleMesh(const TriangleMesh &o)
   _path(o._path),
   _smoothed(o._smoothed),
   _backfaceCulling(o._backfaceCulling),
+  _recomputeNormals(o._recomputeNormals),
   _verts(o._verts),
   _tris(o._tris),
   _bounds(o._bounds)
@@ -68,6 +70,7 @@ TriangleMesh::TriangleMesh(std::vector<Vertex> verts, std::vector<TriangleI> tri
   _path(std::make_shared<Path>(std::string(name).append(".wo3"))),
   _smoothed(smoothed),
   _backfaceCulling(backfaceCull),
+  _recomputeNormals(false),
   _verts(std::move(verts)),
   _tris(std::move(tris)),
   _bsdfs(std::move(bsdfs))
@@ -108,6 +111,7 @@ void TriangleMesh::fromJson(const rapidjson::Value &v, const Scene &scene)
     _path = scene.fetchResource(v, "file");
     JsonUtils::fromJson(v, "smooth", _smoothed);
     JsonUtils::fromJson(v, "backface_culling", _backfaceCulling);
+    JsonUtils::fromJson(v, "recompute_normals", _recomputeNormals);
 
     const rapidjson::Value::Member *bsdf = v.FindMember("bsdf");
     if (bsdf && bsdf->value.IsArray()) {
@@ -128,6 +132,7 @@ rapidjson::Value TriangleMesh::toJson(Allocator &allocator) const
         v.AddMember("file", _path->asString().c_str(), allocator);
     v.AddMember("smooth", _smoothed, allocator);
     v.AddMember("backface_culling", _backfaceCulling, allocator);
+    v.AddMember("recompute_normals", _recomputeNormals, allocator);
     if (_bsdfs.size() == 1) {
         JsonUtils::addObjectMember(v, "bsdf", *_bsdfs[0], allocator);
     } else {
@@ -143,6 +148,8 @@ void TriangleMesh::loadResources()
 {
     if (_path && !MeshIO::load(*_path, _verts, _tris))
         DBG("Unable to load triangle mesh at %s", *_path);
+    if (_recomputeNormals && _smoothed)
+        calcSmoothVertexNormals();
 }
 
 void TriangleMesh::saveResources()

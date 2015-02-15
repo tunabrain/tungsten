@@ -23,6 +23,7 @@ class TriangleMesh : public Primitive
     PathPtr _path;
     bool _smoothed;
     bool _backfaceCulling;
+    bool _recomputeNormals;
 
     std::vector<Vertex> _verts;
     std::vector<Vertex> _tfVerts;
