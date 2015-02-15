@@ -1,6 +1,7 @@
 #ifndef CAMERA_HPP_
 #define CAMERA_HPP_
 
+#include "ReconstructionFilter.hpp"
 #include "Tonemap.hpp"
 
 #include "math/Mat4f.hpp"
@@ -45,6 +46,7 @@ protected:
     uint32 _spp;
 
     std::shared_ptr<Medium> _medium;
+    ReconstructionFilter _filter;
 
     std::vector<Vec3d> _pixels;
     std::vector<uint32> _weights;

@@ -10,6 +10,7 @@
 #include "io/ImageIO.hpp"
 #include "io/Scene.hpp"
 
+#include <iostream>
 #include <cmath>
 
 namespace Tungsten {
@@ -105,6 +106,8 @@ void Camera::fromJson(const rapidjson::Value &v, const Scene &scene)
     JsonUtils::fromJson(v, "spp", _spp);
     if (const rapidjson::Value::Member *medium = v.FindMember("medium"))
         _medium = scene.fetchMedium(medium->value);
+    if (const rapidjson::Value::Member *filter = v.FindMember("reconstruction_filter"))
+        _filter.fromJson(filter->value);
 
     precompute();
 }
@@ -127,6 +130,7 @@ rapidjson::Value Camera::toJson(Allocator &allocator) const
     v.AddMember("spp", _spp, allocator);
     if (_medium)
         JsonUtils::addObjectMember(v, "medium", *_medium,  allocator);
+    v.AddMember("reconstruction_filter", _filter.toJson(allocator), allocator);
     return std::move(v);
 }
 

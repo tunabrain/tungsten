@@ -49,14 +49,15 @@ rapidjson::Value PinholeCamera::toJson(Allocator &allocator) const
 
 bool PinholeCamera::generateSample(Vec2u pixel, SampleGenerator &sampler, Vec3f &throughput, Ray &ray) const
 {
-    Vec2f uv = sampler.next2D();
+    float weight;
+    Vec2f uv = _filter.sample(sampler.next2D(), weight);
     Vec3f dir = _transform.transformVector(Vec3f(
-        -1.0f  + (float(pixel.x()) + uv.x())*_pixelSize.x(),
-        _ratio - (float(pixel.y()) + uv.y())*_pixelSize.y(),
+        -1.0f  + (float(pixel.x()) + 0.5f + uv.x())*_pixelSize.x(),
+        _ratio - (float(pixel.y()) + 0.5f + uv.y())*_pixelSize.y(),
         _planeDist
     )).normalized();
 
-    throughput = Vec3f(1.0f);
+    throughput = Vec3f(weight);
     ray = Ray(pos(), dir);
     ray.setDiameter(_pixelSize.x()/_planeDist);
     return true;
