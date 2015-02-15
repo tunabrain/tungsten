@@ -106,7 +106,7 @@ rapidjson::Value ThinlensCamera::toJson(Allocator &allocator) const
 bool ThinlensCamera::generateSample(Vec2u pixel, SampleGenerator &sampler, Vec3f &throughput, Ray &ray) const
 {
     float filterWeight;
-    Vec2f pixelUv = _filter.sample(sampler.next2D(), filterWeight);
+    Vec2f pixelUv = 0.5f + _filter.sample(sampler.next2D(), filterWeight);
     Vec2f lensUv = sampler.next2D();
 
     Vec3f planePos(
