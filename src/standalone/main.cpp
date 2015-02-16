@@ -50,14 +50,14 @@ static const int OPT_SPPSTEP           = 4;
 int main(int argc, const char *argv[])
 {
     int sppStep = 16;
-    int checkpointInterval = 15;
+    int checkpointInterval = 0;
     int threadCount = max(ThreadUtils::idealThreadCount() - 1, 1u);
 
     CliParser parser("tungsten", "[options] scene1 [scene2 [scene3...]]");
     parser.addOption('h', "help", "Prints this help text", false, OPT_HELP);
     parser.addOption('v', "version", "Prints version information", false, OPT_VERSION);
     parser.addOption('t', "threads", "Specifies number of threads to use (default: number of cores minus one)", true, OPT_THREADS);
-    parser.addOption('c', "checkpoint", "Specifies render time in minutes before saving a checkpoint. A value of 0 disables checkpoints (default: 15)", true, OPT_CHECKPOINTS);
+    parser.addOption('c', "checkpoint", "Specifies render time in minutes before saving a checkpoint. A value of 0 disables checkpoints (default: disabled)", true, OPT_CHECKPOINTS);
     parser.addOption('s', "sppstep", "Number of spp to render per iteration. Larger numbers mean higher efficiency, with some restrictions (default: 16)", true, OPT_SPPSTEP);
 
     parser.parse(argc, argv);
@@ -76,15 +76,8 @@ int main(int argc, const char *argv[])
         if (newThreadCount > 0)
             threadCount = newThreadCount;
     }
-    if (parser.isPresent(OPT_CHECKPOINTS)) {
-        int newCheckpointInterval = std::atoi(parser.param(OPT_CHECKPOINTS).c_str());
-        if (newCheckpointInterval > 0)
-            checkpointInterval = newCheckpointInterval;
-        else
-            // 10 years, in minutes. If your render is still running at that point, you
-            // deserve a checkpoint, regardless of what you specified.
-            checkpointInterval = 5259490;
-    }
+    if (parser.isPresent(OPT_CHECKPOINTS))
+        checkpointInterval = std::atoi(parser.param(OPT_CHECKPOINTS).c_str());
     if (parser.isPresent(OPT_SPPSTEP)) {
         int newSppStep = std::atoi(parser.param(OPT_SPPSTEP).c_str());
         sppStep = max(newSppStep, 1);
@@ -123,7 +116,7 @@ int main(int argc, const char *argv[])
                 renderer->waitForCompletion();
                 std::cout << tfm::format("Completed %d/%d spp", min(i + sppStep, maxSpp), maxSpp) << std::endl;
                 checkpointTimer.stop();
-                if (checkpointTimer.elapsed() > checkpointInterval*60) {
+                if (checkpointInterval > 0 && checkpointTimer.elapsed() > checkpointInterval*60) {
                     totalElapsed += checkpointTimer.elapsed();
                     std::cout << tfm::format("Saving checkpoint after %s", formatTime(totalElapsed).c_str()) << std::endl;
                     checkpointTimer.start();
