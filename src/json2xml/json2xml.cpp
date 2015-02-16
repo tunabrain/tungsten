@@ -1,5 +1,7 @@
 #include "JsonXmlConverter.hpp"
+#include "Version.hpp"
 
+#include "io/CliParser.hpp"
 #include "io/FileUtils.hpp"
 #include "io/Scene.hpp"
 
@@ -8,59 +10,58 @@
 
 using namespace Tungsten;
 
-bool convert(const Path &src, const Path &dst)
+void convert(CliParser &parser, const Path &src, const Path &dst)
 {
     Path dstDir = dst.parent();
-    if (!dstDir.empty() && !FileUtils::createDirectory(dstDir)) {
-        std::cerr << "Unable to create target directory '" << dstDir <<"'\n";
-        return false;
-    }
+    if (!dstDir.empty() && !FileUtils::createDirectory(dstDir))
+        parser.fail("Unable to create target directory '%s'", dstDir);
 
     Scene *scene;
     try {
         scene = Scene::load(src);
         scene->loadResources();
     } catch (std::runtime_error &e) {
-        std::cerr << "Scene loader encountered an unrecoverable error: \n" << e.what() << std::endl;
-        return false;
+        parser.fail("Scene loader encountered an unrecoverable error: '%s'", e.what());
     }
 
-    if (!scene) {
-        std::cerr << "Unable to open input file '" << src << "'\n";
-        return false;
-    }
+    if (!scene)
+        parser.fail("Unable to open input file '%s'", src);
 
     OutputStreamHandle out = FileUtils::openOutputStream(dst);
-    if (!out) {
-        std::cerr << "Unable to write to target file '" << dst << "'\n";
-        return false;
-    }
+    if (!out)
+        parser.fail("Unable to write to target file '%s'", dst);
 
     try {
         SceneXmlWriter writer(dstDir, *scene, *out);
     } catch (std::runtime_error &e) {
-        std::cerr << "SceneXmlWriter encountered an unrecoverable error: \n" << e.what() << std::endl;
-        return false;
+        parser.fail("SceneXmlWriter encountered an unrecoverable error: %s", e.what());
     }
-    return true;
 }
+
+static const int OPT_VERSION = 0;
+static const int OPT_HELP    = 1;
 
 int main(int argc, const char *argv[])
 {
-    if (argc < 3) {
-        std::cerr << "Usage: json2xml inputfile outputfile\n";
-        return 1;
+    CliParser parser("json2xml", "[options] inputfile outputfile");
+    parser.addOption('h', "help", "Prints this help text", false, OPT_HELP);
+    parser.addOption('v', "version", "Prints version information", false, OPT_VERSION);
+
+    parser.parse(argc, argv);
+
+    if (parser.operands().size() != 2 || parser.isPresent(OPT_HELP)) {
+        parser.printHelpText();
+        return 0;
+    }
+    if (parser.isPresent(OPT_VERSION)) {
+        std::cout << "json2xml, version " << VERSION_STRING << std::endl;
+        return 0;
     }
 
     embree::rtcInit();
     embree::rtcStartThreads(8);
 
-    if (argc == 3) {
-        convert(Path(argv[1]), Path(argv[2]));
-    } else {
-        for (int i = 1; i < argc; ++i)
-            convert(Path(argv[i]), Path(argv[i]).setExtension("xml"));
-    }
+    convert(parser, Path(parser.operands()[0]), Path(parser.operands()[1]));
 
     return 0;
 }
