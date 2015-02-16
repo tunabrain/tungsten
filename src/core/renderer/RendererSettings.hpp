@@ -19,6 +19,7 @@ class RendererSettings : public JsonSerializable
     bool _useSobol;
     uint32 _spp;
     uint32 _sppStep;
+    int _checkpointInterval;
 
 public:
     RendererSettings()
@@ -28,7 +29,8 @@ public:
       _useSceneBvh(true),
       _useSobol(true),
       _spp(32),
-      _sppStep(16)
+      _sppStep(16),
+      _checkpointInterval(0)
     {
     }
 
@@ -43,6 +45,7 @@ public:
         JsonUtils::fromJson(v, "scene_bvh", _useSceneBvh);
         JsonUtils::fromJson(v, "spp", _spp);
         JsonUtils::fromJson(v, "spp_step", _sppStep);
+        JsonUtils::fromJson(v, "checkpoint_interval", _checkpointInterval);
     }
 
     virtual rapidjson::Value toJson(Allocator &allocator) const
@@ -60,6 +63,7 @@ public:
         v.AddMember("scene_bvh", _useSceneBvh, allocator);
         v.AddMember("spp", _spp, allocator);
         v.AddMember("spp_step", _sppStep, allocator);
+        v.AddMember("checkpoint_interval", _checkpointInterval, allocator);
         return std::move(v);
     }
 
@@ -106,6 +110,11 @@ public:
     uint32 sppStep() const
     {
         return _sppStep;
+    }
+
+    int checkpointInterval() const
+    {
+        return _checkpointInterval;
     }
 };
 

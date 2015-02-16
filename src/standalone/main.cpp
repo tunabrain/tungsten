@@ -57,8 +57,8 @@ int main(int argc, const char *argv[])
     parser.addOption('h', "help", "Prints this help text", false, OPT_HELP);
     parser.addOption('v', "version", "Prints version information", false, OPT_VERSION);
     parser.addOption('t', "threads", "Specifies number of threads to use (default: number of cores minus one)", true, OPT_THREADS);
-    parser.addOption('c', "checkpoint", "Specifies render time in minutes before saving a checkpoint. A value of 0 disables checkpoints (default: disabled)", true, OPT_CHECKPOINTS);
-    parser.addOption('s', "sppstep", "Number of spp to render per iteration. Larger numbers mean higher efficiency, with some restrictions (default: 16)", true, OPT_SPPSTEP);
+    parser.addOption('c', "checkpoint", "Specifies render time in minutes before saving a checkpoint. A value of 0 disables checkpoints. Overrides the setting in the scene file", true, OPT_CHECKPOINTS);
+    parser.addOption('s', "sppstep", "Number of spp to render per iteration. Larger numbers mean higher efficiency, with some restrictions. Overrides the setting in the scene file", true, OPT_SPPSTEP);
 
     parser.parse(argc, argv);
 
@@ -110,6 +110,8 @@ int main(int argc, const char *argv[])
 
             if (!parser.isPresent(OPT_SPPSTEP))
                 sppStep = scene->rendererSettings().sppStep();
+            if (!parser.isPresent(OPT_CHECKPOINTS))
+                checkpointInterval = scene->rendererSettings().checkpointInterval();
 
             std::cout << "Starting render..." << std::endl;
             Timer timer, checkpointTimer;
