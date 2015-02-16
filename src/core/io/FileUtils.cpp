@@ -266,7 +266,7 @@ std::string FileUtils::loadText(const Path &path)
     uint64 size = fileSize(path);
     InputStreamHandle in = openInputStream(path);
     if (size == 0 || !in)
-        FAIL("Unable to open file at '%s'", path);
+        return std::string();
 
     // Strip UTF-8 byte order mark if present (mostly a problem on
     // windows platforms).
