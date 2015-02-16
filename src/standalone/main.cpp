@@ -104,9 +104,12 @@ int main(int argc, const char *argv[])
         try {
             DirectoryChange context(scene->path().parent());
 
-            int maxSpp = scene->camera()->spp();
+            int maxSpp = scene->rendererSettings().spp();
             std::unique_ptr<TraceableScene> flattenedScene(scene->makeTraceable());
             std::unique_ptr<Renderer> renderer(new Renderer(*flattenedScene));
+
+            if (!parser.isPresent(OPT_SPPSTEP))
+                sppStep = scene->rendererSettings().sppStep();
 
             std::cout << "Starting render..." << std::endl;
             Timer timer, checkpointTimer;
@@ -120,14 +123,14 @@ int main(int argc, const char *argv[])
                     totalElapsed += checkpointTimer.elapsed();
                     std::cout << tfm::format("Saving checkpoint after %s", formatTime(totalElapsed).c_str()) << std::endl;
                     checkpointTimer.start();
-                    scene->camera()->saveCheckpoint(*renderer);
+                    renderer->saveCheckpoint();
                 }
             }
             timer.stop();
 
             std::cout << tfm::format("Finished render. Render time %s", formatTime(timer.elapsed()).c_str()) << std::endl;
 
-            scene->camera()->saveOutputs(*renderer);
+            renderer->saveOutputs();
         } catch (std::runtime_error &e) {
             std::cerr << tfm::format("Renderer for file '%s' encountered an unrecoverable error: \n%s",
                     sceneFile, e.what()) << std::endl;

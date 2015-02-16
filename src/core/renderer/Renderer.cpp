@@ -10,6 +10,8 @@
 #include "thread/ThreadUtils.hpp"
 #include "thread/ThreadPool.hpp"
 
+#include "io/ImageIO.hpp"
+
 #include <lodepng/lodepng.h>
 #include <algorithm>
 
@@ -18,6 +20,22 @@ namespace Tungsten {
 CONSTEXPR uint32 Renderer::TileSize;
 CONSTEXPR uint32 Renderer::VarianceTileSize;
 CONSTEXPR uint32 Renderer::AdaptiveThreshold;
+
+static Path incrementalFilename(const Path &dstFile, const std::string &suffix, bool overwrite)
+{
+    Path dstPath = (dstFile.stripExtension() + suffix) + dstFile.extension();
+    if (overwrite)
+        return std::move(dstPath);
+
+    Path barePath = dstPath.stripExtension();
+    Path extension = dstPath.extension();
+
+    int index = 0;
+    while (dstPath.exists())
+        dstPath = (barePath + tfm::format("%03d", ++index)) + extension;
+
+    return std::move(dstPath);
+}
 
 Renderer::Renderer(TraceableScene &scene)
 : _sampler(0xBA5EBA11),
@@ -174,6 +192,40 @@ void Renderer::renderTile(uint32 id, uint32 tileId)
     }
 }
 
+void Renderer::writeBuffers(const std::string &suffix, bool overwrite)
+{
+    Vec2u res = _scene.cam().resolution();
+    std::unique_ptr<Vec3f[]> hdr(new Vec3f[res.product()]);
+    std::unique_ptr<Vec3c[]> ldr(new Vec3c[res.product()]);
+
+    for (uint32 y = 0; y < res.y(); ++y) {
+        for (uint32 x = 0; x < res.x(); ++x) {
+            hdr[x + y*res.x()] = _scene.cam().getLinear(x, y);
+            ldr[x + y*res.x()] = Vec3c(clamp(Vec3i(_scene.cam().get(x, y)*255.0f), Vec3i(0), Vec3i(255)));
+        }
+    }
+
+    const RendererSettings &settings = _scene.rendererSettings();
+
+    if (!settings.outputFile().empty())
+        ImageIO::saveLdr(incrementalFilename(settings.outputFile(), suffix, overwrite),
+                &ldr[0].x(), res.x(), res.y(), 3);
+    if (!settings.hdrOutputFile().empty())
+        ImageIO::saveHdr(incrementalFilename(settings.hdrOutputFile(), suffix, overwrite),
+                &hdr[0].x(), res.x(), res.y(), 3);
+
+    if (!settings.varianceOutputFile().empty()) {
+        std::unique_ptr<uint8[]> ldrVariance(new uint8[_varianceW*_varianceH]);
+
+        float maxError = max(errorPercentile95(), 1e-5f);
+        for (size_t i = 0; i < _samples.size(); ++i)
+            ldrVariance[i] = int(clamp(255.0f*_samples[i].errorEstimate()/maxError, 0.0f, 255.0f));
+
+        ImageIO::saveLdr(incrementalFilename(settings.varianceOutputFile(), suffix, overwrite),
+                ldrVariance.get(), _varianceW, _varianceH, 1);
+    }
+}
+
 void Renderer::startRender(std::function<void()> completionCallback, uint32 sppFrom, uint32 sppTo)
 {
     if (!generateWork(sppFrom, sppTo)) {
@@ -200,15 +252,14 @@ void Renderer::abortRender()
     _group->wait();
 }
 
-void Renderer::getVarianceImage(std::vector<float> &data, int &w, int &h)
+void Renderer::saveOutputs()
 {
-    w = _varianceW;
-    h = _varianceH;
-    data.resize(w*h);
+    writeBuffers("", _scene.rendererSettings().overwriteOutputFiles());
+}
 
-    float maxError = max(errorPercentile95(), 1e-5f);
-    for (size_t i = 0; i < _samples.size(); ++i)
-        data[i] = clamp(_samples[i].errorEstimate()/maxError, 0.0f, 1.0f);
+void Renderer::saveCheckpoint()
+{
+    writeBuffers("_checkpoint", true);
 }
 
 }

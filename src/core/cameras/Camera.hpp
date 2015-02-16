@@ -24,11 +24,7 @@ class SampleGenerator;
 
 class Camera : public JsonSerializable
 {
-    Path _outputFile;
-    Path _hdrOutputFile;
-    Path _varianceOutputFile;
     std::string _tonemapString;
-    bool _overwriteOutputFiles;
 
     Tonemap::Type _tonemapOp;
 
@@ -43,8 +39,6 @@ protected:
     float _ratio;
     Vec2f _pixelSize;
 
-    uint32 _spp;
-
     std::shared_ptr<Medium> _medium;
     ReconstructionFilter _filter;
 
@@ -54,12 +48,9 @@ protected:
 private:
     void precompute();
 
-    Path incrementalFilename(const Path &dstFile, const std::string &suffix) const;
-    void saveBuffers(Renderer &renderer, const std::string &suffix) const;
-
 public:
     Camera();
-    Camera(const Mat4f &transform, const Vec2u &res, uint32 spp);
+    Camera(const Mat4f &transform, const Vec2u &res);
 
     void fromJson(const rapidjson::Value &v, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
@@ -75,9 +66,6 @@ public:
     void setPos(const Vec3f &pos);
     void setLookAt(const Vec3f &lookAt);
     void setUp(const Vec3f &up);
-
-    void saveOutputs(Renderer &renderer) const;
-    void saveCheckpoint(Renderer &renderer) const;
 
     void addSamples(int x, int y, const Vec3f &c, uint32 weight)
     {
@@ -126,31 +114,6 @@ public:
     const Vec2u &resolution() const
     {
         return _res;
-    }
-
-    uint32 spp() const
-    {
-        return _spp;
-    }
-
-    const Path &outputFile() const
-    {
-        return _outputFile;
-    }
-
-    const Path &hdrOutputFile() const
-    {
-        return _hdrOutputFile;
-    }
-
-    const Path &varianceOutputFile() const
-    {
-        return _varianceOutputFile;
-    }
-
-    bool overwriteOutputFiles() const
-    {
-        return _overwriteOutputFiles;
     }
 
     const std::shared_ptr<Medium> &medium() const

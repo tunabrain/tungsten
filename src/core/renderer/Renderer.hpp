@@ -53,6 +53,8 @@ class Renderer
 
     void renderTile(uint32 id, uint32 tileId);
 
+    void writeBuffers(const std::string &suffix, bool overwrite);
+
 public:
     Renderer(TraceableScene &scene);
     ~Renderer();
@@ -61,7 +63,8 @@ public:
     void waitForCompletion();
     void abortRender();
 
-    void getVarianceImage(std::vector<float> &data, int &w, int &h);
+    void saveOutputs();
+    void saveCheckpoint();
 };
 
 }

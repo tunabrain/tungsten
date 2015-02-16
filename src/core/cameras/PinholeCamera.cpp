@@ -18,8 +18,8 @@ PinholeCamera::PinholeCamera()
     precompute();
 }
 
-PinholeCamera::PinholeCamera(const Mat4f &transform, const Vec2u &res, float fov, uint32 spp)
-: Camera(transform, res, spp),
+PinholeCamera::PinholeCamera(const Mat4f &transform, const Vec2u &res, float fov)
+: Camera(transform, res),
   _fovDeg(fov)
 {
     precompute();

@@ -115,14 +115,14 @@ uint32 RenderWindow::sampleStep(uint32 current, uint32 target) const
 #if EXPORT_RAYS
     return target - current;
 #else
-    return min(target - current, 4u);
+    return min(target - current, _scene->rendererSettings().sppStep());
 #endif
 }
 
 void RenderWindow::updateStatus()
 {
     if (_scene) {
-        _sppLabel->setText(QString("%1/%2 spp").arg(_currentSpp).arg(_scene->camera()->spp()));
+        _sppLabel->setText(QString("%1/%2 spp").arg(_currentSpp).arg(_scene->rendererSettings().spp()));
         if (_rendering)
             _statusLabel->setText("Rendering...");
         else
@@ -152,7 +152,7 @@ void RenderWindow::startRender()
         _image->fill(Qt::black);
         repaint();
     }
-    _nextSpp = _currentSpp + sampleStep(_currentSpp, _scene->camera()->spp());
+    _nextSpp = _currentSpp + sampleStep(_currentSpp, _scene->rendererSettings().spp());
     if (_nextSpp == _currentSpp)
         return;
     _renderer->startRender(finishCallback, _currentSpp, _nextSpp);
@@ -185,12 +185,12 @@ void RenderWindow::finishRender()
     _rendering = false;
     refresh();
 
-    if (_scene && _currentSpp < _scene->camera()->spp())
+    if (_scene && _currentSpp < _scene->rendererSettings().spp())
         startRender();
     else {
         if (_scene) {
             DirectoryChange context(_scene->path().parent());
-            _scene->camera()->saveOutputs(*_renderer);
+            _renderer->saveOutputs();
         }
         _renderer.reset();
         _flattenedScene.reset();

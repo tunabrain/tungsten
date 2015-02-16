@@ -510,7 +510,7 @@ class SceneXmlWriter
         else
             assign("type", "independent");
         beginPost();
-        convert("sampleCount", int(cam->spp()));
+        convert("sampleCount", int(_scene.rendererSettings().spp()));
         end();
 
         begin("film");
