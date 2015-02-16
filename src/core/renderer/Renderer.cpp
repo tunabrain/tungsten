@@ -39,8 +39,11 @@ static Path incrementalFilename(const Path &dstFile, const std::string &suffix, 
 
 Renderer::Renderer(TraceableScene &scene)
 : _sampler(0xBA5EBA11),
-  _scene(scene)
+  _scene(scene),
+  _currentSpp(0)
 {
+    advanceSpp();
+
     for (uint32 i = 0; i < ThreadUtils::pool->threadCount(); ++i)
         _integrators.emplace_back(scene.cloneThreadSafeIntegrator(i));
 
@@ -73,6 +76,11 @@ void Renderer::diceTiles()
             );
         }
     }
+}
+
+void Renderer::advanceSpp()
+{
+    _nextSpp = min(_currentSpp + _scene.rendererSettings().sppStep(), _scene.rendererSettings().spp());
 }
 
 float Renderer::errorPercentile95()
@@ -141,15 +149,15 @@ void Renderer::distributeAdaptiveSamples(int spp)
     }
 }
 
-bool Renderer::generateWork(uint32 sppFrom, uint32 sppTo)
+bool Renderer::generateWork()
 {
     for (SampleRecord &record : _samples)
         record.sampleIndex += record.nextSampleCount;
 
-    int sppCount = sppTo - sppFrom;
+    int sppCount = _nextSpp - _currentSpp;
     bool enableAdaptive = _scene.rendererSettings().useAdaptiveSampling();
 
-    if (enableAdaptive && sppFrom >= AdaptiveThreshold) {
+    if (enableAdaptive && _currentSpp >= AdaptiveThreshold) {
         float maxError = errorPercentile95();
         if (maxError == 0.0f)
             return false;
@@ -226,9 +234,9 @@ void Renderer::writeBuffers(const std::string &suffix, bool overwrite)
     }
 }
 
-void Renderer::startRender(std::function<void()> completionCallback, uint32 sppFrom, uint32 sppTo)
+void Renderer::startRender(std::function<void()> completionCallback)
 {
-    if (!generateWork(sppFrom, sppTo)) {
+    if (done() || !generateWork()) {
         completionCallback();
         return;
     }
@@ -237,7 +245,11 @@ void Renderer::startRender(std::function<void()> completionCallback, uint32 sppF
     _group = ThreadUtils::pool->enqueue(
         std::bind(&Renderer::renderTile, this, _3, _1),
         _tiles.size(),
-        std::move(completionCallback)
+        [&, completionCallback]() {
+            _currentSpp = _nextSpp;
+            advanceSpp();
+            completionCallback();
+        }
     );
 }
 

@@ -45,11 +45,9 @@ static const int OPT_CHECKPOINTS       = 0;
 static const int OPT_THREADS           = 1;
 static const int OPT_VERSION           = 2;
 static const int OPT_HELP              = 3;
-static const int OPT_SPPSTEP           = 4;
 
 int main(int argc, const char *argv[])
 {
-    int sppStep = 16;
     int checkpointInterval = 0;
     int threadCount = max(ThreadUtils::idealThreadCount() - 1, 1u);
 
@@ -58,7 +56,6 @@ int main(int argc, const char *argv[])
     parser.addOption('v', "version", "Prints version information", false, OPT_VERSION);
     parser.addOption('t', "threads", "Specifies number of threads to use (default: number of cores minus one)", true, OPT_THREADS);
     parser.addOption('c', "checkpoint", "Specifies render time in minutes before saving a checkpoint. A value of 0 disables checkpoints. Overrides the setting in the scene file", true, OPT_CHECKPOINTS);
-    parser.addOption('s', "sppstep", "Number of spp to render per iteration. Larger numbers mean higher efficiency, with some restrictions. Overrides the setting in the scene file", true, OPT_SPPSTEP);
 
     parser.parse(argc, argv);
 
@@ -78,10 +75,6 @@ int main(int argc, const char *argv[])
     }
     if (parser.isPresent(OPT_CHECKPOINTS))
         checkpointInterval = std::atoi(parser.param(OPT_CHECKPOINTS).c_str());
-    if (parser.isPresent(OPT_SPPSTEP)) {
-        int newSppStep = std::atoi(parser.param(OPT_SPPSTEP).c_str());
-        sppStep = max(newSppStep, 1);
-    }
 
     embree::rtcInit();
     //embree::rtcSetVerbose(1);
@@ -108,18 +101,16 @@ int main(int argc, const char *argv[])
             std::unique_ptr<TraceableScene> flattenedScene(scene->makeTraceable());
             std::unique_ptr<Renderer> renderer(new Renderer(*flattenedScene));
 
-            if (!parser.isPresent(OPT_SPPSTEP))
-                sppStep = scene->rendererSettings().sppStep();
             if (!parser.isPresent(OPT_CHECKPOINTS))
                 checkpointInterval = scene->rendererSettings().checkpointInterval();
 
             std::cout << "Starting render..." << std::endl;
             Timer timer, checkpointTimer;
             double totalElapsed = 0.0;
-            for (int i = 0; i < maxSpp; i += sppStep) {
-                renderer->startRender([](){}, i, min(i + sppStep, maxSpp));
+            while (!renderer->done()) {
+                renderer->startRender([](){});
                 renderer->waitForCompletion();
-                std::cout << tfm::format("Completed %d/%d spp", min(i + sppStep, maxSpp), maxSpp) << std::endl;
+                std::cout << tfm::format("Completed %d/%d spp", renderer->currentSpp(), maxSpp) << std::endl;
                 checkpointTimer.stop();
                 if (checkpointInterval > 0 && checkpointTimer.elapsed() > checkpointInterval*60) {
                     totalElapsed += checkpointTimer.elapsed();

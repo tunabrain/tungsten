@@ -29,7 +29,6 @@ class RenderWindow : public QWidget
     QLabel *_sppLabel, *_statusLabel;
 
     bool _rendering;
-    uint32 _currentSpp, _nextSpp;
 
     float _zoom;
     QPoint _lastMousePos;
@@ -39,7 +38,6 @@ class RenderWindow : public QWidget
     float _gamma;
 
     QRgb tonemap(const Vec3f &c) const;
-    uint32 sampleStep(uint32 current, uint32 target) const;
 
     void updateStatus();
 
