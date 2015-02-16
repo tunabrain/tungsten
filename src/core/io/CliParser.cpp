@@ -13,8 +13,9 @@
 
 namespace Tungsten {
 
-CliParser::CliParser(const std::string &programName)
-: _programName(programName)
+CliParser::CliParser(const std::string &programName, const std::string &usage)
+: _programName(programName),
+  _usage(usage)
 {
 }
 
@@ -71,7 +72,7 @@ void CliParser::printHelpText(int maxWidth) const
         longOptLength = max(longOptLength, int(o.longOpt.size()));
     longOptLength += 4;
 
-    std::cout << "Usage: " << _programName << " [options] [operands]\nOptions:\n";
+    std::cout << "Usage: " << _programName << " " << _usage << "\nOptions:\n";
     for (const CliOption &o : _options) {
         if (o.shortOpt == '\0')
             std::cout << "     ";

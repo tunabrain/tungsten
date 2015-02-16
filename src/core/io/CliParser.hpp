@@ -23,7 +23,7 @@ class CliParser
         bool isPresent;
     };
 
-    std::string _programName;
+    std::string _programName, _usage;
     std::vector<CliOption> _options;
     std::unordered_map<int, int> _tokenToOption;
     std::unordered_map<char, int> _shortOpts;
@@ -36,7 +36,7 @@ class CliParser
     std::vector<std::string> retrieveUtf8Args(int argc, const char *argv[]);
 
 public:
-    CliParser(const std::string &programName);
+    CliParser(const std::string &programName, const std::string &usage = "[options] [operands]");
 
     template<typename T1, typename... Ts>
     void fail(const char *fmt, const T1 &v1, const Ts &... ts)
