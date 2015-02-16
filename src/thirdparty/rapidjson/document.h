@@ -3,6 +3,7 @@
 
 #include "reader.h"
 #include "internal/strfunc.h"
+#include <utility>
 #include <new>      // placement new
 
 #ifdef _MSC_VER
@@ -340,8 +341,8 @@ public:
             Member* last = data_.o.members + (data_.o.size - 1);
             if (data_.o.size > 1 && m != last) {
                 // Move the last one to this place
-                m->name = last->name;
-                m->value = last->value;
+                m->name = std::move(last->name);
+                m->value = std::move(last->value);
             }
             else {
                 // Only one left, just destroy
