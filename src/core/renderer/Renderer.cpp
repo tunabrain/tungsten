@@ -255,13 +255,16 @@ void Renderer::startRender(std::function<void()> completionCallback)
 
 void Renderer::waitForCompletion()
 {
-    _group->wait();
+    if (_group)
+        _group->wait();
 }
 
 void Renderer::abortRender()
 {
-    _group->abort();
-    _group->wait();
+    if (_group) {
+        _group->abort();
+        _group->wait();
+    }
 }
 
 void Renderer::saveOutputs()
