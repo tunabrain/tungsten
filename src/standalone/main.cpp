@@ -1,3 +1,4 @@
+#include "Version.hpp"
 #include "Timer.hpp"
 
 #include "renderer/TraceableScene.hpp"
@@ -9,6 +10,7 @@
 
 #include "io/DirectoryChange.hpp"
 #include "io/FileUtils.hpp"
+#include "io/CliParser.hpp"
 #include "io/Scene.hpp"
 
 #include <tinyformat/tinyformat.hpp>
@@ -39,16 +41,53 @@ std::string formatTime(double elapsed)
 
 using namespace Tungsten;
 
+static const int OPT_CHECKPOINTS       = 0;
+static const int OPT_THREADS           = 1;
+static const int OPT_VERSION           = 2;
+static const int OPT_HELP              = 3;
+static const int OPT_SPPSTEP           = 4;
+
 int main(int argc, const char *argv[])
 {
-    CONSTEXPR int SppStep = 16;
-    CONSTEXPR int BackupInterval = 60*15;
-
+    int sppStep = 16;
+    int checkpointInterval = 15;
     int threadCount = max(ThreadUtils::idealThreadCount() - 1, 1u);
 
-    if (argc < 2) {
-        std::cerr << "Usage: tungsten scene1 [scene2 [scene3....]]\n";
-        return 1;
+    CliParser parser("tungsten", "[options] scene1 [scene2 [scene3...]]");
+    parser.addOption('h', "help", "Prints this help text", false, OPT_HELP);
+    parser.addOption('v', "version", "Prints version information", false, OPT_VERSION);
+    parser.addOption('t', "threads", "Specifies number of threads to use (default: number of cores minus one)", true, OPT_THREADS);
+    parser.addOption('c', "checkpoint", "Specifies render time in minutes before saving a checkpoint. A value of 0 disables checkpoints (default: 15)", true, OPT_CHECKPOINTS);
+    parser.addOption('s', "sppstep", "Number of spp to render per iteration. Larger numbers mean higher efficiency, with some restrictions (default: 16)", true, OPT_SPPSTEP);
+
+    parser.parse(argc, argv);
+
+    if (argc < 2 || parser.isPresent(OPT_HELP)) {
+        parser.printHelpText();
+        return 0;
+    }
+    if (parser.isPresent(OPT_VERSION)) {
+        std::cout << "tungsten, version " << VERSION_STRING << std::endl;
+        return 0;
+    }
+
+    if (parser.isPresent(OPT_THREADS)) {
+        int newThreadCount = std::atoi(parser.param(OPT_THREADS).c_str());
+        if (newThreadCount > 0)
+            threadCount = newThreadCount;
+    }
+    if (parser.isPresent(OPT_CHECKPOINTS)) {
+        int newCheckpointInterval = std::atoi(parser.param(OPT_CHECKPOINTS).c_str());
+        if (newCheckpointInterval > 0)
+            checkpointInterval = newCheckpointInterval;
+        else
+            // 10 years, in minutes. If your render is still running at that point, you
+            // deserve a checkpoint, regardless of what you specified.
+            checkpointInterval = 5259490;
+    }
+    if (parser.isPresent(OPT_SPPSTEP)) {
+        int newSppStep = std::atoi(parser.param(OPT_SPPSTEP).c_str());
+        sppStep = max(newSppStep, 1);
     }
 
     embree::rtcInit();
@@ -57,15 +96,15 @@ int main(int argc, const char *argv[])
 
     ThreadUtils::startThreads(threadCount);
 
-    for (int i = 1; i < argc; ++i) {
-        std::cout << tfm::format("Loading scene '%s'...", argv[i]) << std::endl;
+    for (const std::string &sceneFile : parser.operands()) {
+        std::cout << tfm::format("Loading scene '%s'...", sceneFile) << std::endl;
         std::unique_ptr<Scene> scene;
         try {
-            scene.reset(Scene::load(argv[i]));
+            scene.reset(Scene::load(Path(sceneFile)));
             scene->loadResources();
         } catch (std::runtime_error &e) {
             std::cerr << tfm::format("Scene loader for file '%s' encountered an unrecoverable error: \n%s",
-                    argv[i], e.what()) << std::endl;
+                    sceneFile, e.what()) << std::endl;
             continue;
         }
 
@@ -79,12 +118,12 @@ int main(int argc, const char *argv[])
             std::cout << "Starting render..." << std::endl;
             Timer timer, checkpointTimer;
             double totalElapsed = 0.0;
-            for (int i = 0; i < maxSpp; i += SppStep) {
-                renderer->startRender([](){}, i, min(i + SppStep, maxSpp));
+            for (int i = 0; i < maxSpp; i += sppStep) {
+                renderer->startRender([](){}, i, min(i + sppStep, maxSpp));
                 renderer->waitForCompletion();
-                std::cout << tfm::format("Completed %d/%d spp", min(i + SppStep, maxSpp), maxSpp) << std::endl;
+                std::cout << tfm::format("Completed %d/%d spp", min(i + sppStep, maxSpp), maxSpp) << std::endl;
                 checkpointTimer.stop();
-                if (checkpointTimer.elapsed() > BackupInterval) {
+                if (checkpointTimer.elapsed() > checkpointInterval*60) {
                     totalElapsed += checkpointTimer.elapsed();
                     std::cout << tfm::format("Saving checkpoint after %s", formatTime(totalElapsed).c_str()) << std::endl;
                     checkpointTimer.start();
@@ -98,7 +137,7 @@ int main(int argc, const char *argv[])
             scene->camera()->saveOutputs(*renderer);
         } catch (std::runtime_error &e) {
             std::cerr << tfm::format("Renderer for file '%s' encountered an unrecoverable error: \n%s",
-                    argv[i], e.what()) << std::endl;
+                    sceneFile, e.what()) << std::endl;
         }
     }
 
