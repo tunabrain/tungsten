@@ -125,6 +125,16 @@ public:
     {
         return _tonemapOp;
     }
+
+    std::vector<Vec3d> &pixels()
+    {
+        return _pixels;
+    }
+
+    std::vector<uint32> &weights()
+    {
+        return _weights;
+    }
 };
 
 }
