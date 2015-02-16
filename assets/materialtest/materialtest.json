@@ -179,8 +179,6 @@
         }
     ],
     "camera": {
-        "output_file": "TungstenRender.png",
-        "overwrite_output_files": false,
         "tonemap": "filmic",
         "position": [
             3.04068,
@@ -211,7 +209,14 @@
         "enable_two_sided_shading": true
     },
     "renderer": {
+        "output_file": "TungstenRender.png",
+        "overwrite_output_files": false,
         "adaptive_sampling": true,
-        "stratified_sampler": true
+        "enable_resume_render": true,
+        "stratified_sampler": true,
+        "scene_bvh": true,
+        "spp": 32,
+        "spp_step": 16,
+        "checkpoint_interval": 15
     }
 }
