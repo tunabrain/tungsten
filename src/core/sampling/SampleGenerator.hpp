@@ -4,6 +4,8 @@
 #include "math/BitManip.hpp"
 #include "math/MathUtil.hpp"
 
+#include "io/FileUtils.hpp"
+
 namespace Tungsten {
 
 class SampleGenerator
@@ -12,6 +14,9 @@ public:
     virtual ~SampleGenerator() {}
 
     virtual void setup(uint32 pixelId, int sample) = 0;
+
+    virtual void saveState(OutputStreamHandle &out) = 0;
+    virtual void loadState(InputStreamHandle &in) = 0;
 
     virtual uint32 nextI() = 0;
 

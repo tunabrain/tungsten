@@ -45,6 +45,7 @@ static const int OPT_CHECKPOINTS       = 0;
 static const int OPT_THREADS           = 1;
 static const int OPT_VERSION           = 2;
 static const int OPT_HELP              = 3;
+static const int OPT_RESTART           = 4;
 
 int main(int argc, const char *argv[])
 {
@@ -55,6 +56,7 @@ int main(int argc, const char *argv[])
     parser.addOption('h', "help", "Prints this help text", false, OPT_HELP);
     parser.addOption('v', "version", "Prints version information", false, OPT_VERSION);
     parser.addOption('t', "threads", "Specifies number of threads to use (default: number of cores minus one)", true, OPT_THREADS);
+    parser.addOption('r', "restart", "Ignores saved render checkpoints and starts fresh from 0 spp", false, OPT_RESTART);
     parser.addOption('c', "checkpoint", "Specifies render time in minutes before saving a checkpoint. A value of 0 disables checkpoints. Overrides the setting in the scene file", true, OPT_CHECKPOINTS);
 
     parser.parse(argc, argv);
@@ -104,6 +106,14 @@ int main(int argc, const char *argv[])
             if (!parser.isPresent(OPT_CHECKPOINTS))
                 checkpointInterval = scene->rendererSettings().checkpointInterval();
 
+            if (scene->rendererSettings().enableResumeRender() && !parser.isPresent(OPT_RESTART)) {
+                std::cout << "Trying to resume render from saved state... ";
+                if (renderer->resumeRender(*scene))
+                    std::cout << "Successful" << std::endl;
+                else
+                    std::cout << "Unsuccessful" << std::endl;
+            }
+
             std::cout << "Starting render..." << std::endl;
             Timer timer, checkpointTimer;
             double totalElapsed = 0.0;
@@ -115,8 +125,13 @@ int main(int argc, const char *argv[])
                 if (checkpointInterval > 0 && checkpointTimer.elapsed() > checkpointInterval*60) {
                     totalElapsed += checkpointTimer.elapsed();
                     std::cout << tfm::format("Saving checkpoint after %s", formatTime(totalElapsed).c_str()) << std::endl;
+                    Timer ioTimer;
                     checkpointTimer.start();
                     renderer->saveCheckpoint();
+                    if (scene->rendererSettings().enableResumeRender())
+                        renderer->saveRenderResumeData(*scene);
+                    ioTimer.stop();
+                    std::cout << tfm::format("Saving checkpoint took %s", formatTime(ioTimer.elapsed())) << std::endl;
                 }
             }
             timer.stop();
@@ -124,6 +139,8 @@ int main(int argc, const char *argv[])
             std::cout << tfm::format("Finished render. Render time %s", formatTime(timer.elapsed()).c_str()) << std::endl;
 
             renderer->saveOutputs();
+            if (scene->rendererSettings().enableResumeRender())
+                renderer->saveRenderResumeData(*scene);
         } catch (std::runtime_error &e) {
             std::cerr << tfm::format("Renderer for file '%s' encountered an unrecoverable error: \n%s",
                     sceneFile, e.what()) << std::endl;

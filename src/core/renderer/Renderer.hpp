@@ -23,6 +23,7 @@ namespace Tungsten {
 
 class TraceableScene;
 class Integrator;
+class Scene;
 
 class Renderer
 {
@@ -70,6 +71,9 @@ public:
 
     void saveOutputs();
     void saveCheckpoint();
+
+    void saveRenderResumeData(Scene &scene);
+    bool resumeRender(Scene &scene);
 
     bool done() const
     {

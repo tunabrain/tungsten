@@ -4,6 +4,8 @@
 #include "math/MathUtil.hpp"
 #include "math/Vec.hpp"
 
+#include "io/FileUtils.hpp"
+
 namespace Tungsten {
 
 struct SampleRecord
@@ -17,6 +19,26 @@ struct SampleRecord
       adaptiveWeight(0.0f),
       mean(0.0f), runningVariance(0.0f)
     {
+    }
+
+    void saveState(OutputStreamHandle &out)
+    {
+        FileUtils::streamWrite(out, sampleCount);
+        FileUtils::streamWrite(out, nextSampleCount);
+        FileUtils::streamWrite(out, sampleIndex);
+        FileUtils::streamWrite(out, adaptiveWeight);
+        FileUtils::streamWrite(out, mean);
+        FileUtils::streamWrite(out, runningVariance);
+    }
+
+    void loadState(InputStreamHandle &in)
+    {
+        FileUtils::streamRead(in, sampleCount);
+        FileUtils::streamRead(in, nextSampleCount);
+        FileUtils::streamRead(in, sampleIndex);
+        FileUtils::streamRead(in, adaptiveWeight);
+        FileUtils::streamRead(in, mean);
+        FileUtils::streamRead(in, runningVariance);
     }
 
     inline void addSample(float x)

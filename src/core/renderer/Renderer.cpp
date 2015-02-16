@@ -10,8 +10,15 @@
 #include "thread/ThreadUtils.hpp"
 #include "thread/ThreadPool.hpp"
 
-#include "io/ImageIO.hpp"
+#include "math/BitManip.hpp"
 
+#include "io/FileUtils.hpp"
+#include "io/ImageIO.hpp"
+#include "io/Scene.hpp"
+
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/document.h>
+#include <rapidjson/writer.h>
 #include <lodepng/lodepng.h>
 #include <algorithm>
 
@@ -275,6 +282,95 @@ void Renderer::saveOutputs()
 void Renderer::saveCheckpoint()
 {
     writeBuffers("_checkpoint", true);
+}
+
+// Computes a hash of everything in the scene except the renderer settings
+// This is done by serializing everything to JSON and hashing the resulting string
+static uint64 sceneHash(Scene &scene)
+{
+    rapidjson::Document document;
+    document.SetObject();
+    *(static_cast<rapidjson::Value *>(&document)) = scene.toJson(document.GetAllocator());
+    document.RemoveMember("renderer");
+
+    rapidjson::GenericStringBuffer<rapidjson::UTF8<>> buffer;
+    rapidjson::Writer<rapidjson::GenericStringBuffer<rapidjson::UTF8<>>> jsonWriter(buffer);
+    document.Accept(jsonWriter);
+
+    return BitManip::hash(buffer.GetString());
+}
+
+void Renderer::saveRenderResumeData(Scene &scene)
+{
+    rapidjson::Document document;
+    document.SetObject();
+    document.AddMember("current_spp", _currentSpp, document.GetAllocator());
+    document.AddMember("adaptive_sampling", _scene.rendererSettings().useAdaptiveSampling(), document.GetAllocator());
+    document.AddMember("stratified_sampler", _scene.rendererSettings().useSobol(), document.GetAllocator());
+    if (!FileUtils::writeJson(document, _scene.rendererSettings().resumeRenderPrefix() + ".json")) {
+        DBG("Failed to write render resume state JSON");
+        return;
+    }
+
+    OutputStreamHandle out = FileUtils::openOutputStream(_scene.rendererSettings().resumeRenderPrefix() + ".dat");
+    if (!out) {
+        DBG("Failed to open render resume state data stream");
+        return;
+    }
+
+    uint64 jsonHash = sceneHash(scene);
+    FileUtils::streamWrite(out, jsonHash);
+    FileUtils::streamWrite(out, _scene.cam().pixels());
+    FileUtils::streamWrite(out, _scene.cam().weights());
+    for (SampleRecord &s : _samples)
+        s.saveState(out);
+    for (ImageTile &i : _tiles) {
+        i.sampler->saveState(out);
+        i.supplementalSampler->saveState(out);
+    }
+}
+
+bool Renderer::resumeRender(Scene &scene)
+{
+    std::string json = FileUtils::loadText(_scene.rendererSettings().resumeRenderPrefix() + ".json");
+    if (json.empty())
+        return false;
+
+    rapidjson::Document document;
+    document.Parse<0>(json.c_str());
+    if (document.HasParseError() || !document.IsObject())
+        return false;
+
+    bool adaptiveSampling, stratifiedSampler;
+    if (!JsonUtils::fromJson(document, "adaptive_sampling", adaptiveSampling)
+            || adaptiveSampling != _scene.rendererSettings().useAdaptiveSampling())
+        return false;
+    if (!JsonUtils::fromJson(document, "stratified_sampler", stratifiedSampler)
+            || stratifiedSampler != _scene.rendererSettings().useSobol())
+        return false;
+
+    InputStreamHandle in = FileUtils::openInputStream(_scene.rendererSettings().resumeRenderPrefix() + ".dat");
+    if (!in)
+        return false;
+
+    uint64 jsonHash;
+    FileUtils::streamRead(in, jsonHash);
+    if (jsonHash != sceneHash(scene))
+        return false;
+
+    FileUtils::streamRead(in, _scene.cam().pixels());
+    FileUtils::streamRead(in, _scene.cam().weights());
+    for (SampleRecord &s : _samples)
+        s.loadState(in);
+    for (ImageTile &i : _tiles) {
+        i.sampler->loadState(in);
+        i.supplementalSampler->loadState(in);
+    }
+
+    JsonUtils::fromJson(document, "current_spp", _currentSpp);
+    advanceSpp();
+
+    return true;
 }
 
 }

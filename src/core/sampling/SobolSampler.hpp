@@ -26,6 +26,14 @@ public:
     {
     }
 
+    virtual void saveState(OutputStreamHandle &/*out*/) override final
+    {
+    }
+
+    virtual void loadState(InputStreamHandle &/*in*/)  override final
+    {
+    }
+
     virtual void setup(uint32 pixelId, int sample) override final
     {
         _scramble = MathUtil::hash32(pixelId);

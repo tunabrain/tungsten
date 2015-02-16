@@ -22,6 +22,16 @@ public:
         sfmt_init_gen_rand(&_state, seed);
     }
 
+    virtual void saveState(OutputStreamHandle &out) override final
+    {
+        FileUtils::streamWrite(out, _state);
+    }
+
+    virtual void loadState(InputStreamHandle &in)  override final
+    {
+        FileUtils::streamRead(in, _state);
+    }
+
     virtual void setup(uint32 /*pixelId*/, int /*sample*/) override final
     {
     }
