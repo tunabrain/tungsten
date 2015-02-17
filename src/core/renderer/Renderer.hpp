@@ -77,7 +77,7 @@ public:
 
     bool done() const
     {
-        return _currentSpp == _nextSpp;
+        return _currentSpp >= _nextSpp;
     }
 
     uint32 currentSpp() const
