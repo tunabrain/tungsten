@@ -199,6 +199,8 @@ OutputStreamHandle FileUtils::openFileOutputStream(const Path &p)
 
     if (!out->good())
         return nullptr;
+
+    _metaData.insert(std::make_pair(out.get(), StreamMetadata()));
 #endif
 
     return std::move(out);

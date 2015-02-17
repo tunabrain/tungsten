@@ -40,6 +40,7 @@ class FileUtils
         std::unique_ptr<std::basic_streambuf<char>> streambuf;
         Path srcPath, targetPath;
 
+        StreamMetadata() = default;
         StreamMetadata(std::unique_ptr<std::basic_streambuf<char>> streambuf_)
         : streambuf(std::move(streambuf_)) {}
     };
