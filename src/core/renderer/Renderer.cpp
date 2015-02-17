@@ -319,6 +319,7 @@ void Renderer::saveRenderResumeData(Scene &scene)
     }
 
     uint64 jsonHash = sceneHash(scene);
+    FileUtils::streamWrite(out, _currentSpp);
     FileUtils::streamWrite(out, jsonHash);
     FileUtils::streamWrite(out, _scene.cam().pixels());
     FileUtils::streamWrite(out, _scene.cam().weights());
@@ -353,6 +354,13 @@ bool Renderer::resumeRender(Scene &scene)
     if (!in)
         return false;
 
+    uint32 dataSpp;
+    FileUtils::streamRead(in, dataSpp);
+
+    uint32 jsonSpp;
+    if (!JsonUtils::fromJson(document, "current_spp", jsonSpp) || jsonSpp != dataSpp)
+        return false;
+
     uint64 jsonHash;
     FileUtils::streamRead(in, jsonHash);
     if (jsonHash != sceneHash(scene))
@@ -367,7 +375,7 @@ bool Renderer::resumeRender(Scene &scene)
         i.supplementalSampler->loadState(in);
     }
 
-    JsonUtils::fromJson(document, "current_spp", _currentSpp);
+    _currentSpp = dataSpp;
     advanceSpp();
 
     return true;
