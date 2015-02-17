@@ -29,7 +29,7 @@
 
 namespace Tungsten {
 
-std::unordered_map<const std::ios *, std::unique_ptr<std::basic_streambuf<char>>> FileUtils::_streambufs;
+std::unordered_map<const std::ios *, FileUtils::StreamMetadata> FileUtils::_metaData;
 
 typedef std::string::size_type SizeType;
 
@@ -168,11 +168,40 @@ public:
 
 void FileUtils::finalizeStream(std::ios *stream)
 {
-    auto iter = _streambufs.find(stream);
-    if (iter != _streambufs.end())
-        _streambufs.erase(iter);
+    auto iter = _metaData.find(stream);
 
     delete stream;
+
+    if (iter != _metaData.end()) {
+        iter->second.streambuf.reset();
+
+        if (!iter->second.targetPath.empty())
+            moveFile(iter->second.srcPath, iter->second.targetPath, true);
+        _metaData.erase(iter);
+    }
+}
+
+OutputStreamHandle FileUtils::openFileOutputStream(const Path &p)
+{
+#if _WIN32
+    AutoFilePtr file(_wfopen(makeWideLongPath(p).c_str(), L"wb"), std::fclose);
+    if (!file)
+        return nullptr;
+
+    std::unique_ptr<FileOutputStreambuf> streambuf(new FileOutputStreambuf(std::move(file)));
+    std::shared_ptr<std::ostream> out(new std::ostream(streambuf.get()),
+            [](std::ostream *stream){ finalizeStream(stream); });
+    _metaData.insert(std::make_pair(out.get(), StreamMetadata(std::move(streambuf))));
+#else
+    std::shared_ptr<std::ostream> out(new std::ofstream(p.absolute().asString(),
+            std::ios_base::out | std::ios_base::binary),
+            [](std::ostream *stream){ finalizeStream(stream); });
+
+    if (!out->good())
+        return nullptr;
+#endif
+
+    return std::move(out);
 }
 
 bool FileUtils::changeCurrentDir(const Path &dir)
@@ -327,6 +356,30 @@ bool FileUtils::copyFile(const Path &src, const Path &dst, bool createDstDir)
 #endif
 }
 
+bool FileUtils::moveFile(const Path &src, const Path &dst, bool deleteDst)
+{
+    if (dst.exists()) {
+        if (!deleteDst)
+            return false;
+        else if (!FileUtils::deleteFile(dst))
+            return false;
+    }
+#if _WIN32
+    return MoveFileW(makeWideLongPath(src).c_str(), makeWideLongPath(dst).c_str()) != 0;
+#else
+    return rename(src.absolute().asString().c_str(), dst.absolute().asString().c_str()) == 0;
+#endif
+}
+
+bool FileUtils::deleteFile(const Path &path)
+{
+#if _WIN32
+    return DeleteFileW(makeWideLongPath(path).c_str()) != 0;
+#else
+    return std::remove(path.absolute().asString().c_str()) == 0;
+#endif
+}
+
 InputStreamHandle FileUtils::openInputStream(const Path &p)
 {
 #if _WIN32
@@ -337,7 +390,7 @@ InputStreamHandle FileUtils::openInputStream(const Path &p)
     std::unique_ptr<FileInputStreambuf> streambuf(new FileInputStreambuf(std::move(file)));
     std::shared_ptr<std::istream> in(new std::istream(streambuf.get()),
             [](std::istream *stream){ finalizeStream(stream); });
-    _streambufs.insert(std::make_pair(in.get(), std::move(streambuf)));
+    _metaData.insert(std::make_pair(in.get(), StreamMetadata(std::move(streambuf))));
 #else
     std::shared_ptr<std::istream> in(new std::ifstream(p.absolute().asString(),
             std::ios_base::in | std::ios_base::binary),
@@ -352,23 +405,20 @@ InputStreamHandle FileUtils::openInputStream(const Path &p)
 
 OutputStreamHandle FileUtils::openOutputStream(const Path &p)
 {
-#if _WIN32
-    AutoFilePtr file(_wfopen(makeWideLongPath(p).c_str(), L"wb"), std::fclose);
-    if (!file)
-        return nullptr;
+    if (!p.exists())
+        return openFileOutputStream(p);
 
-    std::unique_ptr<FileOutputStreambuf> streambuf(new FileOutputStreambuf(std::move(file)));
-    std::shared_ptr<std::ostream> out(new std::ostream(streambuf.get()),
-            [](std::ostream *stream){ finalizeStream(stream); });
-    _streambufs.insert(std::make_pair(out.get(), std::move(streambuf)));
-#else
-    std::shared_ptr<std::ostream> out(new std::ofstream(p.absolute().asString(),
-            std::ios_base::out | std::ios_base::binary),
-            [](std::ostream *stream){ finalizeStream(stream); });
+    Path tmpPath(p + ".tmp");
+    int index = 0;
+    while (tmpPath.exists())
+        tmpPath = p + tfm::format(".tmp%03d", ++index);
 
-    if (!out->good())
-        return nullptr;
-#endif
+    OutputStreamHandle out = openFileOutputStream(tmpPath);
+    if (out) {
+        auto iter = _metaData.find(out.get());
+        iter->second.srcPath = tmpPath;
+        iter->second.targetPath = p;
+    }
 
     return std::move(out);
 }

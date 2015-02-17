@@ -2,6 +2,7 @@
 #define FILEUTILS_HPP_
 
 #include "IntTypes.hpp"
+#include "Path.hpp"
 
 #include <rapidjson/document.h>
 #include <unordered_map>
@@ -34,9 +35,19 @@ class FileUtils
 {
     FileUtils() {}
 
-    static void finalizeStream(std::ios *stream);
+    struct StreamMetadata
+    {
+        std::unique_ptr<std::basic_streambuf<char>> streambuf;
+        Path srcPath, targetPath;
 
-    static std::unordered_map<const std::ios *, std::unique_ptr<std::basic_streambuf<char>>> _streambufs;
+        StreamMetadata(std::unique_ptr<std::basic_streambuf<char>> streambuf_)
+        : streambuf(std::move(streambuf_)) {}
+    };
+
+    static std::unordered_map<const std::ios *, StreamMetadata> _metaData;
+
+    static void finalizeStream(std::ios *stream);
+    static OutputStreamHandle openFileOutputStream(const Path &p);
 
 public:
     static bool changeCurrentDir(const Path &dir);
@@ -52,6 +63,8 @@ public:
     static bool writeJson(const rapidjson::Document &document, const Path &p);
 
     static bool copyFile(const Path &src, const Path &dst, bool createDstDir);
+    static bool moveFile(const Path &src, const Path &dst, bool deleteDst);
+    static bool deleteFile(const Path &path);
 
     static InputStreamHandle openInputStream(const Path &p);
     static OutputStreamHandle openOutputStream(const Path &p);
