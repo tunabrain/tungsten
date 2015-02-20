@@ -180,6 +180,11 @@ void Path::clearWorkingDirectory()
     _workingDirectory.clear();
 }
 
+void Path::setWorkingDirectory(const Path &dir)
+{
+    _workingDirectory = dir.absolute().ensureSeparator().asString();
+}
+
 const std::string &Path::asString() const
 {
     return _path;

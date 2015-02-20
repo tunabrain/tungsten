@@ -37,6 +37,7 @@ public:
 
     void freezeWorkingDirectory();
     void clearWorkingDirectory();
+    void setWorkingDirectory(const Path &dir);
 
     const std::string &asString() const;
 
