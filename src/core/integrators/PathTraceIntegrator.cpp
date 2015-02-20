@@ -550,7 +550,7 @@ Vec3f PathTraceIntegrator::traceSample(Vec2u pixel, SampleGenerator &sampler, Un
     bool didHit = _scene->intersect(ray, data, info);
     bool wasSpecular = true;
     bool hitSurface = true;
-    while (didHit && bounce < _maxBounces) {
+    while ((didHit || medium) && bounce < _maxBounces) {
         ray.advanceFootprint();
 
         if (medium && !handleVolume(sampler, supplementalSampler, medium, bounce, ray, throughput, emission, wasSpecular, hitSurface, state))
