@@ -244,6 +244,8 @@ void Renderer::writeBuffers(const std::string &suffix, bool overwrite)
 void Renderer::startRender(std::function<void()> completionCallback)
 {
     if (done() || !generateWork()) {
+        _currentSpp = _nextSpp;
+        advanceSpp();
         completionCallback();
         return;
     }
