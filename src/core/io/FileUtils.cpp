@@ -281,7 +281,7 @@ OutputStreamHandle FileUtils::openFileOutputStream(const Path &p)
 
 std::shared_ptr<ZipReader> FileUtils::openArchive(const Path &p)
 {
-    Path key = p.absolute();
+    Path key = p.normalize();
     auto iter = _archives.find(key);
     if (iter != _archives.end())
         return iter->second;

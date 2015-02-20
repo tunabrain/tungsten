@@ -298,7 +298,7 @@ PathPtr Scene::fetchResource(const rapidjson::Value &v) const
     if (!JsonUtils::fromJson(v, value))
         return nullptr;
 
-    Path key = Path(value).absolute();
+    Path key = Path(value).normalize();
 
     auto iter = _resources.find(key);
     if (iter == _resources.end()) {
