@@ -2,6 +2,8 @@
 
 #include "FileUtils.hpp"
 
+#include "Debug.hpp"
+
 #include <lodepng/lodepng.h>
 #include <stbi/stb_image.h>
 #include <cstring>
@@ -247,8 +249,10 @@ bool savePng(const Path &path, const uint8 *img, int w, int h, int channels)
     if (channels <= 0 || channels > 4)
         return false;
     OutputStreamHandle out = FileUtils::openOutputStream(path);
-    if (!out)
+    if (!out) {
+        DBG("Unable to save PNG at path '%s'", path.absolute());
         return false;
+    }
 
     LodePNGColorType types[] = {LCT_GREY, LCT_GREY_ALPHA, LCT_RGB, LCT_RGBA};
 
