@@ -46,7 +46,7 @@ TraceableMinecraftMap::TraceableMinecraftMap(const TraceableMinecraftMap &o)
 : Primitive(o)
 {
     _mapPath = o._mapPath;
-    _packPath = o._packPath;
+    _packPaths = o._packPaths;
 
     _missingBsdf = o._missingBsdf;
     _bsdfCache = o._bsdfCache;
@@ -94,7 +94,7 @@ void TraceableMinecraftMap::loadTexture(ResourcePackLoader &pack, const std::str
         std::shared_ptr<BitmapTexture> &albedo, std::shared_ptr<BitmapTexture> &opacity,
         Box2f &opaqueBounds, Vec4c tint, const uint8 *mask, int maskW, int maskH)
 {
-    Path path = pack.textureBasePath()/name + ".png";
+    Path path = pack.resolvePath(Path(ResourcePackLoader::textureBase)/name + ".png");
 
     int w, h;
     std::unique_ptr<uint8[]> img = ImageIO::loadLdr(path, TexelConversion::REQUEST_RGB, w, h);
@@ -223,7 +223,7 @@ int TraceableMinecraftMap::fetchBsdf(ResourcePackLoader &pack, const TexturedQua
     if (isEmissive) {
         const EmitterInfo &info = *pack.emitterInfo(quad.texture);
         if (!info.mask.empty())
-            emitterMask = ImageIO::loadLdr(pack.packPath()/info.mask,
+            emitterMask = ImageIO::loadLdr(pack.resolvePath(Path(info.mask)),
                     TexelConversion::REQUEST_AVERAGE, emitterMaskW, emitterMaskH, false);
 
         material.primaryScale = info.primaryScale;
@@ -561,7 +561,16 @@ void TraceableMinecraftMap::fromJson(const rapidjson::Value &v, const Scene &sce
     Primitive::fromJson(v, scene);
 
     _mapPath = scene.fetchResource(v, "map_path");
-    _packPath = scene.fetchResource(v, "resource_path");
+
+    const rapidjson::Value::Member *packs = v.FindMember("resource_packs");
+    if (packs) {
+        if (packs->value.IsArray()) {
+            for (size_t i = 0; i < packs->value.Size(); ++i)
+                _packPaths.emplace_back(scene.fetchResource(packs->value[i]));
+        } else {
+            _packPaths.emplace_back(scene.fetchResource(packs->value));
+        }
+    }
 }
 
 rapidjson::Value TraceableMinecraftMap::toJson(Allocator &allocator) const
@@ -570,8 +579,14 @@ rapidjson::Value TraceableMinecraftMap::toJson(Allocator &allocator) const
     v.AddMember("type", "minecraft_map", allocator);
     if (_mapPath)
         v.AddMember("map_path", _mapPath->asString().c_str(), allocator);
-    if (_packPath)
-        v.AddMember("resource_path", _packPath->asString().c_str(), allocator);
+    if (_packPaths.size() == 1) {
+        v.AddMember("resource_packs", _packPaths[0]->asString().c_str(), allocator);
+    } else if (!_packPaths.empty()) {
+        rapidjson::Value a(rapidjson::kArrayType);
+        for (const PathPtr &p : _packPaths)
+            a.PushBack(p->asString().c_str(), allocator);
+        v.AddMember("resource_packs", std::move(a), allocator);
+    }
     return std::move(v);
 }
 
@@ -581,9 +596,14 @@ void TraceableMinecraftMap::loadResources()
 
     _bounds = Box3f();
 
-    if (_packPath && _mapPath) {
+    if (!_packPaths.empty() && _mapPath) {
         try {
-            ResourcePackLoader pack(*_packPath);
+            std::vector<Path> packs;
+            for (int i = _packPaths.size() - 1; i >= 0; --i)
+                packs.push_back(*_packPaths[i]);
+            packs.push_back(FileUtils::getExecutablePath().parent()/"data/mc-loader");
+
+            ResourcePackLoader pack(packs);
             buildModels(pack);
 
             MapLoader<ElementType> loader(*_mapPath);

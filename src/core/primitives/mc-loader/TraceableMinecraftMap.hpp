@@ -15,6 +15,7 @@
 #include "bvh/BinaryBvh.hpp"
 
 #include <unordered_map>
+#include <vector>
 #include <memory>
 #include <string>
 
@@ -42,7 +43,7 @@ class TraceableMinecraftMap : public Primitive
     template<typename T> using aligned_vector = std::vector<T, AlignedAllocator<T, 4096>>;
 
     PathPtr _mapPath;
-    PathPtr _packPath;
+    std::vector<PathPtr> _packPaths;
 
     std::shared_ptr<Bsdf> _missingBsdf;
     std::vector<QuadMaterial> _materials;

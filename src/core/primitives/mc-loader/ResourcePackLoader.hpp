@@ -7,6 +7,7 @@
 
 #include "io/Path.hpp"
 
+#include <unordered_set>
 #include <unordered_map>
 #include <memory>
 #include <string>
@@ -102,7 +103,7 @@ public:
     };
 
 private:
-    Path _packPath;
+    std::vector<Path> _packPaths;
 
     std::vector<BlockDescriptor> _blockDescriptors;
     std::vector<Model> _models;
@@ -128,8 +129,8 @@ private:
     void buildBlockMapping();
 
     void duplicateRedstoneLevels(BlockDescriptor &state);
-    void loadStates();
-    void loadModels(const Path &dir, std::string base = "");
+    void loadStates(const Path &dir, std::unordered_set<std::string> &existing);
+    void loadModels(const Path &dir, std::unordered_set<std::string> &existing, std::string base = "");
     void fixTintIndices();
     void generateBiomeColors();
     void loadEmitters();
@@ -142,10 +143,12 @@ public:
     static const char *biomePath;
     static const char *emitterPath;
 
-    ResourcePackLoader(const Path &packPath);
+    ResourcePackLoader(std::vector<Path> packPaths);
 
     const ModelRef *mapBlock(uint16 id, int idx) const;
     const ModelRef *mapSpecialBlock(const TraceableMinecraftMap &map, int x, int y, int z, int idx, uint32 id) const;
+
+    Path resolvePath(const Path &p) const;
 
     const std::vector<BlockDescriptor> &blockDescriptors() const
     {
@@ -155,16 +158,6 @@ public:
     const std::vector<BiomeColor> &biomeColors() const
     {
         return _biomes;
-    }
-
-    const Path &packPath() const
-    {
-        return _packPath;
-    }
-
-    Path textureBasePath() const
-    {
-        return _packPath/textureBase;
     }
 
     bool isEmissive(const std::string &texture) const
