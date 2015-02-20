@@ -46,6 +46,7 @@ static const int OPT_THREADS           = 1;
 static const int OPT_VERSION           = 2;
 static const int OPT_HELP              = 3;
 static const int OPT_RESTART           = 4;
+static const int OPT_OUTPUT_DIRECTORY  = 5;
 
 int main(int argc, const char *argv[])
 {
@@ -58,6 +59,7 @@ int main(int argc, const char *argv[])
     parser.addOption('t', "threads", "Specifies number of threads to use (default: number of cores minus one)", true, OPT_THREADS);
     parser.addOption('r', "restart", "Ignores saved render checkpoints and starts fresh from 0 spp", false, OPT_RESTART);
     parser.addOption('c', "checkpoint", "Specifies render time in minutes before saving a checkpoint. A value of 0 disables checkpoints. Overrides the setting in the scene file", true, OPT_CHECKPOINTS);
+    parser.addOption('o', "output-directory", "Specifies the output directory. Overrides the setting in the scene file", true, OPT_OUTPUT_DIRECTORY);
 
     parser.parse(argc, argv);
 
@@ -84,6 +86,13 @@ int main(int argc, const char *argv[])
 
     ThreadUtils::startThreads(threadCount);
 
+    Path outputDirectory;
+    if (parser.isPresent(OPT_OUTPUT_DIRECTORY)) {
+        outputDirectory = Path(parser.param(OPT_OUTPUT_DIRECTORY));
+        outputDirectory.freezeWorkingDirectory();
+        outputDirectory = outputDirectory.absolute();
+    }
+
     for (const std::string &sceneFile : parser.operands()) {
         std::cout << tfm::format("Loading scene '%s'...", sceneFile) << std::endl;
         std::unique_ptr<Scene> scene;
@@ -98,6 +107,9 @@ int main(int argc, const char *argv[])
 
         try {
             DirectoryChange context(scene->path().parent());
+
+            if (parser.isPresent(OPT_OUTPUT_DIRECTORY))
+                scene->rendererSettings().setOutputDirectory(outputDirectory);
 
             int maxSpp = scene->rendererSettings().spp();
             std::unique_ptr<TraceableScene> flattenedScene(scene->makeTraceable());
