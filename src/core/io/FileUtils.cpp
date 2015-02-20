@@ -52,7 +52,7 @@ static bool execNativeStat(const Path &p, NativeStatStruct &dst)
 {
     // For whatever reason, _wstat64 does not support long paths,
     // so we omit the \\?\ prefix here
-    std::string path = p.absolute().stripSeparator().nativeSeparators().asString();
+    std::string path = p.normalize().stripSeparator().nativeSeparators().asString();
     std::wstring wpath = UnicodeUtils::utf8ToWchar(path);
     return _wstat64(wpath.c_str(), &dst) == 0;
 }
@@ -301,7 +301,7 @@ bool FileUtils::recursiveArchiveFind(const Path &p, std::shared_ptr<ZipReader> &
         const ZipEntry *&entry)
 {
     if (!archive) {
-        Path stem = p.absolute().parent().stripSeparator();
+        Path stem = p.normalize().parent().stripSeparator();
         Path leaf = p.fileName();
         while (!stem.empty()) {
             NativeStatStruct stat;
