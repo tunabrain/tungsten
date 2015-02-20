@@ -75,7 +75,7 @@ target_link_libraries(json2xml ${core_libs})
 add_executable(scenemanip src/scenemanip/scenemanip.cpp)
 target_link_libraries(scenemanip ${core_libs})
 
-add_executable(tungsten src/standalone/main.cpp)
+add_executable(tungsten src/tungsten/tungsten.cpp)
 target_link_libraries(tungsten ${core_libs})
 
 if (WIN32)
