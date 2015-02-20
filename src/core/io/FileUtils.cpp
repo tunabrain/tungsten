@@ -43,9 +43,9 @@ static char tmpBuffer[PATH_MAX*2];
 #endif
 
 #if _WIN32
-typedef struct __stat64 StatStruct;
+typedef struct __stat64 NativeStatStruct;
 
-static bool execStat(const Path &p, StatStruct &dst)
+static bool execNativeStat(const Path &p, NativeStatStruct &dst)
 {
     // For whatever reason, _wstat64 does not support long paths,
     // so we omit the \\?\ prefix here
@@ -61,9 +61,9 @@ static std::wstring makeWideLongPath(const Path &p)
 }
 
 #else
-typedef struct stat64 StatStruct;
+typedef struct stat64 NativeStatStruct;
 
-static bool execStat(const Path &p, StatStruct &dst)
+static bool execNativeStat(const Path &p, NativeStatStruct &dst)
 {
     return stat64(p.absolute().asString().c_str(), &dst) == 0;
 }
@@ -234,6 +234,20 @@ OutputStreamHandle FileUtils::openFileOutputStream(const Path &p)
     return std::move(out);
 }
 
+
+bool FileUtils::execStat(const Path &p, StatStruct &dst)
+{
+    NativeStatStruct stat;
+    if (execNativeStat(p, stat)) {
+        dst.size        = stat.st_size;
+        dst.isDirectory = S_ISDIR(stat.st_mode);
+        dst.isFile      = S_ISREG(stat.st_mode);
+        return true;
+    }
+
+    return false;
+}
+
 bool FileUtils::changeCurrentDir(const Path &dir)
 {
     _currentDir = dir.absolute();
@@ -272,7 +286,7 @@ uint64 FileUtils::fileSize(const Path &path)
     StatStruct info;
     if (!execStat(path, info))
         return 0;
-    return info.st_size;
+    return info.size;
 }
 
 
@@ -446,7 +460,7 @@ bool FileUtils::isDirectory(const Path &p)
     StatStruct info;
     if (!execStat(p, info))
         return false;
-    return S_ISDIR(info.st_mode);
+    return info.isDirectory;
 }
 
 bool FileUtils::isFile(const Path &p)
@@ -454,7 +468,7 @@ bool FileUtils::isFile(const Path &p)
     StatStruct info;
     if (!execStat(p, info))
         return false;
-    return S_ISREG(info.st_mode);
+    return info.isFile;
 }
 
 }

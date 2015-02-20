@@ -35,6 +35,13 @@ class FileUtils
 {
     FileUtils() {}
 
+    struct StatStruct
+    {
+        uint64 size;
+        bool isDirectory;
+        bool isFile;
+    };
+
     struct StreamMetadata
     {
         std::unique_ptr<std::basic_streambuf<char>> streambuf;
@@ -50,6 +57,9 @@ class FileUtils
 
     static void finalizeStream(std::ios *stream);
     static OutputStreamHandle openFileOutputStream(const Path &p);
+
+
+    static bool execStat(const Path &p, StatStruct &dst);
 
 public:
     static bool changeCurrentDir(const Path &dir);
