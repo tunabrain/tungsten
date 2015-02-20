@@ -17,6 +17,7 @@ ZipInputStreambuf::ZipInputStreambuf(InputStreamHandle in, mz_zip_archive &archi
   _inputAvail(0),
   _inputBufOffset(0),
   _outputBufOffset(0),
+  _seekOffset(0),
   _status(TINFL_STATUS_NEEDS_MORE_INPUT),
   _inputBuffer(new uint8[InputBufferSize]),
   _outputBuffer(new uint8[OutputBufferSize])
@@ -42,7 +43,6 @@ ZipInputStreambuf::int_type ZipInputStreambuf::underflow()
 
     _in->seekg(_header.file_ofs + _inputStreamOffset);
     do {
-        size_t oldOutputBufOffset = _outputBufOffset;
         _outputStreamOffset += _outputBufOffset;
         _outputBufOffset = 0;
 
@@ -73,11 +73,12 @@ ZipInputStreambuf::int_type ZipInputStreambuf::underflow()
         } while (_status == TINFL_STATUS_NEEDS_MORE_INPUT);
 
         char *start = reinterpret_cast<char *>(_outputBuffer.get());
-        setg(start, gptr() - oldOutputBufOffset, start + _outputBufOffset);
+        int64 off = clamp(_seekOffset - int64(_outputStreamOffset), 0ll, int64(_outputBufOffset));
+        setg(start, start + off, start + _outputBufOffset);
 
         if (_status <= TINFL_STATUS_DONE)
             break;
-    } while (gptr() - eback() >= int64(_outputBufOffset));
+    } while (_seekOffset >= int64(_outputStreamOffset + _outputBufOffset));
 
     return traits_type::to_int_type(*gptr());
 }
@@ -85,7 +86,10 @@ ZipInputStreambuf::int_type ZipInputStreambuf::underflow()
 std::streampos ZipInputStreambuf::seekpos(std::streampos pos, std::ios_base::openmode /*which*/)
 {
     if (pos >= int64(_outputStreamOffset)) {
-        setg(eback(), eback() + (pos - int64(_outputStreamOffset)), egptr());
+        _seekOffset = pos;
+        char *start = reinterpret_cast<char *>(_outputBuffer.get());
+        int64 off = min(_seekOffset - _outputStreamOffset, _outputBufOffset);
+        setg(start, start + off, start + _outputBufOffset);
     } else {
         _inputStreamOffset = 0;
         _outputStreamOffset = 0;
@@ -95,6 +99,7 @@ std::streampos ZipInputStreambuf::seekpos(std::streampos pos, std::ios_base::ope
         _status = TINFL_STATUS_NEEDS_MORE_INPUT;
         tinfl_init(&_inflator);
 
+        _seekOffset = pos;
         char *start = reinterpret_cast<char *>(_outputBuffer.get());
         setg(start, start, start);
     }
@@ -105,10 +110,12 @@ std::streampos ZipInputStreambuf::seekpos(std::streampos pos, std::ios_base::ope
 std::streampos ZipInputStreambuf::seekoff(std::streamoff off, std::ios_base::seekdir way,
         std::ios_base::openmode which)
 {
+    uint64 currentPos = (gptr() < egptr()) ? _outputStreamOffset + (gptr() - eback()) : _seekOffset;
+
     if (way == std::ios_base::beg)
         return seekpos(off, which);
     else if (way == std::ios_base::cur)
-        return seekpos(_outputStreamOffset + (gptr() - eback()) + off, which);
+        return seekpos(currentPos + off, which);
     else if (way == std::ios_base::end)
         return seekpos(_uncompressedSize + off, which);
     return -1;

@@ -26,6 +26,7 @@ class ZipInputStreambuf : public std::basic_streambuf<char>
     size_t _inputAvail;
     size_t _inputBufOffset;
     size_t _outputBufOffset;
+    int64 _seekOffset;
 
     int _status;
 
