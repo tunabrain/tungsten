@@ -59,7 +59,7 @@ static bool execNativeStat(const Path &p, NativeStatStruct &dst)
 
 static std::wstring makeWideLongPath(const Path &p)
 {
-    std::string path = p.absolute().nativeSeparators().asString();
+    std::string path = p.normalize().nativeSeparators().asString();
     return UnicodeUtils::utf8ToWchar("\\\\?\\" + path);
 }
 
