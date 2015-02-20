@@ -2,7 +2,9 @@
 #define RENDERERSETTINGS_HPP_
 
 #include "io/JsonSerializable.hpp"
+#include "io/DirectoryChange.hpp"
 #include "io/JsonUtils.hpp"
+#include "io/FileUtils.hpp"
 
 namespace Tungsten {
 
@@ -10,6 +12,7 @@ class Scene;
 
 class RendererSettings : public JsonSerializable
 {
+    Path _outputDirectory;
     Path _outputFile;
     Path _hdrOutputFile;
     Path _varianceOutputFile;
@@ -40,6 +43,11 @@ public:
 
     virtual void fromJson(const rapidjson::Value &v, const Scene &/*scene*/)
     {
+        JsonUtils::fromJson(v, "output_directory", _outputDirectory);
+
+        _outputDirectory.freezeWorkingDirectory();
+        DirectoryChange change(_outputDirectory);
+
         JsonUtils::fromJson(v, "output_file", _outputFile);
         JsonUtils::fromJson(v, "hdr_output_file", _hdrOutputFile);
         JsonUtils::fromJson(v, "variance_output_file", _varianceOutputFile);
@@ -74,6 +82,21 @@ public:
         v.AddMember("spp_step", _sppStep, allocator);
         v.AddMember("checkpoint_interval", _checkpointInterval, allocator);
         return std::move(v);
+    }
+
+    const Path &outputDirectory() const
+    {
+        return _outputDirectory;
+    }
+
+    void setOutputDirectory(const Path &directory)
+    {
+        _outputDirectory = directory;
+
+        _outputFile        .setWorkingDirectory(_outputDirectory);
+        _hdrOutputFile     .setWorkingDirectory(_outputDirectory);
+        _varianceOutputFile.setWorkingDirectory(_outputDirectory);
+        _resumeRenderPrefix.setWorkingDirectory(_outputDirectory);
     }
 
     const Path &outputFile() const
