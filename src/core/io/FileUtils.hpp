@@ -1,8 +1,10 @@
 #ifndef FILEUTILS_HPP_
 #define FILEUTILS_HPP_
 
-#include "IntTypes.hpp"
+#include "ZipEntry.hpp"
 #include "Path.hpp"
+
+#include "IntTypes.hpp"
 
 #include <rapidjson/document.h>
 #include <unordered_map>
@@ -15,6 +17,7 @@
 
 namespace Tungsten {
 
+class ZipReader;
 class Path;
 
 typedef std::shared_ptr<std::istream> InputStreamHandle;
@@ -45,19 +48,29 @@ class FileUtils
     struct StreamMetadata
     {
         std::unique_ptr<std::basic_streambuf<char>> streambuf;
+        std::shared_ptr<ZipReader> archive;
         Path srcPath, targetPath;
 
         StreamMetadata() = default;
-        StreamMetadata(std::unique_ptr<std::basic_streambuf<char>> streambuf_)
-        : streambuf(std::move(streambuf_)) {}
+        StreamMetadata(std::unique_ptr<std::basic_streambuf<char>> streambuf_,
+                std::shared_ptr<ZipReader> archive_ = nullptr)
+        : streambuf(std::move(streambuf_)),
+          archive(std::move(archive_))
+        {
+        }
     };
 
+    static std::unordered_map<Path, std::shared_ptr<ZipReader>> _archives;
     static std::unordered_map<const std::ios *, StreamMetadata> _metaData;
     static Path _currentDir;
 
     static void finalizeStream(std::ios *stream);
     static OutputStreamHandle openFileOutputStream(const Path &p);
 
+    static std::shared_ptr<ZipReader> openArchive(const Path &p);
+
+    static bool recursiveArchiveFind(const Path &p, std::shared_ptr<ZipReader> &archive,
+            const ZipEntry *&entry);
 
     static bool execStat(const Path &p, StatStruct &dst);
 
