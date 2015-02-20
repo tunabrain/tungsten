@@ -29,7 +29,10 @@
 
 namespace Tungsten {
 
+static Path getNativeCurrentDir();
+
 std::unordered_map<const std::ios *, FileUtils::StreamMetadata> FileUtils::_metaData;
+Path FileUtils::_currentDir = getNativeCurrentDir();
 
 typedef std::string::size_type SizeType;
 
@@ -166,6 +169,31 @@ public:
     }
 };
 
+static Path getNativeCurrentDir()
+{
+#if _WIN32
+    DWORD size = GetCurrentDirectoryW(sizeof(tmpBuffer), tmpBuffer);
+    std::string result;
+    if (size >= sizeof(tmpBuffer)) {
+        std::unique_ptr<wchar_t[]> tmpBuf(new wchar_t[size + 1]);
+        size = GetCurrentDirectoryW(size + 1, tmpBuf.get());
+        if (size)
+            result = UnicodeUtils::wcharToUtf8(tmpBuf.get(), size);
+    } else if (size != 0) {
+        result = UnicodeUtils::wcharToUtf8(tmpBuffer, size);
+    }
+    // Get rid of long path prefix if necessary
+    if (result.find("\\\\?\\") == 0)
+        result.erase(0, 4);
+    return Path(result).normalizeSeparators();
+#else
+    if (getcwd(tmpBuffer, sizeof(tmpBuffer)))
+        return Path(tmpBuffer);
+#endif
+    // Native API failed us. Not ideal.
+    return Path();
+}
+
 void FileUtils::finalizeStream(std::ios *stream)
 {
     auto iter = _metaData.find(stream);
@@ -208,36 +236,13 @@ OutputStreamHandle FileUtils::openFileOutputStream(const Path &p)
 
 bool FileUtils::changeCurrentDir(const Path &dir)
 {
-#if _WIN32
-    return SetCurrentDirectoryW(makeWideLongPath(dir).c_str()) != 0;
-#else
-    return chdir(dir.absolute().asString().c_str()) == 0;
-#endif
+    _currentDir = dir.absolute();
+    return true;
 }
 
 Path FileUtils::getCurrentDir()
 {
-#if _WIN32
-    DWORD size = GetCurrentDirectoryW(sizeof(tmpBuffer), tmpBuffer);
-    std::string result;
-    if (size >= sizeof(tmpBuffer)) {
-        std::unique_ptr<wchar_t[]> tmpBuf(new wchar_t[size + 1]);
-        size = GetCurrentDirectoryW(size + 1, tmpBuf.get());
-        if (size)
-            result = UnicodeUtils::wcharToUtf8(tmpBuf.get(), size);
-    } else if (size != 0) {
-        result = UnicodeUtils::wcharToUtf8(tmpBuffer, size);
-    }
-    // Get rid of long path prefix if necessary
-    if (result.find("\\\\?\\") == 0)
-        result.erase(0, 4);
-    return Path(result).normalizeSeparators();
-#else
-    if (getcwd(tmpBuffer, sizeof(tmpBuffer)))
-        return Path(tmpBuffer);
-#endif
-    // Native API failed us. Not ideal.
-    return Path();
+    return _currentDir;
 }
 
 Path FileUtils::getExecutablePath()

@@ -46,6 +46,7 @@ class FileUtils
     };
 
     static std::unordered_map<const std::ios *, StreamMetadata> _metaData;
+    static Path _currentDir;
 
     static void finalizeStream(std::ios *stream);
     static OutputStreamHandle openFileOutputStream(const Path &p);
