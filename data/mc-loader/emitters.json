@@ -1,0 +1,11 @@
+[
+    {"texture":"blocks/glowstone","secondary_scale":20},
+    {"texture":"blocks/fire_layer_0","secondary_scale":100},
+    {"texture":"blocks/fire_layer_1","secondary_scale":100},
+    {"texture":"blocks/furnace_front_on","secondary_scale":10,"mask":"mask_furnace.png"},
+    {"texture":"blocks/portal","secondary_scale":100},
+    {"texture":"blocks/redstone_lamp_on","secondary_scale":100},
+    {"texture":"blocks/redstone_torch_on","secondary_scale":20,"mask":"mask_redstone_torch.png", "primary_scale":20},
+    {"texture":"blocks/sea_lantern","secondary_scale":100},
+    {"texture":"blocks/torch_on","secondary_scale":1000,"mask":"mask_torch.png"}
+]
