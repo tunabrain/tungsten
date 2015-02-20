@@ -53,6 +53,7 @@ public:
     Path nativeSeparators() const;
     Path ensureSeparator() const;
     Path stripSeparator() const;
+    Path normalize() const;
 
     Path &operator/=(const Path &o);
     Path &operator+=(const Path &o);

@@ -328,6 +328,66 @@ Path Path::stripSeparator() const
     return std::move(result);
 }
 
+Path Path::normalize() const
+{
+    std::string base = absolute().normalizeSeparators().stripSeparator().asString();
+
+    std::string prefix;
+    int offset = 0;
+
+#if _WIN32
+    if (base.size() >= 2 && isSeparator(base[0]) && isSeparator(base[1])) {
+        prefix = "//";
+        offset = 2;
+    } else if (base.size() >= 2 && base[1] == ':') {
+        prefix = base.substr(0, 2);
+        if (base.size() > 2 && isSeparator(base[2])) {
+            prefix += '/';
+            offset = 3;
+        } else {
+            offset = 2;
+        }
+    }
+#endif
+    if (prefix.empty() && !base.empty() && isSeparator(base[0])) {
+        prefix = '/';
+        offset = 1;
+    }
+
+    std::vector<std::string> components;
+    do {
+        SizeType next = base.find_first_of('/', offset);
+        if (next == std::string::npos)
+            next = base.size();
+
+        std::string component(base.substr(offset, next - offset));
+        components.emplace_back(std::move(component));
+
+        offset = next + 1;
+    } while (offset < int(base.size()));
+
+    std::vector<std::string> resultComponents;
+    for (size_t i = 0; i < components.size(); ++i) {
+        if (components[i].empty() || components[i] == ".")
+            continue;
+        if (components[i] == "..") {
+            if (!resultComponents.empty())
+                resultComponents.pop_back();
+        } else {
+            resultComponents.emplace_back(std::move(components[i]));
+        }
+    }
+
+    std::string result = prefix;
+    for (size_t i = 0; i < resultComponents.size(); ++i) {
+        if (i)
+            result += '/';
+        result += resultComponents[i];
+    }
+
+    return Path(_workingDirectory, result);
+}
+
 Path &Path::operator/=(const Path &o)
 {
     return *this /= o.asString();
