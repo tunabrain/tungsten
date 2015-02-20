@@ -153,7 +153,12 @@ public:
         return _path;
     }
 
-    RendererSettings rendererSettings() const
+    const RendererSettings &rendererSettings() const
+    {
+        return _rendererSettings;
+    }
+
+    RendererSettings &rendererSettings()
     {
         return _rendererSettings;
     }
