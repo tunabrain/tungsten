@@ -2768,6 +2768,51 @@ int mz_zip_reader_locate_file(mz_zip_archive *pZip, const char *pName, const cha
   return -1;
 }
 
+mz_bool mz_zip_reader_parse_zip_file_header(mz_zip_archive *pZip, mz_uint file_index, mz_zip_file_header *dst)
+{
+  mz_uint64 cur_file_ofs;
+  mz_zip_archive_file_stat file_stat;
+  mz_uint32 local_header_u32[(MZ_ZIP_LOCAL_DIR_HEADER_SIZE + sizeof(mz_uint32) - 1) / sizeof(mz_uint32)]; mz_uint8 *pLocal_header = (mz_uint8 *)local_header_u32;
+
+  if (!mz_zip_reader_file_stat(pZip, file_index, &file_stat))
+    return MZ_FALSE;
+
+  // Empty file, or a directory (but not always a directory - I've seen odd zips with directories that have compressed data which inflates to 0 bytes)
+  if (!file_stat.m_comp_size)
+    return MZ_FALSE;
+
+  // Entry is a subdirectory (I've seen old zips with dir entries which have compressed deflate data which inflates to 0 bytes, but these entries claim to uncompress to 512 bytes in the headers).
+  // I'm torn how to handle this case - should it fail instead?
+  if (mz_zip_reader_is_file_a_directory(pZip, file_index))
+    return MZ_FALSE;
+
+  // Encryption and patch files are not supported.
+  if (file_stat.m_bit_flag & (1 | 32))
+    return MZ_FALSE;
+
+  // This function only supports stored and deflate.
+  if ((file_stat.m_method != 0) && (file_stat.m_method != MZ_DEFLATED))
+    return MZ_FALSE;
+
+  // Read and parse the local directory entry.
+  cur_file_ofs = file_stat.m_local_header_ofs;
+  if (pZip->m_pRead(pZip->m_pIO_opaque, cur_file_ofs, pLocal_header, MZ_ZIP_LOCAL_DIR_HEADER_SIZE) != MZ_ZIP_LOCAL_DIR_HEADER_SIZE)
+    return MZ_FALSE;
+  if (MZ_READ_LE32(pLocal_header) != MZ_ZIP_LOCAL_DIR_HEADER_SIG)
+    return MZ_FALSE;
+
+  cur_file_ofs += MZ_ZIP_LOCAL_DIR_HEADER_SIZE + MZ_READ_LE16(pLocal_header + MZ_ZIP_LDH_FILENAME_LEN_OFS) + MZ_READ_LE16(pLocal_header + MZ_ZIP_LDH_EXTRA_LEN_OFS);
+  if ((cur_file_ofs + file_stat.m_comp_size) > pZip->m_archive_size)
+    return MZ_FALSE;
+
+  dst->file_ofs = cur_file_ofs;
+  dst->comp_size = file_stat.m_comp_size;
+  dst->uncomp_size = file_stat.m_uncomp_size;
+  dst->is_compressed = file_stat.m_method != 0;
+
+  return MZ_TRUE;
+}
+
 mz_bool mz_zip_reader_extract_to_mem_no_alloc(mz_zip_archive *pZip, mz_uint file_index, void *pBuf, size_t buf_size, mz_uint flags, void *pUser_read_buf, size_t user_read_buf_size)
 {
   int status = TINFL_STATUS_DONE;

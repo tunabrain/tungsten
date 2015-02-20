@@ -554,6 +554,14 @@ typedef struct mz_zip_archive_tag
 
 } mz_zip_archive;
 
+typedef struct
+{
+    mz_uint64 file_ofs;
+    mz_uint64 comp_size;
+    mz_uint64 uncomp_size;
+    mz_bool is_compressed;
+} mz_zip_file_header;
+
 typedef enum
 {
   MZ_ZIP_FLAG_CASE_SENSITIVE                = 0x0100,
@@ -591,6 +599,8 @@ mz_uint mz_zip_reader_get_filename(mz_zip_archive *pZip, mz_uint file_index, cha
 // Valid flags: MZ_ZIP_FLAG_CASE_SENSITIVE, MZ_ZIP_FLAG_IGNORE_PATH
 // Returns -1 if the file cannot be found.
 int mz_zip_reader_locate_file(mz_zip_archive *pZip, const char *pName, const char *pComment, mz_uint flags);
+
+mz_bool mz_zip_reader_parse_zip_file_header(mz_zip_archive *pZip, mz_uint file_index, mz_zip_file_header *dst);
 
 // Extracts a archive file to a memory buffer using no memory allocation.
 mz_bool mz_zip_reader_extract_to_mem_no_alloc(mz_zip_archive *pZip, mz_uint file_index, void *pBuf, size_t buf_size, mz_uint flags, void *pUser_read_buf, size_t user_read_buf_size);
