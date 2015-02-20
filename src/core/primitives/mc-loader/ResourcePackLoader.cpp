@@ -8,6 +8,8 @@
 #include "io/JsonUtils.hpp"
 #include "io/Path.hpp"
 
+#include "sampling/UniformSampler.hpp"
+
 namespace Tungsten {
 namespace MinecraftLoader {
 
@@ -17,6 +19,8 @@ const char *ResourcePackLoader::textureBase = "assets/minecraft/textures/";
 const char *ResourcePackLoader::blockMapPath = "mapping.json";
 const char *ResourcePackLoader::biomePath = "biomes.json";
 const char *ResourcePackLoader::emitterPath = "emitters.json";
+
+static CONSTEXPR int RandSourceSize = 19937;
 
 ResourcePackLoader::ResourcePackLoader(std::vector<Path> packPaths)
 : _packPaths(std::move(packPaths))
@@ -32,6 +36,12 @@ ResourcePackLoader::ResourcePackLoader(std::vector<Path> packPaths)
         FAIL("Failed to load models");
 
     _resolver.reset(new ModelResolver(_models));
+
+    UniformSampler sampler(0xBA5EBA11);
+    _randSource.reset(new float[RandSourceSize]);
+    for (int i = 0; i < RandSourceSize; ++i)
+        _randSource[i] = sampler.next1D();
+
     for (const Path &packPath : _packPaths)
         loadStates(packPath, existing);
     existing.clear();
@@ -492,6 +502,22 @@ void ResourcePackLoader::loadEmitters()
     }
 }
 
+static const ModelRef *selectModel(const std::vector<ModelRef> &models, int idx, const float *randSource)
+{
+    int model = 0;
+    if (models.size() > 1) {
+        float f = randSource[idx % RandSourceSize];
+        model = models.size() - 1;
+        for (size_t i = 0; i < models.size(); ++i) {
+            if (f < models[i].weight()) {
+                model = i;
+                break;
+            }
+        }
+    }
+    return &models[model];
+}
+
 const ModelRef *ResourcePackLoader::mapBlock(uint16 id, int idx) const
 {
     const BlockVariant *variant = _blockMapping[id];
@@ -503,9 +529,7 @@ const ModelRef *ResourcePackLoader::mapBlock(uint16 id, int idx) const
     if (!variant)
         return nullptr;
 
-    int model = MathUtil::hash32(idx) % variant->models().size();
-
-    return &variant->models()[model];
+    return selectModel(variant->models(), idx, _randSource.get());
 }
 
 const ModelRef *ResourcePackLoader::mapSpecialBlock(const TraceableMinecraftMap &map, int x, int y, int z,
@@ -714,18 +738,16 @@ const ModelRef *ResourcePackLoader::mapSpecialBlock(const TraceableMinecraftMap 
         std::cout << "Unable to map " << block << ":" << (id & 0xF) << " with type " << type << " and data " << data << std::endl;
         return nullptr;
     }
-    const BlockVariant *variant = iter->second;
 
-    int model = MathUtil::hash32(idx) % variant->models().size();
+    return selectModel(iter->second->models(), idx, _randSource.get());
+}
 
-    return &variant->models()[model];
 Path ResourcePackLoader::resolvePath(const Path &p) const
 {
     for (const Path &packPath : _packPaths)
         if ((packPath/p).exists())
             return packPath/p;
     return p;
-}
 }
 
 }

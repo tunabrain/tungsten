@@ -26,6 +26,17 @@ public:
                     _models.emplace_back(v[i], resolver);
         } else if (v.IsObject())
             _models.emplace_back(v, resolver);
+
+        float weightSum = 0.0f;
+        for (const ModelRef &m : _models)
+            weightSum += m.weight();
+        if (weightSum != 0.0f) {
+            float cdf = 0.0f;
+            for (ModelRef &m : _models) {
+                cdf += m.weight();
+                m.setWeight(cdf/weightSum);
+            }
+        }
     }
 
     std::string &variant()

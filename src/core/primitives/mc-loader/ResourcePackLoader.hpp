@@ -120,6 +120,8 @@ private:
     std::unique_ptr<ModelResolver> _resolver;
     std::vector<std::vector<TexturedQuad>> _redstoneDuplicates;
 
+    std::unique_ptr<float[]> _randSource;
+
     SpecialCase caseStringToType(const std::string &special) const;
     uint32 caseDataSize(SpecialCase type) const;
     std::string caseDataToVariant(SpecialCase type, uint32 data) const;

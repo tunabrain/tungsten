@@ -70,6 +70,11 @@ public:
         return _weight;
     }
 
+    void setWeight(float w)
+    {
+        _weight = w;
+    }
+
     const std::vector<TexturedQuad> *builtModel() const
     {
         return _builtModel;
