@@ -1,11 +1,11 @@
 #ifndef PATHTRACEINTEGRATOR_HPP_
 #define PATHTRACEINTEGRATOR_HPP_
-
-#include "Integrator.hpp"
 #include "PathTraceSettings.hpp"
 #include "SampleRecord.hpp"
 #include "PathTracer.hpp"
 #include "ImageTile.hpp"
+
+#include "integrators/Integrator.hpp"
 
 #include "sampling/SampleGenerator.hpp"
 #include "sampling/UniformSampler.hpp"

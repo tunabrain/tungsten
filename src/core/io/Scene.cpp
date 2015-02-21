@@ -3,7 +3,7 @@
 #include "JsonUtils.hpp"
 #include "FileUtils.hpp"
 
-#include "integrators/PathTraceIntegrator.hpp"
+#include "integrators/pathtrace/PathTraceIntegrator.hpp"
 
 #include "primitives/mc-loader/TraceableMinecraftMap.hpp"
 #include "primitives/InfiniteSphereCap.hpp"
