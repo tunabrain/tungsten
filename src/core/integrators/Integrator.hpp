@@ -1,26 +1,64 @@
 #ifndef INTEGRATOR_HPP_
 #define INTEGRATOR_HPP_
 
-#include "math/Vec.hpp"
-
 #include "io/JsonSerializable.hpp"
+#include "io/FileUtils.hpp"
+
+#include "IntTypes.hpp"
+
+#include <functional>
 
 namespace Tungsten {
 
-class Camera;
 class TraceableScene;
-class SampleGenerator;
-class UniformSampler;
+class Scene;
 
 class Integrator : public JsonSerializable
 {
+protected:
+    const TraceableScene *_scene;
+
+    uint32 _currentSpp;
+    uint32 _nextSpp;
+
+    void advanceSpp();
+
+    void writeBuffers(const std::string &suffix, bool overwrite);
+
+    virtual void saveState(OutputStreamHandle &out) = 0;
+    virtual void loadState(InputStreamHandle &in) = 0;
+
 public:
-    virtual ~Integrator()
+    Integrator();
+    virtual ~Integrator();
+
+    virtual void prepareForRender(TraceableScene &scene) = 0;
+    virtual void teardownAfterRender() = 0;
+
+    virtual void startRender(std::function<void()> completionCallback) = 0;
+    virtual void waitForCompletion() = 0;
+    virtual void abortRender() = 0;
+
+    void saveOutputs();
+    void saveCheckpoint();
+
+    void saveRenderResumeData(Scene &scene);
+    bool resumeRender(Scene &scene);
+
+    bool done() const
     {
+        return _currentSpp >= _nextSpp;
     }
 
-    virtual Vec3f traceSample(Vec2u pixel, SampleGenerator &sampler, UniformSampler &supplementalSampler) = 0;
-    virtual Integrator *cloneThreadSafe(uint32 threadId, TraceableScene *scene) const = 0;
+    uint32 currentSpp() const
+    {
+        return _currentSpp;
+    }
+
+    uint32 nextSpp() const
+    {
+        return _nextSpp;
+    }
 };
 
 }

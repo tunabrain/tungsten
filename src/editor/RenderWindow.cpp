@@ -87,9 +87,8 @@ void RenderWindow::wheelEvent(QWheelEvent *wheelEvent)
 void RenderWindow::sceneChanged()
 {
     _scene = _parent.scene();
-    if (_renderer)
-        _renderer->abortRender();
-    _renderer.reset();
+    if (_flattenedScene)
+        _flattenedScene->integrator().abortRender();
     _flattenedScene.reset();
     _rendering = false;
 
@@ -111,7 +110,10 @@ QRgb RenderWindow::tonemap(const Vec3f &c) const
 void RenderWindow::updateStatus()
 {
     if (_scene) {
-        int currentSpp = _renderer ? _renderer->currentSpp() : _scene->rendererSettings().spp();
+        int currentSpp = _flattenedScene ?
+                  _flattenedScene->integrator().currentSpp()
+                : _scene->rendererSettings().spp();
+
         _sppLabel->setText(QString("%1/%2 spp").arg(currentSpp).arg(_scene->rendererSettings().spp()));
         if (_rendering)
             _statusLabel->setText("Rendering...");
@@ -128,20 +130,18 @@ void RenderWindow::startRender()
     if (!_scene)
         return;
 
-    if (!_flattenedScene)
+    if (!_flattenedScene) {
         _flattenedScene.reset(_scene->makeTraceable());
+
+        _image->fill(Qt::black);
+        repaint();
+    }
 
     auto finishCallback = [&]() {
         emit rendererFinished();
     };
 
-    if (!_renderer) {
-        _renderer.reset(new Renderer(*_flattenedScene));
-
-        _image->fill(Qt::black);
-        repaint();
-    }
-    _renderer->startRender(finishCallback);
+    _flattenedScene->integrator().startRender(finishCallback);
 
     _rendering = true;
     updateStatus();
@@ -150,34 +150,32 @@ void RenderWindow::startRender()
 void RenderWindow::abortRender()
 {
     _rendering = false;
-    if (_renderer) {
-        _renderer->abortRender();
+    if (_flattenedScene) {
+        _flattenedScene->integrator().abortRender();
 
         refresh();
         updateStatus();
 
-        _renderer.reset();
         _flattenedScene.reset();
     }
 }
 
 void RenderWindow::finishRender()
 {
-    if (_renderer)
-        _renderer->waitForCompletion();
+    if (_flattenedScene)
+        _flattenedScene->integrator().waitForCompletion();
     if (!_rendering)
         return;
     _rendering = false;
     refresh();
 
-    if (_scene && !_renderer->done())
+    if (_scene && !_flattenedScene->integrator().done())
         startRender();
     else {
         if (_scene) {
             DirectoryChange context(_scene->path().parent());
-            _renderer->saveOutputs();
+            _flattenedScene->integrator().saveOutputs();
         }
-        _renderer.reset();
         _flattenedScene.reset();
 
         updateStatus();
@@ -186,7 +184,7 @@ void RenderWindow::finishRender()
 
 void RenderWindow::refresh()
 {
-    if (!_image || !_renderer)
+    if (!_image || !_flattenedScene)
         return;
 
     uint32 w = _image->width(), h = _image->height();

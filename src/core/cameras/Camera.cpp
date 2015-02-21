@@ -1,7 +1,5 @@
 #include "Camera.hpp"
 
-#include "renderer/Renderer.hpp"
-
 #include "math/Angle.hpp"
 #include "math/Ray.hpp"
 

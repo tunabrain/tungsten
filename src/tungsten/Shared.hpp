@@ -2,7 +2,6 @@
 #define SHARED_HPP_
 
 #include "renderer/TraceableScene.hpp"
-#include "renderer/Renderer.hpp"
 
 #include "thread/ThreadUtils.hpp"
 
@@ -19,6 +18,7 @@
 #include <rapidjson/document.h>
 #include <cstdlib>
 #include <vector>
+#include <mutex>
 #include <deque>
 
 namespace Tungsten {
@@ -113,7 +113,6 @@ class StandaloneRenderer
 
     std::unique_ptr<Scene> _scene;
     std::unique_ptr<TraceableScene> _flattenedScene;
-    std::unique_ptr<Renderer> _renderer;
 
     std::mutex _statusMutex;
     std::mutex _logMutex;
@@ -219,15 +218,15 @@ public:
             {
                 std::unique_lock<std::mutex> lock(_sceneMutex);
                 _flattenedScene.reset(_scene->makeTraceable());
-                _renderer.reset(new Renderer(*_flattenedScene));
             }
+            Integrator &integrator = _flattenedScene->integrator();
 
             if (!_parser.isPresent(OPT_CHECKPOINTS))
                 _checkpointInterval = _scene->rendererSettings().checkpointInterval();
 
             if (_scene->rendererSettings().enableResumeRender() && !_parser.isPresent(OPT_RESTART)) {
                 writeLogLine("Trying to resume render from saved state... ");
-                if (_renderer->resumeRender(*_scene))
+                if (integrator.resumeRender(*_scene))
                     writeLogLine("Resume successful");
                 else
                     writeLogLine("Resume unsuccessful. Starting from 0 spp");
@@ -236,26 +235,26 @@ public:
             writeLogLine("Starting render...");
             Timer timer, checkpointTimer;
             double totalElapsed = 0.0;
-            while (!_renderer->done()) {
+            while (!integrator.done()) {
                 {
                     std::unique_lock<std::mutex> lock(_statusMutex);
                     _status.state = STATE_RENDERING;
-                    _status.currentSpp = _renderer->currentSpp();
-                    _status.nextSpp = _renderer->nextSpp();
+                    _status.currentSpp = integrator.currentSpp();
+                    _status.nextSpp = integrator.nextSpp();
                 }
 
-                _renderer->startRender([](){});
-                _renderer->waitForCompletion();
-                writeLogLine(tfm::format("Completed %d/%d spp", _renderer->currentSpp(), maxSpp));
+                integrator.startRender([](){});
+                integrator.waitForCompletion();
+                writeLogLine(tfm::format("Completed %d/%d spp", integrator.currentSpp(), maxSpp));
                 checkpointTimer.stop();
                 if (_checkpointInterval > 0 && checkpointTimer.elapsed() > _checkpointInterval*60) {
                     totalElapsed += checkpointTimer.elapsed();
                     writeLogLine(tfm::format("Saving checkpoint after %s", formatTime(totalElapsed).c_str()));
                     Timer ioTimer;
                     checkpointTimer.start();
-                    _renderer->saveCheckpoint();
+                    integrator.saveCheckpoint();
                     if (_scene->rendererSettings().enableResumeRender())
-                        _renderer->saveRenderResumeData(*_scene);
+                        integrator.saveRenderResumeData(*_scene);
                     ioTimer.stop();
                     writeLogLine(tfm::format("Saving checkpoint took %s", formatTime(ioTimer.elapsed())));
                 }
@@ -264,9 +263,9 @@ public:
 
             writeLogLine(tfm::format("Finished render. Render time %s", formatTime(timer.elapsed()).c_str()));
 
-            _renderer->saveOutputs();
+            integrator.saveOutputs();
             if (_scene->rendererSettings().enableResumeRender())
-                _renderer->saveRenderResumeData(*_scene);
+                integrator.saveRenderResumeData(*_scene);
 
             {
                 std::unique_lock<std::mutex> lock(_statusMutex);
@@ -279,7 +278,6 @@ public:
 
         {
             std::unique_lock<std::mutex> lock(_sceneMutex);
-            _renderer.reset();
             _flattenedScene.reset();
             _scene.reset();
         }
@@ -302,7 +300,7 @@ public:
     std::unique_ptr<Vec3c[]> frameBuffer(Vec2i &resolution)
     {
         std::unique_lock<std::mutex> lock(_sceneMutex);
-        if (!_renderer || !_scene || !_flattenedScene)
+        if (!_scene || !_flattenedScene)
             return nullptr;
 
         Vec2u res = _scene->camera()->resolution();

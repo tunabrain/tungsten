@@ -6,7 +6,6 @@
 #include <memory>
 
 #include "renderer/TraceableScene.hpp"
-#include "renderer/Renderer.hpp"
 
 class QStatusBar;
 class QLabel;
@@ -23,7 +22,6 @@ class RenderWindow : public QWidget
     Scene *_scene;
 
     std::unique_ptr<QImage> _image;
-    std::unique_ptr<Renderer> _renderer;
     std::unique_ptr<TraceableScene> _flattenedScene;
 
     QLabel *_sppLabel, *_statusLabel;
