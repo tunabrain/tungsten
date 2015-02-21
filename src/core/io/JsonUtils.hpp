@@ -53,8 +53,10 @@ T as(const rapidjson::Value &v, const char *name)
 template<typename ElementType, unsigned Size>
 bool fromJson(const rapidjson::Value &v, Vec<ElementType, Size> &dst)
 {
-    if (!v.IsArray())
-        return false;
+    if (!v.IsArray()) {
+        dst = Vec<ElementType, Size>(as<ElementType>(v));
+        return true;
+    }
     ASSERT(v.Size() == 1 || v.Size() == Size,
         "Cannot convert Json Array to vector: Invalid size. Expected 1 or %d, received %d", Size, v.Size());
 
