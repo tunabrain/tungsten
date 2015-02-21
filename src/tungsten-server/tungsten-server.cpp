@@ -27,6 +27,7 @@ enum MimeType
 {
     MIME_TEXT,
     MIME_IMAGE,
+    MIME_JSON,
 };
 
 const char *mimeTypeToString(MimeType type)
@@ -34,6 +35,8 @@ const char *mimeTypeToString(MimeType type)
     switch (type) {
     case MIME_IMAGE:
         return "image/png";
+    case MIME_JSON:
+        return "application/json; charset=utf-8";
     case MIME_TEXT:
     default:
         return "text/plain; charset=utf-8";
@@ -89,7 +92,7 @@ int serveStatusJson(struct mg_connection *conn, void */*cbdata*/)
 
         statusString = buffer.GetString();
     }
-    serveData(conn, reinterpret_cast<const void *>(statusString.c_str()), statusString.size(), MIME_TEXT);
+    serveData(conn, reinterpret_cast<const void *>(statusString.c_str()), statusString.size(), MIME_JSON);
 
     return 1;
 }
