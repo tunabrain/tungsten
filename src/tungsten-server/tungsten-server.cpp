@@ -157,6 +157,7 @@ int main(int argc, const char *argv[])
     while (renderer->renderScene());
 
     mg_stop(context);
+    context = nullptr;
 
     return 0;
 }
