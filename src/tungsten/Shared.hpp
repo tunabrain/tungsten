@@ -85,18 +85,14 @@ struct RendererStatus
         result.AddMember("next_spp", nextSpp, allocator);
         result.AddMember("total_spp", totalSpp, allocator);
         result.AddMember("current_scene", currentScene.asString().c_str(), allocator);
-        if (!completedScenes.empty()) {
-            rapidjson::Value v(rapidjson::kArrayType);
-            for (const Path &p : completedScenes)
-                v.PushBack(p.asString().c_str(), allocator);
-            result.AddMember("completed_scenes", std::move(v), allocator);
-        }
-        if (!queuedScenes.empty()) {
-            rapidjson::Value v(rapidjson::kArrayType);
-            for (const Path &p : queuedScenes)
-                v.PushBack(p.asString().c_str(), allocator);
-            result.AddMember("queued_scenes", std::move(v), allocator);
-        }
+        rapidjson::Value completedValue(rapidjson::kArrayType);
+        for (const Path &p : completedScenes)
+            completedValue.PushBack(p.asString().c_str(), allocator);
+        result.AddMember("completed_scenes", std::move(completedValue), allocator);
+        rapidjson::Value queuedValue(rapidjson::kArrayType);
+        for (const Path &p : queuedScenes)
+            completedValue.PushBack(p.asString().c_str(), allocator);
+        result.AddMember("queued_scenes", std::move(queuedValue), allocator);
 
         return std::move(result);
     }
