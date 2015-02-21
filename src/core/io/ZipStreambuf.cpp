@@ -73,7 +73,7 @@ ZipInputStreambuf::int_type ZipInputStreambuf::underflow()
         } while (_status == TINFL_STATUS_NEEDS_MORE_INPUT);
 
         char *start = reinterpret_cast<char *>(_outputBuffer.get());
-        int64 off = clamp(_seekOffset - int64(_outputStreamOffset), 0ll, int64(_outputBufOffset));
+        int64 off = clamp(_seekOffset - int64(_outputStreamOffset), int64(0), int64(_outputBufOffset));
         setg(start, start + off, start + _outputBufOffset);
 
         if (_status <= TINFL_STATUS_DONE)
