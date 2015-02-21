@@ -81,6 +81,15 @@ add_executable(tungsten src/tungsten/tungsten.cpp)
 target_link_libraries(tungsten ${core_libs})
 
 if (WIN32)
+    set(socket_libs wsock32 Ws2_32)
+else()
+    set(socket_libs "")
+endif()
+
+add_executable(tungsten_server src/tungsten-server/tungsten-server.cpp)
+target_link_libraries(tungsten_server ${core_libs} ${socket_libs})
+
+if (WIN32)
     set(opengl_libs glew32 glu32 opengl32)
 elseif(UNIX)
     set(opengl_libs GLEW GLU GL)
