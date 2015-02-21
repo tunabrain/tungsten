@@ -27,7 +27,7 @@ To build using MinGW, you will need a recent CMake + gcc version. CMake binary d
 
 In the root folder of the repo, use these commands in an MSYS shell to build:
 
-    ./setup_builds
+    ./setup_builds.sh
 	cd builds/release
 	make
 
@@ -58,6 +58,12 @@ and so forth. All renderer parameters, including output files, are specified in 
 
 You can test your local build by rendering the material test scene in `assets/materialtest/materialtest.json`.
 
+You can also use
+
+    tungsten --help
+    
+for more information.
+
 ## Code structure ##
 
 `src/core/` contains all the code for primitive intersection, materials, sampling, integration and so forth. It is the beefy part of the renderer and the place to start if you're interested in studying the code.
@@ -71,6 +77,32 @@ All other folders in `src` are small utilities described below.
 ## Additional utilities ##
 
 Apart from the core renderer, Tungsten also comes with several tools to make content creation easier.
+
+### tungsten_server ##
+
+This is a standalone version of the renderer that comes with a built-in HTTP status server.
+
+It will serve the following files:
+
+`/render.png`: The current framebuffer (possibly in an incomplete state).
+`/status.json`: A JSON string containing information about the current render status.
+`/log.txt`: A text version of the render log.
+
+Use
+
+    tungsten_server --help
+    
+for more information.
+
+### scenemanip ##
+
+`scenemanip` comes with a range of tools to manipulate scene files, among others the capability to package scenes and all references resources (textures, meshes, etc.) into a zip archive.
+
+Use
+
+    scenemanip --help
+    
+for more information.
 
 ### obj2json ##
 The command
