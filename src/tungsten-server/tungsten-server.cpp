@@ -14,7 +14,8 @@
 
 using namespace Tungsten;
 
-static const int OPT_PORT = 100;
+static const int OPT_PORT    = 100;
+static const int OPT_LOGFILE = 101;
 
 static struct mg_context *context = nullptr;
 static StandaloneRenderer *renderer = nullptr;
@@ -120,6 +121,7 @@ int main(int argc, const char *argv[])
     CliParser parser("tungsten_server", "[options] scene1 [scene2 [scene3...]]");
 
     parser.addOption('p', "port", "Port to listen on. Defaults to 8080", true, OPT_PORT);
+    parser.addOption('l', "log-file", "Specifies a file to save the render log to", true, OPT_LOGFILE);
 
     renderer = new StandaloneRenderer(parser, logStream);
 
@@ -129,6 +131,10 @@ int main(int argc, const char *argv[])
         std::cout << "tungsten_server, version " << VERSION_STRING << std::endl;
         std::exit(0);
     }
+
+    Path logFile;
+    if (parser.isPresent(OPT_LOGFILE))
+        logFile = Path(parser.param(OPT_LOGFILE)).absolute();
 
     renderer->setup();
 
@@ -155,6 +161,14 @@ int main(int argc, const char *argv[])
     mg_set_request_handler(context, "/render", &serveFrameBuffer, nullptr);
 
     while (renderer->renderScene());
+
+    if (!logFile.empty()) {
+        OutputStreamHandle out = FileUtils::openOutputStream(logFile);
+        if (out)
+            *out << logStream.str();
+        else
+            std::cerr << "Unable to open log file at " << logFile << " to write to" << std::endl;
+    }
 
     return 0;
 }
