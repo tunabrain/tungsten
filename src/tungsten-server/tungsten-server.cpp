@@ -150,9 +150,9 @@ int main(int argc, const char *argv[])
 
     std::atexit(&closeConnection);
 
-    mg_set_request_handler(context, "/log.txt", &serveLogFile, nullptr);
-    mg_set_request_handler(context, "/status.json", &serveStatusJson, nullptr);
-    mg_set_request_handler(context, "/render.png", &serveFrameBuffer, nullptr);
+    mg_set_request_handler(context, "/log", &serveLogFile, nullptr);
+    mg_set_request_handler(context, "/status", &serveStatusJson, nullptr);
+    mg_set_request_handler(context, "/render", &serveFrameBuffer, nullptr);
 
     while (renderer->renderScene());
 
