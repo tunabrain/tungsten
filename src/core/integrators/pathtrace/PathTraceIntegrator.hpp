@@ -1,5 +1,6 @@
 #ifndef PATHTRACEINTEGRATOR_HPP_
 #define PATHTRACEINTEGRATOR_HPP_
+
 #include "PathTraceSettings.hpp"
 #include "SampleRecord.hpp"
 #include "PathTracer.hpp"
