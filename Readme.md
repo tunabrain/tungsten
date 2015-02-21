@@ -84,9 +84,9 @@ This is a standalone version of the renderer that comes with a built-in HTTP sta
 
 It will serve the following files:
 
-`/render`: The current framebuffer (possibly in an incomplete state).
-`/status`: A JSON string containing information about the current render status.
-`/log`: A text version of the render log.
+- `/render`: The current framebuffer (possibly in an incomplete state).
+- `/status`: A JSON string containing information about the current render status.
+- `/log`: A text version of the render log.
 
 Use
 
