@@ -144,19 +144,17 @@ int main(int argc, const char *argv[])
         nullptr
     };
 
+    std::atexit(&closeConnection);
+
     struct mg_callbacks callbacks;
     memset(&callbacks, 0, sizeof(callbacks));
     context = mg_start(&callbacks, 0, options);
-
-    std::atexit(&closeConnection);
 
     mg_set_request_handler(context, "/log", &serveLogFile, nullptr);
     mg_set_request_handler(context, "/status", &serveStatusJson, nullptr);
     mg_set_request_handler(context, "/render", &serveFrameBuffer, nullptr);
 
     while (renderer->renderScene());
-
-    mg_stop(context);
 
     return 0;
 }
