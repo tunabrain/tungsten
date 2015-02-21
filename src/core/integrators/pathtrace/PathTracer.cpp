@@ -524,6 +524,9 @@ Vec3f PathTracer::traceSample(Vec2u pixel, SampleGenerator &sampler, UniformSamp
         if (medium && !handleVolume(sampler, supplementalSampler, medium, bounce, ray, throughput, emission, wasSpecular, hitSurface, state))
             break;
 
+        if (hitSurface && !didHit)
+            break;
+
         if (hitSurface && !handleSurface(data, info, sampler, supplementalSampler, medium, bounce, ray, throughput, emission, wasSpecular, state))
             break;
 
