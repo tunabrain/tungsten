@@ -159,9 +159,10 @@ bool Quad::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &sample) c
 bool Quad::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
 {
     Vec2f xi = sample.sampler->next2D();
-    sample.p = _base + xi.x()*_edge0 + xi.y()*_edge1;
+    sample.p = _base + xi.x()*_edge0 + (1.0f - xi.y())*_edge1;
     sample.d = SampleWarp::cosineHemisphere(sample.sampler->next2D());
     sample.pdf = SampleWarp::cosineHemispherePdf(sample.d)/_area;
+    sample.weight = (*_emission)[xi]*_area;
     TangentFrame frame(_n);
     sample.d = frame.toGlobal(sample.d);
     return true;

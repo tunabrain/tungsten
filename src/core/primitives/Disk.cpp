@@ -160,11 +160,13 @@ bool Disk::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &sample) c
 
 bool Disk::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
 {
-    Vec2f lQ = SampleWarp::uniformDisk(sample.sampler->next2D()).xy();
+    Vec2f xi = sample.sampler->next2D();
+    Vec2f lQ = SampleWarp::uniformDisk(xi).xy();
     sample.p = _center + lQ.x()*_frame.bitangent + lQ.y()*_frame.tangent;
     sample.d = SampleWarp::cosineHemisphere(sample.sampler->next2D());
     sample.pdf = SampleWarp::cosineHemispherePdf(sample.d)/(_r*_r*PI);
     TangentFrame frame(_n);
+    sample.weight = (*_emission)[xi]*(_r*_r*PI);
     sample.d = frame.toGlobal(sample.d);
     return true;
 }
