@@ -4,9 +4,9 @@
 #include "PathTraceSettings.hpp"
 #include "SampleRecord.hpp"
 #include "PathTracer.hpp"
-#include "ImageTile.hpp"
 
 #include "integrators/Integrator.hpp"
+#include "integrators/ImageTile.hpp"
 
 #include "sampling/SampleGenerator.hpp"
 #include "sampling/UniformSampler.hpp"
