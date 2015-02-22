@@ -4,6 +4,7 @@
 #include "FileUtils.hpp"
 
 #include "integrators/pathtrace/PathTraceIntegrator.hpp"
+#include "integrators/photonmap/PhotonMapIntegrator.hpp"
 
 #include "primitives/mc-loader/TraceableMinecraftMap.hpp"
 #include "primitives/InfiniteSphereCap.hpp"
@@ -186,6 +187,8 @@ std::shared_ptr<Integrator> Scene::instantiateIntegrator(std::string type, const
     std::shared_ptr<Integrator> result;
     if (type == "path_trace")
         result = std::make_shared<PathTraceIntegrator>();
+    else if (type == "photon_map")
+        result = std::make_shared<PhotonMapIntegrator>();
     else
         FAIL("Unknown integrator type: '%s'", type.c_str());
 
