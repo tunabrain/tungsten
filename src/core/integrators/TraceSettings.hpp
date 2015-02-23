@@ -1,11 +1,11 @@
-#ifndef PATHTRACESETTINGS_HPP_
-#define PATHTRACESETTINGS_HPP_
+#ifndef TRACESETTINGS_HPP_
+#define TRACESETTINGS_HPP_
 
 #include "io/JsonUtils.hpp"
 
 namespace Tungsten {
 
-struct PathTraceSettings
+struct TraceSettings
 {
     bool enableLightSampling;
     bool enableVolumeLightSampling;
@@ -14,7 +14,7 @@ struct PathTraceSettings
     int minBounces;
     int maxBounces;
 
-    PathTraceSettings()
+    TraceSettings()
     : enableLightSampling(true),
       enableVolumeLightSampling(true),
       enableConsistencyChecks(false),
@@ -50,6 +50,4 @@ struct PathTraceSettings
 
 }
 
-
-
-#endif /* PATHTRACESETTINGS_HPP_ */
+#endif /* TRACESETTINGS_HPP_ */

@@ -2,70 +2,9 @@
 
 namespace Tungsten {
 
-SurfaceScatterEvent PhotonTracer::makeLocalScatterEvent(IntersectionTemporary &data, IntersectionInfo &info,
-        Ray &ray, SampleGenerator *sampler, UniformSampler *supplementalSampler) const
-{
-    TangentFrame frame;
-    info.primitive->setupTangentFrame(data, info, frame);
-
-    bool hitBackside = frame.normal.dot(ray.dir()) > 0.0f;
-    bool isTransmissive = info.bsdf->lobes().isTransmissive();
-
-    bool flipFrame = _settings.enableTwoSidedShading && hitBackside && !isTransmissive;
-
-    if (flipFrame) {
-        frame.normal = -frame.normal;
-        frame.tangent = -frame.tangent;
-    }
-
-    return SurfaceScatterEvent(
-        &info,
-        sampler,
-        supplementalSampler,
-        frame,
-        frame.toLocal(-ray.dir()),
-        BsdfLobes::AllLobes,
-        flipFrame
-    );
-}
-
-bool PhotonTracer::handleSurface(IntersectionTemporary &data, IntersectionInfo &info,
-                   SampleGenerator &sampler, UniformSampler &supplementalSampler,
-                   Ray &ray, Vec3f &throughput)
-{
-    const Bsdf &bsdf = *info.bsdf;
-
-    SurfaceScatterEvent event = makeLocalScatterEvent(data, info, ray, &sampler, &supplementalSampler);
-
-    Vec3f transparency = bsdf.eval(event.makeForwardEvent());
-    float transparencyScalar = transparency.avg();
-
-    Vec3f wo;
-    float pdf;
-    if (sampler.next1D() < transparencyScalar) {
-        pdf = 0.0f;
-        wo = ray.dir();
-        throughput *= transparency/transparencyScalar;
-    } else {
-        event.requestedLobe = BsdfLobes::AllLobes;
-        if (!bsdf.sample(event))
-            return false;
-
-        pdf = event.pdf;
-        wo = event.frame.toGlobal(event.wo);
-
-        throughput *= event.throughput;
-    }
-
-    ray = ray.scatter(ray.hitpoint(), wo, info.epsilon, pdf);
-
-    return true;
-}
-
 PhotonTracer::PhotonTracer(TraceableScene *scene, const PhotonMapSettings &settings, uint32 threadId)
-: _scene(scene),
+: TraceBase(scene, settings, threadId),
   _settings(settings),
-  _threadId(threadId),
   _photonQuery(new const Photon *[settings.gatherCount]),
   _distanceQuery(new float[settings.gatherCount])
 {
@@ -92,9 +31,14 @@ int PhotonTracer::tracePhoton(Photon *dst, int maxCount, SampleGenerator &sample
 
     IntersectionTemporary data;
     IntersectionInfo info;
+    Medium::MediumState state;
+    state.reset();
+    Vec3f emission(0.0f);
+    const Medium *medium = _scene->cam().medium().get();
 
     int photonCount = 0;
     int bounce = 0;
+    bool wasSpecular = true;
     bool didHit = _scene->intersect(ray, data, info);
     while (didHit && bounce < _settings.maxBounces) {
         ray.advanceFootprint();
@@ -109,7 +53,8 @@ int PhotonTracer::tracePhoton(Photon *dst, int maxCount, SampleGenerator &sample
                 break;
         }
 
-        if (!handleSurface(data, info, sampler, supplementalSampler, ray, throughput))
+        if (!handleSurface(data, info, sampler, supplementalSampler, medium, bounce,
+                false, ray, throughput, emission, wasSpecular, state))
             break;
 
         /*float roulettePdf = std::abs(throughput).max();

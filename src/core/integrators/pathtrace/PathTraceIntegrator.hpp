@@ -1,10 +1,10 @@
 #ifndef PATHTRACEINTEGRATOR_HPP_
 #define PATHTRACEINTEGRATOR_HPP_
 
-#include "PathTraceSettings.hpp"
 #include "SampleRecord.hpp"
 #include "PathTracer.hpp"
 
+#include "integrators/TraceSettings.hpp"
 #include "integrators/Integrator.hpp"
 #include "integrators/ImageTile.hpp"
 
@@ -28,7 +28,7 @@ class PathTraceIntegrator : public Integrator
     static CONSTEXPR uint32 VarianceTileSize = 4;
     static CONSTEXPR uint32 AdaptiveThreshold = 16;
 
-    PathTraceSettings _settings;
+    TraceSettings _settings;
 
     std::shared_ptr<TaskGroup> _group;
 
