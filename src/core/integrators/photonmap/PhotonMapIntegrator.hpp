@@ -33,6 +33,9 @@ class PhotonMapIntegrator : public Integrator
     {
         std::unique_ptr<SampleGenerator> sampler;
         std::unique_ptr<UniformSampler> supplementalSampler;
+        uint32 photonStart;
+        uint32 photonNext;
+        uint32 photonEnd;
     };
 
     PhotonMapSettings _settings;
@@ -42,9 +45,6 @@ class PhotonMapIntegrator : public Integrator
     UniformSampler _sampler;
 
     std::shared_ptr<TaskGroup> _group;
-
-    uint32 _currentPhotonCount;
-    uint32 _nextPhotonCount;
 
     std::atomic<uint32> _totalTracedPhotons;
 
@@ -56,13 +56,13 @@ class PhotonMapIntegrator : public Integrator
 
     void diceTiles();
 
-    void advancePhotonCount();
-
     virtual void saveState(OutputStreamHandle &out) override;
     virtual void loadState(InputStreamHandle &in) override;
 
     void tracePhotons(uint32 taskId, uint32 numSubTasks, uint32 threadId);
     void tracePixels(uint32 tileId, uint32 threadId);
+
+    void buildPhotonDataStructures();
 
 public:
     PhotonMapIntegrator();

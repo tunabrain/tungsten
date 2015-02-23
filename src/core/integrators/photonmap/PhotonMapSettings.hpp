@@ -12,13 +12,11 @@ struct PhotonMapSettings : public TraceSettings
     uint32 photonCount;
     uint32 gatherCount;
     float gatherRadius;
-    uint32 photonsPerIteration;
 
     PhotonMapSettings()
     : photonCount(1000000),
       gatherCount(20),
-      gatherRadius(1e30f),
-      photonsPerIteration(100000)
+      gatherRadius(1e30f)
     {
     }
 
@@ -28,7 +26,6 @@ struct PhotonMapSettings : public TraceSettings
         JsonUtils::fromJson(v, "photon_count", photonCount);
         JsonUtils::fromJson(v, "gather_photon_count", gatherCount);
         JsonUtils::fromJson(v, "gather_radius", gatherRadius);
-        JsonUtils::fromJson(v, "photons_per_iteration", photonsPerIteration);
     }
 
     rapidjson::Value toJson(rapidjson::Document::AllocatorType &allocator) const
@@ -38,7 +35,6 @@ struct PhotonMapSettings : public TraceSettings
         v.AddMember("photon_count", photonCount, allocator);
         v.AddMember("gather_photon_count", gatherCount, allocator);
         v.AddMember("gather_radius", gatherRadius, allocator);
-        v.AddMember("photons_per_iteration", photonsPerIteration, allocator);
         return std::move(v);
     }
 };

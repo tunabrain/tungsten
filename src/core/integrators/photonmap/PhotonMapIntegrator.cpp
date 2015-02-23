@@ -16,8 +16,6 @@ PhotonMapIntegrator::PhotonMapIntegrator()
 : _w(0),
   _h(0),
   _sampler(0xBA5EBA11),
-  _currentPhotonCount(0),
-  _nextPhotonCount(0),
   _photonOffset(0)
 {
 }
@@ -45,11 +43,6 @@ void PhotonMapIntegrator::diceTiles()
     }
 }
 
-void PhotonMapIntegrator::advancePhotonCount()
-{
-    _nextPhotonCount = min(_currentPhotonCount + _settings.photonsPerIteration, _settings.photonCount);
-}
-
 void PhotonMapIntegrator::saveState(OutputStreamHandle &/*out*/)
 {
 }
@@ -60,22 +53,20 @@ void PhotonMapIntegrator::loadState(InputStreamHandle &/*in*/)
 
 void PhotonMapIntegrator::tracePhotons(uint32 taskId, uint32 numSubTasks, uint32 threadId)
 {
-    uint32 photonStart = intLerp(_currentPhotonCount, _nextPhotonCount, taskId + 0, numSubTasks);
-    uint32 photonEnd   = intLerp(_currentPhotonCount, _nextPhotonCount, taskId + 1, numSubTasks);
-
     SubTaskData &data = _taskData[taskId];
 
-    uint32 totalCast = 0;
-    while (photonStart < photonEnd) {
-        data.sampler->setup(photonStart, 0);
-        int traceCount = _tracers[threadId]->tracePhoton(
-            &_photons[photonStart + _photonOffset],
-            photonEnd - photonStart,
+    uint32 photonBase    = intLerp(0, _settings.photonCount, taskId + 0, numSubTasks);
+    uint32 photonsToCast = intLerp(0, _settings.photonCount, taskId + 1, numSubTasks) - photonBase;
+
+    uint32 totalCast;
+    for (totalCast = 0; totalCast < photonsToCast && data.photonNext < data.photonEnd; ++totalCast) {
+        data.sampler->setup(taskId, photonBase + totalCast);
+        data.photonNext += _tracers[threadId]->tracePhoton(
+            &_photons[data.photonNext],
+            data.photonEnd - data.photonNext,
             *data.sampler,
             *data.supplementalSampler
         );
-        totalCast++;
-        photonStart += traceCount;
     }
 
     _totalTracedPhotons += totalCast;
@@ -103,6 +94,38 @@ void PhotonMapIntegrator::tracePixels(uint32 tileId, uint32 threadId)
     }
 }
 
+void PhotonMapIntegrator::buildPhotonDataStructures()
+{
+    uint32 tail = 0;
+    for (size_t i = 0; i < _taskData.size(); ++i) {
+        uint32 gap = _taskData[i].photonEnd - _taskData[i].photonNext;
+
+        for (size_t t = i + 1; t < _taskData.size() && gap > 0; ++t) {
+            uint32 copyCount = min(gap, _taskData[t].photonNext - _taskData[t].photonStart);
+            if (copyCount > 0) {
+                std::memcpy(
+                        &_photons[_taskData[i].photonNext],
+                        &_photons[_taskData[t].photonNext - copyCount],
+                        copyCount*sizeof(Photon)
+                );
+            }
+            _taskData[i].photonNext += copyCount;
+            _taskData[t].photonNext -= copyCount;
+            gap -= copyCount;
+        }
+
+        tail = _taskData[i].photonNext;
+        if (gap > 0)
+            break;
+    }
+
+    float scale = 1.0f/_totalTracedPhotons;
+    for (uint32 i = 0; i < _settings.photonCount; ++i)
+        _photons[_photonOffset + i].power *= scale;
+
+    _tree.reset(new KdTree(std::move(_photons), _photonOffset, tail));
+}
+
 void PhotonMapIntegrator::fromJson(const rapidjson::Value &v, const Scene &/*scene*/)
 {
     _settings.fromJson(v);
@@ -119,17 +142,22 @@ void PhotonMapIntegrator::prepareForRender(TraceableScene &scene)
     _totalTracedPhotons = 0;
     _scene = &scene;
     advanceSpp();
-    advancePhotonCount();
 
     _photonOffset = KdTree::computePadding(_settings.photonCount);
     _photons.resize(_photonOffset + _settings.photonCount);
 
-    for (uint32 i = 0; i < ThreadUtils::pool->threadCount(); ++i) {
+    int numThreads = ThreadUtils::pool->threadCount();
+    for (int i = 0; i < numThreads; ++i) {
+        uint32 rangeStart = intLerp(_photonOffset, uint32(_photons.size()), i + 0, numThreads);
+        uint32 rangeEnd   = intLerp(_photonOffset, uint32(_photons.size()), i + 1, numThreads);
         _taskData.emplace_back(SubTaskData{
             _scene->rendererSettings().useSobol() ?
                 std::unique_ptr<SampleGenerator>(new SobolSampler()) :
                 std::unique_ptr<SampleGenerator>(new UniformSampler(MathUtil::hash32(_sampler.nextI()))),
-            std::unique_ptr<UniformSampler>(new UniformSampler(MathUtil::hash32(_sampler.nextI())))
+            std::unique_ptr<UniformSampler>(new UniformSampler(MathUtil::hash32(_sampler.nextI()))),
+            rangeStart,
+            rangeStart,
+            rangeEnd
         });
 
         _tracers.emplace_back(new PhotonTracer(&scene, _settings, i));
@@ -163,25 +191,16 @@ void PhotonMapIntegrator::startRender(std::function<void()> completionCallback)
     }
 
     using namespace std::placeholders;
-    if (_currentPhotonCount < _nextPhotonCount) {
+    if (!_tree) {
         _group = ThreadUtils::pool->enqueue(
             std::bind(&PhotonMapIntegrator::tracePhotons, this, _1, _2, _3),
             _tracers.size(),
             [&, completionCallback]() {
-                _currentPhotonCount = _nextPhotonCount;
-                advancePhotonCount();
+                buildPhotonDataStructures();
                 completionCallback();
             }
         );
     } else {
-        if (!_tree) {
-            float scale = 1.0f/_totalTracedPhotons;
-            for (uint32 i = 0; i < _settings.photonCount; ++i)
-                _photons[_photonOffset + i].power *= scale;
-
-            _tree.reset(new KdTree(std::move(_photons), _photonOffset));
-        }
-
         _group = ThreadUtils::pool->enqueue(
             std::bind(&PhotonMapIntegrator::tracePixels, this, _1, _3),
             _tiles.size(),

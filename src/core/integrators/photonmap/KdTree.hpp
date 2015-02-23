@@ -16,6 +16,7 @@ namespace Tungsten {
 class KdTree
 {
     std::vector<Photon> _nodes;
+    uint32 _treeEnd;
 
     void recursiveTreeBuild(uint32 dst, uint32 &tail, uint32 start, uint32 end)
     {
@@ -53,16 +54,22 @@ class KdTree
     }
 
 public:
-    KdTree(std::vector<Photon> elements, uint32 firstPhoton)
+    KdTree(std::vector<PhotonType> elements, uint32 rangeStart, uint32 rangeEnd)
     : _nodes(std::move(elements))
     {
-        uint32 tail = 1;
-        recursiveTreeBuild(0, tail, firstPhoton, _nodes.size());
+        if (rangeStart < rangeEnd) {
+            uint32 tail = 1;
+            recursiveTreeBuild(0, tail, rangeStart, rangeEnd);
+
+            _treeEnd = tail;
+        } else {
+            _treeEnd = 0;
+        }
     }
 
     const Photon *nearestNeighbour(Vec3f pos, float maxDist = 1e30f) const
     {
-        if (_nodes.empty())
+        if (_treeEnd == 0)
             return nullptr;
 
         const Photon *nearestPhoton = nullptr;
@@ -109,7 +116,7 @@ public:
 
     int nearestNeighbours(Vec3f pos, const Photon **result, float *distSq, const int k, const float maxDist = 1e30f) const
     {
-        if (_nodes.empty())
+        if (_treeEnd == 0)
             return 0;
 
         int photonCount = 0;
