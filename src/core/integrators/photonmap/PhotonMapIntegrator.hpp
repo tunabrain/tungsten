@@ -49,7 +49,6 @@ class PhotonMapIntegrator : public Integrator
     std::atomic<uint32> _totalTracedSurfacePhotons;
     std::atomic<uint32> _totalTracedVolumePhotons;
 
-    int _photonOffset;
     std::vector<Photon> _surfacePhotons;
     std::vector<VolumePhoton> _volumePhotons;
 

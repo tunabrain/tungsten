@@ -6,9 +6,9 @@
 
 #include "thread/ThreadUtils.hpp"
 #include "thread/ThreadPool.hpp"
+#include "thread/TaskGroup.hpp"
 
 #include "Debug.hpp"
-#include "Timer.hpp"
 
 #include <algorithm>
 #include <vector>
@@ -18,76 +18,65 @@ namespace Tungsten {
 template<typename PhotonType>
 class KdTree
 {
-    std::vector<PhotonType> _nodes;
+    PhotonType *_nodes;
     uint32 _treeEnd;
 
-    void recursiveTreeBuild(uint32 dst, uint32 &tail, uint32 start, uint32 end)
+    void recursiveTreeBuild(uint32 dst, uint32 start, uint32 end)
     {
-        if (end - start == 1) {
-            _nodes[dst] = _nodes[start];
+        if (end == start) {
+            // Leaf node
+            _nodes[dst].setSplitInfo(0, 0, 0);
+            return;
+        } else if (end - start == 1) {
+            // Single child only. Special case
+            if (_nodes[dst].pos.x() < _nodes[start].pos.x())
+                std::swap(_nodes[dst], _nodes[start]);
+            _nodes[dst].setSplitInfo(start, 0, 1);
+            _nodes[start].setSplitInfo(0, 0, 0);
             return;
         }
 
-        if (dst >= start) {
-            FAIL("Tree building error! %i >= %i", dst, start);
-        }
-
-        Box3f bounds;
+        Box3f bounds(_nodes[dst].pos);
         for (uint32 i = start; i < end; ++i)
             bounds.grow(_nodes[i].pos);
         uint32 splitDim = bounds.diagonal().maxDim();
 
-        std::sort(_nodes.begin() + start, _nodes.begin() + end, [&](const PhotonType &a, const PhotonType &b) {
+        std::sort(_nodes + start, _nodes + end, [&](const PhotonType &a, const PhotonType &b) {
             return a.pos[splitDim] < b.pos[splitDim];
         });
 
         uint32 splitIdx = start + (end - start + 1)/2;
-        _nodes[dst] = _nodes[splitIdx];
-        _nodes[splitIdx] = _nodes[start++];
+        float rightPlane = _nodes[splitIdx].pos[splitDim];
+        float  headPlane = _nodes[dst].pos[splitDim];
+        float  leftPlane = _nodes[splitIdx - 1].pos[splitDim];
 
-        uint32 childIdx = tail;
-        uint32 childCount = (end - start > 2) ? 2 : 1;
-        tail += childCount;
+        if (headPlane < leftPlane || headPlane > rightPlane) {
+            uint32 swapIdx = headPlane > rightPlane ? splitIdx : splitIdx - 1;
+            std::swap(_nodes[dst], _nodes[swapIdx]);
+        }
 
-        recursiveTreeBuild(childIdx, tail, start, splitIdx + 1);
-        if (childCount > 1)
-            recursiveTreeBuild(childIdx + 1, tail, splitIdx + 1, end);
+        uint32 childIdx = start;
+        if (splitIdx > childIdx + 1)
+            std::swap(_nodes[childIdx + 1], _nodes[splitIdx]);
 
-        _nodes[dst].setSplitInfo(childIdx, splitDim, childCount);
-    }
-
-public:
-    KdTree(std::vector<PhotonType> elements, uint32 rangeStart, uint32 rangeEnd)
-    : _nodes(std::move(elements))
-    {
-        if (rangeStart < rangeEnd) {
-            uint32 tail = 1;
-            recursiveTreeBuild(0, tail, rangeStart, rangeEnd);
-
-            _treeEnd = tail;
+        std::shared_ptr<TaskGroup> group;
+        if (splitIdx - start > 100000) {
+            group = ThreadUtils::pool->enqueue([&](uint32, uint32, uint32) {
+                recursiveTreeBuild(childIdx + 0, start + 2, splitIdx + 1);
+            }, 1, [](){});
         } else {
-            _treeEnd = 0;
+            recursiveTreeBuild(childIdx + 0, start + 2, splitIdx + 1);
         }
+        recursiveTreeBuild(childIdx + 1, splitIdx + 1, end);
+
+        if (group && !group->isDone())
+            ThreadUtils::pool->yield(*group);
+
+        _nodes[dst].setSplitInfo(childIdx, splitDim, 2);
     }
 
-    void buildVolumeHierarchy(uint32 root = 0)
+    void buildVolumeHierarchy(uint32 root)
     {
-        if (root == 0) {
-            int m = max(int(std::sqrt(_treeEnd)*0.1f), 1);
-            ThreadUtils::pool->yield(*ThreadUtils::pool->enqueue([&](uint32 idx, uint32 num, uint32 /*threadId*/) {
-                uint32 span = (_treeEnd + num - 1)/num;
-                uint32 start = span*idx;
-                uint32 end = min(start + span, _treeEnd);
-
-                std::unique_ptr<const PhotonType *[]> photons(new const PhotonType *[m]);
-                std::unique_ptr<float[]> dists(new float[m]);
-                for (uint32 i = start; i < end; ++i) {
-                    nearestNeighbours(_nodes[i].pos, photons.get(), dists.get(), m);
-                    _nodes[i].radiusSq = dists[0];
-                }
-            }, ThreadUtils::pool->threadCount()));
-        }
-
         Box3f bounds(_nodes[root].pos);
         bounds.grow(std::sqrt(_nodes[root].radiusSq));
 
@@ -105,6 +94,40 @@ public:
 
         _nodes[root].minBounds = bounds.min();
         _nodes[root].maxBounds = bounds.max();
+    }
+
+public:
+    KdTree(PhotonType *elements, uint32 rangeEnd)
+    : _nodes(elements)
+    {
+        if (rangeEnd > 0)
+            recursiveTreeBuild(0, 1, rangeEnd);
+        _treeEnd = rangeEnd;
+    }
+
+    void buildVolumeHierarchy(bool fixedRadius, float radiusScale)
+    {
+        if (fixedRadius) {
+            for (uint32 i = 0; i < _treeEnd; ++i)
+                _nodes[i].radiusSq = radiusScale*radiusScale;
+        } else {
+            int m = min(30, int(_treeEnd));
+            float scale = radiusScale*(std::sqrt(_treeEnd)*0.05f)/float(m);
+            ThreadUtils::pool->yield(*ThreadUtils::pool->enqueue([&](uint32 idx, uint32 num, uint32 /*threadId*/) {
+                uint32 span = (_treeEnd + num - 1)/num;
+                uint32 start = span*idx;
+                uint32 end = min(start + span, _treeEnd);
+
+                std::unique_ptr<const PhotonType *[]> photons(new const PhotonType *[m]);
+                std::unique_ptr<float[]> dists(new float[m]);
+                for (uint32 i = start; i < end; ++i) {
+                    nearestNeighbours(_nodes[i].pos, photons.get(), dists.get(), m);
+                    _nodes[i].radiusSq = dists[0]*scale;
+                }
+            }, ThreadUtils::pool->threadCount()));
+        }
+
+        buildVolumeHierarchy(0);
     }
 
     const PhotonType *nearestNeighbour(Vec3f pos, float maxDist = 1e30f) const
@@ -300,12 +323,9 @@ public:
         }
     }
 
-    static int computePadding(int photonCount)
+    std::vector<PhotonType> release()
     {
-        int numLevels = 0;
-        while ((1 << numLevels) < photonCount)
-            numLevels++;
-        return (numLevels + 1)*2;
+        return std::move(_nodes);
     }
 };
 

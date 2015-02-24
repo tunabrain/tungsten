@@ -15,8 +15,7 @@ CONSTEXPR uint32 PhotonMapIntegrator::TileSize;
 PhotonMapIntegrator::PhotonMapIntegrator()
 : _w(0),
   _h(0),
-  _sampler(0xBA5EBA11),
-  _photonOffset(0)
+  _sampler(0xBA5EBA11)
 {
 }
 
@@ -109,10 +108,9 @@ void PhotonMapIntegrator::tracePixels(uint32 tileId, uint32 threadId)
 
 template<typename PhotonType>
 std::unique_ptr<KdTree<PhotonType>> streamCompactAndBuild(std::vector<PhotonRange<PhotonType>> ranges,
-        std::vector<PhotonType> photons, uint32 totalTraced)
+        std::vector<PhotonType> &photons, uint32 totalTraced)
 {
-    uint32 head = ranges[0].start();
-    uint32 tail = head;
+    uint32 tail = 0;
     for (size_t i = 0; i < ranges.size(); ++i) {
         uint32 gap = ranges[i].end() - ranges[i].next();
 
@@ -136,10 +134,10 @@ std::unique_ptr<KdTree<PhotonType>> streamCompactAndBuild(std::vector<PhotonRang
     }
 
     float scale = 1.0f/totalTraced;
-    for (uint32 i = head; i < tail; ++i)
+    for (uint32 i = 0; i < tail; ++i)
         photons[i].power *= scale;
 
-    return std::unique_ptr<KdTree<PhotonType>>(new KdTree<PhotonType>(std::move(photons), head, tail));
+    return std::unique_ptr<KdTree<PhotonType>>(new KdTree<PhotonType>(&photons[0], tail));
 }
 
 void PhotonMapIntegrator::buildPhotonDataStructures()
@@ -151,10 +149,10 @@ void PhotonMapIntegrator::buildPhotonDataStructures()
         volumeRanges.emplace_back(data.volumeRange);
     }
 
-    _surfaceTree = streamCompactAndBuild(surfaceRanges, std::move(_surfacePhotons), _totalTracedSurfacePhotons);
+    _surfaceTree = streamCompactAndBuild(surfaceRanges, _surfacePhotons, _totalTracedSurfacePhotons);
     if (!_volumePhotons.empty()) {
-        _volumeTree = streamCompactAndBuild(volumeRanges, std::move(_volumePhotons), _totalTracedVolumePhotons);
-        _volumeTree->buildVolumeHierarchy();
+        _volumeTree = streamCompactAndBuild(volumeRanges, _volumePhotons, _totalTracedVolumePhotons);
+        _volumeTree->buildVolumeHierarchy(true, 1.0f);
     }
 }
 
@@ -176,10 +174,10 @@ void PhotonMapIntegrator::prepareForRender(TraceableScene &scene)
     _scene = &scene;
     advanceSpp();
 
-    _photonOffset = KdTree<Photon>::computePadding(_settings.photonCount);
-    _surfacePhotons.resize(_photonOffset + _settings.photonCount);
+    _surfacePhotons.resize(_settings.photonCount);
     if (!_scene->media().empty())
         _volumePhotons.resize(_photonOffset + _settings.volumePhotonCount);
+        _volumePhotons.resize(_settings.volumePhotonCount);
 
     int numThreads = ThreadUtils::pool->threadCount();
     for (int i = 0; i < numThreads; ++i) {
