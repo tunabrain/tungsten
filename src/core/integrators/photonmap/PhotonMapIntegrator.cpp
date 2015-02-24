@@ -177,7 +177,6 @@ void PhotonMapIntegrator::prepareForRender(TraceableScene &scene)
 
     _surfacePhotons.resize(_settings.photonCount);
     if (!_scene->media().empty())
-        _volumePhotons.resize(_photonOffset + _settings.volumePhotonCount);
         _volumePhotons.resize(_settings.volumePhotonCount);
 
     int numThreads = ThreadUtils::pool->threadCount();
