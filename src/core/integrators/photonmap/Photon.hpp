@@ -39,6 +39,13 @@ struct Photon
     }
 };
 
+struct VolumePhoton : public Photon
+{
+    Vec3f minBounds;
+    Vec3f maxBounds;
+    float radiusSq;
+};
+
 }
 
 

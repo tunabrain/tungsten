@@ -27,16 +27,16 @@ class PhotonTracer;
 class PhotonMapIntegrator : public Integrator
 {
     static CONSTEXPR uint32 TileSize = 16;
-    std::vector<ImageTile> _tiles;
 
     struct SubTaskData
     {
         std::unique_ptr<SampleGenerator> sampler;
         std::unique_ptr<UniformSampler> supplementalSampler;
-        uint32 photonStart;
-        uint32 photonNext;
-        uint32 photonEnd;
+        SurfacePhotonRange surfaceRange;
+        VolumePhotonRange volumeRange;
     };
+
+    std::vector<ImageTile> _tiles;
 
     PhotonMapSettings _settings;
 
@@ -46,11 +46,16 @@ class PhotonMapIntegrator : public Integrator
 
     std::shared_ptr<TaskGroup> _group;
 
-    std::atomic<uint32> _totalTracedPhotons;
+    std::atomic<uint32> _totalTracedSurfacePhotons;
+    std::atomic<uint32> _totalTracedVolumePhotons;
 
     int _photonOffset;
-    std::vector<Photon> _photons;
-    std::unique_ptr<KdTree> _tree;
+    std::vector<Photon> _surfacePhotons;
+    std::vector<VolumePhoton> _volumePhotons;
+
+    std::unique_ptr<KdTree<Photon>> _surfaceTree;
+    std::unique_ptr<KdTree<VolumePhoton>> _volumeTree;
+
     std::vector<std::unique_ptr<PhotonTracer>> _tracers;
     std::vector<SubTaskData> _taskData;
 

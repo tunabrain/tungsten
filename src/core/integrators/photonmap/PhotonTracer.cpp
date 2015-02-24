@@ -16,7 +16,8 @@ PhotonTracer::PhotonTracer(TraceableScene *scene, const PhotonMapSettings &setti
     _lightSampler.reset(new Distribution1D(std::move(lightWeights)));
 }
 
-int PhotonTracer::tracePhoton(Photon *dst, int maxCount, SampleGenerator &sampler, UniformSampler &supplementalSampler)
+void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRange &volumeRange,
+        SampleGenerator &sampler, UniformSampler &supplementalSampler)
 {
     float u = supplementalSampler.next1D();
     int lightIdx;
@@ -24,7 +25,7 @@ int PhotonTracer::tracePhoton(Photon *dst, int maxCount, SampleGenerator &sample
 
     LightSample sample(&sampler);
     if (!_scene->lights()[lightIdx]->sampleOutboundDirection(_threadId, sample))
-        return 0;
+        return;
 
     Ray ray(sample.p, sample.d);
     Vec3f throughput(sample.weight/_lightSampler->pdf(lightIdx));
@@ -34,34 +35,63 @@ int PhotonTracer::tracePhoton(Photon *dst, int maxCount, SampleGenerator &sample
     Medium::MediumState state;
     state.reset();
     Vec3f emission(0.0f);
-    const Medium *medium = _scene->cam().medium().get();
+    const Medium *medium = sample.medium;
 
-    int photonCount = 0;
     int bounce = 0;
     bool wasSpecular = true;
+    bool hitSurface = true;
     bool didHit = _scene->intersect(ray, data, info);
-    while (didHit && bounce < _settings.maxBounces) {
+    while ((didHit || medium) && bounce < _settings.maxBounces - 2) {
         ray.advanceFootprint();
 
-        if (!info.bsdf->lobes().isPureSpecular()) {
-            Photon &p = dst[photonCount++];
-            p.pos = info.p;
-            p.dir = ray.dir();
-            p.power = throughput;
-
-            if (photonCount == maxCount)
+        if (medium) {
+            VolumeScatterEvent event(&sampler, &supplementalSampler, throughput, ray.pos(), ray.dir(), ray.farT());
+            if (!medium->sampleDistance(event, state))
                 break;
+            throughput *= event.throughput;
+            event.throughput = Vec3f(1.0f);
+
+            if (event.t < event.maxT) {
+                event.p += event.t*event.wi;
+
+                if (!volumeRange.full()) {
+                    VolumePhoton &p = volumeRange.addPhoton();
+                    p.pos = event.p;
+                    p.dir = ray.dir();
+                    p.power = throughput;
+                }
+
+                if (medium->absorb(event, state))
+                    break;
+                if (!medium->scatter(event))
+                    break;
+                ray = ray.scatter(event.p, event.wo, 0.0f, event.pdf);
+                ray.setPrimaryRay(false);
+                throughput *= event.throughput;
+                hitSurface = false;
+            } else {
+                hitSurface = true;
+            }
         }
 
-        if (!handleSurface(data, info, sampler, supplementalSampler, medium, bounce,
+        if (hitSurface) {
+            if (!info.bsdf->lobes().isPureSpecular() && !surfaceRange.full()) {
+                Photon &p = surfaceRange.addPhoton();
+                p.pos = info.p;
+                p.dir = ray.dir();
+                p.power = throughput;
+            }
+        }
+
+        if (volumeRange.full() && surfaceRange.full())
+            break;
+
+        if (hitSurface && !handleSurface(data, info, sampler, supplementalSampler, medium, bounce,
                 false, ray, throughput, emission, wasSpecular, state))
             break;
 
-        /*float roulettePdf = std::abs(throughput).max();
-        if (supplementalSampler.next1D() < roulettePdf)
-            throughput /= roulettePdf;
-        else
-            break;*/
+        if (throughput.max() == 0.0f)
+            break;
 
         if (std::isnan(ray.dir().sum() + ray.pos().sum()))
             break;
@@ -72,11 +102,10 @@ int PhotonTracer::tracePhoton(Photon *dst, int maxCount, SampleGenerator &sample
         if (bounce < _settings.maxBounces)
             didHit = _scene->intersect(ray, data, info);
     }
-
-    return photonCount;
 }
 
-Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree &tree, SampleGenerator &sampler,
+Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
+        const KdTree<VolumePhoton> *mediumTree, SampleGenerator &sampler,
         UniformSampler &supplementalSampler)
 {
     Ray ray;
@@ -87,11 +116,34 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree &tree, SampleGenerator
 
     IntersectionTemporary data;
     IntersectionInfo info;
+    const Medium *medium = _scene->cam().medium().get();
 
+    Vec3f result(0.0f);
     int bounce = 0;
     bool didHit = _scene->intersect(ray, data, info);
-    while (didHit && bounce < _settings.maxBounces) {
+    while ((medium || didHit) && bounce < _settings.maxBounces - 1) {
         ray.advanceFootprint();
+
+        if (medium) {
+            VolumeScatterEvent event(ray.pos(), ray.dir(), ray.farT());
+
+            if (mediumTree) {
+                Vec3f beamEstimate(0.0f);
+                mediumTree->beamQuery(ray.pos(), ray.dir(), ray.farT(), [&](const VolumePhoton &p, float t, float distSq) {
+                    event.t = t;
+                    event.wo = -p.dir;
+                    float kernel = (3.0f*INV_PI*sqr(1.0f - distSq/p.radiusSq))/p.radiusSq;
+                    //float kernel = INV_PI/p.radiusSq;
+                    beamEstimate += kernel*medium->phaseEval(event)*medium->transmittance(event)*p.power;
+                });
+                result += throughput*beamEstimate*PI;
+            }
+
+            event.t = ray.farT();
+            throughput *= medium->transmittance(event);
+        }
+        if (!didHit)
+            break;
 
         const Bsdf &bsdf = *info.bsdf;
 
@@ -117,6 +169,16 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree &tree, SampleGenerator
             throughput *= event.throughput;
         }
 
+        bool geometricBackside = (wo.dot(info.Ng) < 0.0f);
+        const Medium *newMedium = medium;
+        if (bsdf.overridesMedia()) {
+            if (geometricBackside)
+                newMedium = bsdf.intMedium().get();
+            else
+                newMedium = bsdf.extMedium().get();
+        }
+        medium = newMedium;
+
         ray = ray.scatter(ray.hitpoint(), wo, info.epsilon, pdf);
 
         if (std::isnan(ray.dir().sum() + ray.pos().sum()))
@@ -130,26 +192,28 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree &tree, SampleGenerator
     }
 
     if (!didHit) {
-        if (!_scene->intersectInfinites(ray, data, info))
-            return Vec3f(0.0f);
-        return throughput*info.primitive->emission(data, info);
+        if (!medium && _scene->intersectInfinites(ray, data, info))
+            result += throughput*info.primitive->emission(data, info);
+        return result;
     }
+    result += throughput*info.primitive->emission(data, info);
 
-    int count = tree.nearestNeighbours(ray.hitpoint(), _photonQuery.get(), _distanceQuery.get(),
+    int count = surfaceTree.nearestNeighbours(ray.hitpoint(), _photonQuery.get(), _distanceQuery.get(),
             _settings.gatherCount, _settings.gatherRadius);
     if (count == 0)
-        return Vec3f(0.0f);
+        return result;
 
     const Bsdf &bsdf = *info.bsdf;
     SurfaceScatterEvent event = makeLocalScatterEvent(data, info, ray, &sampler, &supplementalSampler);
 
-    Vec3f result = info.primitive->emission(data, info);
+    Vec3f surfaceEstimate(0.0f);
     for (int i = 0; i < count; ++i) {
         event.wo = event.frame.toLocal(-_photonQuery[i]->dir);
-        result += _photonQuery[i]->power*PI*bsdf.eval(event)/std::abs(event.wo.z());
+        surfaceEstimate += _photonQuery[i]->power*PI*bsdf.eval(event)/std::abs(event.wo.z());
     }
+    result += throughput*surfaceEstimate*(INV_PI/_distanceQuery[0]);
 
-    return throughput*result*(INV_PI/_distanceQuery[0]);
+    return result;
 }
 
 }

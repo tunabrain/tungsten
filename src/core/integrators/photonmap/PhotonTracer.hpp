@@ -2,6 +2,7 @@
 #define PHOTONTRACER_HPP_
 
 #include "PhotonMapSettings.hpp"
+#include "PhotonRange.hpp"
 #include "KdTree.hpp"
 #include "Photon.hpp"
 
@@ -21,8 +22,11 @@ class PhotonTracer : public TraceBase
 public:
     PhotonTracer(TraceableScene *scene, const PhotonMapSettings &settings, uint32 threadId);
 
-    int tracePhoton(Photon *dst, int maxCount, SampleGenerator &sampler, UniformSampler &supplementalSampler);
-    Vec3f traceSample(Vec2u pixel, const KdTree &tree, SampleGenerator &sampler, UniformSampler &supplementalSampler);
+    void tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRange &volumeRange,
+            SampleGenerator &sampler, UniformSampler &supplementalSampler);
+    Vec3f traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
+            const KdTree<VolumePhoton> *mediumTree, SampleGenerator &sampler,
+            UniformSampler &supplementalSampler);
 };
 
 }

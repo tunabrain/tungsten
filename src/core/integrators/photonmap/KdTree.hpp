@@ -1,21 +1,24 @@
 #ifndef KDTREE_HPP_
 #define KDTREE_HPP_
 
-#include "Photon.hpp"
-
 #include "math/Box.hpp"
 #include "math/Vec.hpp"
 
+#include "thread/ThreadUtils.hpp"
+#include "thread/ThreadPool.hpp"
+
 #include "Debug.hpp"
+#include "Timer.hpp"
 
 #include <algorithm>
 #include <vector>
 
 namespace Tungsten {
 
+template<typename PhotonType>
 class KdTree
 {
-    std::vector<Photon> _nodes;
+    std::vector<PhotonType> _nodes;
     uint32 _treeEnd;
 
     void recursiveTreeBuild(uint32 dst, uint32 &tail, uint32 start, uint32 end)
@@ -34,7 +37,7 @@ class KdTree
             bounds.grow(_nodes[i].pos);
         uint32 splitDim = bounds.diagonal().maxDim();
 
-        std::sort(_nodes.begin() + start, _nodes.begin() + end, [&](const Photon &a, const Photon &b) {
+        std::sort(_nodes.begin() + start, _nodes.begin() + end, [&](const PhotonType &a, const PhotonType &b) {
             return a.pos[splitDim] < b.pos[splitDim];
         });
 
@@ -67,18 +70,55 @@ public:
         }
     }
 
-    const Photon *nearestNeighbour(Vec3f pos, float maxDist = 1e30f) const
+    void buildVolumeHierarchy(uint32 root = 0)
+    {
+        if (root == 0) {
+            int m = max(int(std::sqrt(_treeEnd)*0.1f), 1);
+            ThreadUtils::pool->yield(*ThreadUtils::pool->enqueue([&](uint32 idx, uint32 num, uint32 /*threadId*/) {
+                uint32 span = (_treeEnd + num - 1)/num;
+                uint32 start = span*idx;
+                uint32 end = min(start + span, _treeEnd);
+
+                std::unique_ptr<const PhotonType *[]> photons(new const PhotonType *[m]);
+                std::unique_ptr<float[]> dists(new float[m]);
+                for (uint32 i = start; i < end; ++i) {
+                    nearestNeighbours(_nodes[i].pos, photons.get(), dists.get(), m);
+                    _nodes[i].radiusSq = dists[0];
+                }
+            }, ThreadUtils::pool->threadCount()));
+        }
+
+        Box3f bounds(_nodes[root].pos);
+        bounds.grow(std::sqrt(_nodes[root].radiusSq));
+
+        uint32 childIdx = _nodes[root].childIdx();
+        if (_nodes[root].hasLeftChild()) {
+            buildVolumeHierarchy(childIdx);
+            bounds.grow(_nodes[childIdx].minBounds);
+            bounds.grow(_nodes[childIdx].maxBounds);
+        }
+        if (_nodes[root].hasRightChild()) {
+            buildVolumeHierarchy(childIdx + 1);
+            bounds.grow(_nodes[childIdx + 1].minBounds);
+            bounds.grow(_nodes[childIdx + 1].maxBounds);
+        }
+
+        _nodes[root].minBounds = bounds.min();
+        _nodes[root].maxBounds = bounds.max();
+    }
+
+    const PhotonType *nearestNeighbour(Vec3f pos, float maxDist = 1e30f) const
     {
         if (_treeEnd == 0)
             return nullptr;
 
-        const Photon *nearestPhoton = nullptr;
+        const PhotonType *nearestPhoton = nullptr;
         float maxDistSq = maxDist*maxDist;
 
-        const Photon *stack[28];
-        const Photon **stackPtr = stack;
+        const PhotonType *stack[28];
+        const PhotonType **stackPtr = stack;
 
-        const Photon *current = &_nodes[0];
+        const PhotonType *current = &_nodes[0];
         while (true) {
             float dSq = (current->pos - pos).lengthSq();
             if (dSq < maxDistSq) {
@@ -114,7 +154,7 @@ public:
         return nullptr;
     }
 
-    int nearestNeighbours(Vec3f pos, const Photon **result, float *distSq, const int k, const float maxDist = 1e30f) const
+    int nearestNeighbours(Vec3f pos, const PhotonType **result, float *distSq, const int k, const float maxDist = 1e30f) const
     {
         if (_treeEnd == 0)
             return 0;
@@ -122,10 +162,10 @@ public:
         int photonCount = 0;
         float maxDistSq = maxDist*maxDist;
 
-        const Photon *stack[28];
-        const Photon **stackPtr = stack;
+        const PhotonType *stack[28];
+        const PhotonType **stackPtr = stack;
 
-        const Photon *current = &_nodes[0];
+        const PhotonType *current = &_nodes[0];
         while (true) {
             float dSq = (current->pos - pos).lengthSq();
             if (dSq < maxDistSq) {
@@ -139,7 +179,7 @@ public:
                         const int halfK = k/2;
                         for (int i = halfK - 1; i >= 0; --i) {
                             int parent = i;
-                            const Photon *reloc = result[i];
+                            const PhotonType *reloc = result[i];
                             float relocDist = distSq[i];
                             while (parent < halfK) {
                                 int child = parent*2 + 1;
@@ -201,6 +241,63 @@ public:
             }
         }
         return 0;
+    }
+
+    template<typename Traverser>
+    inline void beamQuery(Vec3f pos, Vec3f dir, float farT, Traverser traverser) const
+    {
+        if (_treeEnd == 0)
+            return;
+
+        const Vec3f invDir = 1.0f/dir;
+
+        const PhotonType *stack[28];
+        const PhotonType **stackPtr = stack;
+
+        const PhotonType *current = &_nodes[0];
+        while (true) {
+            Vec3f mins = (current->minBounds - pos)*invDir;
+            Vec3f maxs = (current->maxBounds - pos)*invDir;
+            float minT = max(
+                invDir[0] > 0.0f ? mins[0] : maxs[0],
+                invDir[1] > 0.0f ? mins[1] : maxs[1],
+                invDir[2] > 0.0f ? mins[2] : maxs[2]
+            );
+            float maxT = min(
+                invDir[0] > 0.0f ? maxs[0] : mins[0],
+                invDir[1] > 0.0f ? maxs[1] : mins[1],
+                invDir[2] > 0.0f ? maxs[2] : mins[2]
+            );
+
+            if (minT <= maxT && minT <= farT && maxT >= 0.0f) {
+                Vec3f p = current->pos - pos;
+                float proj = p.dot(dir);
+                if (proj >= 0.0f && proj <= farT) {
+                    float distSq = p.lengthSq() - proj*proj;
+                    if (distSq <= current->radiusSq)
+                        traverser(*current, proj, distSq);
+                }
+
+                uint32 childIdx = current->childIdx();
+                if (current->hasLeftChild() && current->hasRightChild()) {
+                    *stackPtr++ = &_nodes[childIdx + 1];
+                    current     = &_nodes[childIdx + 0];
+                } else if (current->hasLeftChild()) {
+                    current = &_nodes[childIdx];
+                } else if (current->hasRightChild()) {
+                    current = &_nodes[childIdx + 1];
+                } else {
+                    goto pop;
+                }
+
+                continue;
+            }
+
+        pop:
+            if (stackPtr == stack)
+                break;
+            current = *--stackPtr;
+        }
     }
 
     static int computePadding(int photonCount)

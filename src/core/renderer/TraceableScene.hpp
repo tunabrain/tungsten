@@ -250,6 +250,11 @@ public:
         return _lights;
     }
 
+    const std::vector<std::shared_ptr<Medium>> &media() const
+    {
+        return _media;
+    }
+
     RendererSettings rendererSettings() const
     {
         return _settings;
