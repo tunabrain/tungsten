@@ -49,13 +49,21 @@ void ThreadPool::runWorker(uint32 threadId)
 void ThreadPool::startThreads()
 {
     _terminateFlag = false;
-    for (uint32 i = 0; i < _threadCount; ++i)
+    for (uint32 i = 0; i < _threadCount; ++i) {
         _workers.emplace_back(new std::thread(&ThreadPool::runWorker, this, _workers.size()));
+        _idToNumericId.insert(std::make_pair(_workers.back()->get_id(), i));
+    }
 }
 
 void ThreadPool::yield(TaskGroup &wait)
 {
     std::chrono::milliseconds waitSpan(10);
+    uint32 id = _threadCount; // Threads not in the pool get a previously unassigned id
+
+    auto iter = _idToNumericId.find(std::this_thread::get_id());
+    if (iter != _idToNumericId.end())
+        id = iter->second;
+
     while (!wait.isDone() && !_terminateFlag) {
         uint32 subTaskId;
         std::shared_ptr<TaskGroup> task;
@@ -66,7 +74,7 @@ void ThreadPool::yield(TaskGroup &wait)
             task = acquireTask(subTaskId);
         }
         if (task)
-            task->run(0, subTaskId); //FIXME Figure out proper thread id here
+            task->run(id, subTaskId);
     }
 }
 

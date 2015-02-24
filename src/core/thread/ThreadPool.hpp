@@ -6,6 +6,7 @@
 #include "IntTypes.hpp"
 
 #include <condition_variable>
+#include <unordered_map>
 #include <functional>
 #include <atomic>
 #include <memory>
@@ -28,6 +29,8 @@ class ThreadPool
     std::deque<std::shared_ptr<TaskGroup>> _tasks;
     std::mutex _taskMutex;
     std::condition_variable _taskCond;
+
+    std::unordered_map<std::thread::id, uint32> _idToNumericId;
 
     std::shared_ptr<TaskGroup> acquireTask(uint32 &subTaskId);
     void runWorker(uint32 threadId);
