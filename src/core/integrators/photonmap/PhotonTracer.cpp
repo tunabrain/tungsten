@@ -106,7 +106,7 @@ void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRan
 
 Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
         const KdTree<VolumePhoton> *mediumTree, SampleGenerator &sampler,
-        UniformSampler &supplementalSampler)
+        UniformSampler &supplementalSampler, float gatherRadius)
 {
     Ray ray;
     Vec3f throughput(1.0f);
@@ -199,7 +199,7 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
     result += throughput*info.primitive->emission(data, info);
 
     int count = surfaceTree.nearestNeighbours(ray.hitpoint(), _photonQuery.get(), _distanceQuery.get(),
-            _settings.gatherCount, _settings.gatherRadius);
+            _settings.gatherCount, gatherRadius);
     if (count == 0)
         return result;
 
@@ -211,7 +211,8 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
         event.wo = event.frame.toLocal(-_photonQuery[i]->dir);
         surfaceEstimate += _photonQuery[i]->power*PI*bsdf.eval(event)/std::abs(event.wo.z());
     }
-    result += throughput*surfaceEstimate*(INV_PI/_distanceQuery[0]);
+    float radiusSq = count == int(_settings.gatherCount) ? _distanceQuery[0] : gatherRadius*gatherRadius;
+    result += throughput*surfaceEstimate*(INV_PI/radiusSq);
 
     return result;
 }

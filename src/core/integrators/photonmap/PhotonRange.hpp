@@ -52,6 +52,11 @@ public:
         return _next;
     }
 
+    void reset()
+    {
+        _next = _start;
+    }
+
     void bumpNext(int offset)
     {
         _next += offset;

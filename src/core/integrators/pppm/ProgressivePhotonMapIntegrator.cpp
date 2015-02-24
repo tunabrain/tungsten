@@ -1,5 +1,6 @@
-#include "PhotonMapIntegrator.hpp"
-#include "PhotonTracer.hpp"
+#include "ProgressivePhotonMapIntegrator.hpp"
+
+#include "integrators/photonmap/PhotonTracer.hpp"
 
 #include "sampling/SobolSampler.hpp"
 
@@ -10,12 +11,13 @@
 
 namespace Tungsten {
 
-CONSTEXPR uint32 PhotonMapIntegrator::TileSize;
+CONSTEXPR uint32 ProgressivePhotonMapIntegrator::TileSize;
 
-PhotonMapIntegrator::PhotonMapIntegrator()
+ProgressivePhotonMapIntegrator::ProgressivePhotonMapIntegrator()
 : _w(0),
   _h(0),
-  _sampler(0xBA5EBA11)
+  _sampler(0xBA5EBA11),
+  _iteration(0)
 {
 }
 
@@ -24,7 +26,7 @@ static int intLerp(int x0, int x1, int t, int range)
     return (x0*(range - t) + x1*t)/range;
 }
 
-void PhotonMapIntegrator::diceTiles()
+void ProgressivePhotonMapIntegrator::diceTiles()
 {
     for (uint32 y = 0; y < _h; y += TileSize) {
         for (uint32 x = 0; x < _w; x += TileSize) {
@@ -42,15 +44,15 @@ void PhotonMapIntegrator::diceTiles()
     }
 }
 
-void PhotonMapIntegrator::saveState(OutputStreamHandle &/*out*/)
+void ProgressivePhotonMapIntegrator::saveState(OutputStreamHandle &/*out*/)
 {
 }
 
-void PhotonMapIntegrator::loadState(InputStreamHandle &/*in*/)
+void ProgressivePhotonMapIntegrator::loadState(InputStreamHandle &/*in*/)
 {
 }
 
-void PhotonMapIntegrator::tracePhotons(uint32 taskId, uint32 numSubTasks, uint32 threadId)
+void ProgressivePhotonMapIntegrator::tracePhotons(uint32 taskId, uint32 numSubTasks, uint32 threadId)
 {
     SubTaskData &data = _taskData[taskId];
 
@@ -60,7 +62,7 @@ void PhotonMapIntegrator::tracePhotons(uint32 taskId, uint32 numSubTasks, uint32
     uint32 totalSurfaceCast = 0;
     uint32 totalVolumeCast = 0;
     for (uint32 i = 0; i < photonsToCast; ++i) {
-        data.sampler->setup(taskId, photonBase + i);
+        data.sampler->setup(taskId + _iteration*_settings.photonCount, photonBase + i);
         _tracers[threadId]->tracePhoton(
             data.surfaceRange,
             data.volumeRange,
@@ -79,9 +81,14 @@ void PhotonMapIntegrator::tracePhotons(uint32 taskId, uint32 numSubTasks, uint32
     _totalTracedVolumePhotons += totalVolumeCast;
 }
 
-void PhotonMapIntegrator::tracePixels(uint32 tileId, uint32 threadId)
+void ProgressivePhotonMapIntegrator::tracePixels(uint32 tileId, uint32 threadId)
 {
     int spp = _nextSpp - _currentSpp;
+
+    float radiusSq = sqr(_settings.gatherRadius);
+    for (uint32 i = 1; i <= _iteration; ++i)
+        radiusSq *= (i + _settings.alpha)/(i + 1.0f);
+    float radius = std::sqrt(radiusSq);
 
     ImageTile &tile = _tiles[tileId];
     for (uint32 y = 0; y < tile.h; ++y) {
@@ -97,7 +104,7 @@ void PhotonMapIntegrator::tracePixels(uint32 tileId, uint32 threadId)
                     _volumeTree.get(),
                     *tile.sampler,
                     *tile.supplementalSampler,
-                    _settings.gatherRadius
+                    radius
                 ));
                 c += s;
             }
@@ -141,7 +148,7 @@ std::unique_ptr<KdTree<PhotonType>> streamCompactAndBuild(std::vector<PhotonRang
     return std::unique_ptr<KdTree<PhotonType>>(new KdTree<PhotonType>(&photons[0], tail));
 }
 
-void PhotonMapIntegrator::buildPhotonDataStructures()
+void ProgressivePhotonMapIntegrator::buildPhotonDataStructures()
 {
     std::vector<SurfacePhotonRange> surfaceRanges;
     std::vector<VolumePhotonRange> volumeRanges;
@@ -153,31 +160,35 @@ void PhotonMapIntegrator::buildPhotonDataStructures()
     _surfaceTree = streamCompactAndBuild(surfaceRanges, _surfacePhotons, _totalTracedSurfacePhotons);
     if (!_volumePhotons.empty()) {
         _volumeTree = streamCompactAndBuild(volumeRanges, _volumePhotons, _totalTracedVolumePhotons);
-        _volumeTree->buildVolumeHierarchy(true, 1.0f);
+
+        float radiusCu = _settings.fixedVolumeRadius ? cube(_settings.gatherRadius) : 1.0f;
+        for (uint32 i = 1; i <= _iteration; ++i)
+            radiusCu *= (i + _settings.alpha)/(i + 1.0f);
+        float radius = std::cbrt(radiusCu);
+
+        _volumeTree->buildVolumeHierarchy(_settings.fixedVolumeRadius, radius);
     }
 }
 
-void PhotonMapIntegrator::fromJson(const rapidjson::Value &v, const Scene &/*scene*/)
+void ProgressivePhotonMapIntegrator::fromJson(const rapidjson::Value &v, const Scene &/*scene*/)
 {
     _settings.fromJson(v);
 }
 
-rapidjson::Value PhotonMapIntegrator::toJson(Allocator &allocator) const
+rapidjson::Value ProgressivePhotonMapIntegrator::toJson(Allocator &allocator) const
 {
     return _settings.toJson(allocator);
 }
 
-void PhotonMapIntegrator::prepareForRender(TraceableScene &scene)
+void ProgressivePhotonMapIntegrator::prepareForRender(TraceableScene &scene)
 {
     _sampler = UniformSampler(0xBA5EBA11);
-    _totalTracedSurfacePhotons = 0;
-    _totalTracedVolumePhotons  = 0;
+    _iteration = 0;
     _scene = &scene;
     advanceSpp();
 
     _surfacePhotons.resize(_settings.photonCount);
     if (!_scene->media().empty())
-        _volumePhotons.resize(_photonOffset + _settings.volumePhotonCount);
         _volumePhotons.resize(_settings.volumePhotonCount);
 
     int numThreads = ThreadUtils::pool->threadCount();
@@ -205,7 +216,7 @@ void PhotonMapIntegrator::prepareForRender(TraceableScene &scene)
     diceTiles();
 }
 
-void PhotonMapIntegrator::teardownAfterRender()
+void ProgressivePhotonMapIntegrator::teardownAfterRender()
 {
     _group.reset();
     _surfaceTree.reset();
@@ -222,37 +233,52 @@ void PhotonMapIntegrator::teardownAfterRender()
            _tracers.shrink_to_fit();
 }
 
-void PhotonMapIntegrator::startRender(std::function<void()> completionCallback)
+void ProgressivePhotonMapIntegrator::renderSegment(std::function<void()> completionCallback)
+{
+    _totalTracedSurfacePhotons = 0;
+    _totalTracedVolumePhotons  = 0;
+
+    using namespace std::placeholders;
+
+    ThreadUtils::pool->yield(*ThreadUtils::pool->enqueue(
+        std::bind(&ProgressivePhotonMapIntegrator::tracePhotons, this, _1, _2, _3),
+        _tracers.size(),
+        [](){}
+    ));
+
+    buildPhotonDataStructures();
+
+    ThreadUtils::pool->yield(*ThreadUtils::pool->enqueue(
+        std::bind(&ProgressivePhotonMapIntegrator::tracePixels, this, _1, _3),
+        _tiles.size(),
+        [](){}
+    ));
+
+    _currentSpp = _nextSpp;
+    advanceSpp();
+    completionCallback();
+    _iteration++;
+
+    _surfaceTree.reset();
+    for (SubTaskData &data : _taskData) {
+        data.surfaceRange.reset();
+        data.volumeRange.reset();
+    }
+}
+
+void ProgressivePhotonMapIntegrator::startRender(std::function<void()> completionCallback)
 {
     if (done()) {
         completionCallback();
         return;
     }
 
-    using namespace std::placeholders;
-    if (!_surfaceTree) {
-        _group = ThreadUtils::pool->enqueue(
-            std::bind(&PhotonMapIntegrator::tracePhotons, this, _1, _2, _3),
-            _tracers.size(),
-            [&, completionCallback]() {
-                buildPhotonDataStructures();
-                completionCallback();
-            }
-        );
-    } else {
-        _group = ThreadUtils::pool->enqueue(
-            std::bind(&PhotonMapIntegrator::tracePixels, this, _1, _3),
-            _tiles.size(),
-            [&, completionCallback]() {
-                _currentSpp = _nextSpp;
-                advanceSpp();
-                completionCallback();
-            }
-        );
-    }
+    _group = ThreadUtils::pool->enqueue([&, completionCallback](uint32, uint32, uint32) {
+        renderSegment(completionCallback);
+    }, 1, [](){});
 }
 
-void PhotonMapIntegrator::waitForCompletion()
+void ProgressivePhotonMapIntegrator::waitForCompletion()
 {
     if (_group) {
         _group->wait();
@@ -260,7 +286,7 @@ void PhotonMapIntegrator::waitForCompletion()
     }
 }
 
-void PhotonMapIntegrator::abortRender()
+void ProgressivePhotonMapIntegrator::abortRender()
 {
     if (_group) {
         _group->abort();

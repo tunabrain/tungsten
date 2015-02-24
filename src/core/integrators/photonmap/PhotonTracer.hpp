@@ -26,7 +26,7 @@ public:
             SampleGenerator &sampler, UniformSampler &supplementalSampler);
     Vec3f traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
             const KdTree<VolumePhoton> *mediumTree, SampleGenerator &sampler,
-            UniformSampler &supplementalSampler);
+            UniformSampler &supplementalSampler, float gatherRadius);
 };
 
 }
