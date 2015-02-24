@@ -161,7 +161,7 @@ void ProgressivePhotonMapIntegrator::buildPhotonDataStructures()
     if (!_volumePhotons.empty()) {
         _volumeTree = streamCompactAndBuild(volumeRanges, _volumePhotons, _totalTracedVolumePhotons);
 
-        float radiusCu = _settings.fixedVolumeRadius ? cube(_settings.gatherRadius) : 1.0f;
+        float radiusCu = _settings.fixedVolumeRadius ? cube(_settings.volumeGatherRadius) : 1.0f;
         for (uint32 i = 1; i <= _iteration; ++i)
             radiusCu *= (i + _settings.alpha)/(i + 1.0f);
         float radius = std::cbrt(radiusCu);
