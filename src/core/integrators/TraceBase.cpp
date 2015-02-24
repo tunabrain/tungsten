@@ -397,7 +397,7 @@ bool TraceBase::handleVolume(SampleGenerator &sampler, UniformSampler &supplemen
     throughput *= event.throughput;
     event.throughput = Vec3f(1.0f);
 
-    if (handleLights)
+    if (handleLights && bounce >= _settings.minBounces)
         emission += throughput*medium->emission(event);
 
     if (!_settings.enableVolumeLightSampling)
@@ -406,7 +406,7 @@ bool TraceBase::handleVolume(SampleGenerator &sampler, UniformSampler &supplemen
     if (event.t < event.maxT) {
         event.p += event.t*event.wi;
 
-        if (handleLights && _settings.enableVolumeLightSampling) {
+        if (handleLights && _settings.enableVolumeLightSampling && bounce < _settings.maxBounces - 1) {
             wasSpecular = false;
             emission += throughput*volumeEstimateDirect(event, medium, bounce + 1, ray);
         }
