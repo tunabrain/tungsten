@@ -179,19 +179,21 @@ void PhotonMapIntegrator::prepareForRender(TraceableScene &scene)
     _photonOffset = KdTree<Photon>::computePadding(_settings.photonCount);
     _surfacePhotons.resize(_photonOffset + _settings.photonCount);
     if (!_scene->media().empty())
-        _volumePhotons.resize(_photonOffset + _settings.photonCount);
+        _volumePhotons.resize(_photonOffset + _settings.volumePhotonCount);
 
     int numThreads = ThreadUtils::pool->threadCount();
     for (int i = 0; i < numThreads; ++i) {
-        uint32 rangeStart = intLerp(_photonOffset, uint32(_surfacePhotons.size()), i + 0, numThreads);
-        uint32 rangeEnd   = intLerp(_photonOffset, uint32(_surfacePhotons.size()), i + 1, numThreads);
+        uint32 surfaceRangeStart = intLerp(0, uint32(_surfacePhotons.size()), i + 0, numThreads);
+        uint32 surfaceRangeEnd   = intLerp(0, uint32(_surfacePhotons.size()), i + 1, numThreads);
+        uint32  volumeRangeStart = intLerp(0, uint32( _volumePhotons.size()), i + 0, numThreads);
+        uint32  volumeRangeEnd   = intLerp(0, uint32( _volumePhotons.size()), i + 1, numThreads);
         _taskData.emplace_back(SubTaskData{
             _scene->rendererSettings().useSobol() ?
                 std::unique_ptr<SampleGenerator>(new SobolSampler()) :
                 std::unique_ptr<SampleGenerator>(new UniformSampler(MathUtil::hash32(_sampler.nextI()))),
             std::unique_ptr<UniformSampler>(new UniformSampler(MathUtil::hash32(_sampler.nextI()))),
-            SurfacePhotonRange(&_surfacePhotons[0], rangeStart, rangeEnd),
-            VolumePhotonRange(_volumePhotons.empty() ? nullptr : &_volumePhotons[0], rangeStart, rangeEnd)
+            SurfacePhotonRange(&_surfacePhotons[0], surfaceRangeStart, surfaceRangeEnd),
+            VolumePhotonRange(_volumePhotons.empty() ? nullptr : &_volumePhotons[0], volumeRangeStart, volumeRangeEnd)
         });
 
         _tracers.emplace_back(new PhotonTracer(&scene, _settings, i));
