@@ -165,6 +165,7 @@ bool Quad::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &sample) 
     sample.weight = (*_emission)[xi]*_area;
     TangentFrame frame(_n);
     sample.d = frame.toGlobal(sample.d);
+    sample.medium = _bsdf->overridesMedia() ? _bsdf->extMedium().get() : nullptr;
     return true;
 }
 

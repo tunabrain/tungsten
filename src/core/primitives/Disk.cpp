@@ -168,6 +168,7 @@ bool Disk::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &sample) 
     TangentFrame frame(_n);
     sample.weight = (*_emission)[xi]*(_r*_r*PI);
     sample.d = frame.toGlobal(sample.d);
+    sample.medium = _bsdf->overridesMedia() ? _bsdf->extMedium().get() : nullptr;
     return true;
 }
 

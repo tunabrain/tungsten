@@ -6,6 +6,7 @@
 namespace Tungsten {
 
 class SampleGenerator;
+class Medium;
 
 struct LightSample
 {
@@ -16,6 +17,7 @@ struct LightSample
     float dist;
     float pdf;
     Vec3f weight;
+    const Medium *medium;
 
     LightSample(SampleGenerator *sampler_)
     : sampler(sampler_)
