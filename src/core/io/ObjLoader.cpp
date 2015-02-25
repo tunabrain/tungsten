@@ -5,6 +5,7 @@
 
 #include "primitives/TriangleMesh.hpp"
 #include "primitives/Sphere.hpp"
+#include "primitives/Cube.hpp"
 #include "primitives/Quad.hpp"
 
 #include "materials/ConstantTexture.hpp"
@@ -327,6 +328,53 @@ std::shared_ptr<Primitive> ObjLoader::tryInstantiateQuad(const std::string &name
     return std::make_shared<Quad>(base, edge0, edge1, name, bsdf);
 }
 
+std::shared_ptr<Primitive> ObjLoader::tryInstantiateCube(const std::string &name, std::shared_ptr<Bsdf> &bsdf)
+{
+    if (_tris.size() != 12) {
+        DBG("AnalyticCube must have exactly 12 triangles. Mesh '%s' has %d instead", _meshName.c_str(), _tris.size());
+        return nullptr;
+    }
+
+    TriangleI &t = _tris[0];
+    Vec3f p0 = _verts[t.v0].pos();
+    Vec3f p1 = _verts[t.v1].pos();
+    Vec3f p2 = _verts[t.v2].pos();
+    float absDot0 = std::abs((p1 - p0).dot(p2 - p0));
+    float absDot1 = std::abs((p2 - p1).dot(p0 - p1));
+    float absDot2 = std::abs((p0 - p2).dot(p1 - p2));
+    Vec3f base, edge0, edge1;
+    if (absDot0 < absDot1 && absDot0 < absDot2)
+        base = p0, edge0 = p1 - base, edge1 = p2 - base;
+    else if (absDot1 < absDot2)
+        base = p1, edge0 = p2 - base, edge1 = p0 - base;
+    else
+        base = p2, edge0 = p0 - base, edge1 = p1 - base;
+
+    float maxDistSq = 0.0f;
+    Vec3f outOfPlane(base);
+    for (int i = 1; i < 3; ++i) {
+    	for (int t = 0; t < 3; ++t) {
+    		float distSq = (_verts[_tris[i].vs[t]].pos() - base).lengthSq();
+    		if (distSq > maxDistSq) {
+    			maxDistSq = distSq;
+    			outOfPlane = _verts[_tris[i].vs[t]].pos();
+    		}
+    	}
+    }
+    Vec3f edge2 = outOfPlane - base;
+
+    // Gram-Schmidt
+    edge1 -= edge0*(edge1.dot(edge0)/edge0.lengthSq());
+    edge2 -= edge0*(edge2.dot(edge0)/edge0.lengthSq());
+    edge2 -= edge1*(edge2.dot(edge1)/edge1.lengthSq());
+
+    Vec3f pos = base + (edge0 + edge1 + edge2)*0.5f;
+    Vec3f scale = Vec3f(edge0.length(), edge1.length(), edge2.length());
+    Mat4f rot(edge0.normalized(), edge1.normalized(), edge2.normalized());
+
+    return std::make_shared<Cube>(pos, scale, rot, name, bsdf);
+}
+
 std::shared_ptr<Primitive> ObjLoader::finalizeMesh()
 {
     std::shared_ptr<Texture> emission, bump;
@@ -354,6 +402,8 @@ std::shared_ptr<Primitive> ObjLoader::finalizeMesh()
         prim = tryInstantiateSphere(name, bsdf);
     else if (name.find("AnalyticQuad") != std::string::npos)
         prim = tryInstantiateQuad(name, bsdf);
+    else if (name.find("AnalyticCube") != std::string::npos)
+        prim = tryInstantiateCube(name, bsdf);
 
     if (!prim)
         prim = std::make_shared<TriangleMesh>(std::move(_verts), std::move(_tris), bsdf, name, _meshSmoothed, false);
