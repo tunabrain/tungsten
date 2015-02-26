@@ -136,7 +136,7 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
                     //float kernel = INV_PI/p.radiusSq;
                     beamEstimate += kernel*medium->phaseEval(event)*medium->transmittance(event)*p.power;
                 });
-                result += throughput*beamEstimate*PI;
+                result += throughput*beamEstimate;
             }
 
             event.t = ray.farT();
@@ -209,7 +209,7 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
     Vec3f surfaceEstimate(0.0f);
     for (int i = 0; i < count; ++i) {
         event.wo = event.frame.toLocal(-_photonQuery[i]->dir);
-        surfaceEstimate += _photonQuery[i]->power*PI*bsdf.eval(event)/std::abs(event.wo.z());
+        surfaceEstimate += _photonQuery[i]->power*bsdf.eval(event)/std::abs(event.wo.z());
     }
     float radiusSq = count == int(_settings.gatherCount) ? _distanceQuery[0] : gatherRadius*gatherRadius;
     result += throughput*surfaceEstimate*(INV_PI/radiusSq);

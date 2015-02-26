@@ -166,7 +166,7 @@ bool Disk::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &sample) 
     sample.d = SampleWarp::cosineHemisphere(sample.sampler->next2D());
     sample.pdf = SampleWarp::cosineHemispherePdf(sample.d)/(_r*_r*PI);
     TangentFrame frame(_n);
-    sample.weight = (*_emission)[xi]*(_r*_r*PI);
+    sample.weight = PI*(*_emission)[xi]*(_r*_r*PI);
     sample.d = frame.toGlobal(sample.d);
     sample.medium = _bsdf->overridesMedia() ? _bsdf->extMedium().get() : nullptr;
     return true;

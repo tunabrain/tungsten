@@ -162,7 +162,7 @@ bool Quad::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &sample) 
     sample.p = _base + xi.x()*_edge0 + (1.0f - xi.y())*_edge1;
     sample.d = SampleWarp::cosineHemisphere(sample.sampler->next2D());
     sample.pdf = SampleWarp::cosineHemispherePdf(sample.d)/_area;
-    sample.weight = (*_emission)[xi]*_area;
+    sample.weight = PI*(*_emission)[xi]*_area;
     TangentFrame frame(_n);
     sample.d = frame.toGlobal(sample.d);
     sample.medium = _bsdf->overridesMedia() ? _bsdf->extMedium().get() : nullptr;
