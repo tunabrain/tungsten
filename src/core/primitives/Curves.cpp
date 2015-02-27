@@ -224,7 +224,10 @@ static Box3f curveBox(const Vec4f &q0, const Vec4f &q1, const Vec4f &q2)
 }
 
 Curves::Curves()
-: _modeString("half_cylinder")
+: _modeString("half_cylinder"),
+  _curveThickness(0.01f),
+  _overrideThickness(false),
+  _taperThickness(false)
 {
     init();
 }
@@ -232,16 +235,21 @@ Curves::Curves()
 Curves::Curves(const Curves &o)
 : Primitive(o)
 {
-    _modeString = o._modeString;
-    _mode       = o._mode;
-    _path       = o._path;
-    _curveCount = o._curveCount;
-    _nodeCount  = o._nodeCount;
-    _curveEnds  = o._curveEnds;
-    _nodeData   = o._nodeData;
-    _nodeColor  = o._nodeColor;
-    _proxy      = o._proxy;
-    _bounds     = o._bounds;
+    _modeString        = o._modeString;
+    _curveThickness    = o._curveThickness;
+    _taperThickness    = o._taperThickness;
+    _overrideThickness = o._overrideThickness;
+    _mode              = o._mode;
+    _path              = o._path;
+    _curveCount        = o._curveCount;
+    _nodeCount         = o._nodeCount;
+    _curveEnds         = o._curveEnds;
+    _nodeData          = o._nodeData;
+    _nodeColor         = o._nodeColor;
+    _proxy             = o._proxy;
+    _bounds            = o._bounds;
+}
+
 }
 
 void Curves::init()
@@ -271,6 +279,18 @@ void Curves::loadCurves()
 
     _nodeCount = _nodeData.size();
     _curveCount = _curveEnds.size();
+
+    if (_overrideThickness || _taperThickness) {
+        for (uint32 i = 0; i < _curveCount; ++i) {
+            uint32 start = i ? _curveEnds[i - 1] : 0;
+            for (uint32 t = start; t < _curveEnds[i]; ++t) {
+                float thickness = _overrideThickness ? _curveThickness : _nodeData[t].w();
+                if (_taperThickness)
+                    thickness *= 1.0f - (t - start - 0.5f)/(_curveEnds[i] - start - 1);
+                _nodeData[t].w() = thickness;
+            }
+        }
+    }
 }
 
 void Curves::computeBounds()
@@ -343,6 +363,8 @@ void Curves::fromJson(const rapidjson::Value &v, const Scene &scene)
     _path = scene.fetchResource(v, "file");
     _bsdf = scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf"));
     JsonUtils::fromJson(v, "mode", _modeString);
+    JsonUtils::fromJson(v, "curve_taper", _taperThickness);
+    _overrideThickness = JsonUtils::fromJson(v, "curve_thickness", _curveThickness);
 
     init();
 }

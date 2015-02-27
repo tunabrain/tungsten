@@ -27,6 +27,9 @@ class Curves : public Primitive
 
     PathPtr _path;
     std::string _modeString;
+    float _curveThickness;
+    bool _overrideThickness;
+    bool _taperThickness;
 
     CurveMode _mode;
 
