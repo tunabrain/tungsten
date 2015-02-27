@@ -250,6 +250,20 @@ Curves::Curves(const Curves &o)
     _bounds            = o._bounds;
 }
 
+Curves::Curves(std::vector<uint32> curveEnds, std::vector<Vec4f> nodeData, std::shared_ptr<Bsdf> bsdf, std::string name)
+: Primitive(name),
+  _path(std::make_shared<Path>(name.append(".hair"))),
+  _modeString("half_cylinder"),
+  _curveThickness(0.01f),
+  _overrideThickness(false),
+  _taperThickness(false),
+  _curveCount(curveEnds.size()),
+  _nodeCount(nodeData.size()),
+  _curveEnds(std::move(curveEnds)),
+  _nodeData(std::move(nodeData)),
+  _bsdf(std::move(bsdf))
+{
+    init();
 }
 
 void Curves::init()
@@ -375,6 +389,9 @@ rapidjson::Value Curves::toJson(Allocator &allocator) const
     v.AddMember("type", "curves", allocator);
     if (_path)
         v.AddMember("file", _path->asString().c_str(), allocator);
+    if (_overrideThickness)
+        v.AddMember("curve_thickness", _curveThickness, allocator);
+    v.AddMember("curve_taper", _taperThickness, allocator);
     v.AddMember("mode", _modeString.c_str(), allocator);
     JsonUtils::addObjectMember(v, "bsdf", *_bsdf, allocator);
     return std::move(v);

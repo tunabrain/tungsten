@@ -61,6 +61,7 @@ public:
 
     Curves();
     Curves(const Curves &o);
+    Curves(std::vector<uint32> curveEnds, std::vector<Vec4f> nodeData, std::shared_ptr<Bsdf> bsdf, std::string name);
 
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;

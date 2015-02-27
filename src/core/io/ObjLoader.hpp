@@ -24,6 +24,12 @@ class Primitive;
 
 class ObjLoader
 {
+    struct SegmentI
+    {
+        uint32 v0;
+        uint32 v1;
+    };
+
     bool _geometryOnly;
 
     std::shared_ptr<Bsdf> _errorMaterial;
@@ -42,6 +48,7 @@ class ObjLoader
 
     std::unordered_map<Vec3i, uint32> _indices;
     std::vector<TriangleI> _tris;
+    std::vector<SegmentI> _segments;
     std::vector<Vertex> _verts;
     Box3f _bounds;
 
@@ -56,6 +63,7 @@ class ObjLoader
 
     template<unsigned Size>
     Vec<float, Size> loadVector(const char *s);
+    void loadCurve(const char *line);
     void loadFace(const char *line);
     void loadMaterialLibrary(const char *path);
     void loadLine(const char *line);
@@ -65,6 +73,8 @@ class ObjLoader
 
     std::string generateDummyName() const;
     void clearPerMeshData();
+
+    void finalizeCurveData(std::vector<uint32> &curveEnds, std::vector<Vec4f> &nodeData);
 
     std::shared_ptr<Primitive> tryInstantiateSphere(const std::string &name, std::shared_ptr<Bsdf> &bsdf);
     std::shared_ptr<Primitive> tryInstantiateQuad(const std::string &name, std::shared_ptr<Bsdf> &bsdf);
@@ -77,6 +87,7 @@ class ObjLoader
 public:
     static Scene *load(const Path &path, std::shared_ptr<TextureCache> cache = nullptr);
     static bool loadGeometryOnly(const Path &path, std::vector<Vertex> &verts, std::vector<TriangleI> &tris);
+    static bool loadCurvesOnly(const Path &path, std::vector<uint32> &curveEnds, std::vector<Vec4f> &nodeData);
 };
 
 }

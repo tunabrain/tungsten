@@ -5,6 +5,7 @@
 
 #include "primitives/TriangleMesh.hpp"
 #include "primitives/Sphere.hpp"
+#include "primitives/Curves.hpp"
 #include "primitives/Cube.hpp"
 #include "primitives/Quad.hpp"
 
@@ -83,6 +84,29 @@ uint32 ObjLoader::fetchVertex(int32 pos, int32 normal, int32 uv)
 
         _indices.insert(std::make_pair(Vec3i(pos, normal, uv), index));
         return index;
+    }
+}
+
+void ObjLoader::loadCurve(const char *line)
+{
+    uint32 prev = 0;
+    int vertexCount = 0;
+
+    std::istringstream ss(line);
+    while (!ss.fail() && !ss.eof()) {
+        int32 index;
+        ss >> index;
+        if (ss.peek() == '/') {
+            ss.get();
+            uint32 tmp;
+            ss >> tmp;
+        }
+
+        uint32 current = fetchVertex(index, 0, 0);
+
+        if (++vertexCount >= 2)
+            _segments.emplace_back(SegmentI{prev, current});
+        prev = current;
     }
 }
 
@@ -205,6 +229,8 @@ void ObjLoader::loadLine(const char *line)
         _uv.push_back(loadVector<2>(line + 3));
     else if (hasPrefix(line, "f"))
         loadFace(line + 2);
+    else if (hasPrefix(line, "l"))
+        loadCurve(line + 2);
     else if (_geometryOnly)
         return;
     else if (hasPrefix(line, "mtllib"))
@@ -290,6 +316,49 @@ void ObjLoader::clearPerMeshData()
     _indices.clear();
     _tris.clear();
     _verts.clear();
+}
+
+void ObjLoader::finalizeCurveData(std::vector<uint32> &curveEnds, std::vector<Vec4f> &nodeData)
+{
+    std::unique_ptr<uint32[]> pred(new uint32[_verts.size()]);
+    std::unique_ptr<uint32[]> succ(new uint32[_verts.size()]);
+    std::memset(pred.get(), 0, _verts.size()*sizeof(uint32));
+    std::memset(succ.get(), 0, _verts.size()*sizeof(uint32));
+
+    for (const SegmentI &s : _segments) {
+        pred[s.v1] = s.v0 + 1;
+        succ[s.v0] = s.v1 + 1;
+    }
+    int numCurves = 0, numNodes = 0;
+    for (const SegmentI &s : _segments) {
+        if (succ[s.v1] == 0)
+            numCurves++;
+        numNodes++;
+    }
+    numNodes += numCurves*3;
+
+    curveEnds.resize(numCurves);
+    nodeData.resize(numNodes);
+
+    float width = 0.01f;
+    uint32 nodeIdx = 0, curveIdx = 0;
+    for (const SegmentI &s : _segments) {
+        if (pred[s.v0] != 0)
+            continue;
+
+        Vec3f p = _verts[s.v0].pos()*2.0f - _verts[s.v1].pos();
+        nodeData[nodeIdx++] = Vec4f(p.x(), p.y(), p.z(), width);
+        uint32 vert = s.v0 + 1;
+        while (vert) {
+            Vec3f p = _verts[vert - 1].pos();
+            nodeData[nodeIdx++] = Vec4f(p.x(), p.y(), p.z(), width);
+            vert = succ[vert - 1];
+        }
+        p = nodeData[nodeIdx - 1].xyz()*2.0f - nodeData[nodeIdx - 2].xyz();
+        nodeData[nodeIdx++] = Vec4f(p.x(), p.y(), p.z(), width);
+
+        curveEnds[curveIdx++] = nodeIdx;
+    }
 }
 
 std::shared_ptr<Primitive> ObjLoader::tryInstantiateSphere(const std::string &name, std::shared_ptr<Bsdf> &bsdf)
@@ -405,8 +474,14 @@ std::shared_ptr<Primitive> ObjLoader::finalizeMesh()
     else if (name.find("AnalyticCube") != std::string::npos)
         prim = tryInstantiateCube(name, bsdf);
 
-    if (!prim)
+    if (!prim && !_segments.empty()) {
+        std::vector<uint32> curveEnds;
+        std::vector<Vec4f> nodeData;
+        finalizeCurveData(curveEnds, nodeData);
+        prim = std::make_shared<Curves>(std::move(curveEnds), std::move(nodeData), bsdf, name);
+    } else if (!prim) {
         prim = std::make_shared<TriangleMesh>(std::move(_verts), std::move(_tris), bsdf, name, _meshSmoothed, false);
+    }
 
     prim->setEmission(emission);
     prim->setBump(bump);
@@ -435,7 +510,7 @@ ObjLoader::ObjLoader(std::istream &in, const Path &path, std::shared_ptr<Texture
 
     loadFile(in);
 
-    if (!_tris.empty()) {
+    if (!_tris.empty() || !_segments.empty()) {
         _meshes.emplace_back(finalizeMesh());
         clearPerMeshData();
     }
@@ -487,6 +562,19 @@ bool ObjLoader::loadGeometryOnly(const Path &path, std::vector<Vertex> &verts, s
 
     verts = std::move(loader._verts);
     tris  = std::move(loader._tris);
+
+    return true;
+}
+
+bool ObjLoader::loadCurvesOnly(const Path &path, std::vector<uint32> &curveEnds, std::vector<Vec4f> &nodeData)
+{
+    InputStreamHandle file = FileUtils::openInputStream(path);
+    if (!file)
+        return false;
+
+    ObjLoader loader(*file);
+
+    loader.finalizeCurveData(curveEnds, nodeData);
 
     return true;
 }

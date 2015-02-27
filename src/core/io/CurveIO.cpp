@@ -1,4 +1,5 @@
 #include "CurveIO.hpp"
+#include "ObjLoader.hpp"
 #include "FileUtils.hpp"
 
 #include "sampling/UniformSampler.hpp"
@@ -92,6 +93,24 @@ void initializeRandomNormals(CurveData &data)
     }
 
     extrudeMinimumTorsionNormals(data);
+}
+
+bool loadObj(const Path &path, CurveData &data)
+{
+    if (!data.curveEnds || !data.nodeData)
+        return false;
+
+    if (!ObjLoader::loadCurvesOnly(path, *data.curveEnds, *data.nodeData))
+        return false;
+
+    if (data.nodeColor) {
+        data.nodeColor->clear();
+        data.nodeColor->push_back(Vec3f(1.0f));
+    }
+    if (data.nodeNormal)
+        initializeRandomNormals(data);
+
+    return true;
 }
 
 bool loadHair(const Path &path, CurveData &data)
@@ -217,7 +236,7 @@ bool saveHair(const Path &path, const CurveData &data)
     const std::vector<uint32> &curveEnds = *data.curveEnds;
     for (size_t i = 0; i < curveEnds.size(); ++i) {
         uint32 nodeCount = curveEnds[i] - (i ? curveEnds[i - 1] : 0);
-        FileUtils::streamWrite(out, nodeCount - 1);
+        FileUtils::streamWrite(out, uint16(nodeCount - 1));
     }
     for (const Vec4f &v : *data.nodeData)
         FileUtils::streamWrite(out, v.xyz());
@@ -233,6 +252,8 @@ bool load(const Path &path, CurveData &data)
 {
     if (path.testExtension("hair"))
         return loadHair(path, data);
+    else if (path.testExtension("obj"))
+        return loadObj(path, data);
     return false;
 }
 
