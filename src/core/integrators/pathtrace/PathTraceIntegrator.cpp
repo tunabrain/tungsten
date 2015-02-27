@@ -190,6 +190,7 @@ rapidjson::Value PathTraceIntegrator::toJson(Allocator &allocator) const
 
 void PathTraceIntegrator::prepareForRender(TraceableScene &scene)
 {
+    _currentSpp = 0;
     _sampler = UniformSampler(0xBA5EBA11);
     _scene = &scene;
     advanceSpp();

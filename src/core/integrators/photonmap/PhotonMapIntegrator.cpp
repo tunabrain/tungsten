@@ -170,6 +170,7 @@ rapidjson::Value PhotonMapIntegrator::toJson(Allocator &allocator) const
 void PhotonMapIntegrator::prepareForRender(TraceableScene &scene)
 {
     _sampler = UniformSampler(0xBA5EBA11);
+    _currentSpp = 0;
     _totalTracedSurfacePhotons = 0;
     _totalTracedVolumePhotons  = 0;
     _scene = &scene;

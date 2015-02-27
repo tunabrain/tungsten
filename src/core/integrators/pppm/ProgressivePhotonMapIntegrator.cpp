@@ -183,6 +183,7 @@ rapidjson::Value ProgressivePhotonMapIntegrator::toJson(Allocator &allocator) co
 void ProgressivePhotonMapIntegrator::prepareForRender(TraceableScene &scene)
 {
     _sampler = UniformSampler(0xBA5EBA11);
+    _currentSpp = 0;
     _iteration = 0;
     _scene = &scene;
     advanceSpp();
@@ -256,7 +257,6 @@ void ProgressivePhotonMapIntegrator::renderSegment(std::function<void()> complet
 
     _currentSpp = _nextSpp;
     advanceSpp();
-    completionCallback();
     _iteration++;
 
     _surfaceTree.reset();
@@ -264,6 +264,8 @@ void ProgressivePhotonMapIntegrator::renderSegment(std::function<void()> complet
         data.surfaceRange.reset();
         data.volumeRange.reset();
     }
+
+    completionCallback();
 }
 
 void ProgressivePhotonMapIntegrator::startRender(std::function<void()> completionCallback)

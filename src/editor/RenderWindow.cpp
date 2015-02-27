@@ -141,10 +141,10 @@ void RenderWindow::startRender()
         emit rendererFinished();
     };
 
-    _flattenedScene->integrator().startRender(finishCallback);
-
     _rendering = true;
     updateStatus();
+
+    _flattenedScene->integrator().startRender(finishCallback);
 }
 
 void RenderWindow::abortRender()
