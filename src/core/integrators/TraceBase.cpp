@@ -46,6 +46,8 @@ SurfaceScatterEvent TraceBase::makeLocalScatterEvent(IntersectionTemporary &data
 
 bool TraceBase::isConsistent(const SurfaceScatterEvent &event, const Vec3f &w) const
 {
+    if (!_settings.enableConsistencyChecks)
+        return true;
     bool geometricBackside = (w.dot(event.info->Ng) < 0.0f);
     bool shadingBackside = (event.wo.z() < 0.0f) ^ event.flippedFrame;
     return geometricBackside == shadingBackside;
