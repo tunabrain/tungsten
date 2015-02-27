@@ -341,6 +341,7 @@ void Curves::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     Primitive::fromJson(v, scene);
     _path = scene.fetchResource(v, "file");
+    _bsdf = scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf"));
     JsonUtils::fromJson(v, "mode", _modeString);
 
     init();
