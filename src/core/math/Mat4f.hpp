@@ -240,7 +240,7 @@ public:
     static Mat4f translate(const Vec3f &v);
     static Mat4f scale(const Vec3f &s);
     static Mat4f rotXYZ(const Vec3f &rot);
-    static Mat4f rotYZX(const Vec3f &rot);
+    static Mat4f rotYXZ(const Vec3f &rot);
     static Mat4f rotAxis(const Vec3f &axis, float angle);
 
     static Mat4f ortho(float l, float r, float b, float t, float near, float far);

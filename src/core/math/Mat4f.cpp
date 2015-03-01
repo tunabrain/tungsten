@@ -83,17 +83,17 @@ Mat4f Mat4f::rotXYZ(const Vec3f &rot)
     );
 }
 
-Mat4f Mat4f::rotYZX(const Vec3f &rot)
+Mat4f Mat4f::rotYXZ(const Vec3f &rot)
 {
     Vec3f r = rot*PI/180.0f;
     float c[] = {std::cos(r.x()), std::cos(r.y()), std::cos(r.z())};
     float s[] = {std::sin(r.x()), std::sin(r.y()), std::sin(r.z())};
 
     return Mat4f(
-         c[1]*c[2],  c[0]*c[1]*s[2] - s[0]*s[1], c[0]*s[1] + c[1]*s[0]*s[2], 0.0f,
-             -s[2],                   c[0]*c[2],                  c[2]*s[0], 0.0f,
-        -c[2]*s[1], -c[1]*s[0] - c[0]*s[1]*s[2], c[0]*c[1] - s[0]*s[1]*s[2], 0.0f,
-              0.0f,                        0.0f,                       0.0f, 1.0f
+		c[1]*c[2] - s[1]*s[0]*s[2],   -c[1]*s[2] - s[1]*s[0]*c[2], -s[1]*c[0], 0.0f,
+						 c[0]*s[2],                     c[0]*c[2],      -s[0], 0.0f,
+		s[1]*c[2] + c[1]*s[0]*s[2],   -s[1]*s[2] + c[1]*s[0]*c[2],  c[1]*c[0], 0.0f,
+							  0.0f,                          0.0f,       0.0f, 1.0f
     );
 }
 
