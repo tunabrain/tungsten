@@ -116,6 +116,96 @@ public:
         );
     }
 
+    Mat4f operator-(const Mat4f &o) const
+    {
+    	Mat4f tmp(*this);
+    	for (int i = 0; i < 16; ++i)
+    		tmp[i] -= o[i];
+    	return tmp;
+    }
+
+    Mat4f operator+(const Mat4f &o) const
+    {
+    	Mat4f tmp(*this);
+    	for (int i = 0; i < 16; ++i)
+    		tmp[i] += o[i];
+    	return tmp;
+    }
+
+    Mat4f operator-(float o) const
+    {
+    	Mat4f tmp(*this);
+    	for (int i = 0; i < 16; ++i)
+    		tmp[i] -= o;
+    	return tmp;
+    }
+
+    Mat4f operator+(float o) const
+    {
+    	Mat4f tmp(*this);
+    	for (int i = 0; i < 16; ++i)
+    		tmp[i] += o;
+    	return tmp;
+    }
+
+    Mat4f &operator-=(const Mat4f &o)
+	{
+    	for (int i = 0; i < 16; ++i)
+    		a[i] -= o[i];
+    	return *this;
+	}
+
+    Mat4f &operator+=(const Mat4f &o)
+	{
+    	for (int i = 0; i < 16; ++i)
+    		a[i] += o[i];
+    	return *this;
+	}
+
+    Mat4f &operator-=(float o)
+	{
+    	for (int i = 0; i < 16; ++i)
+    		a[i] -= o;
+    	return *this;
+	}
+
+    Mat4f &operator+=(float o)
+	{
+    	for (int i = 0; i < 16; ++i)
+    		a[i] += o;
+    	return *this;
+	}
+
+    Mat4f operator*(float o) const
+    {
+    	Mat4f tmp(*this);
+    	for (int i = 0; i < 16; ++i)
+    		tmp[i] *= o;
+    	return tmp;
+    }
+
+    Mat4f operator/(float o) const
+    {
+    	Mat4f tmp(*this);
+    	for (int i = 0; i < 16; ++i)
+    		tmp[i] /= o;
+    	return tmp;
+    }
+
+    Mat4f &operator*=(float o)
+    {
+    	for (int i = 0; i < 16; ++i)
+    		a[i] *= o;
+    	return *this;
+    }
+
+    Mat4f &operator/=(float o)
+    {
+    	for (int i = 0; i < 16; ++i)
+    		a[i] /= o;
+    	return *this;
+    }
+
     Mat4f toNormalMatrix() const;
 
     Mat4f extractRotation() const;
