@@ -87,6 +87,27 @@ public:
         return Vec3f(a13, a23, a33);
     }
 
+    void setRight(const Vec3f &x)
+    {
+    	a11 = x.x();
+    	a21 = x.y();
+    	a31 = x.z();
+    }
+
+    void setUp(const Vec3f &y)
+    {
+    	a12 = y.x();
+    	a22 = y.y();
+    	a32 = y.z();
+    }
+
+    void setFwd(const Vec3f &z)
+    {
+    	a13 = z.x();
+    	a23 = z.y();
+    	a33 = z.z();
+    }
+
     float operator()(int i, int j) const
     {
         return a[i*4 + j];
