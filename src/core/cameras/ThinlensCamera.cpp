@@ -147,7 +147,10 @@ void ThinlensCamera::prepareForRender()
     if (!_focusPivot.empty()) {
         const Primitive *prim = _scene->findPrimitive(_focusPivot);
 
-        _focusDist = (prim->transform()*Vec3f(0.0f) - _pos).length();
+        if (prim)
+        	_focusDist = (prim->transform()*Vec3f(0.0f) - _pos).length();
+        else
+        	DBG("Warning: Focus pivot '%s' for thinlens camera not found", _focusPivot);
     }
 }
 
