@@ -84,11 +84,15 @@ rapidjson::Value toJsonValue(const Mat4f &value, rapidjson::Document::AllocatorT
 template<typename ElementType, unsigned Size>
 rapidjson::Value toJsonValue(const Vec<ElementType, Size> &value, rapidjson::Document::AllocatorType &allocator)
 {
-    rapidjson::Value a(rapidjson::kArrayType);
-    for (unsigned i = 0; i < Size; ++i)
-        a.PushBack(value[i], allocator);
+	if (value == value[0]) {
+		return toJsonValue(value[0], allocator);
+	} else {
+		rapidjson::Value a(rapidjson::kArrayType);
+		for (unsigned i = 0; i < Size; ++i)
+			a.PushBack(value[i], allocator);
 
-    return std::move(a);
+		return std::move(a);
+	}
 }
 
 void addObjectMember(rapidjson::Value &v, const char *name, const JsonSerializable &o,
