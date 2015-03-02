@@ -66,9 +66,9 @@ Scene::Scene()
 
 Scene::Scene(const Path &srcDir, std::shared_ptr<TextureCache> cache)
 : _srcDir(srcDir),
-  _textureCache(std::move(cache)),
   _errorBsdf(std::make_shared<ErrorBsdf>()),
   _errorTexture(std::make_shared<ConstantTexture>(Vec3f(1.0f, 0.0f, 0.0f))),
+  _textureCache(std::move(cache)),
   _camera(std::make_shared<PinholeCamera>()),
   _integrator(std::make_shared<PathTraceIntegrator>())
 {
@@ -82,9 +82,9 @@ Scene::Scene(const Path &srcDir,
 : _srcDir(srcDir),
   _primitives(std::move(primitives)),
   _bsdfs(std::move(bsdfs)),
-  _textureCache(std::move(cache)),
   _errorBsdf(std::make_shared<ErrorBsdf>()),
   _errorTexture(std::make_shared<ConstantTexture>(Vec3f(1.0f, 0.0f, 0.0f))),
+  _textureCache(std::move(cache)),
   _camera(std::move(camera)),
   _integrator(std::make_shared<PathTraceIntegrator>())
 {
