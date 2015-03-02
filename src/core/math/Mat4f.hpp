@@ -250,6 +250,17 @@ public:
     friend Mat4f operator*(const Mat4f &a, const Mat4f &b);
     friend Vec4f operator*(const Mat4f &a, const Vec4f &b);
     friend Vec3f operator*(const Mat4f &a, const Vec3f &b);
+
+    friend std::ostream &operator<< (std::ostream &stream, const Mat4f &m) {
+    	for (int i = 0; i < 4; ++i) {
+			stream << '[';
+			for (uint32 j = 0; j < 4; ++j)
+				stream << m[i*4 + j] << (j == 3 ? ']' : ',');
+			if (i < 3)
+				stream << std::endl;
+    	}
+        return stream;
+    }
 };
 
 static inline Mat4f operator*(const Mat4f &a, const Mat4f &b)
