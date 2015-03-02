@@ -39,6 +39,8 @@ class Scene : public JsonSerializable
     std::vector<std::shared_ptr<Primitive>> _primitives;
     std::vector<std::shared_ptr<Medium>> _media;
     std::vector<std::shared_ptr<Bsdf>> _bsdfs;
+    std::shared_ptr<Bsdf> _errorBsdf;
+    std::shared_ptr<Texture> _errorTexture;
     std::shared_ptr<TextureCache> _textureCache;
     std::shared_ptr<Camera> _camera;
     std::shared_ptr<Integrator> _integrator;
@@ -167,6 +169,11 @@ public:
     {
         return _resources;
     }
+
+    std::shared_ptr<Bsdf> errorBsdf() const
+	{
+    	return _errorBsdf;
+	}
 
     static Scene *load(const Path &path, std::shared_ptr<TextureCache> cache = nullptr);
     static void save(const Path &path, const Scene &scene);

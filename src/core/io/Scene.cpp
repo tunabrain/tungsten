@@ -43,6 +43,7 @@
 #include "bsdfs/LambertBsdf.hpp"
 #include "bsdfs/PlasticBsdf.hpp"
 #include "bsdfs/MirrorBsdf.hpp"
+#include "bsdfs/ErrorBsdf.hpp"
 #include "bsdfs/PhongBsdf.hpp"
 #include "bsdfs/MixedBsdf.hpp"
 #include "bsdfs/NullBsdf.hpp"
@@ -56,7 +57,9 @@
 namespace Tungsten {
 
 Scene::Scene()
-: _camera(std::make_shared<PinholeCamera>()),
+: _errorBsdf(std::make_shared<ErrorBsdf>()),
+  _errorTexture(std::make_shared<ConstantTexture>(Vec3f(1.0f, 0.0f, 0.0f))),
+  _camera(std::make_shared<PinholeCamera>()),
   _integrator(std::make_shared<PathTraceIntegrator>())
 {
 }
@@ -64,6 +67,8 @@ Scene::Scene()
 Scene::Scene(const Path &srcDir, std::shared_ptr<TextureCache> cache)
 : _srcDir(srcDir),
   _textureCache(std::move(cache)),
+  _errorBsdf(std::make_shared<ErrorBsdf>()),
+  _errorTexture(std::make_shared<ConstantTexture>(Vec3f(1.0f, 0.0f, 0.0f))),
   _camera(std::make_shared<PinholeCamera>()),
   _integrator(std::make_shared<PathTraceIntegrator>())
 {
@@ -78,6 +83,8 @@ Scene::Scene(const Path &srcDir,
   _primitives(std::move(primitives)),
   _bsdfs(std::move(bsdfs)),
   _textureCache(std::move(cache)),
+  _errorBsdf(std::make_shared<ErrorBsdf>()),
+  _errorTexture(std::make_shared<ConstantTexture>(Vec3f(1.0f, 0.0f, 0.0f))),
   _camera(std::move(camera)),
   _integrator(std::make_shared<PathTraceIntegrator>())
 {
@@ -90,8 +97,10 @@ std::shared_ptr<Medium> Scene::instantiateMedium(std::string type, const rapidjs
         result = std::make_shared<HomogeneousMedium>();
     else if (type == "atmosphere")
         result = std::make_shared<AtmosphericMedium>();
-    else
-        FAIL("Unkown medium type: '%s'", type.c_str());
+    else {
+        DBG("Unkown medium type: '%s'", type.c_str());
+        return nullptr;
+    }
     result->fromJson(value, *this);
     return result;
 }
@@ -133,8 +142,10 @@ std::shared_ptr<Bsdf> Scene::instantiateBsdf(std::string type, const rapidjson::
         result = std::make_shared<RoughCoatBsdf>();
     else if (type == "transparency")
         result = std::make_shared<TransparencyBsdf>();
-    else
-        FAIL("Unkown bsdf type: '%s'", type.c_str());
+    else {
+        DBG("Unkown bsdf type: '%s'", type.c_str());
+        return nullptr;
+    }
     result->fromJson(value, *this);
     return result;
 }
@@ -162,8 +173,10 @@ std::shared_ptr<Primitive> Scene::instantiatePrimitive(std::string type, const r
         result = std::make_shared<MinecraftLoader::TraceableMinecraftMap>();
     else if (type == "skydome")
         result = std::make_shared<Skydome>();
-    else
-        FAIL("Unknown primitive type: '%s'", type.c_str());
+    else {
+        DBG("Unknown primitive type: '%s'", type.c_str());
+        return nullptr;
+    }
 
     result->fromJson(value, *this);
     return result;
@@ -176,8 +189,10 @@ std::shared_ptr<Camera> Scene::instantiateCamera(std::string type, const rapidjs
         result = std::make_shared<PinholeCamera>();
     else if (type == "thinlens")
         result = std::make_shared<ThinlensCamera>();
-    else
-        FAIL("Unknown camera type: '%s'", type.c_str());
+    else {
+        DBG("Unknown camera type: '%s'", type.c_str());
+        return nullptr;
+    }
 
     result->fromJson(value, *this);
     return result;
@@ -192,8 +207,10 @@ std::shared_ptr<Integrator> Scene::instantiateIntegrator(std::string type, const
         result = std::make_shared<PhotonMapIntegrator>();
     else if (type == "progressive_photon_map")
         result = std::make_shared<ProgressivePhotonMapIntegrator>();
-    else
-        FAIL("Unknown integrator type: '%s'", type.c_str());
+    else {
+        DBG("Unknown integrator type: '%s'", type.c_str());
+        return nullptr;
+    }
 
     result->fromJson(value, *this);
     return result;
@@ -212,8 +229,10 @@ std::shared_ptr<Texture> Scene::instantiateTexture(std::string type, const rapid
         result = std::make_shared<DiskTexture>();
     else if (type == "blade")
         result = std::make_shared<BladeTexture>();
-    else
-        FAIL("Unkown texture type: '%s'", type.c_str());
+    else {
+        DBG("Unkown texture type: '%s'", type.c_str());
+        return nullptr;
+    }
 
     result->fromJson(value, *this);
     return result;
@@ -223,10 +242,13 @@ template<typename Instantiator, typename Element>
 void Scene::loadObjectList(const rapidjson::Value &container, Instantiator instantiator, std::vector<std::shared_ptr<Element>> &result)
 {
     for (unsigned i = 0; i < container.Size(); ++i) {
-        if (container[i].IsObject())
-            result.push_back(instantiator(JsonUtils::as<std::string>(container[i], "type"), container[i]));
-        else
+        if (container[i].IsObject()) {
+        	auto element = instantiator(JsonUtils::as<std::string>(container[i], "type"), container[i]);
+        	if (element)
+        		result.push_back(std::move(element));
+        } else {
             DBG("Don't know what to do with non-object in object list");
+        }
     }
 }
 
@@ -262,7 +284,10 @@ std::shared_ptr<Medium> Scene::fetchMedium(const rapidjson::Value &v) const
 std::shared_ptr<Bsdf> Scene::fetchBsdf(const rapidjson::Value &v) const
 {
     using namespace std::placeholders;
-    return fetchObject(_bsdfs, v, std::bind(&Scene::instantiateBsdf, this, _1, _2));
+    auto result = fetchObject(_bsdfs, v, std::bind(&Scene::instantiateBsdf, this, _1, _2));
+    if (!result)
+    	return _errorBsdf;
+    return std::move(result);
 }
 
 std::shared_ptr<Texture> Scene::fetchTexture(const rapidjson::Value &v, TexelConversion conversion) const
@@ -280,7 +305,7 @@ std::shared_ptr<Texture> Scene::fetchTexture(const rapidjson::Value &v, TexelCon
     else if (v.IsObject())
         return instantiateTexture(JsonUtils::as<std::string>(v, "type"), v, conversion);
     else
-        FAIL("Cannot instantiate texture from unknown value type");
+    	DBG("Cannot instantiate texture from unknown value type");
     return nullptr;
 }
 
@@ -410,11 +435,17 @@ void Scene::fromJson(const rapidjson::Value &v, const Scene &scene)
     if (primitives && primitives->value.IsArray())
         loadObjectList(primitives->value, std::bind(&Scene::instantiatePrimitive, this, _1, _2), _primitives);
 
-    if (camera && camera->value.IsObject())
-        _camera = instantiateCamera(JsonUtils::as<std::string>(camera->value, "type"), camera->value);
+    if (camera && camera->value.IsObject()) {
+    	auto result = instantiateCamera(JsonUtils::as<std::string>(camera->value, "type"), camera->value);
+    	if (result)
+    		_camera = std::move(result);
+    }
 
-    if (integrator && integrator->value.IsObject())
-        _integrator = instantiateIntegrator(JsonUtils::as<std::string>(integrator->value, "type"), integrator->value);
+    if (integrator && integrator->value.IsObject()) {
+    	auto result = instantiateIntegrator(JsonUtils::as<std::string>(integrator->value, "type"), integrator->value);
+    	if (result)
+    		_integrator = std::move(result);
+    }
 
     if (renderer && renderer->value.IsObject())
         _rendererSettings.fromJson(renderer->value, *this);
