@@ -115,6 +115,7 @@ Vec3f TraceBase::attenuatedEmission(const Primitive &light,
 
     if (!light.intersect(ray, data) || ray.farT()*fudgeFactor < expectedDist)
         return Vec3f(0.0f);
+    info.w = ray.dir();
     light.intersectionInfo(data, info);
 
     Vec3f transmittance = generalizedShadowRay(ray, medium, &light, bounce);
