@@ -326,16 +326,26 @@ void BitmapTexture::makeSamplable(TextureMapJacobian jacobian)
         float rowWeight = 1.0f;
         if (jacobian == MAP_SPHERICAL)
             rowWeight *= std::sin((y*PI)/_h);
-        for (int x = 0; x < _w; ++x, ++idx) {
-            float w = weight(x, y)*4.0f
-                    + weight((x + _w - 1) % _w, y)
-                    + weight(x, (y + _h - 1) % _h)
-                    + weight((x + 1) % _w, y)
-                    + weight(x, (y + 1) % _h);
-
-            weights[idx] = w*0.125f*rowWeight;
-        }
+        for (int x = 0; x < _w; ++x, ++idx)
+            weights[idx] = weight(x, y)*rowWeight;
     }
+    for (int y = 0; y < _h; ++y) {
+        for (int x = 0; x < _w - 1; ++x)
+            weights[x + y*_w] = max(weights[x + y*_w], weights[x + 1 + y*_w]);
+        if (!_clamp)
+            weights[y*_w] = weights[_w - 1 + y*_w] = max(weights[_w - 1 + y*_w], weights[y*_w]);
+        for (int x = _w - 1; x > 0; --x)
+            weights[x + y*_w] = max(weights[x + y*_w], weights[x - 1 + y*_w]);
+    }
+    for (int x = 0; x < _w; ++x)
+        for (int y = 0; y < _h - 1; ++y) {
+            weights[x + y*_w] = max(weights[x + y*_w], weights[x + (y + 1)*_w]);
+        if (!_clamp)
+            weights[x] = weights[x + (_h - 1)*_w] = max(weights[x], weights[x + (_h - 1)*_w]);
+        for (int y = _h - 1; y > 0; --y)
+            weights[x + y*_w] = max(weights[x + y*_w], weights[x + (y - 1)*_w]);
+    }
+
     _distribution[jacobian].reset(new Distribution2D(std::move(weights), _w, _h));
 }
 
