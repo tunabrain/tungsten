@@ -27,6 +27,8 @@ Camera::Camera(const Mat4f &transform, const Vec2u &res)
     _lookAt = _transform*Vec3f(0.0f, 0.0f, -1.0f);
     _up     = _transform*Vec3f(0.0f, 1.0f, 0.0f);
 
+    _transform.setRight(-_transform.right());
+
     precompute();
 }
 
@@ -57,6 +59,8 @@ void Camera::fromJson(const rapidjson::Value &v, const Scene &scene)
 			JsonUtils::fromJson(transform->value, "up", _up);
 			JsonUtils::fromJson(transform->value, "look_at", _lookAt);
     	}
+
+    	_transform.setRight(-_transform.right());
     }
 
     precompute();
@@ -99,24 +103,28 @@ void Camera::setTransform(const Vec3f &pos, const Vec3f &lookAt, const Vec3f &up
     _pos = pos;
     _lookAt = lookAt;
     _up = up;
+    _transform = Mat4f::lookAt(_pos, _lookAt - _pos, _up);
     precompute();
 }
 
 void Camera::setPos(const Vec3f &pos)
 {
     _pos = pos;
+    _transform = Mat4f::lookAt(_pos, _lookAt - _pos, _up);
     precompute();
 }
 
 void Camera::setLookAt(const Vec3f &lookAt)
 {
     _lookAt = lookAt;
+    _transform = Mat4f::lookAt(_pos, _lookAt - _pos, _up);
     precompute();
 }
 
 void Camera::setUp(const Vec3f &up)
 {
     _up = up;
+    _transform = Mat4f::lookAt(_pos, _lookAt - _pos, _up);
     precompute();
 }
 
