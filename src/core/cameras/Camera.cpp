@@ -35,21 +35,29 @@ void Camera::precompute()
     _tonemapOp = Tonemap::stringToType(_tonemapString);
     _ratio = _res.y()/float(_res.x());
     _pixelSize = Vec2f(2.0f/_res.x(), 2.0f/_res.x());
-    _transform = Mat4f::lookAt(_pos, _lookAt - _pos, _up);
     _invTransform = _transform.pseudoInvert();
 }
 
 void Camera::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     JsonUtils::fromJson(v, "tonemap", _tonemapString);
-    JsonUtils::fromJson(v, "position", _pos);
-    JsonUtils::fromJson(v, "lookAt", _lookAt);
-    JsonUtils::fromJson(v, "up", _up);
     JsonUtils::fromJson(v, "resolution", _res);
     if (const rapidjson::Value::Member *medium = v.FindMember("medium"))
         _medium = scene.fetchMedium(medium->value);
     if (const rapidjson::Value::Member *filter = v.FindMember("reconstruction_filter"))
         _filter.fromJson(filter->value);
+
+    if (const rapidjson::Value::Member *transform = v.FindMember("transform")) {
+    	JsonUtils::fromJson(transform->value, _transform);
+    	_pos    = _transform.extractTranslationVec();
+		_lookAt = _transform.fwd() + _pos;
+		_up     = _transform.up();
+
+    	if (transform->value.IsObject()) {
+			JsonUtils::fromJson(transform->value, "up", _up);
+			JsonUtils::fromJson(transform->value, "look_at", _lookAt);
+    	}
+    }
 
     precompute();
 }
@@ -58,13 +66,17 @@ rapidjson::Value Camera::toJson(Allocator &allocator) const
 {
     rapidjson::Value v = JsonSerializable::toJson(allocator);
     v.AddMember("tonemap", _tonemapString.c_str(), allocator);
-    v.AddMember("position", JsonUtils::toJsonValue<float, 3>(_pos,    allocator), allocator);
-    v.AddMember("lookAt",   JsonUtils::toJsonValue<float, 3>(_lookAt, allocator), allocator);
-    v.AddMember("up",       JsonUtils::toJsonValue<float, 3>(_up,     allocator), allocator);
     v.AddMember("resolution", JsonUtils::toJsonValue<uint32, 2>(_res, allocator), allocator);
     if (_medium)
         JsonUtils::addObjectMember(v, "medium", *_medium,  allocator);
     v.AddMember("reconstruction_filter", _filter.toJson(allocator), allocator);
+
+    rapidjson::Value tform(rapidjson::kObjectType);
+    tform.AddMember("position", JsonUtils::toJsonValue<float, 3>(_pos,    allocator), allocator);
+    tform.AddMember("look_at",  JsonUtils::toJsonValue<float, 3>(_lookAt, allocator), allocator);
+    tform.AddMember("up",       JsonUtils::toJsonValue<float, 3>(_up,     allocator), allocator);
+    v.AddMember("transform", std::move(tform), allocator);
+
     return std::move(v);
 }
 
