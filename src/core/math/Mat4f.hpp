@@ -229,7 +229,9 @@ public:
 
     Mat4f toNormalMatrix() const;
 
+    Vec3f extractRotationVec() const;
     Mat4f extractRotation() const;
+    Vec3f extractTranslationVec() const;
     Mat4f extractTranslation() const;
     Vec3f extractScaleVec() const;
     Mat4f extractScale() const;

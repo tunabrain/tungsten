@@ -10,6 +10,19 @@ Mat4f Mat4f::toNormalMatrix() const
     return scale(1.0f/Vec3f(right().lengthSq(), up().lengthSq(), fwd().lengthSq()))**this;
 }
 
+Vec3f Mat4f::extractRotationVec() const
+{
+	float pitch = std::atan2(-a23, std::sqrt(a13*a13 + a33*a33));
+	float yaw   = std::atan2(-a13, a33);
+	float roll  = std::atan2(a21, a22);
+
+	return Vec3f(
+		Angle::radToDeg(pitch),
+		Angle::radToDeg(yaw),
+		Angle::radToDeg(roll)
+	);
+}
+
 Mat4f Mat4f::extractRotation() const
 {
     return Mat4f(
@@ -27,6 +40,11 @@ Vec3f Mat4f::extractScaleVec() const
 Mat4f Mat4f::extractScale() const
 {
     return scale(Vec3f(right().length(), up().length(), fwd().length()));
+}
+
+Vec3f Mat4f::extractTranslationVec() const
+{
+	return Vec3f(a14, a24, a34);
 }
 
 Mat4f Mat4f::extractTranslation() const
