@@ -23,20 +23,20 @@ CheckerTexture::CheckerTexture(Vec3f onColor, Vec3f offColor, int resU, int resV
 void CheckerTexture::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     Texture::fromJson(v, scene);
-    scalarOrVecFromJson(v, "onColor",   _onColor);
-    scalarOrVecFromJson(v, "offColor", _offColor);
-    JsonUtils::fromJson(v, "resU", _resU);
-    JsonUtils::fromJson(v, "resV", _resV);
+    scalarOrVecFromJson(v, "on_color",   _onColor);
+    scalarOrVecFromJson(v, "off_color", _offColor);
+    JsonUtils::fromJson(v, "res_u", _resU);
+    JsonUtils::fromJson(v, "res_v", _resV);
 }
 
 rapidjson::Value CheckerTexture::toJson(Allocator &allocator) const
 {
     rapidjson::Value v = Texture::toJson(allocator);
     v.AddMember("type", "checker", allocator);
-    v.AddMember("onColor",  scalarOrVecToJson( _onColor, allocator), allocator);
-    v.AddMember("offColor", scalarOrVecToJson(_offColor, allocator), allocator);
-    v.AddMember("resU", _resU, allocator);
-    v.AddMember("resV", _resV, allocator);
+    v.AddMember("on_color",  scalarOrVecToJson( _onColor, allocator), allocator);
+    v.AddMember("off_color", scalarOrVecToJson(_offColor, allocator), allocator);
+    v.AddMember("res_u", _resU, allocator);
+    v.AddMember("res_v", _resV, allocator);
     return std::move(v);
 }
 

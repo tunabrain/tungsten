@@ -35,7 +35,7 @@ void RoughCoatBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
     Bsdf::fromJson(v, scene);
     JsonUtils::fromJson(v, "ior", _ior);
     JsonUtils::fromJson(v, "thickness", _thickness);
-    JsonUtils::fromJson(v, "sigmaA", _sigmaA);
+    JsonUtils::fromJson(v, "sigma_a", _sigmaA);
     JsonUtils::fromJson(v, "distribution", _distributionName);
     scene.textureFromJsonMember(v, "roughness", TexelConversion::REQUEST_AVERAGE, _roughness);
     _substrate = scene.fetchBsdf(JsonUtils::fetchMember(v, "substrate"));
@@ -50,7 +50,7 @@ rapidjson::Value RoughCoatBsdf::toJson(Allocator &allocator) const
     v.AddMember("type", "rough_coat", allocator);
     v.AddMember("ior", _ior, allocator);
     v.AddMember("thickness", _thickness, allocator);
-    v.AddMember("sigmaA", JsonUtils::toJsonValue(_sigmaA, allocator), allocator);
+    v.AddMember("sigma_a", JsonUtils::toJsonValue(_sigmaA, allocator), allocator);
     JsonUtils::addObjectMember(v, "substrate", *_substrate, allocator);
     v.AddMember("distribution", _distributionName.c_str(), allocator);
     JsonUtils::addObjectMember(v, "roughness", *_roughness, allocator);

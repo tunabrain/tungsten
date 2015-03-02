@@ -69,7 +69,7 @@ void Skydome::fromJson(const rapidjson::Value &v, const Scene &scene)
     JsonUtils::fromJson(v, "gamma_scale", _gammaScale);
     JsonUtils::fromJson(v, "turbidity", _turbidity);
     JsonUtils::fromJson(v, "intensity", _intensity);
-    JsonUtils::fromJson(v, "doSample", _doSample);
+    JsonUtils::fromJson(v, "sample", _doSample);
 
     _bsdf = scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf"));
 }
@@ -81,7 +81,7 @@ rapidjson::Value Skydome::toJson(Allocator &allocator) const
     v.AddMember("gamma_scale", _gammaScale, allocator);
     v.AddMember("turbidity", _turbidity, allocator);
     v.AddMember("intensity", _intensity, allocator);
-    v.AddMember("doSample", _doSample, allocator);
+    v.AddMember("sample", _doSample, allocator);
 
     JsonUtils::addObjectMember(v, "bsdf", *_bsdf, allocator);
 

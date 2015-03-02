@@ -15,7 +15,7 @@
             "type": "smooth_coat",
             "ior": 1.7,
             "thickness": 5,
-            "sigmaA": [
+            "sigma_a": [
                 0.1,
                 0.2,
                 0.5
@@ -31,18 +31,18 @@
             "name": "Floor",
             "albedo": {
                 "type": "checker",
-                "onColor": [
+                "on_color": [
                     0.725,
                     0.71,
                     0.68
                 ],
-                "offColor": [
+                "off_color": [
                     0.325,
                     0.31,
                     0.25
                 ],
-                "resU": 20,
-                "resV": 20
+                "res_u": 20,
+                "res_v": 20
             },
             "type": "lambert"
         }
@@ -84,7 +84,7 @@
             "bump_strength": 1,
             "emission": "envmap.hdr",
             "type": "infinite_sphere",
-            "doSample": true,
+            "sample": true,
             "bsdf": {
                 "albedo": 1,
                 "type": "null"

@@ -37,7 +37,7 @@ void PlasticBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
     Bsdf::fromJson(v, scene);
     JsonUtils::fromJson(v, "ior", _ior);
     JsonUtils::fromJson(v, "thickness", _thickness);
-    JsonUtils::fromJson(v, "sigmaA", _sigmaA);
+    JsonUtils::fromJson(v, "sigma_a", _sigmaA);
 
     init();
 }
@@ -48,7 +48,7 @@ rapidjson::Value PlasticBsdf::toJson(Allocator &allocator) const
     v.AddMember("type", "plastic", allocator);
     v.AddMember("ior", _ior, allocator);
     v.AddMember("thickness", _thickness, allocator);
-    v.AddMember("sigmaA", JsonUtils::toJsonValue(_sigmaA, allocator), allocator);
+    v.AddMember("sigma_a", JsonUtils::toJsonValue(_sigmaA, allocator), allocator);
     return std::move(v);
 }
 

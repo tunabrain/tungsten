@@ -33,7 +33,7 @@ void ThinSheetBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
     Bsdf::fromJson(v, scene);
     JsonUtils::fromJson(v, "ior", _ior);
     JsonUtils::fromJson(v, "enable_interference", _enableInterference);
-    JsonUtils::fromJson(v, "sigmaA", _sigmaA);
+    JsonUtils::fromJson(v, "sigma_a", _sigmaA);
     scene.textureFromJsonMember(v, "thickness", TexelConversion::REQUEST_AVERAGE, _thickness);
 }
 
@@ -44,7 +44,7 @@ rapidjson::Value ThinSheetBsdf::toJson(Allocator &allocator) const
     v.AddMember("ior", _ior, allocator);
     v.AddMember("enable_interference", _enableInterference, allocator);
     JsonUtils::addObjectMember(v, "thickness", *_thickness, allocator);
-    v.AddMember("sigmaA", JsonUtils::toJsonValue(_sigmaA, allocator), allocator);
+    v.AddMember("sigma_a", JsonUtils::toJsonValue(_sigmaA, allocator), allocator);
     return std::move(v);
 }
 

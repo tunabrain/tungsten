@@ -55,7 +55,7 @@ void InfiniteSphere::buildProxy()
 void InfiniteSphere::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     Primitive::fromJson(v, scene);
-    JsonUtils::fromJson(v, "doSample", _doSample);
+    JsonUtils::fromJson(v, "sample", _doSample);
 
     _bsdf = scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf"));
 }
@@ -63,7 +63,7 @@ rapidjson::Value InfiniteSphere::toJson(Allocator &allocator) const
 {
     rapidjson::Value v = Primitive::toJson(allocator);
     v.AddMember("type", "infinite_sphere", allocator);
-    v.AddMember("doSample", _doSample, allocator);
+    v.AddMember("sample", _doSample, allocator);
     JsonUtils::addObjectMember(v, "bsdf", *_bsdf, allocator);
     return std::move(v);
 }

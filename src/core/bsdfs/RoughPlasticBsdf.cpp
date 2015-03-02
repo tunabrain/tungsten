@@ -47,7 +47,7 @@ void RoughPlasticBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
     JsonUtils::fromJson(v, "ior", _ior);
     JsonUtils::fromJson(v, "distribution", _distributionName);
     JsonUtils::fromJson(v, "thickness", _thickness);
-    JsonUtils::fromJson(v, "sigmaA", _sigmaA);
+    JsonUtils::fromJson(v, "sigma_a", _sigmaA);
     scene.textureFromJsonMember(v, "roughness", TexelConversion::REQUEST_AVERAGE, _roughness);
 
     init();
@@ -59,7 +59,7 @@ rapidjson::Value RoughPlasticBsdf::toJson(Allocator &allocator) const
     v.AddMember("type", "rough_plastic", allocator);
     v.AddMember("ior", _ior, allocator);
     v.AddMember("thickness", _thickness, allocator);
-    v.AddMember("sigmaA", JsonUtils::toJsonValue(_sigmaA, allocator), allocator);
+    v.AddMember("sigma_a", JsonUtils::toJsonValue(_sigmaA, allocator), allocator);
     v.AddMember("distribution", _distributionName.c_str(), allocator);
     JsonUtils::addObjectMember(v, "roughness", *_roughness, allocator);
     return std::move(v);

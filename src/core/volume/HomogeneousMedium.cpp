@@ -27,8 +27,8 @@ void HomogeneousMedium::init()
 void HomogeneousMedium::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     Medium::fromJson(v, scene);
-    JsonUtils::fromJson(v, "sigmaA", _sigmaA);
-    JsonUtils::fromJson(v, "sigmaS", _sigmaS);
+    JsonUtils::fromJson(v, "sigma_a", _sigmaA);
+    JsonUtils::fromJson(v, "sigma_s", _sigmaS);
 
     init();
 }
@@ -37,8 +37,8 @@ rapidjson::Value HomogeneousMedium::toJson(Allocator &allocator) const
 {
     rapidjson::Value v(Medium::toJson(allocator));
     v.AddMember("type", "homogeneous", allocator);
-    v.AddMember("sigmaA", JsonUtils::toJsonValue(_sigmaA, allocator), allocator);
-    v.AddMember("sigmaS", JsonUtils::toJsonValue(_sigmaS, allocator), allocator);
+    v.AddMember("sigma_a", JsonUtils::toJsonValue(_sigmaA, allocator), allocator);
+    v.AddMember("sigma_s", JsonUtils::toJsonValue(_sigmaS, allocator), allocator);
 
     return std::move(v);
 }
