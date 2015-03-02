@@ -235,7 +235,7 @@ void Quad::prepareForRender()
     _base -= _edge0*0.5f;
     _base -= _edge1*0.5f;
 
-    _n = _edge0.cross(_edge1);
+    _n = _edge1.cross(_edge0);
     _area = _n.length();
     _n /= _area;
 

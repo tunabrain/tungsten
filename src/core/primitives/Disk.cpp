@@ -241,7 +241,7 @@ void Disk::prepareForRender()
 {
     _center = _transform*Vec3f(0.0f);
     _r = (_transform.extractScale()*Vec3f(1.0f, 0.0f, 1.0f)).max();
-    _n = _transform.transformVector(Vec3f(0.0f, -1.0f, 0.0f)).normalized();
+    _n = _transform.transformVector(Vec3f(0.0f, 1.0f, 0.0f)).normalized();
     _frame = TangentFrame(_n);
     _cosApex = std::cos(Angle::degToRad(_coneAngle));
     _coneBase = _center - _n/std::sin(Angle::degToRad(_coneAngle));
