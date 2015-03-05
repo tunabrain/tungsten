@@ -428,10 +428,13 @@ void PreviewWindow::addModel()
     if (!_scene)
         return;
 
+    Path dir = _scene->path().empty() ?
+        FileUtils::getCurrentDir() :
+        _scene->path();
     QString file = QFileDialog::getOpenFileName(
         nullptr,
         "Open file...",
-        QString::fromStdString(FileUtils::getCurrentDir().absolute().asString()),
+        QString::fromStdString(dir.absolute().asString()),
         "Mesh files (*.obj;*.json)"
     );
 
@@ -472,6 +475,7 @@ void PreviewWindow::addModel()
         }
 
         rebuildMeshMap();
+        updateFixedTransform();
         updateGL();
     }
 }
