@@ -209,12 +209,12 @@ void PreviewWindow::pickPrimitive()
 
     int startX = clamp(min(_selectionState.endX, _selectionState.startX), 0, width() - 1);
     int startY = clamp(min(_selectionState.endY, _selectionState.startY), 0, height() - 1);
-    int w = min(std::abs(_selectionState.endX - _selectionState.startX), width() - startX);
-    int h = min(std::abs(_selectionState.endY - _selectionState.startY), height() - startY);
+    int w = clamp(std::abs(_selectionState.endX - _selectionState.startX), 1, width() - startX);
+    int h = clamp(std::abs(_selectionState.endY - _selectionState.startY), 1, height() - startY);
 
     std::unordered_set<uint32> uniquePixels;
-    std::vector<uint32> buffer(max(w, 1)*max(h, 1));
-    glReadPixels(startX, height() - startY - h - 1, max(w, 1), max(h, 1), GL_RGBA, GL_UNSIGNED_BYTE, &buffer[0]);
+    std::vector<uint32> buffer(w*h);
+    glReadPixels(startX, height() - startY - h - 1, w, h, GL_RGBA, GL_UNSIGNED_BYTE, &buffer[0]);
 
     _fbo->unbind();
     glEnable(GL_MULTISAMPLE);
@@ -276,7 +276,8 @@ bool PreviewWindow::handleMouse(QMouseEvent *event)
             caughtMouse = updateViewTransform(event);
             break;
         case GizmoConsumer:
-            caughtMouse = _gizmo.update(event);
+            if (!_selection.empty())
+                caughtMouse = _gizmo.update(event);
             break;
         case SelectionConsumer:
             caughtMouse = handleSelection(event);
