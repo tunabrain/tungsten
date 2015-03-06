@@ -67,6 +67,7 @@ static const char *renderStateToString(RenderState state)
 struct RendererStatus
 {
     RenderState state;
+    int startSpp;
     int currentSpp;
     int nextSpp;
     int totalSpp;
@@ -81,6 +82,7 @@ struct RendererStatus
         result.SetObject();
 
         result.AddMember("state", renderStateToString(state), allocator);
+        result.AddMember("start_spp", startSpp, allocator);
         result.AddMember("current_spp", currentSpp, allocator);
         result.AddMember("next_spp", nextSpp, allocator);
         result.AddMember("total_spp", totalSpp, allocator);
@@ -178,7 +180,7 @@ public:
                 return false;
 
             _status.state = STATE_LOADING;
-            _status.currentSpp = _status.nextSpp = _status.totalSpp = 0;
+            _status.startSpp = _status.currentSpp = _status.nextSpp = _status.totalSpp = 0;
 
             currentScene = _status.currentScene = _status.queuedScenes.front();
             _status.queuedScenes.pop_front();
@@ -226,6 +228,10 @@ public:
                     writeLogLine("Resume successful");
                 else
                     writeLogLine("Resume unsuccessful. Starting from 0 spp");
+                {
+                    std::unique_lock<std::mutex> lock(_statusMutex);
+                    _status.startSpp = integrator.currentSpp();
+                }
             }
 
             writeLogLine("Starting render...");
