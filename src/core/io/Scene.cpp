@@ -220,7 +220,7 @@ std::shared_ptr<Texture> Scene::instantiateTexture(std::string type, const rapid
 {
     std::shared_ptr<Texture> result;
     if (type == "bitmap")
-        return _textureCache->fetchTexture(fetchResource(value, "path"), conversion);
+        return _textureCache->fetchTexture(value, conversion, this);
     else if (type == "constant")
         result = std::make_shared<ConstantTexture>();
     else if (type == "checker")
@@ -323,17 +323,14 @@ bool Scene::textureFromJsonMember(const rapidjson::Value &v, const char *field, 
     dst = std::move(tex);
     return true;
 }
-PathPtr Scene::fetchResource(const rapidjson::Value &v) const
-{
-    std::string value;
-    if (!JsonUtils::fromJson(v, value))
-        return nullptr;
 
-    Path key = Path(value).normalize();
+PathPtr Scene::fetchResource(const std::string &path) const
+{
+    Path key = Path(path).normalize();
 
     auto iter = _resources.find(key);
     if (iter == _resources.end()) {
-        std::shared_ptr<Path> resource = std::make_shared<Path>(value);
+        std::shared_ptr<Path> resource = std::make_shared<Path>(path);
         resource->freezeWorkingDirectory();
 
         _resources.insert(std::make_pair(key, resource));
@@ -342,6 +339,15 @@ PathPtr Scene::fetchResource(const rapidjson::Value &v) const
     } else {
         return iter->second;
     }
+}
+
+PathPtr Scene::fetchResource(const rapidjson::Value &v) const
+{
+    std::string value;
+    if (!JsonUtils::fromJson(v, value))
+        return nullptr;
+
+    return fetchResource(value);
 }
 
 PathPtr Scene::fetchResource(const rapidjson::Value &v, const char *field) const

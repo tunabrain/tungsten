@@ -91,6 +91,7 @@ public:
     std::shared_ptr<Texture> fetchTexture(const rapidjson::Value &v, TexelConversion conversion) const;
     bool textureFromJsonMember(const rapidjson::Value &v, const char *field, TexelConversion conversion,
             std::shared_ptr<Texture> &dst) const;
+    PathPtr fetchResource(const std::string &path) const;
     PathPtr fetchResource(const rapidjson::Value &v) const;
     PathPtr fetchResource(const rapidjson::Value &v, const char *field) const;
 

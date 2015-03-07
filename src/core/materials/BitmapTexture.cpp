@@ -7,6 +7,8 @@
 #include "math/MathUtil.hpp"
 #include "math/Angle.hpp"
 
+#include "io/Scene.hpp"
+
 namespace Tungsten {
 
 struct Rgba
@@ -18,6 +20,11 @@ struct Rgba
         return Vec3f(float(c[0]), float(c[1]), float(c[2]))*(1.0f/255.0f);
     }
 };
+
+BitmapTexture::BitmapTexture()
+: BitmapTexture("", TexelConversion::REQUEST_RGB, true, true, false)
+{
+}
 
 BitmapTexture::BitmapTexture(const Path &path, TexelConversion conversion,
         bool gammaCorrect, bool linear, bool clamp)
@@ -157,13 +164,29 @@ void BitmapTexture::init(void *texels, int w, int h, TexelType texelType)
     }
 }
 
-void BitmapTexture::fromJson(const rapidjson::Value &/*v*/, const Scene &/*scene*/)
+void BitmapTexture::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
+    _path = scene.fetchResource(v, "file");
+    JsonUtils::fromJson(v, "gamma_correct", _gammaCorrect);
+    JsonUtils::fromJson(v, "interpolate", _linear);
+    JsonUtils::fromJson(v, "clamp", _clamp);
 }
 
 rapidjson::Value BitmapTexture::toJson(Allocator &allocator) const
 {
-    return std::move(rapidjson::Value(_path->asString().c_str(), allocator));
+    bool writeFullStruct = !_gammaCorrect || !_linear || _clamp;
+    if (writeFullStruct) {
+        rapidjson::Value v = Texture::toJson(allocator);
+        v.AddMember("type", "bitmap", allocator);
+        if (_path)
+            v.AddMember("file", _path->asString().c_str(), allocator);
+        v.AddMember("gamma_correct", _gammaCorrect, allocator);
+        v.AddMember("interpolate", _linear, allocator);
+        v.AddMember("clamp", _clamp, allocator);
+        return std::move(v);
+    } else {
+        return std::move(rapidjson::Value(_path->asString().c_str(), allocator));
+    }
 }
 
 void BitmapTexture::loadResources()
@@ -192,7 +215,7 @@ void BitmapTexture::loadResources()
         isRgb = false;
         isHdr = false;
 
-        if (_path)
+        if (_path && !_path->empty())
             DBG("Unable to load texture at '%s'", *_path);
     } else {
         _valid = true;
@@ -225,45 +248,52 @@ Vec3f BitmapTexture::operator[](const Vec2f &uv) const
 {
     float u = uv.x()*_w;
     float v = (1.0f - uv.y())*_h;
-    int iu = int(u);
-    int iv = int(v);
-    u -= iu;
-    v -= iv;
-    if (!_clamp) {
-        iu = ((iu % _w) + _w) % _w;
-        iv = ((iv % _h) + _h) % _h;
+    bool linear = _linear && _valid;
+    if (linear) {
+        u -= 0.5f;
+        v -= 0.5f;
     }
-    if (_linear) {
-        iu = clamp(iu, 0, _w - 2);
-        iv = clamp(iv, 0, _h - 2);
+    int iu0 = u < 0.0f ? -int(-u) - 1 : int(u);
+    int iv0 = v < 0.0f ? -int(-v) - 1 : int(v);
+    int iu1 = iu0 + 1;
+    int iv1 = iv0 + 1;
+    u -= iu0;
+    v -= iv0;
+    if (!_clamp) {
+        iu0 = ((iu0 % _w) + _w) % _w;
+        iu1 = ((iu1 % _w) + _w) % _w;
+        iv0 = ((iv0 % _h) + _h) % _h;
+        iv1 = ((iv1 % _h) + _h) % _h;
     } else {
-        iu = clamp(iu, 0, _w - 1);
-        iv = clamp(iv, 0, _h - 1);
+        iu0 = Tungsten::clamp(iu0, 0, _w - 1);
+        iu1 = Tungsten::clamp(iu1, 0, _w - 1);
+        iv0 = Tungsten::clamp(iv0, 0, _h - 1);
+        iv1 = Tungsten::clamp(iv1, 0, _h - 1);
     }
 
-    if (!_linear) {
+    if (!linear) {
         if (isRgb())
-            return getRgb(iu, iv);
+            return getRgb(iu0, iv0);
         else
-            return Vec3f(getScalar(iu, iv));
+            return Vec3f(getScalar(iu0, iv0));
     }
 
 
     if (isRgb()) {
         return lerp(
-            getRgb(iu, iv),
-            getRgb(iu + 1, iv),
-            getRgb(iu, iv + 1),
-            getRgb(iu + 1, iv + 1),
+            getRgb(iu0, iv0),
+            getRgb(iu1, iv0),
+            getRgb(iu0, iv1),
+            getRgb(iu1, iv1),
             u,
             v
         );
     } else {
         return Vec3f(lerp(
-            getScalar(iu, iv),
-            getScalar(iu + 1, iv),
-            getScalar(iu, iv + 1),
-            getScalar(iu + 1, iv + 1),
+            getScalar(iu0, iv0),
+            getScalar(iu1, iv0),
+            getScalar(iu0, iv1),
+            getScalar(iu1, iv1),
             u,
             v
         ));

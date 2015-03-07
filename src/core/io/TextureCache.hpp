@@ -3,34 +3,39 @@
 
 #include "ImageIO.hpp"
 
+#include <rapidjson/document.h>
 #include <utility>
 #include <memory>
 #include <string>
-#include <map>
+#include <set>
 
 namespace Tungsten {
 
 class BitmapTexture;
+class Scene;
 
 class TextureCache
 {
-    typedef std::pair<Path, TexelConversion> KeyType;
+    typedef std::shared_ptr<BitmapTexture> KeyType;
 
-    std::map<KeyType, std::shared_ptr<BitmapTexture>> _textures;
+    std::set<KeyType, std::function<bool(const KeyType &, const KeyType &)>> _textures;
 public:
-    TextureCache() = default;
+    TextureCache();
 
-    std::shared_ptr<BitmapTexture> &fetchTexture(PathPtr path, TexelConversion conversion);
+    std::shared_ptr<BitmapTexture> fetchTexture(const rapidjson::Value &value, TexelConversion conversion,
+            const Scene *scene);
+    std::shared_ptr<BitmapTexture> fetchTexture(PathPtr path, TexelConversion conversion,
+            bool gammaCorrect = true, bool linear = true, bool clamp = false);
 
     void loadResources();
     void prune();
 
-    const std::map<KeyType, std::shared_ptr<BitmapTexture>> &textures() const
+    const std::set<KeyType, std::function<bool(const KeyType &, const KeyType &)>> &textures() const
     {
         return _textures;
     }
 
-    std::map<KeyType, std::shared_ptr<BitmapTexture>> &textures()
+    std::set<KeyType, std::function<bool(const KeyType &, const KeyType &)>> &textures()
     {
         return _textures;
     }

@@ -55,6 +55,7 @@ private:
     void init(void *texels, int w, int h, TexelType texelType);
 
 public:
+    BitmapTexture();
     BitmapTexture(const Path &path, TexelConversion conversion, bool gammaCorrect, bool linear, bool clamp);
     BitmapTexture(PathPtr path, TexelConversion conversion, bool gammaCorrect, bool linear, bool clamp);
     BitmapTexture(void *texels, int w, int h, TexelType texelType, bool linear, bool clamp);
@@ -98,6 +99,68 @@ public:
     bool isValid() const
     {
         return _valid;
+    }
+
+    bool clamp() const
+    {
+        return _clamp;
+    }
+
+    bool gammaCorrect() const
+    {
+        return _gammaCorrect;
+    }
+
+    bool linear() const
+    {
+        return _linear;
+    }
+
+    void setClamp(bool clamp)
+    {
+        _clamp = clamp;
+    }
+
+    void setGammaCorrect(bool gammaCorrect)
+    {
+        _gammaCorrect = gammaCorrect;
+    }
+
+    void setLinear(bool linear)
+    {
+        _linear = linear;
+    }
+
+    TexelConversion texelConversion() const
+    {
+        return _texelConversion;
+    }
+
+    void setTexelConversion(TexelConversion conversion)
+    {
+        _texelConversion = conversion;
+    }
+
+    bool operator<(const BitmapTexture &o) const
+    {
+        return
+            _path != o._path ? _path < o._path :
+            _texelConversion != o._texelConversion ? _texelConversion < o._texelConversion :
+            _gammaCorrect != o._gammaCorrect ? _gammaCorrect < o._gammaCorrect :
+            _linear != o._linear ? _linear < o._linear :
+            _clamp != o._clamp ? _clamp < o._clamp :
+            false;
+
+    }
+
+    bool operator==(const BitmapTexture &o) const
+    {
+        return
+            _path == o._path &&
+            _texelConversion == o._texelConversion &&
+            _gammaCorrect == o._gammaCorrect &&
+            _linear == o._linear &&
+            _clamp == o._clamp;
     }
 };
 
