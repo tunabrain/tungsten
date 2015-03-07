@@ -341,7 +341,7 @@ const Primitive *TraceBase::chooseLight(SampleGenerator &sampler, const Vec3f &p
         total = _lightPdf.size();
     } else if (numNonNegative < _lightPdf.size()) {
         for (size_t i = 0; i < _lightPdf.size(); ++i) {
-            float uniformWeight = total/numNonNegative;
+            float uniformWeight = (total == 0.0f ? 1.0f : total)/numNonNegative;
             if (_lightPdf[i] < 0.0f) {
                 _lightPdf[i] = uniformWeight;
                 total += uniformWeight;
