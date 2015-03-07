@@ -89,7 +89,7 @@ public:
 
     virtual bool isEmissive() const
     {
-        return _emission.operator bool();
+        return _emission.operator bool() && _emission->maximum().max() > 0.0f;
     }
 
     virtual Vec3f emission(const IntersectionTemporary &data, const IntersectionInfo &info) const
