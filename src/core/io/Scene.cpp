@@ -525,16 +525,55 @@ void Scene::saveResources()
     _rendererSettings.saveResources();
 }
 
+template<typename T>
+void deleteObjects(std::vector<std::shared_ptr<T>> &dst, const std::unordered_set<T *> &objects)
+{
+    std::vector<std::shared_ptr<T>> newObjects;
+    newObjects.reserve(dst.size());
+
+    for (std::shared_ptr<T> &m : dst)
+        if (!objects.count(m.get()))
+            newObjects.push_back(m);
+
+    dst = std::move(newObjects);
+}
+
+template<typename T>
+void pruneObjects(std::vector<std::shared_ptr<T>> &dst)
+{
+    std::vector<std::shared_ptr<T>> newObjects;
+    newObjects.reserve(dst.size());
+
+    for (std::shared_ptr<T> &m : dst)
+        if (m.use_count() > 1)
+            newObjects.push_back(m);
+
+    dst = std::move(newObjects);
+}
+
 void Scene::deletePrimitives(const std::unordered_set<Primitive *> &primitives)
 {
-    std::vector<std::shared_ptr<Primitive>> newPrims;
-    newPrims.reserve(_primitives.size());
+    deleteObjects(_primitives, primitives);
+}
 
-    for (std::shared_ptr<Primitive> &m : _primitives)
-        if (!primitives.count(m.get()))
-            newPrims.push_back(m);
+void Scene::deleteBsdfs(const std::unordered_set<Bsdf *> &bsdfs)
+{
+    deleteObjects(_bsdfs, bsdfs);
+}
 
-    _primitives = std::move(newPrims);
+void Scene::deleteMedia(const std::unordered_set<Medium *> &media)
+{
+    deleteObjects(_media, media);
+}
+
+void Scene::pruneBsdfs()
+{
+    pruneObjects(_bsdfs);
+}
+
+void Scene::pruneMedia()
+{
+    pruneObjects(_media);
 }
 
 TraceableScene *Scene::makeTraceable()

@@ -98,6 +98,11 @@ public:
     const Primitive *findPrimitive(const std::string &name) const;
 
     void deletePrimitives(const std::unordered_set<Primitive *> &primitives);
+    void deleteBsdfs(const std::unordered_set<Bsdf *> &bsdfs);
+    void deleteMedia(const std::unordered_set<Medium *> &media);
+
+    void pruneBsdfs();
+    void pruneMedia();
 
     void addPrimitive(const std::shared_ptr<Primitive> &mesh);
     void addBsdf(const std::shared_ptr<Bsdf> &bsdf);
