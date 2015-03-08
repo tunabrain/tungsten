@@ -84,6 +84,26 @@ public:
         return _intMedium;
     }
 
+    std::shared_ptr<Medium> &extMedium()
+    {
+        return _extMedium;
+    }
+
+    std::shared_ptr<Medium> &intMedium()
+    {
+        return _intMedium;
+    }
+
+    void setIntMedium(std::shared_ptr<Medium> &intMedium)
+    {
+        _intMedium = intMedium;
+    }
+
+    void setExtMedium(std::shared_ptr<Medium> &extMedium)
+    {
+        _extMedium = extMedium;
+    }
+
     bool overridesMedia() const
     {
         return _extMedium || _intMedium;

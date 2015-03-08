@@ -31,6 +31,21 @@ public:
     {
         return _exponent;
     }
+
+    float diffuseRatio() const
+    {
+        return _diffuseRatio;
+    }
+
+    void setDiffuseRatio(float diffuseRatio)
+    {
+        _diffuseRatio = diffuseRatio;
+    }
+
+    void setExponent(float exponent)
+    {
+        _exponent = exponent;
+    }
 };
 
 }

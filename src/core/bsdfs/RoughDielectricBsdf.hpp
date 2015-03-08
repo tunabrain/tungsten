@@ -35,10 +35,21 @@ public:
     virtual Vec3f eval(const SurfaceScatterEvent &event) const override;
     virtual float pdf(const SurfaceScatterEvent &event) const override;
 
-    float ior() const {
     virtual void prepareForRender() override;
 
+    const std::string &distributionName() const
+    {
+        return _distributionName;
+    }
+
+    float ior() const
+    {
         return _ior;
+    }
+
+    bool enableTransmission() const
+    {
+        return _enableT;
     }
 
     const std::shared_ptr<Texture> &roughness() const
@@ -46,9 +57,24 @@ public:
         return _roughness;
     }
 
-    const std::string &distributionName() const
+    void setDistributionName(const std::string &distributionName)
     {
-        return _distributionName;
+        _distributionName = distributionName;
+    }
+
+    void setIor(float ior)
+    {
+        _ior = ior;
+    }
+
+    void setRoughness(const std::shared_ptr<Texture> &roughness)
+    {
+        _roughness = roughness;
+    }
+
+    void setEnableTransmission(bool enableTransmission)
+    {
+        _enableT = enableTransmission;
     }
 };
 

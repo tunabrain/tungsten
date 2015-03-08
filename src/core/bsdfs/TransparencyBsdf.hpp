@@ -32,6 +32,16 @@ public:
     {
         return _base;
     }
+
+    void setOpacity(const std::shared_ptr<Texture> &opacity)
+    {
+        _opacity = opacity;
+    }
+
+    void setBase(const std::shared_ptr<Bsdf> &base)
+    {
+        _base = base;
+    }
 };
 
 }

@@ -33,9 +33,54 @@ public:
 
     virtual void prepareForRender() override;
 
+    const std::string &distributionName() const
+    {
+        return _distributionName;
+    }
+
     float ior() const
     {
         return _ior;
+    }
+
+    const std::shared_ptr<Texture> &roughness() const
+    {
+        return _roughness;
+    }
+
+    Vec3f sigmaA() const
+    {
+        return _sigmaA;
+    }
+
+    float thickness() const
+    {
+        return _thickness;
+    }
+
+    void setDistributionName(const std::string &distributionName)
+    {
+        _distributionName = distributionName;
+    }
+
+    void setIor(float ior)
+    {
+        _ior = ior;
+    }
+
+    void setRoughness(const std::shared_ptr<Texture> &roughness)
+    {
+        _roughness = roughness;
+    }
+
+    void setSigmaA(Vec3f sigmaA)
+    {
+        _sigmaA = sigmaA;
+    }
+
+    void setThickness(float thickness)
+    {
+        _thickness = thickness;
     }
 };
 

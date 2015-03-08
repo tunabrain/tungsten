@@ -44,6 +44,21 @@ public:
     {
         return _ratio;
     }
+
+    void setBsdf0(const std::shared_ptr<Bsdf> &bsdf0)
+    {
+        _bsdf0 = bsdf0;
+    }
+
+    void setBsdf1(const std::shared_ptr<Bsdf> &bsdf1)
+    {
+        _bsdf1 = bsdf1;
+    }
+
+    void setRatio(const std::shared_ptr<Texture> &ratio)
+    {
+        _ratio = ratio;
+    }
 };
 
 }

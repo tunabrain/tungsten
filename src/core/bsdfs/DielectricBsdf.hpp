@@ -25,9 +25,24 @@ public:
 
     virtual void prepareForRender() override;
 
+    bool enableTransmission() const
+    {
+        return _enableT;
+    }
+
     float ior() const
     {
         return _ior;
+    }
+
+    void setEnableTransmission(bool enableTransmission)
+    {
+        _enableT = enableTransmission;
+    }
+
+    void setIor(float ior)
+    {
+        _ior = ior;
     }
 };
 

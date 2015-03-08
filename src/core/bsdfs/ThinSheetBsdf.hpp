@@ -28,6 +28,41 @@ public:
     {
         return _ior;
     }
+
+    bool enableInterference() const
+    {
+        return _enableInterference;
+    }
+
+    const std::shared_ptr<Texture> &thickness() const
+    {
+        return _thickness;
+    }
+
+    Vec3f sigmaA() const
+    {
+        return _sigmaA;
+    }
+
+    void setEnableInterference(bool enableInterference)
+    {
+        _enableInterference = enableInterference;
+    }
+
+    void setIor(float ior)
+    {
+        _ior = ior;
+    }
+
+    void setThickness(const std::shared_ptr<Texture> &thickness)
+    {
+        _thickness = thickness;
+    }
+
+    void setSigmaA(Vec3f sigmaA)
+    {
+        _sigmaA = sigmaA;
+    }
 };
 
 }

@@ -33,6 +33,31 @@ public:
     {
         return _ior;
     }
+
+    float thickness() const
+    {
+        return _thickness;
+    }
+
+    Vec3f sigmaA() const
+    {
+        return _sigmaA;
+    }
+
+    void setIor(float ior)
+    {
+        _ior = ior;
+    }
+
+    void setSigmaA(Vec3f sigmaA)
+    {
+        _sigmaA = sigmaA;
+    }
+
+    void setThickness(float thickness)
+    {
+        _thickness = thickness;
+    }
 };
 
 }

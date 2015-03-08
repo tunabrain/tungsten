@@ -25,6 +25,11 @@ public:
     {
         return _roughness;
     }
+
+    void setRoughness(const std::shared_ptr<Texture> &roughness)
+    {
+        _roughness = roughness;
+    }
 };
 
 }

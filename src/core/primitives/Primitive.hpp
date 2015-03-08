@@ -141,6 +141,16 @@ public:
     {
         return _bump;
     }
+
+    float bumpStrength() const
+    {
+        return _bumpStrength;
+    }
+
+    void setBumpStrength(float strength)
+    {
+        _bumpStrength = strength;
+    }
 };
 
 }
