@@ -759,6 +759,11 @@ std::shared_ptr<Bsdf> &TraceableMinecraftMap::bsdf(int index)
     return _materials[index].bsdf;
 }
 
+void TraceableMinecraftMap::setBsdf(int index, std::shared_ptr<Bsdf> &bsdf)
+{
+    _materials[index].bsdf = bsdf;
+}
+
 void TraceableMinecraftMap::prepareForRender()
 {
 

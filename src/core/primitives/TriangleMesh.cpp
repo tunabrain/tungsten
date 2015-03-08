@@ -528,6 +528,11 @@ std::shared_ptr<Bsdf> &TriangleMesh::bsdf(int index)
     return _bsdfs[index];
 }
 
+void TriangleMesh::setBsdf(int index, std::shared_ptr<Bsdf> &bsdf)
+{
+    _bsdfs[index] = bsdf;
+}
+
 Primitive *TriangleMesh::clone()
 {
     return new TriangleMesh(*this);

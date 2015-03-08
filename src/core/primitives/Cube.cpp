@@ -228,6 +228,11 @@ std::shared_ptr<Bsdf> &Cube::bsdf(int /*index*/)
     return _bsdf;
 }
 
+void Cube::setBsdf(int /*index*/, std::shared_ptr<Bsdf> &bsdf)
+{
+    _bsdf = bsdf;
+}
+
 Primitive *Cube::clone()
 {
     return new Cube(*this);

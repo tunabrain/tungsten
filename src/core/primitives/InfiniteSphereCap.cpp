@@ -181,6 +181,11 @@ std::shared_ptr<Bsdf> &InfiniteSphereCap::bsdf(int /*index*/)
     return _bsdf;
 }
 
+void InfiniteSphereCap::setBsdf(int /*index*/, std::shared_ptr<Bsdf> &bsdf)
+{
+    _bsdf = bsdf;
+}
+
 Primitive *InfiniteSphereCap::clone()
 {
     return new InfiniteSphereCap(*this);

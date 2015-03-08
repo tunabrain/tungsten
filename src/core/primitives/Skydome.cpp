@@ -251,6 +251,10 @@ std::shared_ptr<Bsdf> &Skydome::bsdf(int /*index*/)
     return _bsdf;
 }
 
+void Skydome::setBsdf(int /*index*/, std::shared_ptr<Bsdf> &bsdf)
+{
+    _bsdf = bsdf;
+}
 
 Primitive *Skydome::clone()
 {

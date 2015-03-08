@@ -261,6 +261,11 @@ std::shared_ptr<Bsdf> &Disk::bsdf(int /*index*/)
     return _bsdf;
 }
 
+void Disk::setBsdf(int /*index*/, std::shared_ptr<Bsdf> &bsdf)
+{
+    _bsdf = bsdf;
+}
+
 Primitive *Disk::clone()
 {
     return new Disk(*this);

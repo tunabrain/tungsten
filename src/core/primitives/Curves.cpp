@@ -637,6 +637,11 @@ std::shared_ptr<Bsdf> &Curves::bsdf(int /*index*/)
     return _bsdf;
 }
 
+void Curves::setBsdf(int /*index*/, std::shared_ptr<Bsdf> &bsdf)
+{
+    _bsdf = bsdf;
+}
+
 Primitive *Curves::clone()
 {
     return new Curves(*this);

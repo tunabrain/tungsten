@@ -302,6 +302,11 @@ std::shared_ptr<Bsdf> &MultiQuadLight::bsdf(int /*index*/)
     FAIL("MultiQuadLight::bsdf should never be called");
 }
 
+void MultiQuadLight::setBsdf(int /*index*/, std::shared_ptr<Bsdf> &/*bsdf*/)
+{
+    FAIL("MultiQuadLight::setBsdf should never be called");
+}
+
 void MultiQuadLight::prepareForRender()
 {
     Bvh::PrimVector prims;

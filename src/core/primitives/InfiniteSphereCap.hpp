@@ -57,6 +57,7 @@ public:
 
     virtual int numBsdfs() const override;
     virtual std::shared_ptr<Bsdf> &bsdf(int index) override;
+    virtual void setBsdf(int index, std::shared_ptr<Bsdf> &bsdf) override;
 
     virtual Primitive *clone() override;
 };

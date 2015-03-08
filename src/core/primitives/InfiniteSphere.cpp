@@ -202,6 +202,11 @@ std::shared_ptr<Bsdf> &InfiniteSphere::bsdf(int /*index*/)
     return _bsdf;
 }
 
+void InfiniteSphere::setBsdf(int /*index*/, std::shared_ptr<Bsdf> &bsdf)
+{
+    _bsdf = bsdf;
+}
+
 Primitive *InfiniteSphere::clone()
 {
     return new InfiniteSphere(*this);

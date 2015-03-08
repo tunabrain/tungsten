@@ -256,6 +256,11 @@ std::shared_ptr<Bsdf> &Quad::bsdf(int /*index*/)
     return _bsdf;
 }
 
+void Quad::setBsdf(int /*index*/, std::shared_ptr<Bsdf> &bsdf)
+{
+    _bsdf = bsdf;
+}
+
 Primitive *Quad::clone()
 {
     return new Quad(*this);

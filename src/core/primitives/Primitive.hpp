@@ -76,6 +76,7 @@ public:
 
     virtual int numBsdfs() const = 0;
     virtual std::shared_ptr<Bsdf> &bsdf(int index) = 0;
+    virtual void setBsdf(int index, std::shared_ptr<Bsdf> &bsdf) = 0;
 
     virtual Primitive *clone() = 0;
 
