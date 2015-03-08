@@ -23,6 +23,8 @@ public:
     virtual Vec3f eval(const SurfaceScatterEvent &event) const override;
     virtual float pdf(const SurfaceScatterEvent &event) const override;
 
+    virtual void prepareForRender() override;
+
     float ior() const
     {
         return _ior;

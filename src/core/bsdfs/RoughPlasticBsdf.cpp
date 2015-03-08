@@ -20,16 +20,6 @@
 
 namespace Tungsten {
 
-void RoughPlasticBsdf::init()
-{
-    _scaledSigmaA = _thickness*_sigmaA;
-    _avgTransmittance = std::exp(-2.0f*_scaledSigmaA.avg());
-
-    _distribution = Microfacet::stringToType(_distributionName);
-
-    _diffuseFresnel = Fresnel::computeDiffuseFresnel(_ior, 1000000);
-}
-
 RoughPlasticBsdf::RoughPlasticBsdf()
 : _ior(1.5f),
   _thickness(0.0f),
@@ -37,7 +27,6 @@ RoughPlasticBsdf::RoughPlasticBsdf()
   _distributionName("ggx"),
   _roughness(std::make_shared<ConstantTexture>(0.02f))
 {
-    init();
     _lobes = BsdfLobes(BsdfLobes::GlossyReflectionLobe | BsdfLobes::DiffuseReflectionLobe);
 }
 
@@ -50,7 +39,8 @@ void RoughPlasticBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
     JsonUtils::fromJson(v, "sigma_a", _sigmaA);
     scene.textureFromJsonMember(v, "roughness", TexelConversion::REQUEST_AVERAGE, _roughness);
 
-    init();
+    // Fail early in case of invalid distribution name
+    prepareForRender();
 }
 
 rapidjson::Value RoughPlasticBsdf::toJson(Allocator &allocator) const
@@ -182,6 +172,16 @@ float RoughPlasticBsdf::pdf(const SurfaceScatterEvent &event) const
         glossyPdf *= specularProbability;
     }
     return glossyPdf + diffusePdf;
+}
+
+void RoughPlasticBsdf::prepareForRender()
+{
+    _scaledSigmaA = _thickness*_sigmaA;
+    _avgTransmittance = std::exp(-2.0f*_scaledSigmaA.avg());
+
+    _distribution = Microfacet::stringToType(_distributionName);
+
+    _diffuseFresnel = Fresnel::computeDiffuseFresnel(_ior, 1000000);
 }
 
 }

@@ -58,7 +58,6 @@ void MixedBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
     	_bsdf0 = scene.errorBsdf();
     	_bsdf1 = scene.errorBsdf();
     }
-    _lobes = BsdfLobes(_bsdf0->lobes(), _bsdf1->lobes());
     scene.textureFromJsonMember(v, "ratio", TexelConversion::REQUEST_AVERAGE, _ratio);
 }
 
@@ -114,6 +113,11 @@ float MixedBsdf::pdf(const SurfaceScatterEvent &event) const
     if (!adjustedRatio(event.requestedLobe, event.info, ratio))
         return 0.0f;
     return _bsdf0->pdf(event)*ratio + _bsdf1->pdf(event)*(1.0f - ratio);
+}
+
+void MixedBsdf::prepareForRender()
+{
+    _lobes = BsdfLobes(_bsdf0->lobes(), _bsdf1->lobes());
 }
 
 }

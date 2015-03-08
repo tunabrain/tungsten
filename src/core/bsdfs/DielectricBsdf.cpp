@@ -35,11 +35,6 @@ void DielectricBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
     Bsdf::fromJson(v, scene);
     JsonUtils::fromJson(v, "ior", _ior);
     JsonUtils::fromJson(v, "enable_refraction", _enableT);
-
-    if (_enableT)
-        _lobes = BsdfLobes(BsdfLobes::SpecularReflectionLobe | BsdfLobes::SpecularTransmissionLobe);
-    else
-        _lobes = BsdfLobes(BsdfLobes::SpecularReflectionLobe);
 }
 
 rapidjson::Value DielectricBsdf::toJson(Allocator &allocator) const
@@ -98,6 +93,14 @@ Vec3f DielectricBsdf::eval(const SurfaceScatterEvent &/*event*/) const
 float DielectricBsdf::pdf(const SurfaceScatterEvent &/*event*/) const
 {
     return 0.0f;
+}
+
+void DielectricBsdf::prepareForRender()
+{
+    if (_enableT)
+        _lobes = BsdfLobes(BsdfLobes::SpecularReflectionLobe | BsdfLobes::SpecularTransmissionLobe);
+    else
+        _lobes = BsdfLobes(BsdfLobes::SpecularReflectionLobe);
 }
 
 }

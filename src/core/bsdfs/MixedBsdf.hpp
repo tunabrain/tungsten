@@ -28,6 +28,8 @@ public:
     virtual Vec3f eval(const SurfaceScatterEvent &event) const override;
     virtual float pdf(const SurfaceScatterEvent &event) const override;
 
+    virtual void prepareForRender() override;
+
     const std::shared_ptr<Bsdf> &bsdf0() const
     {
         return _bsdf0;

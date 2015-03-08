@@ -16,8 +16,6 @@ class RoughConductorBsdf : public Bsdf
 
     Microfacet::Distribution _distribution;
 
-    void init();
-
 public:
     RoughConductorBsdf();
 
@@ -29,6 +27,8 @@ public:
     virtual float pdf(const SurfaceScatterEvent &event) const override;
 
     const Vec3f& eta() const {
+    virtual void prepareForRender() override;
+
         return _eta;
     }
 

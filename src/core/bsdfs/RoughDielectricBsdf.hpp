@@ -16,10 +16,7 @@ class RoughDielectricBsdf : public Bsdf
 
     Microfacet::Distribution _distribution;
 
-    void init();
-
 public:
-
     RoughDielectricBsdf();
 
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
@@ -39,6 +36,8 @@ public:
     virtual float pdf(const SurfaceScatterEvent &event) const override;
 
     float ior() const {
+    virtual void prepareForRender() override;
+
         return _ior;
     }
 

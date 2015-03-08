@@ -19,15 +19,6 @@ PhongBsdf::PhongBsdf(float exponent, float diffuseRatio)
 : _exponent(exponent),
   _diffuseRatio(diffuseRatio)
 {
-    init();
-}
-
-void PhongBsdf::init()
-{
-    _lobes       = BsdfLobes(BsdfLobes::GlossyReflectionLobe);
-    _invExponent = 1.0f/(1.0f + _exponent);
-    _pdfFactor   = (_exponent + 1.0f)*INV_TWO_PI;
-    _brdfFactor  = (_exponent + 2.0f)*INV_TWO_PI;
 }
 
 void PhongBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
@@ -35,7 +26,6 @@ void PhongBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
     Bsdf::fromJson(v, scene);
     JsonUtils::fromJson(v, "exponent", _exponent);
     JsonUtils::fromJson(v, "diffuse_ratio", _diffuseRatio);
-    init();
 }
 
 rapidjson::Value PhongBsdf::toJson(Allocator &allocator) const
@@ -132,6 +122,14 @@ float PhongBsdf::pdf(const SurfaceScatterEvent &event) const
         result = SampleWarp::cosineHemispherePdf(event.wo);
 
     return result;
+}
+
+void PhongBsdf::prepareForRender()
+{
+    _lobes       = BsdfLobes(BsdfLobes::GlossyReflectionLobe);
+    _invExponent = 1.0f/(1.0f + _exponent);
+    _pdfFactor   = (_exponent + 1.0f)*INV_TWO_PI;
+    _brdfFactor  = (_exponent + 2.0f)*INV_TWO_PI;
 }
 
 }

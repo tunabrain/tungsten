@@ -17,8 +17,6 @@ class PlasticBsdf : public Bsdf
     float _avgTransmittance;
     Vec3f _scaledSigmaA;
 
-    void init();
-
 public:
     PlasticBsdf();
 
@@ -28,6 +26,8 @@ public:
     virtual bool sample(SurfaceScatterEvent &event) const override;
     virtual Vec3f eval(const SurfaceScatterEvent &event) const override;
     virtual float pdf(const SurfaceScatterEvent &event) const override;
+
+    virtual void prepareForRender() override;
 
     float ior() const
     {

@@ -62,6 +62,7 @@ class TraceableScene
     Camera &_cam;
     Integrator &_integrator;
     std::vector<std::shared_ptr<Primitive>> &_primitives;
+    std::vector<std::shared_ptr<Bsdf>> &_bsdfs;
     std::vector<std::shared_ptr<Medium>> &_media;
     std::vector<std::shared_ptr<Primitive>> _lights;
     std::vector<std::shared_ptr<Primitive>> _infinites;
@@ -75,11 +76,13 @@ class TraceableScene
 public:
     TraceableScene(Camera &cam, Integrator &integrator,
             std::vector<std::shared_ptr<Primitive>> &primitives,
+            std::vector<std::shared_ptr<Bsdf>> &bsdfs,
             std::vector<std::shared_ptr<Medium>> &media,
             RendererSettings settings)
     : _cam(cam),
       _integrator(integrator),
       _primitives(primitives),
+      _bsdfs(bsdfs),
       _media(media),
       _settings(settings)
     {
@@ -91,9 +94,15 @@ public:
         for (std::shared_ptr<Medium> &m : _media)
             m->prepareForRender();
 
+        for (std::shared_ptr<Bsdf> &b : _bsdfs)
+            b->prepareForRender();
+
         int finiteCount = 0, lightCount = 0;
         for (std::shared_ptr<Primitive> &m : _primitives) {
             m->prepareForRender();
+            for (int i = 0; i < m->numBsdfs(); ++i)
+                if (m->bsdf(i)->unnamed())
+                    m->bsdf(i)->prepareForRender();
 
             if (m->isInfinite()) {
                 _infinites.push_back(m);
@@ -156,8 +165,15 @@ public:
         for (std::shared_ptr<Medium> &m : _media)
             m->teardownAfterRender();
 
-        for (std::shared_ptr<Primitive> &m : _primitives)
+        for (std::shared_ptr<Bsdf> &b : _bsdfs)
+            b->teardownAfterRender();
+
+        for (std::shared_ptr<Primitive> &m : _primitives) {
             m->teardownAfterRender();
+            for (int i = 0; i < m->numBsdfs(); ++i)
+                if (m->bsdf(i)->unnamed())
+                    m->bsdf(i)->teardownAfterRender();
+        }
 
         embree::rtcDeleteGeometry(_scene);
         _scene = nullptr;

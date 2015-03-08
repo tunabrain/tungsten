@@ -23,12 +23,6 @@ RoughDielectricBsdf::RoughDielectricBsdf()
   _enableT(true)
 {
     _lobes = BsdfLobes(BsdfLobes::GlossyReflectionLobe | BsdfLobes::GlossyTransmissionLobe);
-    init();
-}
-
-void RoughDielectricBsdf::init()
-{
-    _distribution = Microfacet::stringToType(_distributionName);
 }
 
 void RoughDielectricBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
@@ -45,7 +39,8 @@ void RoughDielectricBsdf::fromJson(const rapidjson::Value &v, const Scene &scene
     else
         _lobes = BsdfLobes(BsdfLobes::GlossyReflectionLobe);
 
-    init();
+    // Fail early in case of invalid distribution name
+    prepareForRender();
 }
 
 rapidjson::Value RoughDielectricBsdf::toJson(Allocator &allocator) const
@@ -233,6 +228,11 @@ float RoughDielectricBsdf::pdf(const SurfaceScatterEvent &event) const
     float roughness = (*_roughness)[*event.info].x();
 
     return pdfBase(event, sampleR, sampleT, roughness, _ior, _distribution);
+}
+
+void RoughDielectricBsdf::prepareForRender()
+{
+    _distribution = Microfacet::stringToType(_distributionName);
 }
 
 }

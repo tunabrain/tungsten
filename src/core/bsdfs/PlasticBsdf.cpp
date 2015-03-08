@@ -16,20 +16,12 @@
 
 namespace Tungsten {
 
-void PlasticBsdf::init() {
-    _scaledSigmaA = _thickness*_sigmaA;
-    _avgTransmittance = std::exp(-2.0f*_scaledSigmaA.avg());
-
-    _diffuseFresnel = Fresnel::computeDiffuseFresnel(_ior, 1000000);
-}
-
 PlasticBsdf::PlasticBsdf()
 : _ior(1.5f),
   _thickness(0.0f),
   _sigmaA(0.0f)
 {
     _lobes = BsdfLobes(BsdfLobes::SpecularReflectionLobe | BsdfLobes::DiffuseReflectionLobe);
-    init();
 }
 
 void PlasticBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
@@ -38,8 +30,6 @@ void PlasticBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
     JsonUtils::fromJson(v, "ior", _ior);
     JsonUtils::fromJson(v, "thickness", _thickness);
     JsonUtils::fromJson(v, "sigma_a", _sigmaA);
-
-    init();
 }
 
 rapidjson::Value PlasticBsdf::toJson(Allocator &allocator) const
@@ -136,6 +126,14 @@ float PlasticBsdf::pdf(const SurfaceScatterEvent &event) const
         pdf *= (1.0f - specularProbability);
     }
     return pdf;
+}
+
+void PlasticBsdf::prepareForRender()
+{
+    _scaledSigmaA = _thickness*_sigmaA;
+    _avgTransmittance = std::exp(-2.0f*_scaledSigmaA.avg());
+
+    _diffuseFresnel = Fresnel::computeDiffuseFresnel(_ior, 1000000);
 }
 
 }

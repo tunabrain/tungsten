@@ -13,14 +13,12 @@ TransparencyBsdf::TransparencyBsdf()
 : _opacity(std::make_shared<ConstantTexture>(1.0f)),
   _base(std::make_shared<LambertBsdf>())
 {
-    _lobes = BsdfLobes(BsdfLobes::ForwardLobe, _base->lobes());
 }
 
 TransparencyBsdf::TransparencyBsdf(std::shared_ptr<Texture> opacity, std::shared_ptr<Bsdf> base)
 : _opacity(opacity),
   _base(base)
 {
-    _lobes = BsdfLobes(BsdfLobes::ForwardLobe, _base->lobes());
 }
 
 void TransparencyBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
@@ -29,8 +27,6 @@ void TransparencyBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
     _base = scene.fetchBsdf(JsonUtils::fetchMember(v, "base"));
 
     scene.textureFromJsonMember(v, "alpha", TexelConversion::REQUEST_AUTO, _opacity);
-
-    _lobes = BsdfLobes(BsdfLobes::ForwardLobe, _base->lobes());
 }
 
 rapidjson::Value TransparencyBsdf::toJson(Allocator &allocator) const
@@ -60,6 +56,11 @@ Vec3f TransparencyBsdf::eval(const SurfaceScatterEvent &event) const
 float TransparencyBsdf::pdf(const SurfaceScatterEvent &event) const
 {
     return _base->pdf(event);
+}
+
+void TransparencyBsdf::prepareForRender()
+{
+    _lobes = BsdfLobes(BsdfLobes::ForwardLobe, _base->lobes());
 }
 
 }

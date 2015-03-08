@@ -539,7 +539,7 @@ void Scene::deletePrimitives(const std::unordered_set<Primitive *> &primitives)
 
 TraceableScene *Scene::makeTraceable()
 {
-    return new TraceableScene(*_camera, *_integrator, _primitives, _media, _rendererSettings);
+    return new TraceableScene(*_camera, *_integrator, _primitives, _bsdfs, _media, _rendererSettings);
 }
 
 Scene *Scene::load(const Path &path, std::shared_ptr<TextureCache> cache)

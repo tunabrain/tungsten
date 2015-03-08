@@ -8,20 +8,12 @@
 
 namespace Tungsten {
 
-void SmoothCoatBsdf::init()
-{
-    _scaledSigmaA = _thickness*_sigmaA;
-    _avgTransmittance = std::exp(-2.0f*_scaledSigmaA.avg());
-}
-
 SmoothCoatBsdf::SmoothCoatBsdf()
 : _ior(1.3f),
   _thickness(1.0f),
   _sigmaA(0.0f),
   _substrate(std::make_shared<RoughConductorBsdf>())
 {
-    _lobes = BsdfLobes(BsdfLobes::SpecularReflectionLobe, _substrate->lobes());
-    init();
 }
 
 void SmoothCoatBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
@@ -31,9 +23,6 @@ void SmoothCoatBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
     JsonUtils::fromJson(v, "thickness", _thickness);
     JsonUtils::fromJson(v, "sigma_a", _sigmaA);
     _substrate = scene.fetchBsdf(JsonUtils::fetchMember(v, "substrate"));
-
-    _lobes = BsdfLobes(BsdfLobes::SpecularReflectionLobe, _substrate->lobes());
-    init();
 }
 
 rapidjson::Value SmoothCoatBsdf::toJson(Allocator &allocator) const
@@ -163,6 +152,13 @@ float SmoothCoatBsdf::pdf(const SurfaceScatterEvent &event) const
     }
     pdf *= eta*eta*std::abs(wo.z()/cosThetaTo);
     return pdf;
+}
+
+void SmoothCoatBsdf::prepareForRender()
+{
+    _scaledSigmaA = _thickness*_sigmaA;
+    _avgTransmittance = std::exp(-2.0f*_scaledSigmaA.avg());
+    _lobes = BsdfLobes(BsdfLobes::SpecularReflectionLobe, _substrate->lobes());
 }
 
 }
