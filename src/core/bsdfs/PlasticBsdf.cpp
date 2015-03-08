@@ -18,7 +18,7 @@ namespace Tungsten {
 
 PlasticBsdf::PlasticBsdf()
 : _ior(1.5f),
-  _thickness(0.0f),
+  _thickness(1.0f),
   _sigmaA(0.0f)
 {
     _lobes = BsdfLobes(BsdfLobes::SpecularReflectionLobe | BsdfLobes::DiffuseReflectionLobe);

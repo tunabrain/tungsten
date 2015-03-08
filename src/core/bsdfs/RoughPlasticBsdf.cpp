@@ -22,7 +22,7 @@ namespace Tungsten {
 
 RoughPlasticBsdf::RoughPlasticBsdf()
 : _ior(1.5f),
-  _thickness(0.0f),
+  _thickness(1.0f),
   _sigmaA(0.0f),
   _distributionName("ggx"),
   _roughness(std::make_shared<ConstantTexture>(0.02f))
