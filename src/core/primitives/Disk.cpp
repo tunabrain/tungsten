@@ -247,7 +247,7 @@ void Disk::prepareForRender()
     _coneBase = _center - _n/std::sin(Angle::degToRad(_coneAngle));
 }
 
-void Disk::cleanupAfterRender()
+void Disk::teardownAfterRender()
 {
 }
 

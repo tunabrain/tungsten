@@ -764,13 +764,13 @@ void TraceableMinecraftMap::prepareForRender()
 
 }
 
-void TraceableMinecraftMap::cleanupAfterRender()
+void TraceableMinecraftMap::teardownAfterRender()
 {
     /*_grids.clear();
     _chunkBvh.reset();
 
     for (auto &m : _models)
-        m->cleanupAfterRender();*/
+        m->teardownAfterRender();*/
 }
 
 Primitive *TraceableMinecraftMap::clone()

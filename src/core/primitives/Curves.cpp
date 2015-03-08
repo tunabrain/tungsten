@@ -619,7 +619,7 @@ void Curves::prepareForRender()
     computeBounds();
 }
 
-void Curves::cleanupAfterRender()
+void Curves::teardownAfterRender()
 {
     _bvh.reset();
     // TODO

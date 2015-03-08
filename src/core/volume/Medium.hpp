@@ -53,7 +53,7 @@ public:
     virtual bool isHomogeneous() const = 0;
 
     virtual void prepareForRender() = 0;
-    virtual void cleanupAfterRender() = 0;
+    virtual void teardownAfterRender() = 0;
 
     virtual bool sampleDistance(VolumeScatterEvent &event, MediumState &state) const = 0;
     virtual bool absorb(VolumeScatterEvent &event, MediumState &state) const = 0;

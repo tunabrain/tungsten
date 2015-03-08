@@ -167,7 +167,7 @@ void InfiniteSphereCap::prepareForRender()
     _capFrame = TangentFrame(_capDir);
 }
 
-void InfiniteSphereCap::cleanupAfterRender()
+void InfiniteSphereCap::teardownAfterRender()
 {
 }
 

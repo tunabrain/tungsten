@@ -26,7 +26,7 @@ public:
     virtual bool isHomogeneous() const override;
 
     virtual void prepareForRender() override;
-    virtual void cleanupAfterRender() override;
+    virtual void teardownAfterRender() override;
 
     virtual bool sampleDistance(VolumeScatterEvent &event, MediumState &state) const override;
     virtual bool absorb(VolumeScatterEvent &event, MediumState &state) const override;

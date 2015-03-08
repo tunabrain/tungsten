@@ -72,7 +72,7 @@ public:
     virtual const TriangleMesh &asTriangleMesh() = 0;
 
     virtual void prepareForRender() = 0;
-    virtual void cleanupAfterRender() = 0;
+    virtual void teardownAfterRender() = 0;
 
     virtual int numBsdfs() const = 0;
     virtual std::shared_ptr<Bsdf> &bsdf(int index) = 0;

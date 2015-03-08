@@ -52,7 +52,7 @@ void HomogeneousMedium::prepareForRender()
 {
 }
 
-void HomogeneousMedium::cleanupAfterRender()
+void HomogeneousMedium::teardownAfterRender()
 {
 }
 

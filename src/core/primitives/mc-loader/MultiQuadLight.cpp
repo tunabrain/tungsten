@@ -327,7 +327,7 @@ void MultiQuadLight::prepareForRender()
     constructSampleBounds();
 }
 
-void MultiQuadLight::cleanupAfterRender()
+void MultiQuadLight::teardownAfterRender()
 {
     _samplers.clear();
     _bvh.reset();

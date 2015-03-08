@@ -214,7 +214,7 @@ void Cube::prepareForRender()
     _invRot = _rot.transpose();
 }
 
-void Cube::cleanupAfterRender()
+void Cube::teardownAfterRender()
 {
 }
 

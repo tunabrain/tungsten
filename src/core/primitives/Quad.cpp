@@ -242,7 +242,7 @@ void Quad::prepareForRender()
     _invUvSq = 1.0f/Vec2f(_edge0.lengthSq(), _edge1.lengthSq());
 }
 
-void Quad::cleanupAfterRender()
+void Quad::teardownAfterRender()
 {
 }
 

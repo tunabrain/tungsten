@@ -509,7 +509,7 @@ void TriangleMesh::prepareForRender()
         _intersector = embree::rtcQueryIntersector1(_geom, "fast.moeller");
 }
 
-void TriangleMesh::cleanupAfterRender()
+void TriangleMesh::teardownAfterRender()
 {
     if (_geom)
         embree::rtcDeleteGeometry(_geom);

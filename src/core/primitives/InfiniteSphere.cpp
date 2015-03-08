@@ -188,7 +188,7 @@ void InfiniteSphere::prepareForRender()
     _invRotTransform = _rotTransform.transpose();
 }
 
-void InfiniteSphere::cleanupAfterRender()
+void InfiniteSphere::teardownAfterRender()
 {
 }
 

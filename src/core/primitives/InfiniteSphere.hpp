@@ -49,7 +49,7 @@ public:
     virtual const TriangleMesh &asTriangleMesh() override;
 
     virtual void prepareForRender() override;
-    virtual void cleanupAfterRender() override;
+    virtual void teardownAfterRender() override;
 
     virtual int numBsdfs() const override;
     virtual std::shared_ptr<Bsdf> &bsdf(int index) override;

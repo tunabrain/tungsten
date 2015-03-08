@@ -219,7 +219,7 @@ void Sphere::prepareForRender()
     _invRot = _rot.transpose();
 }
 
-void Sphere::cleanupAfterRender()
+void Sphere::teardownAfterRender()
 {
 }
 

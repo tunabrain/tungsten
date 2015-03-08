@@ -154,10 +154,10 @@ public:
         _cam.teardownAfterRender();
 
         for (std::shared_ptr<Medium> &m : _media)
-            m->cleanupAfterRender();
+            m->teardownAfterRender();
 
         for (std::shared_ptr<Primitive> &m : _primitives)
-            m->cleanupAfterRender();
+            m->teardownAfterRender();
 
         embree::rtcDeleteGeometry(_scene);
         _scene = nullptr;

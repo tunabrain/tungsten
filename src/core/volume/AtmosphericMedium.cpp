@@ -258,7 +258,7 @@ void AtmosphericMedium::prepareForRender()
     _hR = float(FalloffScale*double(Hr)/double(_scale));
 }
 
-void AtmosphericMedium::cleanupAfterRender()
+void AtmosphericMedium::teardownAfterRender()
 {
 }
 

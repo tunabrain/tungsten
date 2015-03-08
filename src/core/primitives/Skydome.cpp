@@ -235,7 +235,7 @@ void Skydome::prepareForRender()
     _emission = _sky;
 }
 
-void Skydome::cleanupAfterRender()
+void Skydome::teardownAfterRender()
 {
     _sky.reset();
     _emission.reset();
