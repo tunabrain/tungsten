@@ -69,7 +69,7 @@ PreviewWindow::PreviewWindow(QWidget *proxyParent, MainWindow *parent, const QGL
     new QShortcut(QKeySequence("Ctrl+D"), this, SLOT(duplicateSelection()));
     new QShortcut(QKeySequence("Ctrl+A"), this, SLOT(addModel()));
     new QShortcut(QKeySequence("Delete"), this, SLOT(deleteSelection()));
-    new QShortcut(QKeySequence("Tab"), this, SLOT(togglePreview()));
+    new QShortcut(QKeySequence("Ctrl+Tab"), this, SLOT(togglePreview()));
 
     QShortcut *tShortcut = new QShortcut(QKeySequence("W"), this);
     QShortcut *rShortcut = new QShortcut(QKeySequence("E"), this);

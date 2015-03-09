@@ -28,7 +28,7 @@ RenderWindow::RenderWindow(QWidget *proxyParent, MainWindow *parent)
     new QShortcut(QKeySequence("-"), this, SLOT(zoomOut()));
     new QShortcut(QKeySequence("F5"), this, SLOT(refresh()));
     new QShortcut(QKeySequence("Home"), this, SLOT(resetView()));
-    new QShortcut(QKeySequence("Tab"), this, SLOT(togglePreview()));
+    new QShortcut(QKeySequence("Ctrl+Tab"), this, SLOT(togglePreview()));
 
     _sppLabel = new QLabel(this);
     _statusLabel = new QLabel(this);
