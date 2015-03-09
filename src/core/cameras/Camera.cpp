@@ -86,6 +86,7 @@ rapidjson::Value Camera::toJson(Allocator &allocator) const
 
 void Camera::prepareForRender()
 {
+    precompute();
     _pixels.resize(_res.x()*_res.y(), Vec3d(0.0));
     _weights.resize(_res.x()*_res.y(), 0.0);
 }
