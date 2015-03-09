@@ -16,6 +16,8 @@ class RoughConductorBsdf : public Bsdf
 
     Microfacet::Distribution _distribution;
 
+    void lookupMaterial();
+
 public:
     RoughConductorBsdf();
 
@@ -71,6 +73,7 @@ public:
     void setMaterialName(const std::string &materialName)
     {
         _materialName = materialName;
+        lookupMaterial();
     }
 
     void setRoughness(const std::shared_ptr<Texture> &roughness)

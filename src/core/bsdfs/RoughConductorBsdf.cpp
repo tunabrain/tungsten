@@ -22,18 +22,22 @@ RoughConductorBsdf::RoughConductorBsdf()
     _lobes = BsdfLobes::GlossyReflectionLobe;
 }
 
+void RoughConductorBsdf::lookupMaterial()
+{
+    if (!ComplexIorList::lookup(_materialName, _eta, _k)) {
+        DBG("Warning: Unable to find material with name '%s'. Using default", _materialName.c_str());
+        ComplexIorList::lookup("Cu", _eta, _k);
+    }
+}
+
 void RoughConductorBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     Bsdf::fromJson(v, scene);
     if (JsonUtils::fromJson(v, "eta", _eta) && JsonUtils::fromJson(v, "k", _k))
         _materialName.clear();
     JsonUtils::fromJson(v, "distribution", _distributionName);
-    if (JsonUtils::fromJson(v, "material", _materialName)) {
-        if (!ComplexIorList::lookup(_materialName, _eta, _k)) {
-            DBG("Warning: Unable to find material with name '%s'. Using default", _materialName.c_str());
-            ComplexIorList::lookup("Cu", _eta, _k);
-        }
-    }
+    if (JsonUtils::fromJson(v, "material", _materialName))
+        lookupMaterial();
 
     scene.textureFromJsonMember(v, "roughness", TexelConversion::REQUEST_AVERAGE, _roughness);
 
