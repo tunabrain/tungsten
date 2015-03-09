@@ -1,18 +1,21 @@
 #ifndef MAINWINDOW_HPP_
 #define MAINWINDOW_HPP_
 
+#include <unordered_set>
 #include <QMainWindow>
 #include <memory>
 
 #include "io/Scene.hpp"
 
 class QStackedWidget;
+class QSplitter;
 class QLabel;
 
 namespace Tungsten {
 
-class RenderWindow;
+class PropertyWindow;
 class PreviewWindow;
+class RenderWindow;
 class Scene;
 
 class MainWindow : public QMainWindow
@@ -21,8 +24,11 @@ class MainWindow : public QMainWindow
 
     RenderWindow *_renderWindow;
     PreviewWindow *_previewWindow;
+    PropertyWindow *_propertyWindow;
     QStackedWidget *_stackWidget;
+    QSplitter *_windowSplit;
     std::unique_ptr<Scene> _scene;
+    std::unordered_set<Primitive *> _selection;
 
     bool _showPreview;
 
@@ -49,6 +55,16 @@ public:
     Scene *scene()
     {
         return _scene.get();
+    }
+
+    std::unordered_set<Primitive *> &selection()
+    {
+        return _selection;
+    }
+
+    PreviewWindow *previewWindow()
+    {
+        return _previewWindow;
     }
 };
 

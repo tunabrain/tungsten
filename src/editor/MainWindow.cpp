@@ -2,6 +2,7 @@
 #include <iostream>
 
 #include "MainWindow.hpp"
+#include "PropertyWindow.hpp"
 #include "PreviewWindow.hpp"
 #include "RenderWindow.hpp"
 
@@ -33,21 +34,32 @@ MainWindow::MainWindow()
     qglFormat.setSampleBuffers(true);
     qglFormat.setSamples(16);
 
-    _stackWidget = new QStackedWidget(this);
+    _windowSplit = new QSplitter(this);
+    _stackWidget = new QStackedWidget(_windowSplit);
 
-     _renderWindow = new  RenderWindow(_stackWidget, this);
-    _previewWindow = new PreviewWindow(_stackWidget, this, qglFormat);
+      _renderWindow = new   RenderWindow(_stackWidget, this);
+     _previewWindow = new  PreviewWindow(_stackWidget, this, qglFormat);
+    _propertyWindow = new PropertyWindow(_windowSplit, this);
 
     _stackWidget->addWidget(_renderWindow);
     _stackWidget->addWidget(_previewWindow);
 
-    setCentralWidget(_stackWidget);
+    _windowSplit->addWidget(_stackWidget);
+    _windowSplit->addWidget(_propertyWindow);
+    _windowSplit->setStretchFactor(0, 1);
+    _windowSplit->setStretchFactor(1, 0);
+
+    setCentralWidget(_windowSplit);
 
     _previewWindow->addStatusWidgets(statusBar());
      _renderWindow->addStatusWidgets(statusBar());
 
-    connect(this, SIGNAL(sceneChanged()), _previewWindow, SLOT(sceneChanged()));
-    connect(this, SIGNAL(sceneChanged()),  _renderWindow, SLOT(sceneChanged()));
+    connect(this, SIGNAL(sceneChanged()),  _previewWindow, SLOT(sceneChanged()));
+    connect(this, SIGNAL(sceneChanged()),   _renderWindow, SLOT(sceneChanged()));
+    connect(this, SIGNAL(sceneChanged()), _propertyWindow, SLOT(sceneChanged()));
+
+    connect( _previewWindow, SIGNAL(selectionChanged()), _propertyWindow, SLOT(changeSelection()));
+    connect(_propertyWindow, SIGNAL(selectionChanged()),  _previewWindow, SLOT(changeSelection()));
 
     showPreview(true);
 
@@ -84,6 +96,7 @@ void MainWindow::showPreview(bool v)
 
 void MainWindow::newScene()
 {
+    _selection.clear();
     _scene.reset(new Scene());
     _scene->setCamera(new PinholeCamera());
     emit sceneChanged();
@@ -126,13 +139,16 @@ void MainWindow::openScene(const QString &path)
     }
 
     if (newScene) {
+        _selection.clear();
         _scene.reset(newScene);
+        _scene->loadResources();
         emit sceneChanged();
     }
 }
 
 void MainWindow::closeScene()
 {
+    _selection.clear();
     _scene.reset();
     emit sceneChanged();
 }

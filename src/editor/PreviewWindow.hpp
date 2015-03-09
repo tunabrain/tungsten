@@ -95,7 +95,7 @@ class PreviewWindow : public QGLWidget
     std::unique_ptr<GL::Shader> _shader, _wireframeShader, _solidShader;
 
     SelectionState _selectionState;
-    std::unordered_set<Primitive *> _selection;
+    std::unordered_set<Primitive *> &_selection;
 
     std::array<MouseConsumers, 3> _mousePriorities;
 
@@ -146,6 +146,10 @@ protected:
 
 public slots:
     void sceneChanged();
+    void changeSelection();
+
+signals:
+    void selectionChanged();
 
 public:
     PreviewWindow(QWidget *proxyParent, MainWindow *parent, const QGLFormat &format);

@@ -54,6 +54,7 @@ PreviewWindow::PreviewWindow(QWidget *proxyParent, MainWindow *parent, const QGL
 : QGLWidget(format, proxyParent),
   _parent(*parent),
   _scene(parent->scene()),
+  _selection(parent->selection()),
   _mousePriorities(DefaultPriorities),
   _rebuildMeshes(false)
 {
@@ -227,7 +228,7 @@ void PreviewWindow::pickPrimitive()
     }
 
     if (_selectionState.shiftDown) {
-        if (w == 0 && h == 0 && !uniquePixels.empty()) {
+        if (w == 1 && h == 1 && !uniquePixels.empty()) {
             Primitive *prim = prims[*uniquePixels.begin()].get();
             if (_selection.count(prim))
                 _selection.erase(prim);
@@ -245,6 +246,8 @@ void PreviewWindow::pickPrimitive()
 
     _selectionState = SelectionState();
     updateFixedTransform();
+
+    emit selectionChanged();
 }
 
 bool PreviewWindow::handleSelection(QMouseEvent *event)
@@ -311,6 +314,8 @@ void PreviewWindow::toggleSelectAll()
 
     updateFixedTransform();
     updateGL();
+
+    emit selectionChanged();
 }
 
 void PreviewWindow::grabGizmo()
@@ -410,6 +415,8 @@ void PreviewWindow::duplicateSelection()
     rebuildMeshMap();
     updateFixedTransform();
     updateGL();
+
+    emit selectionChanged();
 }
 
 void PreviewWindow::deleteSelection()
@@ -421,6 +428,8 @@ void PreviewWindow::deleteSelection()
     _gizmo.abortTransform();
     rebuildMeshMap();
     updateGL();
+
+    emit selectionChanged();
 }
 
 void PreviewWindow::addModel()
@@ -477,6 +486,8 @@ void PreviewWindow::addModel()
         rebuildMeshMap();
         updateFixedTransform();
         updateGL();
+
+        emit selectionChanged();
     }
 }
 
@@ -680,7 +691,6 @@ void PreviewWindow::showContextMenu()
 
 void PreviewWindow::sceneChanged()
 {
-    _selection.clear();
     _scene = _parent.scene();
 
     if (_scene) {
@@ -688,6 +698,12 @@ void PreviewWindow::sceneChanged()
         _rebuildMeshes = true;
     }
 
+    updateGL();
+}
+
+void PreviewWindow::changeSelection()
+{
+    updateFixedTransform();
     updateGL();
 }
 
