@@ -59,6 +59,7 @@ namespace Tungsten {
 Scene::Scene()
 : _errorBsdf(std::make_shared<ErrorBsdf>()),
   _errorTexture(std::make_shared<ConstantTexture>(Vec3f(1.0f, 0.0f, 0.0f))),
+  _textureCache(std::make_shared<TextureCache>()),
   _camera(std::make_shared<PinholeCamera>()),
   _integrator(std::make_shared<PathTraceIntegrator>())
 {
