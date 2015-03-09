@@ -93,7 +93,7 @@ void ThreadPool::stop()
         _taskCond.notify_all();
     }
     while (!_workers.empty()) {
-        _workers.back()->join();
+        _workers.back()->detach();
         _workers.pop_back();
     }
 }
