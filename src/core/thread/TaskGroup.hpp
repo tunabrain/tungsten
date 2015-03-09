@@ -58,7 +58,8 @@ public:
             _exceptionPtr = std::current_exception();
         }
 
-        if (++_finishedSubTasks == _numSubTasks || (_abort && _finishedSubTasks == _startedSubTasks))
+        uint32 num = ++_finishedSubTasks;
+        if (num == _numSubTasks || (_abort && num == _startedSubTasks))
             finish();
     }
 
@@ -74,6 +75,7 @@ public:
     void abort()
     {
         _abort = true;
+        _done = _done || _startedSubTasks == 0;
     }
 
     bool isAborting() const
