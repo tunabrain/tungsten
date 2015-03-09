@@ -191,6 +191,9 @@ rapidjson::Value BitmapTexture::toJson(Allocator &allocator) const
 
 void BitmapTexture::loadResources()
 {
+    if (_texels)
+        return;
+
     bool isRgb, isHdr;
     int w, h;
     void *pixels = nullptr;
