@@ -158,6 +158,21 @@ public:
     {
         return _checkpointInterval;
     }
+
+    void setUseSceneBvh(bool value)
+    {
+        _useSceneBvh = value;
+    }
+
+    void setSpp(uint32 spp)
+    {
+        _spp = spp;
+    }
+
+    void setSppStep(uint32 step)
+    {
+        _sppStep = step;
+    }
 };
 
 }

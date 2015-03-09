@@ -32,6 +32,21 @@ public:
     virtual void makeSamplable(TextureMapJacobian jacobian) override;
     virtual Vec2f sample(TextureMapJacobian jacobian, const Vec2f &uv) const override;
     virtual float pdf(TextureMapJacobian jacobian, const Vec2f &uv) const override;
+
+    Vec3f value()
+    {
+        return _value;
+    }
+
+    void setValue(Vec3f value)
+    {
+        _value = value;
+    }
+
+    void setValue(float value)
+    {
+        _value = Vec3f(value);
+    }
 };
 
 }

@@ -116,6 +116,11 @@ public:
         return _res;
     }
 
+    void setResolution(Vec2u res)
+    {
+        _res = res;
+    }
+
     const std::shared_ptr<Medium> &medium() const
     {
         return _medium;
@@ -134,6 +139,11 @@ public:
     std::vector<uint32> &weights()
     {
         return _weights;
+    }
+
+    void setTonemapString(const std::string &name)
+    {
+        _tonemapString = name;
     }
 };
 

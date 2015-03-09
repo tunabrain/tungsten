@@ -52,6 +52,26 @@ public:
     {
         return _resV;
     }
+
+    void setOffColor(Vec3f offColor)
+    {
+        _offColor = offColor;
+    }
+
+    void setOnColor(Vec3f onColor)
+    {
+        _onColor = onColor;
+    }
+
+    void setResU(int resU)
+    {
+        _resU = resU;
+    }
+
+    void setResV(int resV)
+    {
+        _resV = resV;
+    }
 };
 
 }
