@@ -2,6 +2,7 @@
 #include <QDesktopWidget>
 #include <QApplication>
 #include <QGLWidget>
+#include <QDir>
 
 #include "thread/ThreadUtils.hpp"
 
@@ -19,6 +20,10 @@ int main(int argc, char *argv[])
     embree::rtcStartThreads(threadCount);
 
     QApplication app(argc, argv);
+
+    QDir::setCurrent(QString::fromStdString(FileUtils::getExecutablePath().parent().nativeSeparators().asString()));
+    Path path = FileUtils::getExecutablePath().parent()/"data/editor/style/style.qss";
+    app.setStyleSheet(QString::fromStdString(FileUtils::loadText(path)));
 
     QDesktopWidget desktop;
     QRect windowSize(desktop.screenGeometry(desktop.primaryScreen()));
