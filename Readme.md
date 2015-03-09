@@ -56,7 +56,7 @@ You can also queue up multiple scenes using
 
 and so forth. All renderer parameters, including output files, are specified in the json file.
 
-You can test your local build by rendering the material test scene in `assets/materialtest/materialtest.json`.
+You can test your local build by rendering the material test scene in `data/materialtest/materialtest.json`.
 
 You can also use
 
