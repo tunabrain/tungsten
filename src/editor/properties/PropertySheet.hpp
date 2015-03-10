@@ -9,6 +9,7 @@
 
 #include <QGridLayout>
 #include <memory>
+#include <vector>
 
 namespace Tungsten {
 
