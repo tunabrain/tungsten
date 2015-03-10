@@ -28,7 +28,7 @@ void Disk::buildProxy()
 void Disk::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     Primitive::fromJson(v, scene);
-    JsonUtils::fromJson(v, "angle", _coneAngle);
+    JsonUtils::fromJson(v, "cone_angle", _coneAngle);
 
     _bsdf = scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf"));
 }
