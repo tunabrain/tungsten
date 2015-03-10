@@ -1,6 +1,9 @@
 #include "ListProperty.hpp"
 #include "PropertySheet.hpp"
 
+#include "Platform.hpp"
+
+#include <string.h>
 #include <QtGui>
 
 namespace Tungsten {
@@ -13,7 +16,7 @@ ListProperty::ListProperty(QWidget *parent, PropertySheet &sheet, std::string na
   _setter(std::move(setter))
 {
     for (size_t i = 0; i < _list.size(); ++i)
-        if (_value == _list[i])
+        if (strcasecmp(_value.c_str(), _list[i].c_str()) == 0)
             _index = i;
 
     _nameLabel = new QLabel(QString::fromStdString(name + ":"), parent);
