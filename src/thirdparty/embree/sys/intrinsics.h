@@ -264,6 +264,7 @@ __forceinline T* atomic_cmpxchg_ptr( T* volatile* value, const T* input, T* comp
 
 #endif
 
+#ifndef __APPLE__
 __forceinline uint64 rdtsc()
 {
   int dummy[4]; 
@@ -272,6 +273,7 @@ __forceinline uint64 rdtsc()
   __cpuid(dummy,0); 
   return clock;
 }
+#endif
 
 __forceinline int cast_f2i(float f) {
   union { float f; int i; } v; v.f = f; return v.i;
