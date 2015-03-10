@@ -474,7 +474,7 @@ std::shared_ptr<Primitive> ObjLoader::finalizeMesh()
     else if (name.find("AnalyticCube") != std::string::npos)
         prim = tryInstantiateCube(name, bsdf);
 
-    if (!prim && !_segments.empty()) {
+    if (!prim && !_segments.empty() && _tris.empty()) {
         std::vector<uint32> curveEnds;
         std::vector<Vec4f> nodeData;
         finalizeCurveData(curveEnds, nodeData);
