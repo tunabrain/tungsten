@@ -44,6 +44,8 @@ std::streampos FileInputStreambuf::seekpos(std::streampos pos, std::ios_base::op
     setg(end, end, end);
 #if _WIN32
     return _fseeki64(_file.get(), pos, SEEK_SET) == 0 ? pos : FailurePos;
+#elif __APPLE__
+    return fseeko(_file.get(), pos, SEEK_SET) == 0 ? pos : FailurePos;
 #else
     return fseeko64(_file.get(), pos, SEEK_SET) == 0 ? pos : FailurePos;
 #endif
@@ -64,6 +66,8 @@ std::streampos FileInputStreambuf::seekoff(std::streamoff off, std::ios_base::se
 
 #if _WIN32
     return _fseeki64(_file.get(), off, whence) == 0 ? _ftelli64(_file.get()) : -1;
+#elif __APPLE__
+    return fseeko(_file.get(), off, whence) == 0 ? ftello(_file.get()) : -1;
 #else
     return fseeko64(_file.get(), off, whence) == 0 ? ftello64(_file.get()) : -1;
 #endif
@@ -105,6 +109,8 @@ std::streampos FileOutputStreambuf::seekpos(std::streampos pos, std::ios_base::o
     sync();
 #if _WIN32
     return _fseeki64(_file.get(), pos, SEEK_SET) == 0 ? pos : FailurePos;
+#elif __APPLE__
+    return fseeko(_file.get(), pos, SEEK_SET) == 0 ? pos : FailurePos;
 #else
     return fseeko64(_file.get(), pos, SEEK_SET) == 0 ? pos : FailurePos;
 #endif
@@ -122,6 +128,8 @@ std::streampos FileOutputStreambuf::seekoff(std::streamoff off, std::ios_base::s
 
 #if _WIN32
     return _fseeki64(_file.get(), off, whence) == 0 ? _ftelli64(_file.get()) : -1;
+#elif __APPLE__
+    return fseeko(_file.get(), off, whence) == 0 ? ftello(_file.get()) : -1;
 #else
     return fseeko64(_file.get(), off, whence) == 0 ? ftello64(_file.get()) : -1;
 #endif
