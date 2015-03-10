@@ -156,10 +156,12 @@ void MainWindow::closeScene()
 void MainWindow::saveScene()
 {
     if (_scene) {
-        if (_scene->path().empty())
+        if (_scene->path().empty()) {
             saveSceneAs();
-        else
+        } else {
             Scene::save(_scene->path(), *_scene);
+            _previewWindow->saveSceneData();
+        }
     }
 }
 
