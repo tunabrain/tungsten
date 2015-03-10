@@ -21,6 +21,7 @@ class PathProperty;
 class ListProperty;
 class BsdfProperty;
 class BoolProperty;
+class IntProperty;
 class Texture;
 class Medium;
 class Scene;
@@ -36,6 +37,7 @@ public:
     PropertySheet(QWidget *parent);
 
     BoolProperty *addBoolProperty(int value, std::string name, std::function<bool(bool)> setter);
+    IntProperty *addIntProperty(int value, int min, int max, std::string name, std::function<bool(int)> setter);
     FloatProperty *addFloatProperty(float value, std::string name, std::function<bool(float)> setter);
     VectorProperty *addVectorProperty(Vec3f value, std::string name, bool isAbsorption,
             std::function<bool(Vec3f)> setter);

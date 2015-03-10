@@ -8,6 +8,7 @@
 #include "ListProperty.hpp"
 #include "BsdfProperty.hpp"
 #include "BoolProperty.hpp"
+#include "IntProperty.hpp"
 
 #include <QtGui>
 
@@ -23,6 +24,13 @@ PropertySheet::PropertySheet(QWidget *parent)
 BoolProperty *PropertySheet::addBoolProperty(int value, std::string name, std::function<bool(bool)> setter)
 {
     BoolProperty *property = new BoolProperty(_parent, *this, std::move(name), value, std::move(setter));
+    _properties.emplace_back(property);
+    return property;
+}
+
+IntProperty *PropertySheet::addIntProperty(int value, int min, int max, std::string name, std::function<bool(int)> setter)
+{
+    IntProperty *property = new IntProperty(_parent, *this, std::move(name), value, min, max, std::move(setter));
     _properties.emplace_back(property);
     return property;
 }
