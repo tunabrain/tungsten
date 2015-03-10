@@ -38,6 +38,19 @@ public:
     virtual void makeSamplable(TextureMapJacobian jacobian) override;
     virtual Vec2f sample(TextureMapJacobian jacobian, const Vec2f &uv) const override;
     virtual float pdf(TextureMapJacobian jacobian, const Vec2f &uv) const override;
+
+    float angle() const
+    {
+        return _angle;
+    }
+
+    int numBlades() const
+    {
+        return _numBlades;
+    }
+
+    void setAngle(float angle);
+    void setNumBlades(int numBlades);
 };
 
 }
