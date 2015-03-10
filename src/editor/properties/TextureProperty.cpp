@@ -3,7 +3,10 @@
 #include "ListProperty.hpp"
 
 #include "materials/ConstantTexture.hpp"
+#include "materials/CheckerTexture.hpp"
 #include "materials/BitmapTexture.hpp"
+#include "materials/BladeTexture.hpp"
+#include "materials/DiskTexture.hpp"
 
 #include "editor/ColorPickButton.hpp"
 #include "editor/TextureDisplay.hpp"
@@ -55,6 +58,12 @@ TextureProperty::TextureMode TextureProperty::textureToMode(Texture *tex) const
             return TEXTURE_RGB;
     } else if (dynamic_cast<BitmapTexture *>(tex)) {
         return TEXTURE_BITMAP;
+    } else if (dynamic_cast<CheckerTexture *>(tex)) {
+        return TEXTURE_CHECKER;
+    } else if (dynamic_cast<DiskTexture *>(tex)) {
+        return TEXTURE_DISK;
+    } else if (dynamic_cast<BladeTexture *>(tex)) {
+        return TEXTURE_BLADE;
     }
     return TEXTURE_NONE;
 }
@@ -67,6 +76,9 @@ std::vector<std::string> TextureProperty::typeList()
     result.push_back("Scalar");
     result.push_back("RGB");
     result.push_back("Bitmap");
+    result.push_back("Checker");
+    result.push_back("Disk");
+    result.push_back("Blade");
 
     return std::move(result);
 }
@@ -89,9 +101,12 @@ void TextureProperty::buildTexturePage()
 
 void TextureProperty::buildTexturePage(PropertySheet *sheet)
 {
-    if (_currentMode == TEXTURE_SCALAR) buildTexturePage(sheet, dynamic_cast<ConstantTexture *>(_value.get()));
-    if (_currentMode == TEXTURE_RGB)    buildTexturePage(sheet, dynamic_cast<ConstantTexture *>(_value.get()));
-    if (_currentMode == TEXTURE_BITMAP) buildTexturePage(sheet, dynamic_cast<BitmapTexture   *>(_value.get()));
+    if (_currentMode == TEXTURE_SCALAR)  buildTexturePage(sheet, dynamic_cast<ConstantTexture *>(_value.get()));
+    if (_currentMode == TEXTURE_RGB)     buildTexturePage(sheet, dynamic_cast<ConstantTexture *>(_value.get()));
+    if (_currentMode == TEXTURE_BITMAP)  buildTexturePage(sheet, dynamic_cast<BitmapTexture   *>(_value.get()));
+    if (_currentMode == TEXTURE_CHECKER) buildTexturePage(sheet, dynamic_cast<CheckerTexture  *>(_value.get()));
+    if (_currentMode == TEXTURE_DISK)    buildTexturePage(sheet, dynamic_cast<DiskTexture     *>(_value.get()));
+    if (_currentMode == TEXTURE_BLADE)   buildTexturePage(sheet, dynamic_cast<BladeTexture    *>(_value.get()));
 }
 
 void TextureProperty::buildTexturePage(PropertySheet *sheet, ConstantTexture *tex)
@@ -99,11 +114,13 @@ void TextureProperty::buildTexturePage(PropertySheet *sheet, ConstantTexture *te
     if (_currentMode == TEXTURE_SCALAR) {
         sheet->addFloatProperty(tex->average().x(), "Value", [this, tex](float f) {
             tex->setValue(f);
+            _setter(_value);
             return true;
         });
     } else {
         sheet->addVectorProperty(tex->average(), "Value", false, [this, tex](Vec3f v) {
             tex->setValue(v);
+            _setter(_value);
             return true;
         });
     }
@@ -117,7 +134,7 @@ void TextureProperty::buildTexturePage(PropertySheet *sheet, BitmapTexture *tex)
 
     std::string path = tex->path()->empty() ? "" : tex->path()->absolute().asString();
     sheet->addPathProperty(path, "File", _scene->path().absolute().asString(),
-            "Open bitmap...", "Image files (*.png;*.jpg;*.hdr;*.tga;*.bmp;*.psd;*.gif;*.pic;*.jpeg)",
+            "Open bitmap...", "Image files (*.png;*.jpg;*.hdr;*.pfm;*.tga;*.bmp;*.psd;*.gif;*.pic;*.jpeg)",
             [this, tex](const std::string &path) {
                 loadBitmap(_scene->fetchResource(path));
                 return true;
@@ -138,8 +155,60 @@ void TextureProperty::buildTexturePage(PropertySheet *sheet, BitmapTexture *tex)
         return true;
     });
 
+    buildTextureDisplay(sheet);
+}
+
+void TextureProperty::buildTexturePage(PropertySheet *sheet, CheckerTexture *tex)
+{
+    sheet->addVectorProperty(tex->onColor(), "On Color", false, [this, tex](Vec3f v) {
+        tex->setOnColor(v);
+        updateTexture();
+        return true;
+    });
+    sheet->addVectorProperty(tex->offColor(), "Off Color", false, [this, tex](Vec3f v) {
+        tex->setOffColor(v);
+        updateTexture();
+        return true;
+    });
+    sheet->addIntProperty(tex->resU(), 1, 9999, "Width", [this, tex](int i) {
+        tex->setResU(i);
+        updateTexture();
+        return true;
+    });
+    sheet->addIntProperty(tex->resV(), 1, 9999, "Height", [this, tex](int i) {
+        tex->setResV(i);
+        updateTexture();
+        return true;
+    });
+
+    buildTextureDisplay(sheet);
+}
+
+void TextureProperty::buildTexturePage(PropertySheet *sheet, BladeTexture *tex)
+{
+    sheet->addIntProperty(tex->numBlades(), 3, 999, "Number of Blades", [this, tex](int i) {
+        tex->setNumBlades(i);
+        updateTexture();
+        return true;
+    });
+    sheet->addFloatProperty(Angle::radToDeg(tex->angle()), "Blade Angle", [this, tex](float f) {
+        tex->setAngle(Angle::degToRad(f));
+        updateTexture();
+        return true;
+    });
+
+    buildTextureDisplay(sheet);
+}
+
+void TextureProperty::buildTexturePage(PropertySheet *sheet, DiskTexture */*tex*/)
+{
+    buildTextureDisplay(sheet);
+}
+
+void TextureProperty::buildTextureDisplay(PropertySheet *sheet)
+{
     _bitmapDisplay = new TextureDisplay(200, 200, _texturePage);
-    _bitmapDisplay->changeTexture(tex);
+    _bitmapDisplay->changeTexture(_value.get());
 
     sheet->addWidget(_bitmapDisplay, sheet->rowCount(), 0, 1, 2, Qt::AlignHCenter);
 }
@@ -147,11 +216,14 @@ void TextureProperty::buildTexturePage(PropertySheet *sheet, BitmapTexture *tex)
 std::shared_ptr<Texture> TextureProperty::instantiateTexture(TextureMode mode)
 {
     switch (mode) {
-    case TEXTURE_NONE:   return nullptr;
-    case TEXTURE_SCALAR: return std::make_shared<ConstantTexture>();
-    case TEXTURE_RGB:    return std::make_shared<ConstantTexture>();
-    case TEXTURE_BITMAP: return std::make_shared<BitmapTexture>();
-    default:             return nullptr;
+    case TEXTURE_NONE:    return nullptr;
+    case TEXTURE_SCALAR:  return std::make_shared<ConstantTexture>();
+    case TEXTURE_RGB:     return std::make_shared<ConstantTexture>();
+    case TEXTURE_BITMAP:  return std::make_shared<BitmapTexture>();
+    case TEXTURE_CHECKER: return std::make_shared<CheckerTexture>();
+    case TEXTURE_DISK:    return std::make_shared<DiskTexture>();
+    case TEXTURE_BLADE:   return std::make_shared<BladeTexture>();
+    default:              return nullptr;
     }
 }
 
@@ -195,6 +267,12 @@ void TextureProperty::loadBitmap(PathPtr path)
 void TextureProperty::updateBitmapFlags()
 {
     loadBitmap(dynamic_cast<BitmapTexture *>(_value.get())->path());
+}
+
+void TextureProperty::updateTexture()
+{
+    _setter(_value);
+    _bitmapDisplay->changeTexture(_value.get());
 }
 
 void TextureProperty::setVisible(bool visible)

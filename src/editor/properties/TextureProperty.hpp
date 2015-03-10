@@ -24,8 +24,11 @@ class BitmapTexture;
 
 class ColorPickButton;
 class TextureDisplay;
+class CheckerTexture;
 class PropertySheet;
 class ListProperty;
+class BladeTexture;
+class DiskTexture;
 class Texture;
 class Scene;
 
@@ -39,6 +42,9 @@ class TextureProperty : public Property
         TEXTURE_SCALAR,
         TEXTURE_RGB,
         TEXTURE_BITMAP,
+        TEXTURE_CHECKER,
+        TEXTURE_DISK,
+        TEXTURE_BLADE,
         TEXTURE_COUNT
     };
 
@@ -77,9 +83,15 @@ class TextureProperty : public Property
     void buildTexturePage(PropertySheet *sheet);
     void buildTexturePage(PropertySheet *sheet, ConstantTexture *tex);
     void buildTexturePage(PropertySheet *sheet, BitmapTexture *tex);
+    void buildTexturePage(PropertySheet *sheet, CheckerTexture *tex);
+    void buildTexturePage(PropertySheet *sheet, BladeTexture *tex);
+    void buildTexturePage(PropertySheet *sheet, DiskTexture *tex);
+    void buildTextureDisplay(PropertySheet *sheet);
 
     void loadBitmap(PathPtr path);
     void updateBitmapFlags();
+
+    void updateTexture();
 
 public:
     TextureProperty(QWidget *parent, PropertySheet &sheet, std::string name, std::shared_ptr<Texture> value,
