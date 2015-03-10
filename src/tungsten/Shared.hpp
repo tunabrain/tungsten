@@ -93,7 +93,7 @@ struct RendererStatus
         result.AddMember("completed_scenes", std::move(completedValue), allocator);
         rapidjson::Value queuedValue(rapidjson::kArrayType);
         for (const Path &p : queuedScenes)
-            completedValue.PushBack(p.asString().c_str(), allocator);
+            queuedValue.PushBack(p.asString().c_str(), allocator);
         result.AddMember("queued_scenes", std::move(queuedValue), allocator);
 
         return std::move(result);
