@@ -58,6 +58,7 @@ MainWindow::MainWindow()
     connect(this, SIGNAL(sceneChanged()),   _renderWindow, SLOT(sceneChanged()));
     connect(this, SIGNAL(sceneChanged()), _propertyWindow, SLOT(sceneChanged()));
 
+    connect( _previewWindow, SIGNAL(primitiveListChanged()), _propertyWindow, SLOT(primitiveListChanged()));
     connect( _previewWindow, SIGNAL(selectionChanged()), _propertyWindow, SLOT(changeSelection()));
     connect(_propertyWindow, SIGNAL(selectionChanged()),  _previewWindow, SLOT(changeSelection()));
 

@@ -42,6 +42,7 @@ public:
 
 private slots:
     void treeSelectionChanged();
+    void primitiveListChanged();
     void tabChanged(int idx);
 
 public slots:

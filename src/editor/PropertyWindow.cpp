@@ -131,6 +131,11 @@ void PropertyWindow::treeSelectionChanged()
     emit selectionChanged();
 }
 
+void PropertyWindow::primitiveListChanged()
+{
+    populateSceneTree();
+}
+
 void PropertyWindow::tabChanged(int idx)
 {
     _openTab = idx;

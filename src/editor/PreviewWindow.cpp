@@ -417,6 +417,7 @@ void PreviewWindow::duplicateSelection()
     updateGL();
 
     emit selectionChanged();
+    emit primitiveListChanged();
 }
 
 void PreviewWindow::deleteSelection()
@@ -430,6 +431,7 @@ void PreviewWindow::deleteSelection()
     updateGL();
 
     emit selectionChanged();
+    emit primitiveListChanged();
 }
 
 void PreviewWindow::addModel()
@@ -488,6 +490,7 @@ void PreviewWindow::addModel()
         updateGL();
 
         emit selectionChanged();
+        emit primitiveListChanged();
     }
 }
 

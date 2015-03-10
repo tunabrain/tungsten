@@ -150,6 +150,7 @@ public slots:
 
 signals:
     void selectionChanged();
+    void primitiveListChanged();
 
 public:
     PreviewWindow(QWidget *proxyParent, MainWindow *parent, const QGLFormat &format);
