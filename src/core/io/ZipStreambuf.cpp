@@ -51,7 +51,7 @@ ZipInputStreambuf::int_type ZipInputStreambuf::underflow()
             do {
                 if (_inputAvail == 0 && _in->good()) {
                     _in->read(reinterpret_cast<char *>(_inputBuffer.get()),
-                            min(InputBufferSize, _compressedSize - _inputStreamOffset));
+                            std::min(InputBufferSize, _compressedSize - _inputStreamOffset));
                     _inputAvail = _in->gcount();
                     _inputStreamOffset += _inputAvail;
                     _inputBufOffset = 0;
@@ -85,13 +85,13 @@ ZipInputStreambuf::int_type ZipInputStreambuf::underflow()
         if (gptr() == egptr())
             return traits_type::eof();
     } else {
-        _inputStreamOffset = min(uint64(_inputStreamOffset + (egptr() - eback())), _uncompressedSize);
+        _inputStreamOffset = std::min(uint64(_inputStreamOffset + (egptr() - eback())), _uncompressedSize);
         if (_inputStreamOffset == _uncompressedSize)
             return traits_type::eof();
 
         _in->seekg(_header.file_ofs + _inputStreamOffset);
         _in->read(reinterpret_cast<char *>(_outputBuffer.get()),
-                min(OutputBufferSize, _uncompressedSize - _inputStreamOffset));
+                std::min(OutputBufferSize, _uncompressedSize - _inputStreamOffset));
 
         size_t readCount = _in->gcount();
         if (readCount == 0)
@@ -110,7 +110,7 @@ std::streampos ZipInputStreambuf::seekpos(std::streampos pos, std::ios_base::ope
         if (pos >= int64(_outputStreamOffset)) {
             _seekOffset = pos;
             char *start = reinterpret_cast<char *>(_outputBuffer.get());
-            int64 off = min(_seekOffset - _outputStreamOffset, _outputBufOffset);
+            int64 off = std::min(_seekOffset - int64(_outputStreamOffset), int64(_outputBufOffset));
             setg(start, start + off, start + _outputBufOffset);
         } else {
             _inputStreamOffset = 0;
