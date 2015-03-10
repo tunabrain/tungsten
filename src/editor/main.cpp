@@ -6,6 +6,8 @@
 
 #include "thread/ThreadUtils.hpp"
 
+#include "io/FileUtils.hpp"
+
 #include "RenderWindow.hpp"
 #include "MainWindow.hpp"
 
@@ -35,8 +37,11 @@ int main(int argc, char *argv[])
 
     mainWindow.show();
 
+    Path testScenePath = FileUtils::getExecutablePath().parent()/"data/materialtest/materialtest.json";
     if (argc > 1)
         mainWindow.openScene(QString(argv[1]));
+    else if (FileUtils::exists(testScenePath))
+        mainWindow.openScene(QString(testScenePath.asString().c_str()));
 
     try {
         return app.exec();
