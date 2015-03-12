@@ -48,6 +48,7 @@ static const int OPT_VERSION           = 2;
 static const int OPT_HELP              = 3;
 static const int OPT_RESTART           = 4;
 static const int OPT_OUTPUT_DIRECTORY  = 5;
+static const int OPT_SPP               = 6;
 static const int OPT_SEED              = 7;
 
 enum RenderState
@@ -140,6 +141,7 @@ public:
         parser.addOption('r', "restart", "Ignores saved render checkpoints and starts fresh from 0 spp", false, OPT_RESTART);
         parser.addOption('c', "checkpoint", "Specifies render time in minutes before saving a checkpoint. A value of 0 disables checkpoints. Overrides the setting in the scene file", true, OPT_CHECKPOINTS);
         parser.addOption('o', "output-directory", "Specifies the output directory. Overrides the setting in the scene file", true, OPT_OUTPUT_DIRECTORY);
+        parser.addOption('\0', "spp", "Sets the number of samples per pixel to render at. Overrides the setting in the scene file", true, OPT_SPP);
         parser.addOption('s', "seed", "Specifies the random seed to use", true, OPT_SEED);
     }
 
@@ -167,6 +169,8 @@ public:
             _outputDirectory = Path(_parser.param(OPT_OUTPUT_DIRECTORY));
             _outputDirectory.freezeWorkingDirectory();
             _outputDirectory = _outputDirectory.absolute();
+            if (!_outputDirectory.exists())
+                FileUtils::createDirectory(_outputDirectory, true);
         }
 
         for (const std::string &p : _parser.operands())
@@ -202,6 +206,9 @@ public:
 
             return true;
         }
+
+        if (_parser.isPresent(OPT_SPP))
+            _scene->rendererSettings().setSpp(std::atoi(_parser.param(OPT_SPP).c_str()));
 
         {
             std::unique_lock<std::mutex> lock(_statusMutex);
