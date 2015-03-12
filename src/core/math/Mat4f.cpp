@@ -12,9 +12,13 @@ Mat4f Mat4f::toNormalMatrix() const
 
 Vec3f Mat4f::extractRotationVec() const
 {
-	float pitch = std::atan2(-a23, std::sqrt(a13*a13 + a33*a33));
-	float yaw   = std::atan2(-a13, a33);
-	float roll  = std::atan2(a21, a22);
+    Vec3f x = right().normalized();
+    Vec3f y = up().normalized();
+    Vec3f z = fwd().normalized();
+
+	float pitch = std::atan2(-z.y(), std::sqrt(z.x()*z.x() + z.z()*z.z()));
+	float yaw   = std::atan2(-z.x(), z.z());
+	float roll  = std::atan2(x.y(), y.y());
 
 	return Vec3f(
 		Angle::radToDeg(pitch),
