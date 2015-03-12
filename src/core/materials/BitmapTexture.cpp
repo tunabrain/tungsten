@@ -370,8 +370,8 @@ void BitmapTexture::makeSamplable(TextureMapJacobian jacobian)
         for (int x = _w - 1; x > 0; --x)
             weights[x + y*_w] = max(weights[x + y*_w], weights[x - 1 + y*_w]);
     }
-    for (int x = 0; x < _w; ++x)
-        for (int y = 0; y < _h - 1; ++y) {
+    for (int x = 0; x < _w; ++x) {
+        for (int y = 0; y < _h - 1; ++y)
             weights[x + y*_w] = max(weights[x + y*_w], weights[x + (y + 1)*_w]);
         if (!_clamp)
             weights[x] = weights[x + (_h - 1)*_w] = max(weights[x], weights[x + (_h - 1)*_w]);
