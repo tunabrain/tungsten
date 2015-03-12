@@ -12,7 +12,7 @@ Tungsten is written in C++11 and makes use of Intel's high-performance geometry 
 
 Documentation is planned, but currently unavailable (sorry!). A lengthy overview of features is available in the [final project report](http://graphics.ethz.ch/teaching/imsynth14/competition//1st%20Place..%20Benedikt%20Bitterli/report.html) written as part of the submission for the rendering competition, although that document may be outdated.
 
-A small example JSON scene file can be found in `assets/materialtest`. It also contains the Tungsten material test ball that you can use to test different materials and lighting setups.
+A small example JSON scene file can be found in `data/materialtest`. It also contains the Tungsten material test ball that you can use to test different materials and lighting setups.
 
 ## License ##
 
