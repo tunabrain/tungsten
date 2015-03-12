@@ -180,9 +180,9 @@ rapidjson::Value ProgressivePhotonMapIntegrator::toJson(Allocator &allocator) co
     return _settings.toJson(allocator);
 }
 
-void ProgressivePhotonMapIntegrator::prepareForRender(TraceableScene &scene)
+void ProgressivePhotonMapIntegrator::prepareForRender(TraceableScene &scene, uint32 seed)
 {
-    _sampler = UniformSampler(0xBA5EBA11);
+    _sampler = UniformSampler(MathUtil::hash32(seed));
     _currentSpp = 0;
     _iteration = 0;
     _scene = &scene;

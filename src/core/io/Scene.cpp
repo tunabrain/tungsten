@@ -577,9 +577,9 @@ void Scene::pruneMedia()
     pruneObjects(_media);
 }
 
-TraceableScene *Scene::makeTraceable()
+TraceableScene *Scene::makeTraceable(uint32 seed)
 {
-    return new TraceableScene(*_camera, *_integrator, _primitives, _bsdfs, _media, _rendererSettings);
+    return new TraceableScene(*_camera, *_integrator, _primitives, _bsdfs, _media, _rendererSettings, seed);
 }
 
 Scene *Scene::load(const Path &path, std::shared_ptr<TextureCache> cache)

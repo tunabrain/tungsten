@@ -78,7 +78,8 @@ public:
             std::vector<std::shared_ptr<Primitive>> &primitives,
             std::vector<std::shared_ptr<Bsdf>> &bsdfs,
             std::vector<std::shared_ptr<Medium>> &media,
-            RendererSettings settings)
+            RendererSettings settings,
+            uint32 seed)
     : _cam(cam),
       _integrator(integrator),
       _primitives(primitives),
@@ -154,7 +155,7 @@ public:
                     _finites.push_back(m.get());
         }
 
-        _integrator.prepareForRender(*this);
+        _integrator.prepareForRender(*this, seed);
     }
 
     ~TraceableScene()

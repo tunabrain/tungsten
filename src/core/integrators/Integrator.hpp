@@ -32,7 +32,7 @@ public:
     Integrator();
     virtual ~Integrator();
 
-    virtual void prepareForRender(TraceableScene &scene) = 0;
+    virtual void prepareForRender(TraceableScene &scene, uint32 seed) = 0;
     virtual void teardownAfterRender() = 0;
 
     virtual void startRender(std::function<void()> completionCallback) = 0;

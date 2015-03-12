@@ -109,7 +109,7 @@ public:
 
     void merge(Scene scene);
 
-    TraceableScene *makeTraceable();
+    TraceableScene *makeTraceable(uint32 seed = 0xBA5EBA11);
 
     std::vector<std::shared_ptr<Medium>> &media()
     {

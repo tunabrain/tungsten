@@ -48,6 +48,7 @@ static const int OPT_VERSION           = 2;
 static const int OPT_HELP              = 3;
 static const int OPT_RESTART           = 4;
 static const int OPT_OUTPUT_DIRECTORY  = 5;
+static const int OPT_SEED              = 7;
 
 enum RenderState
 {
@@ -139,6 +140,7 @@ public:
         parser.addOption('r', "restart", "Ignores saved render checkpoints and starts fresh from 0 spp", false, OPT_RESTART);
         parser.addOption('c', "checkpoint", "Specifies render time in minutes before saving a checkpoint. A value of 0 disables checkpoints. Overrides the setting in the scene file", true, OPT_CHECKPOINTS);
         parser.addOption('o', "output-directory", "Specifies the output directory. Overrides the setting in the scene file", true, OPT_OUTPUT_DIRECTORY);
+        parser.addOption('s', "seed", "Specifies the random seed to use", true, OPT_SEED);
     }
 
     void setup()
@@ -212,10 +214,14 @@ public:
             if (_parser.isPresent(OPT_OUTPUT_DIRECTORY))
                 _scene->rendererSettings().setOutputDirectory(_outputDirectory);
 
+            uint32 seed = 0xBA5EBA11;
+            if (_parser.isPresent(OPT_SEED))
+                seed = std::atoi(_parser.param(OPT_SEED).c_str());
+
             int maxSpp = _scene->rendererSettings().spp();
             {
                 std::unique_lock<std::mutex> lock(_sceneMutex);
-                _flattenedScene.reset(_scene->makeTraceable());
+                _flattenedScene.reset(_scene->makeTraceable(seed));
             }
             Integrator &integrator = _flattenedScene->integrator();
 

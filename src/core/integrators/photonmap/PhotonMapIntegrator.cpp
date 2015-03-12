@@ -167,9 +167,9 @@ rapidjson::Value PhotonMapIntegrator::toJson(Allocator &allocator) const
     return _settings.toJson(allocator);
 }
 
-void PhotonMapIntegrator::prepareForRender(TraceableScene &scene)
+void PhotonMapIntegrator::prepareForRender(TraceableScene &scene, uint32 seed)
 {
-    _sampler = UniformSampler(0xBA5EBA11);
+    _sampler = UniformSampler(MathUtil::hash32(seed));
     _currentSpp = 0;
     _totalTracedSurfacePhotons = 0;
     _totalTracedVolumePhotons  = 0;

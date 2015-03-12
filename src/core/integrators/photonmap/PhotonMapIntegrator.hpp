@@ -74,7 +74,7 @@ public:
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
-    virtual void prepareForRender(TraceableScene &scene) override;
+    virtual void prepareForRender(TraceableScene &scene, uint32 seed) override;
     virtual void teardownAfterRender() override;
 
     virtual void startRender(std::function<void()> completionCallback) override;
