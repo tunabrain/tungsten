@@ -239,7 +239,8 @@ bool savePfm(const Path &path, const float *img, int w, int h, int channels)
     *out << ((channels == 1) ? "Pf" : "PF") << '\n';
     *out << w << " " << h << '\n';
     *out << -1.0 << '\n';
-    out->write(reinterpret_cast<const char *>(img), w*h*sizeof(float)*channels);
+    for (int y = 0; y < h; ++y)
+        out->write(reinterpret_cast<const char *>(img + (h - y - 1)*w*channels), w*channels*sizeof(float));
 
     return true;
 }
