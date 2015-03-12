@@ -436,7 +436,10 @@ Path Path::operator+(const Path &o) const
 
 Path Path::operator/(const std::string &o) const
 {
-    return ensureSeparator() + o;
+    if (o.empty())
+        return *this;
+    else
+        return ensureSeparator() + o;
 }
 
 Path Path::operator+(const std::string &o) const
