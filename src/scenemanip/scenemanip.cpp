@@ -21,6 +21,9 @@ static const int OPT_HELP              = 3;
 static const int OPT_RESOURCES         = 4;
 static const int OPT_ZIP               = 5;
 static const int OPT_COMPRESSION_LEVEL = 6;
+static const int OPT_RELOCATE          = 7;
+static const int OPT_COPY_RELOCATE     = 8;
+static const int OPT_PATHS_ONLY        = 9;
 
 static void listResources(Scene *scene, CliParser &/*parser*/)
 {
@@ -96,6 +99,49 @@ static void zipResources(Scene *scene, CliParser &parser)
     }
 }
 
+static void relocateResources(Scene *scene, CliParser &parser)
+{
+    if (!parser.isPresent(OPT_OUTPUT))
+        parser.fail("No output file specified");
+
+    Path output(parser.param(OPT_OUTPUT));
+    if (!FileUtils::createDirectory(output, true))
+        parser.fail("Failed to create output directory at '%s'", output);
+
+    Path resourceParent = output;
+
+    Path normalizedOutput = output.normalize();
+    Path outputTail;
+    Path normalizedSceneFolder = scene->path().parent().normalize();
+    while (!normalizedOutput.empty()) {
+        if (normalizedOutput == normalizedSceneFolder) {
+            resourceParent = outputTail;
+            break;
+        }
+        outputTail = normalizedOutput.fileName()/outputTail;
+        normalizedOutput = normalizedOutput.parent().stripSeparator();
+    }
+
+    for (const auto &r : scene->resources()) {
+        Path newPath = output/r.first.fileName();
+
+        bool success;
+        if (parser.isPresent(OPT_PATHS_ONLY))
+            success = true;
+        else if (parser.isPresent(OPT_COPY_RELOCATE))
+            success = FileUtils::copyFile(r.first, newPath, false);
+        else
+            success = FileUtils::moveFile(r.first, newPath, true);
+
+        if (!success)
+            std::cout << "Failed to relocate resource " << r.first << std::endl;
+        else
+            *r.second = resourceParent/r.first.fileName();
+    }
+
+    Scene::save(scene->path(), *scene);
+}
+
 int main(int argc, const char *argv[])
 {
     CliParser parser("scenemanip");
@@ -103,8 +149,11 @@ int main(int argc, const char *argv[])
     parser.addOption('v', "version", "Prints version information", false, OPT_VERSION);
     parser.addOption('r', "resources", "Lists all resources referenced by the scene file", false, OPT_RESOURCES);
     parser.addOption('z', "zip", "Packs all referenced resources as well as the scene file into a zip file", false, OPT_ZIP);
-    parser.addOption('o', "output", "Specifies the output file", true, OPT_OUTPUT);
+    parser.addOption('o', "output", "Specifies the output file or directory", true, OPT_OUTPUT);
     parser.addOption('\0', "compression-level", "Specifies the compression level for zip packaging", true, OPT_COMPRESSION_LEVEL);
+    parser.addOption('\0', "relocate", "Moves all resources referenced by the scene file into the specified output directory", false, OPT_RELOCATE);
+    parser.addOption('\0', "copy", "Copy resources instead of moving them when running --relocate", false, OPT_COPY_RELOCATE);
+    parser.addOption('\0', "paths-only", "Only modify resource paths in the scene file when running --relocate, don't copy or move any files", false, OPT_PATHS_ONLY);
 
     parser.parse(argc, argv);
 
@@ -132,6 +181,8 @@ int main(int argc, const char *argv[])
         listResources(scene, parser);
     else if (parser.isPresent(OPT_ZIP))
         zipResources(scene, parser);
+    else if (parser.isPresent(OPT_RELOCATE))
+        relocateResources(scene, parser);
     else
         parser.fail("Don't know what to do! No action specified");
 
