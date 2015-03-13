@@ -48,7 +48,7 @@ bool PhongBsdf::sample(SurfaceScatterEvent &event) const
         return false;
 
     bool sampleGlossy;
-    if (evalGlossy & evalDiffuse)
+    if (evalGlossy && evalDiffuse)
         sampleGlossy = event.sampler->next1D() >= _diffuseRatio;
     else
         sampleGlossy = evalGlossy;
@@ -126,7 +126,7 @@ float PhongBsdf::pdf(const SurfaceScatterEvent &event) const
 
 void PhongBsdf::prepareForRender()
 {
-    _lobes       = BsdfLobes(BsdfLobes::GlossyReflectionLobe);
+    _lobes       = BsdfLobes(BsdfLobes::GlossyReflectionLobe | BsdfLobes::DiffuseReflectionLobe);
     _invExponent = 1.0f/(1.0f + _exponent);
     _pdfFactor   = (_exponent + 1.0f)*INV_TWO_PI;
     _brdfFactor  = (_exponent + 2.0f)*INV_TWO_PI;
