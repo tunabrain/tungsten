@@ -79,7 +79,7 @@ Vec3f PathTracer::traceSample(Vec2u pixel, SampleGenerator &sampler, UniformSamp
     }
     if (std::isnan(throughput.sum() + emission.sum()))
         return nanEnvDirColor;
-    return min(emission, Vec3f(100.0f));
+    return emission;
 
     } catch (std::runtime_error &e) {
         std::cout << tfm::format("Caught an internal error at pixel %s: %s", pixel, e.what()) << std::endl;
