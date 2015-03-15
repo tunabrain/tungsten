@@ -571,6 +571,7 @@ void PreviewWindow::drawBackgroundGradient()
 void PreviewWindow::drawGrid()
 {
     Mat4f proj;
+    MatrixStack::set(MODEL_STACK, Mat4f());
     MatrixStack::get(MODELVIEWPROJECTION_STACK, proj);
 
     float radius = (_scene->camera()->pos() - _scene->camera()->lookAt()).length();
