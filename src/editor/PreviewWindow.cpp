@@ -569,6 +569,37 @@ void PreviewWindow::drawBackgroundGradient()
     glDepthMask(GL_TRUE);
 }
 
+void PreviewWindow::drawGrid()
+{
+    Mat4f proj;
+    MatrixStack::get(MODELVIEWPROJECTION_STACK, proj);
+
+    float radius = (_scene->camera()->pos() - _scene->camera()->lookAt()).length();
+    int exponent = max(int(std::log10(radius) + 0.5f), -10);
+    float scale = std::pow(10.0f, exponent);
+
+    ShapePainter painter(proj);
+    for (int i = -100; i <= 100; ++i) {
+        painter.setColor(Vec3f((i % 10) == 0 ? 0.0f : 0.2f));
+        float s = i*0.1f*scale;
+        float t = 10.0f*scale;
+        if (i == 0) {
+            painter.drawLine(Vec3f(s, 0.0f, -t), Vec3f(s, 0.0f, -scale));
+            painter.drawLine(Vec3f(s, 0.0f, scale), Vec3f(s, 0.0f, t));
+            painter.drawLine(Vec3f(-t, 0.0f, s), Vec3f(-scale, 0.0f, s));
+            painter.drawLine(Vec3f(scale, 0.0f, s), Vec3f(t, 0.0f, s));
+        } else {
+            painter.drawLine(Vec3f(s, 0.0f, -t), Vec3f(s, 0.0f, t));
+            painter.drawLine(Vec3f(-t, 0.0f, s), Vec3f(t, 0.0f, s));
+        }
+    }
+
+    painter.setColor(Vec3f(1.0f, 0.0f, 0.0f));
+    painter.drawLine(Vec3f(-scale, 0.0f, 0.0f), Vec3f(scale, 0.0f, 0.0f));
+    painter.setColor(Vec3f(0.0f, 0.0f, 1.0f));
+    painter.drawLine(Vec3f(0.0f, 0.0f, -scale), Vec3f(0.0f, 0.0f, scale));
+}
+
 void PreviewWindow::paintGL()
 {
     if (_rebuildMeshes) {
@@ -596,16 +627,17 @@ void PreviewWindow::paintGL()
 
     drawBackgroundGradient();
 
-
     if (!_scene)
         return;
-
-    glEnable(GL_FRAMEBUFFER_SRGB);
 
     std::shared_ptr<Camera> cam = _scene->camera();
 
     MatrixStack::set(VIEW_STACK, cam->transform());
     MatrixStack::set(PROJECTION_STACK, projection());
+
+    drawGrid();
+
+    glEnable(GL_FRAMEBUFFER_SRGB);
 
     const std::vector<std::shared_ptr<Primitive>> &prims = _scene->primitives();
 
