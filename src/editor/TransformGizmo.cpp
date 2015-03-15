@@ -286,10 +286,10 @@ void TransformGizmo::drawDynamic(AbstractPainter &painter)
         painter.setColor(Vec4f(0.6f));
         float aStart = std::atan2(   begin.y() - oldOrigin.y(),    begin.x() - oldOrigin.x());
         float aEnd   = std::atan2( current.y() - oldOrigin.y(),  current.x() - oldOrigin.x());
-        if (aStart > aEnd)
-            std::swap(aStart, aEnd);
         if (_snapToGrid)
             aEnd = snapToGrid(aEnd - aStart, Angle::degToRad(5.0f)) + aStart;
+        if (aStart > aEnd)
+            std::swap(aStart, aEnd);
         if (aEnd - aStart > PI) {
             std::swap(aEnd, aStart);
             aEnd += TWO_PI;
