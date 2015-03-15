@@ -1,72 +1,61 @@
 #ifndef RENDER_SHADER_OBJECT_HPP_
 #define RENDER_SHADER_OBJECT_HPP_
 
-#include <time.h>
-#ifdef _WIN32
-#include <windows.h>
-#endif
+#include <GL/glew.h>
+
+#include "io/Path.hpp"
+
+#include <string>
+#include <vector>
 
 namespace Tungsten {
 
 namespace GL {
 
-#define MAX_SOURCES 16
-
-enum ShaderType
+enum class ShaderType
 {
-    INVALID_SHADER  = -1,
-    VERTEX_SHADER   = GL_VERTEX_SHADER,
-    GEOMETRY_SHADER = GL_GEOMETRY_SHADER,
-    FRAGMENT_SHADER = GL_FRAGMENT_SHADER,
-    COMPUTE_SHADER  = GL_COMPUTE_SHADER
+    Vertex,
+    Geometry,
+    Fragment,
 };
 
-struct ShaderSource
+class ShaderObject
 {
-    const char *file;
-    char *src;
-#ifdef _WIN32
-    FILETIME timestamp;
-#else
-    time_t timestamp;
-#endif
-};
+    struct ShaderSource
+    {
+        Path path;
+        std::string source;
+    };
 
-class ShaderObject {
     ShaderType _type;
-    GLuint _name;
+    GLuint _glName;
 
-    int _sourceCount;
-    ShaderSource _sources[MAX_SOURCES];
+    std::vector<ShaderSource> _sources;
 
-    void loadFile(ShaderSource *s, const char *path);
     void check();
 
 public:
-    ShaderObject() : _type(INVALID_SHADER), _name(0), _sourceCount(0) {}
+    ShaderObject(ShaderType type);
+    ShaderObject(ShaderType type, const Path &path);
+    ~ShaderObject();
 
-    void addFile(const char *path);
-    int refresh();
-    void compile(ShaderType type);
+    ShaderObject(ShaderObject &&o);
+    ShaderObject &operator=(ShaderObject &&o);
+
+    ShaderObject(const ShaderObject &) = delete;
+    ShaderObject &operator=(const ShaderObject &) = delete;
+
+    void addFile(const Path &path);
+    void compile();
 
     ShaderType type() const
     {
         return _type;
     }
 
-    GLuint name() const
+    GLuint glName() const
     {
-        return _name;
-    }
-
-    int sourceCount() const
-    {
-        return _sourceCount;
-    }
-
-    const ShaderSource &source(int i) const
-    {
-        return _sources[i];
+        return _glName;
     }
 };
 

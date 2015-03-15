@@ -1,9 +1,9 @@
 #ifndef RENDER_MATRIXSTACK_HPP_
 #define RENDER_MATRIXSTACK_HPP_
 
-#include <stack>
-
 #include "math/Mat4f.hpp"
+
+#include <stack>
 
 namespace Tungsten {
 

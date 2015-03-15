@@ -1,9 +1,9 @@
-#include <deque>
-
 #include "MatrixStack.hpp"
 #include "Shader.hpp"
 
 #include "Debug.hpp"
+
+#include <deque>
 
 namespace Tungsten {
 
@@ -26,22 +26,26 @@ static const char *uniformNames[] = {
     "InvModelView",
 };
 
-void MatrixStack::set(StackName n, const Mat4f &m) {
+void MatrixStack::set(StackName n, const Mat4f &m)
+{
     ASSERT(n <= VIEW_STACK, "Cannot manipulate virtual stacks\n");
     _stacks[n].top() = m;
 }
 
-void MatrixStack::mulR(StackName n, const Mat4f &m) {
+void MatrixStack::mulR(StackName n, const Mat4f &m)
+{
     ASSERT(n <= VIEW_STACK, "Cannot manipulate virtual stacks\n");
     _stacks[n].top() = _stacks[n].top()*m;
 }
 
-void MatrixStack::mulL(StackName n, const Mat4f &m) {
+void MatrixStack::mulL(StackName n, const Mat4f &m)
+{
     ASSERT(n <= VIEW_STACK, "Cannot manipulate virtual stacks\n");
     _stacks[n].top() = m*_stacks[n].top();
 }
 
-void MatrixStack::get(StackName n, Mat4f &m) {
+void MatrixStack::get(StackName n, Mat4f &m)
+{
     switch(n) {
     case PROJECTION_STACK:
     case MODEL_STACK:
@@ -70,22 +74,26 @@ void MatrixStack::get(StackName n, Mat4f &m) {
     }
 }
 
-void MatrixStack::copyPush(StackName n) {
+void MatrixStack::copyPush(StackName n)
+{
     ASSERT(n <= VIEW_STACK, "Cannot manipulate virtual stacks\n");
     _stacks[n].push(_stacks[n].top());
 }
 
-void MatrixStack::push(StackName n) {
+void MatrixStack::push(StackName n)
+{
     ASSERT(n <= VIEW_STACK, "Cannot manipulate virtual stacks\n");
     _stacks[n].push(Mat4f());
 }
 
-void MatrixStack::pop(StackName n) {
+void MatrixStack::pop(StackName n)
+{
     ASSERT(n <= VIEW_STACK, "Cannot manipulate virtual stacks\n");
     _stacks[n].pop();
 }
 
-void MatrixStack::setShaderMatrices(Shader &s, int flags) {
+void MatrixStack::setShaderMatrices(Shader &s, int flags)
+{
     Mat4f m;
     for (int i = 0; i < MATRIX_STACK_COUNT; i++) {
         if (flags & (1 << i)) {

@@ -2,6 +2,7 @@
 #define RENDER_TEXTURE_HPP
 
 #include <GL/glew.h>
+#include <vector>
 
 namespace Tungsten {
 
@@ -27,14 +28,14 @@ enum TextureType
     TEXTURE_3D
 };
 
-class Texture {
-    static const int MaxTextureUnits = 80;
-
+class Texture
+{
+    static int _maxTextureUnits;
     static int _selectedUnit;
     static int _nextTicket;
-    static int _unitTicket[MaxTextureUnits];
-    static Texture *_units[MaxTextureUnits];
-    static unsigned long long int _memoryUsage;
+    static std::vector<int> _unitTicket;
+    static std::vector<Texture *> _units;
+    static size_t _memoryUsage;
 
     TextureType _type;
     TexelType _texelType;
@@ -55,6 +56,8 @@ class Texture {
 
     int _boundUnit;
 
+    static void initTextureUnits();
+
     void selectUnit(int unit);
     void markAsUsed(int unit);
     int selectVictimUnit();
@@ -63,18 +66,23 @@ public:
     Texture(TextureType type, int width, int height = 1, int depth = 1, int levels = 1);
     ~Texture();
 
-    void setFormat(TexelType texel, int channels, int chan_bytes);
+    Texture(Texture &&o);
+    Texture &operator=(Texture &&o);
+
+    Texture(const Texture &) = delete;
+    Texture &operator=(const Texture &) = delete;
+
+    void setFormat(TexelType texel, int channels, int chanBytes);
     void setFilter(bool clamp, bool linear);
     void init(GLuint bufferObject = -1);
 
     void copy(void *data, int level = 0);
     void copyPbo(BufferObject& pbo, int level = 0);
 
-    void bindImage(int unit, bool read = true, bool write = true, int level = 0);
     void bind(int unit);
     void bindAny();
 
-    unsigned long long int size();
+    size_t size();
 
     TextureType type() const
     {
@@ -131,7 +139,7 @@ public:
         return _boundUnit;
     }
 
-    static unsigned long long int memoryUsage()
+    static size_t memoryUsage()
     {
         return _memoryUsage;
     }

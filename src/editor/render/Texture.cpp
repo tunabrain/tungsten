@@ -60,17 +60,36 @@ static const GLenum GlChanTable[][4] = {
         {GL_DEPTH_STENCIL, 0, 0, 0},
 };
 
-unsigned long long int Texture::_memoryUsage = 0;
+int Texture::_maxTextureUnits = 0;
 int Texture::_selectedUnit = 0;
 int Texture::_nextTicket = 1;
-int Texture::_unitTicket[MaxTextureUnits] = {0};
-Texture *Texture::_units[MaxTextureUnits] = {0};
+std::vector<int> Texture::_unitTicket;
+std::vector<Texture *> Texture::_units;
+size_t Texture::_memoryUsage = 0;
+
+void Texture::initTextureUnits()
+{
+    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &_maxTextureUnits);
+    _unitTicket.resize(_maxTextureUnits, 0);
+    _units.resize(_maxTextureUnits, nullptr);
+}
 
 Texture::Texture(TextureType type, int width, int height, int depth, int levels)
-: _type(type), _texelType(TEXEL_FLOAT), _channels(0), _chanBytes(0),
-  _glName(0), _glFormat(0), _glChanType(0), _elementType(0),
-  _elementSize(0), _levels(levels), _boundUnit(-1)
+: _type(type),
+  _texelType(TEXEL_FLOAT),
+  _channels(0),
+  _chanBytes(0),
+  _glName(0),
+  _glFormat(0),
+  _glChanType(0),
+  _elementType(0),
+  _elementSize(0),
+  _levels(levels),
+  _boundUnit(-1)
 {
+    if (_maxTextureUnits == 0)
+        initTextureUnits();
+
     _width = _height = _depth = 1;
     _glType = GlTexTable[_type];
 
@@ -88,6 +107,56 @@ Texture::~Texture()
         _memoryUsage -= size();
         glDeleteTextures(1, &_glName);
     }
+}
+
+Texture::Texture(Texture &&o)
+{
+    _type        = o._type;
+    _texelType   = o._texelType;
+    _channels    = o._channels;
+    _chanBytes   = o._chanBytes;
+
+    _glName      = o._glName;
+    _glType      = o._glType;
+    _glFormat    = o._glFormat;
+    _glChanType  = o._glChanType;
+    _elementType = o._elementType;
+    _elementSize = o._elementSize;
+
+    _width       = o._width;
+    _height      = o._height;
+    _depth       = o._depth;
+    _levels      = o._levels;
+
+    _boundUnit   = o._boundUnit;
+
+    o._glName = 0;
+}
+
+Texture &Texture::operator=(Texture &&o)
+{
+    _type        = o._type;
+    _texelType   = o._texelType;
+    _channels    = o._channels;
+    _chanBytes   = o._chanBytes;
+
+    _glName      = o._glName;
+    _glType      = o._glType;
+    _glFormat    = o._glFormat;
+    _glChanType  = o._glChanType;
+    _elementType = o._elementType;
+    _elementSize = o._elementSize;
+
+    _width       = o._width;
+    _height      = o._height;
+    _depth       = o._depth;
+    _levels      = o._levels;
+
+    _boundUnit   = o._boundUnit;
+
+    o._glName = 0;
+
+    return *this;
 }
 
 void Texture::selectUnit(int unit)
@@ -108,7 +177,7 @@ int Texture::selectVictimUnit()
     int leastTicket = _unitTicket[0];
     int leastUnit = 0;
 
-    for (int i = 1; i < MaxTextureUnits; i++) {
+    for (int i = 1; i < _maxTextureUnits; i++) {
         if (_unitTicket[i] < leastTicket) {
             leastTicket = _unitTicket[i];
             leastUnit = i;
@@ -137,26 +206,21 @@ void Texture::setFormat(TexelType texel, int channels, int chan_bytes)
 
 void Texture::setFilter(bool clamp, bool linear)
 {
-    GLenum coord_mode = (clamp ? GL_CLAMP_TO_EDGE : GL_MIRRORED_REPEAT);
-    GLenum inter_mode = (linear ? GL_LINEAR : GL_NEAREST);
+    GLenum coordMode = (clamp ? GL_CLAMP_TO_EDGE : GL_REPEAT);
+    GLenum interpMode = (linear ? GL_LINEAR : GL_NEAREST);
 
     bindAny();
 
-    if (_type > TEXTURE_BUFFER) {
-        glTexParameteri(_glType, GL_TEXTURE_WRAP_S, coord_mode);
-    }
-
-    if (_type > TEXTURE_1D) {
-        glTexParameteri(_glType, GL_TEXTURE_WRAP_T, coord_mode);
-    }
-
-    if (_type > TEXTURE_2D || _type == TEXTURE_CUBE) {
-        glTexParameteri(_glType, GL_TEXTURE_WRAP_R, coord_mode);
-    }
+    if (_type > TEXTURE_BUFFER)
+        glTexParameteri(_glType, GL_TEXTURE_WRAP_S, coordMode);
+    if (_type > TEXTURE_1D)
+        glTexParameteri(_glType, GL_TEXTURE_WRAP_T, coordMode);
+    if (_type > TEXTURE_2D || _type == TEXTURE_CUBE)
+        glTexParameteri(_glType, GL_TEXTURE_WRAP_R, coordMode);
 
     if (_type != TEXTURE_BUFFER) {
-        glTexParameteri(_glType, GL_TEXTURE_MIN_FILTER, inter_mode);
-        glTexParameteri(_glType, GL_TEXTURE_MAG_FILTER, inter_mode);
+        glTexParameteri(_glType, GL_TEXTURE_MIN_FILTER, interpMode);
+        glTexParameteri(_glType, GL_TEXTURE_MAG_FILTER, interpMode);
         glTexParameteri(_glType, GL_TEXTURE_MAX_LEVEL, _levels - 1);
     }
 }
@@ -173,19 +237,15 @@ void Texture::init(GLuint bufferObject)
         break;
     case TEXTURE_1D:
         glTexImage1D(GL_TEXTURE_1D, 0, _glFormat, _width, 0, _glChanType, _elementType, nullptr);
-        //glTexStorage1D(GL_TEXTURE_1D, _levels, _glFormat, _width);
         break;
     case TEXTURE_CUBE:
         glTexImage2D(GL_TEXTURE_CUBE_MAP, 0, _glFormat, _width, _height, 0, _glChanType, _elementType, nullptr);
-        //glTexStorage2D(GL_TEXTURE_CUBE_MAP, _levels, _glFormat, _width, _height);
         break;
     case TEXTURE_2D:
         glTexImage2D(GL_TEXTURE_2D, 0, _glFormat, _width, _height, 0, _glChanType, _elementType, nullptr);
-        //glTexStorage2D(GL_TEXTURE_2D, _levels, _glFormat, _width, _height);
         break;
     case TEXTURE_3D:
         glTexImage3D(GL_TEXTURE_3D, 0, _glFormat, _width, _height, _depth, 0, _glChanType, _elementType, nullptr);
-        //glTexStorage3D(GL_TEXTURE_3D, _levels, _glFormat, _width, _height, _depth);
         break;
     }
 
@@ -238,17 +298,10 @@ void Texture::copyPbo(BufferObject &pbo, int level)
         FAIL("PBO copy not available for texture buffer - use BufferObject::copyData instead");
         break;
     default:
-        copy(NULL, level);
+        copy(nullptr, level);
     }
 
     pbo.unbind();
-}
-
-void Texture::bindImage(int unit, bool read, bool write, int level)
-{
-    GLenum mode = read ? (write ? GL_READ_WRITE : GL_READ_ONLY) : GL_WRITE_ONLY;
-
-    glBindImageTexture(unit, _glName, level, GL_TRUE, 0, mode, _glFormat);
 }
 
 void Texture::bind(int unit)
@@ -277,18 +330,18 @@ void Texture::bindAny()
         bind(selectVictimUnit());
 }
 
-unsigned long long int Texture::size()
+size_t Texture::size()
 {
     switch (_type) {
     case TEXTURE_BUFFER:
     case TEXTURE_1D:
-        return ((unsigned long long int)_width)*_elementSize;
+        return size_t(_width)*_elementSize;
     case TEXTURE_CUBE:
-        return ((((unsigned long long int)_width)*_height)*_elementSize)*6;
+        return ((size_t(_width)*_height)*_elementSize)*6;
     case TEXTURE_2D:
-        return (((unsigned long long int)_width)*_height)*_elementSize;
+        return (size_t(_width)*_height)*_elementSize;
     case TEXTURE_3D:
-        return ((((unsigned long long int)_width)*_height)*_depth)*_elementSize;
+        return ((size_t(_width)*_height)*_depth)*_elementSize;
     }
     return 0;
 }

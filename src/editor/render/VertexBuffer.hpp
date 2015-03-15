@@ -3,7 +3,8 @@
 
 #include "BufferObject.hpp"
 
-#define MAX_VBO_ATTRIBUTES 16
+#include <string>
+#include <vector>
 
 namespace Tungsten {
 
@@ -25,24 +26,18 @@ class VertexBuffer: public BufferObject
 {
     struct VertexAttrib
     {
-        const char *name;
+        std::string name;
         int size;
         bool norm;
         GLenum type;
         size_t offset;
         GLint index;
-
-        VertexAttrib() = default;
-        VertexAttrib(const char *_name, int _size, bool _norm, GLenum _type, size_t _offset)
-        : name(_name), size(_size), norm(_norm), type(_type), offset(_offset), index(-1)
-        {}
     };
 
     int _length;
-    int _elementSize;
+    size_t _elementSize;
 
-    int _attributeCount;
-    VertexAttrib _attributes[MAX_VBO_ATTRIBUTES];
+    std::vector<VertexAttrib> _attributes;
 
     void enableVertexAttrib(int index);
     void disableVertexAttrib(int index);
@@ -50,7 +45,13 @@ class VertexBuffer: public BufferObject
 public:
     VertexBuffer(int length);
 
-    void addAttribute(const char *name, GLint size, GLenum type, int norm);
+    VertexBuffer(VertexBuffer &&o);
+    VertexBuffer &operator=(VertexBuffer &&o);
+
+    VertexBuffer(const VertexBuffer &) = delete;
+    VertexBuffer &operator=(const VertexBuffer &) = delete;
+
+    void addAttribute(std::string name, GLint size, GLenum type, bool norm);
     void setStandardAttributes(int attributes);
 
     void initBuffer();
@@ -74,7 +75,7 @@ public:
 
     int attributeCount() const
     {
-        return _attributeCount;
+        return _attributes.size();
     }
 };
 

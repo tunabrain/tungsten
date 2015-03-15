@@ -11,12 +11,13 @@ static GLenum bufferTypes[] = {
     GL_ELEMENT_ARRAY_BUFFER,
     GL_PIXEL_PACK_BUFFER,
     GL_PIXEL_UNPACK_BUFFER,
-    GL_SHADER_STORAGE_BUFFER,
     GL_UNIFORM_BUFFER,
 };
 
 BufferObject::BufferObject(BufferType type)
-: _type(type), _size(-1), _data(0)
+: _type(type),
+  _size(-1),
+  _data(nullptr)
 {
     _glType = bufferTypes[type];
 
@@ -24,7 +25,8 @@ BufferObject::BufferObject(BufferType type)
 }
 
 BufferObject::BufferObject(BufferType type, GLsizei size)
-: _type(type), _data(0)
+: _type(type),
+  _data(nullptr)
 {
     _glType = bufferTypes[type];
 
@@ -32,22 +34,47 @@ BufferObject::BufferObject(BufferType type, GLsizei size)
     init(size);
 }
 
+BufferObject::~BufferObject()
+{
+    if (_glName)
+        glDeleteBuffers(1, &_glName);
+}
+
+BufferObject::BufferObject(BufferObject &&o)
+{
+    _type   = o._type;
+    _glType = o._glType;
+    _glName = o._glName;
+    _size   = o._size;
+    _data   = o._data;
+
+    o._glName = 0;
+}
+
+BufferObject &BufferObject::operator=(BufferObject &&o)
+{
+    _type   = o._type;
+    _glType = o._glType;
+    _glName = o._glName;
+    _size   = o._size;
+    _data   = o._data;
+
+    o._glName = 0;
+
+    return *this;
+}
+
 void BufferObject::init(GLsizei size)
 {
     _size = size;
     bind();
-    glBufferData(_glType, _size, NULL, GL_STATIC_DRAW);
+    glBufferData(_glType, _size, nullptr, GL_STATIC_DRAW);
     unbind();
-}
-
-BufferObject::~BufferObject()
-{
-    glDeleteBuffers(1, &_glName);
 }
 
 void BufferObject::map(int flags)
 {
-    if (flags & (MAP_INVALIDATE | MAP_INVALIDATE_RANGE))
+    if (flags & MAP_INVALIDATE)
         invalidate();
 
     GLuint flag = (flags & MAP_READ) ? ((flags & MAP_WRITE) ? GL_READ_WRITE : GL_READ_ONLY) : GL_WRITE_ONLY;
@@ -55,34 +82,15 @@ void BufferObject::map(int flags)
     _data = glMapBuffer(_glType, flag);
 }
 
-void BufferObject::mapRange(GLintptr offset, GLsizeiptr length, int flags)
-{
-    const GLenum flagBits[] = {
-        GL_MAP_READ_BIT,
-        GL_MAP_WRITE_BIT,
-        GL_MAP_INVALIDATE_RANGE_BIT,
-        GL_MAP_INVALIDATE_BUFFER_BIT,
-        GL_MAP_FLUSH_EXPLICIT_BIT,
-        GL_MAP_UNSYNCHRONIZED_BIT,
-    };
-
-    GLbitfield glFlags = 0;
-    for (int i = 0; i < 6; i++)
-        if (flags & (1 << i))
-            glFlags |= flagBits[i];
-
-    glMapBufferRange(_glType, offset, length, glFlags);
-}
-
 void BufferObject::unmap()
 {
-    _data = NULL;
+    _data = nullptr;
     glUnmapBuffer(_glType);
 }
 
-void BufferObject::copyData(void *data, GLsizei size, GLenum usage)
+void BufferObject::copyData(void *data, GLsizei size)
 {
-    glBufferData(_glType, size, data, usage);
+    glBufferData(_glType, size, data, GL_STATIC_DRAW);
 }
 
 void BufferObject::bind()
@@ -97,27 +105,7 @@ void BufferObject::unbind()
 
 void BufferObject::invalidate()
 {
-    glInvalidateBufferData(_glName);
-}
-
-void BufferObject::invalidateRange(GLintptr offset, GLsizeiptr length)
-{
-    glInvalidateBufferSubData(_glName, offset, length);
-}
-
-void BufferObject::bindIndexed(int index)
-{
-    glBindBufferBase(_glType, index, _glName);
-}
-
-void BufferObject::bindIndexedRange(int index, GLintptr offset, GLsizeiptr size)
-{
-    glBindBufferRange(_glType, index, _glName, offset, size);
-}
-
-void BufferObject::unbindIndexed(int index)
-{
-    glBindBufferBase(_glType, index, 0);
+    glBufferData(_glType, _size, nullptr, GL_STATIC_DRAW);
 }
 
 }

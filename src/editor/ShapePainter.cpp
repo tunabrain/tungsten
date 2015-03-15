@@ -27,10 +27,10 @@ void ShapePainter::initialize()
     _vbo->initBuffer();
 
     Path exePath = FileUtils::getExecutablePath();
-    std::string shaderBasePath = (exePath.parent()/"data/shaders/").asString();
+    Path shaderBasePath = exePath.parent()/"data/shaders/";
 
     _defaultShader =
-        new Shader(shaderBasePath.c_str(), "Preamble.txt", "Primitive.vert", nullptr, "Primitive.frag", 1);
+        new Shader(shaderBasePath, "Preamble.txt", "Primitive.vert", "", "Primitive.frag", 1);
 
     _initialized = true;
 }
@@ -70,7 +70,7 @@ void ShapePainter::flush()
     for (uint32 i = 0; i < _verts.size(); i += MaxVertices) {
         uint32 batchSize = min(MaxVertices, uint32(_verts.size() - i));
         _vbo->bind();
-        _vbo->copyData(&_verts[i], batchSize*sizeof(VboVertex), GL_DYNAMIC_DRAW);
+        _vbo->copyData(&_verts[i], batchSize*sizeof(VboVertex));
         _vbo->draw(*_defaultShader, toGlMode(), batchSize);
     }
     _verts.clear();
