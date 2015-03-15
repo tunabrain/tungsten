@@ -11,8 +11,7 @@
 
 #include "cameras/Camera.hpp"
 
-#include "render/MatrixStack.hpp"
-#include "render/GLDebug.hpp"
+#include "opengl/MatrixStack.hpp"
 
 #include "io/FileUtils.hpp"
 #include "io/ObjLoader.hpp"

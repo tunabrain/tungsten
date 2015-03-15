@@ -4,11 +4,11 @@
 #include "CameraControls.hpp"
 #include "TransformGizmo.hpp"
 
-#include "render/BufferObject.hpp"
-#include "render/VertexBuffer.hpp"
-#include "render/RenderTarget.hpp"
-#include "render/Texture.hpp"
-#include "render/Shader.hpp"
+#include "opengl/BufferObject.hpp"
+#include "opengl/VertexBuffer.hpp"
+#include "opengl/RenderTarget.hpp"
+#include "opengl/Texture.hpp"
+#include "opengl/Shader.hpp"
 
 #include "math/Vec.hpp"
 

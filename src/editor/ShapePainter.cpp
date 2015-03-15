@@ -1,7 +1,7 @@
 #include "ShapePainter.hpp"
 
-#include "render/VertexBuffer.hpp"
-#include "render/Shader.hpp"
+#include "opengl/VertexBuffer.hpp"
+#include "opengl/Shader.hpp"
 
 #include "math/MathUtil.hpp"
 #include "math/Mat4f.hpp"
