@@ -587,6 +587,8 @@ void PreviewWindow::paintGL()
     if (!_scene)
         return;
 
+    glEnable(GL_FRAMEBUFFER_SRGB);
+
     std::shared_ptr<Camera> cam = _scene->camera();
 
     MatrixStack::set(VIEW_STACK, cam->transform());
@@ -621,6 +623,8 @@ void PreviewWindow::paintGL()
 
     glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
+
+    glDisable(GL_FRAMEBUFFER_SRGB);
 }
 
 void PreviewWindow::resizeGL(int width, int height)
