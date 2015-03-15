@@ -535,6 +535,27 @@ void PreviewWindow::initializeGL()
         new Shader(shaderBasePath, "Preamble.txt", "Wireframe.vert", "Wireframe.geom", "Wireframe.frag", 1));
 }
 
+void PreviewWindow::drawBackgroundGradient()
+{
+    float w = width();
+    float h = height();
+
+    glDepthMask(GL_FALSE);
+
+    {
+        ShapePainter painter;
+        painter.begin(ShapePainter::MODE_QUADS);
+        painter.setColor(Vec3f(0.25f));
+        painter.addVertex(Vec2f(0.0f, 0.0f));
+        painter.addVertex(Vec2f(   w, 0.0f));
+        painter.setColor(Vec3f(0.3f));
+        painter.addVertex(Vec2f(   w,    h));
+        painter.addVertex(Vec2f(0.0f,    h));
+    }
+
+    glDepthMask(GL_TRUE);
+}
+
 void PreviewWindow::paintGL()
 {
     if (_rebuildMeshes) {
@@ -559,6 +580,9 @@ void PreviewWindow::paintGL()
 
     glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    drawBackgroundGradient();
+
 
     if (!_scene)
         return;

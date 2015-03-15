@@ -118,6 +118,8 @@ class PreviewWindow : public QGLWidget
 
     bool handleMouse(QMouseEvent *event);
 
+    void drawBackgroundGradient();
+
 private slots:
     void toggleSelectAll();
     void grabGizmo();

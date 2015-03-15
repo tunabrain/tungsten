@@ -18,8 +18,8 @@ void main() {
     vec3 eye = normalize(camPos - gWorldPos);
     vec3 normal = normalize(gNormal);
     
-    float L = max(dot(normal, eye), 0.1);
-    L = L*L*0.5 + L*0.5;
+    float L = abs(dot(normal, eye));
+    L = pow(L, 10.0)*0.4 + L*L*0.4 + L*0.2;
     
     float ratio;
     
@@ -31,5 +31,5 @@ void main() {
             ratio = min(ratio, dist(gDist0.xy, normalize(gDist0.xy - gDist1.xy)));
     }
     
-    FragColor0 = vec4(mix(vec3(NoShading ? 1.0 : L), vec3(0.0), 1.0 - smoothstep(0.0, 1.5, ratio)), 1.0);
+    FragColor0 = vec4(mix(vec3(NoShading ? 1.0 : L), vec3(1.0, 0.53, 0.05), 1.0 - smoothstep(0.0, 1.5, ratio)), 1.0);
 }

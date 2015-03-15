@@ -11,9 +11,8 @@ void main() {
     vec3 eye = normalize(camPos - gWorldPos);
     vec3 normal = normalize(gNormal);
     
-    //float L = max(dot(normal, eye), 0.1);
     float L = abs(dot(normal, eye));
-    L = L*L*0.5 + L*0.5;
+    L = pow(L, 10.0)*0.4 + L*L*0.4 + L*0.2;
     
     FragColor0 = vec4(vec3(NoShading ? 1.0 : L), 1.0);
 }
