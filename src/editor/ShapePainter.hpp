@@ -8,6 +8,8 @@
 
 namespace Tungsten {
 
+class Mat4f;
+
 namespace GL {
 class VertexBuffer;
 class Shader;
@@ -34,10 +36,12 @@ class ShapePainter: public AbstractPainter
     GLint toGlMode();
     void flush();
 
+    void addVertexRaw(Vec3f x);
     void addVertexRaw(Vec2f x);
 
 public:
     ShapePainter(DrawMode mode = MODE_LINES);
+    ShapePainter(const Mat4f &proj, DrawMode mode = MODE_LINES);
     ~ShapePainter();
 
     void labelShape(int /*id*/) final override
@@ -54,6 +58,8 @@ public:
     void drawArc(Vec2f center, Vec2f radii, float aStart, float aEnd, bool filled = true, float width = 1.0f) final override;
     void drawLine(Vec2f x0, Vec2f x1, float width = 1.0f) final override;
     void drawLineStipple(Vec2f x0, Vec2f x1, float period, float width = 1.0f) final override;
+
+    void drawLine(Vec3f x0, Vec3f x1);
 
     void setColor(const Vec3f &c) final override
     {

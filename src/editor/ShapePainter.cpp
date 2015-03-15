@@ -49,6 +49,12 @@ ShapePainter::ShapePainter(DrawMode mode)
     _defaultShader->uniformMat("ModelViewProjection", proj, true);
 }
 
+ShapePainter::ShapePainter(const Mat4f &proj, DrawMode mode)
+: ShapePainter(mode)
+{
+    _defaultShader->uniformMat("ModelViewProjection", proj, true);
+}
+
 ShapePainter::~ShapePainter()
 {
     if (!_verts.empty())
@@ -76,13 +82,18 @@ void ShapePainter::flush()
     _verts.clear();
 }
 
-void ShapePainter::addVertexRaw(Vec2f p)
+void ShapePainter::addVertexRaw(Vec3f p)
 {
     if (_mode == MODE_QUADS && (_verts.size() % 6) == 3) {
         _verts.push_back(_verts[_verts.size() - 3]);
         _verts.push_back(_verts[_verts.size() - 2]);
     }
-    _verts.push_back(VboVertex{Vec3f(p.x(), p.y(), 0.0f), Vec4c(_color*255.0f)});
+    _verts.push_back(VboVertex{p, Vec4c(_color*255.0f)});
+}
+
+void ShapePainter::addVertexRaw(Vec2f p)
+{
+    addVertexRaw(Vec3f(p.x(), p.y(), 0.0f));
 }
 
 void ShapePainter::addVertex(Vec2f p)
@@ -205,6 +216,13 @@ void ShapePainter::drawLineStipple(Vec2f x0, Vec2f x1, float period, float width
         for (float f = 0.0f; f < 1.0f; f += period*0.5f)
             drawEllipse(x0 + d*f, Vec2f(width*0.5f));
     }
+}
+
+void ShapePainter::drawLine(Vec3f x0, Vec3f x1)
+{
+    begin(MODE_LINES);
+    addVertexRaw(x0);
+    addVertexRaw(x1);
 }
 
 }
