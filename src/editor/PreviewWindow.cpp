@@ -113,6 +113,19 @@ void PreviewWindow::saveSceneData()
     _dirtyPrimitives.clear();
 }
 
+Mat4f PreviewWindow::projection() const
+{
+    float nearPlane = Near;
+    float farPlane = Far;
+    float radius = (_scene->camera()->pos() - _scene->camera()->lookAt()).length();
+    if (radius*2.0f > farPlane) {
+        farPlane = radius*2.0f;
+        nearPlane = Near/Far*farPlane;
+    }
+
+    return Mat4f::perspective(Fov, width()/float(height()), nearPlane, farPlane);
+}
+
 void PreviewWindow::rebuildMeshMap()
 {
     std::unordered_map<Primitive *, std::shared_ptr<GlMesh>> tmpMap = std::move(_meshes);

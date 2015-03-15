@@ -101,10 +101,7 @@ class PreviewWindow : public QGLWidget
 
     bool _rebuildMeshes;
 
-    Mat4f projection() const
-    {
-        return Mat4f::perspective(Fov, width()/float(height()), Near, Far);
-    }
+    Mat4f projection() const;
 
     void rebuildMeshMap();
     bool updateViewTransform(QMouseEvent *event);
