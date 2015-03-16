@@ -90,7 +90,7 @@ Vec3f PhongBsdf::eval(const SurfaceScatterEvent &event) const
 
     float result = 0.0f;
     if (evalDiffuse)
-        result += _diffuseRatio;
+        result += _diffuseRatio*INV_PI;
     if (evalGlossy) {
         float cosTheta = Vec3f(-event.wi.x(), -event.wi.y(), event.wi.z()).dot(event.wo);
         if (cosTheta > 0.0f)
