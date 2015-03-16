@@ -1,9 +1,10 @@
-#include <GL/glew.h>
-#include <algorithm>
+#include "OpenGL.hpp"
 
 #include "BufferObject.hpp"
 #include "Texture.hpp"
 #include "Debug.hpp"
+
+#include <algorithm>
 
 namespace Tungsten {
 

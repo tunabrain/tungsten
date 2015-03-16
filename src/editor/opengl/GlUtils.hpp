@@ -1,7 +1,9 @@
 #ifndef GLUTIL_HPP_
 #define GLUTIL_HPP_
 
-#include <GL/glew.h>
+#include "OpenGL.hpp"
+
+#include <cstddef>
 
 namespace Tungsten {
 

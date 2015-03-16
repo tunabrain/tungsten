@@ -1,7 +1,7 @@
 #ifndef RENDER_BUFFEROBJECT_HPP_
 #define RENDER_BUFFEROBJECT_HPP_
 
-#include <GL/glew.h>
+#include "OpenGL.hpp"
 
 namespace Tungsten {
 

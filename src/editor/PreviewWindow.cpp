@@ -1,4 +1,3 @@
-#include <GL/glew.h>
 
 #include <QtCore/QtCore>
 #include <QtGui>
@@ -6,11 +5,13 @@
 #include "PreviewWindow.hpp"
 #include "ShapePainter.hpp"
 #include "MainWindow.hpp"
+#include "CoreProfileContext.hpp"
 
 #include "primitives/TriangleMesh.hpp"
 
 #include "cameras/Camera.hpp"
 
+#include "opengl/OpenGL.hpp"
 #include "opengl/MatrixStack.hpp"
 
 #include "io/FileUtils.hpp"
@@ -50,7 +51,7 @@ void GlMesh::draw(Shader &shader)
 }
 
 PreviewWindow::PreviewWindow(QWidget *proxyParent, MainWindow *parent, const QGLFormat &format)
-: QGLWidget(format, proxyParent),
+: QGLWidget(new CoreProfileContext(format), proxyParent),
   _parent(*parent),
   _scene(parent->scene()),
   _selection(parent->selection()),
@@ -514,9 +515,7 @@ void PreviewWindow::togglePreview()
 
 void PreviewWindow::initializeGL()
 {
-    glewExperimental = GL_TRUE;
-    glewInit();
-    glGetError();
+    GL::initOpenGL();
 
     if (!QGLFormat::openGLVersionFlags().testFlag(QGLFormat::OpenGL_Version_3_2)) {
         QMessageBox::critical(this,

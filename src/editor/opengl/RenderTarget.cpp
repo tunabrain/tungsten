@@ -1,4 +1,4 @@
-#include <GL/glew.h>
+#include "OpenGL.hpp"
 
 #include "RenderTarget.hpp"
 #include "Texture.hpp"

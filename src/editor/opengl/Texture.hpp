@@ -1,7 +1,8 @@
 #ifndef RENDER_TEXTURE_HPP
 #define RENDER_TEXTURE_HPP
 
-#include <GL/glew.h>
+#include "OpenGL.hpp"
+
 #include <vector>
 
 namespace Tungsten {

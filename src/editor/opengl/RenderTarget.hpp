@@ -1,7 +1,8 @@
 #ifndef RENDER_RENDERTARGET_HPP_
 #define RENDER_RENDERTARGET_HPP_
 
-#include <GL/glew.h>
+#include "OpenGL.hpp"
+
 #include <stack>
 
 namespace Tungsten {
