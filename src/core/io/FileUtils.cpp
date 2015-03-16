@@ -62,6 +62,13 @@ static std::wstring makeWideLongPath(const Path &p)
     std::string path = p.normalize().nativeSeparators().asString();
     return UnicodeUtils::utf8ToWchar("\\\\?\\" + path);
 }
+#elif __APPLE__
+typedef struct stat NativeStatStruct;
+
+static bool execNativeStat(const Path &p, NativeStatStruct &dst)
+{
+    return stat(p.absolute().asString().c_str(), &dst) == 0;
+}
 
 #else
 typedef struct stat64 NativeStatStruct;

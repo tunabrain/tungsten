@@ -1,7 +1,7 @@
 #ifndef RENDER_SHADER_HPP_
 #define RENDER_SHADER_HPP_
 
-#include <GL/glew.h>
+#include "OpenGL.hpp"
 
 #include "ShaderObject.hpp"
 

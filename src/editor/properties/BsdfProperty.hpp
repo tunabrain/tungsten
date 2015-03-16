@@ -5,6 +5,7 @@
 
 #include <functional>
 #include <memory>
+#include <vector>
 
 class QComboBox;
 class QWidget;

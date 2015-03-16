@@ -3,7 +3,8 @@
 
 #include "AbstractPainter.hpp"
 
-#include <GL/glew.h>
+#include "opengl/OpenGL.hpp"
+
 #include <vector>
 
 namespace Tungsten {

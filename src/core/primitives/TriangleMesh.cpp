@@ -165,7 +165,7 @@ void TriangleMesh::saveAsObj(const Path &path) const
 
 void TriangleMesh::calcSmoothVertexNormals()
 {
-    static CONSTEXPR float SplitLimit = std::cos(PI*0.15f);
+    static const float SplitLimit = std::cos(PI*0.15f);
     //static CONSTEXPR float SplitLimit = -1.0f;
 
     std::vector<Vec3f> geometricN(_verts.size(), Vec3f(0.0f));
