@@ -28,7 +28,6 @@
 
 #include "bsdfs/Bsdf.hpp"
 
-
 namespace Tungsten {
 
 class Scene : public JsonSerializable

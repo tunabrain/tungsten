@@ -22,6 +22,7 @@
 #include "materials/CheckerTexture.hpp"
 #include "materials/BladeTexture.hpp"
 #include "materials/DiskTexture.hpp"
+#include "materials/IesTexture.hpp"
 
 #include "cameras/ThinlensCamera.hpp"
 #include "cameras/PinholeCamera.hpp"
@@ -230,6 +231,8 @@ std::shared_ptr<Texture> Scene::instantiateTexture(std::string type, const rapid
         result = std::make_shared<DiskTexture>();
     else if (type == "blade")
         result = std::make_shared<BladeTexture>();
+    else if (type == "ies")
+        return _textureCache->fetchIesTexture(value, this);
     else {
         DBG("Unkown texture type: '%s'", type.c_str());
         return nullptr;

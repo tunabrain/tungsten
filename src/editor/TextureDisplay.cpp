@@ -29,7 +29,7 @@ void TextureDisplay::rebuildImage()
         for (int y = 0; y < _h; ++y) {
             Vec3c *img = reinterpret_cast<Vec3c *>(_image.scanLine(y));
             for (int x = 0; x < _w; ++x) {
-                Vec2f uv((x + 0.5f)/_w, (y + 0.5f)/_h);
+                Vec2f uv((x + 0.5f)/_w, 1.0f - (y + 0.5f)/_h);
                 Vec3f color = std::pow((*_tex)[uv], 1.0f/2.2f);
                 img[x] = Vec3c(clamp(Vec3i(color*255.0f), Vec3i(0), Vec3i(255)));
             }

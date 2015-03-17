@@ -12,13 +12,17 @@
 namespace Tungsten {
 
 class BitmapTexture;
+class IesTexture;
 class Scene;
 
 class TextureCache
 {
-    typedef std::shared_ptr<BitmapTexture> KeyType;
+    typedef std::shared_ptr<BitmapTexture> BitmapKeyType;
+    typedef std::shared_ptr<IesTexture> IesKeyType;
 
-    std::set<KeyType, std::function<bool(const KeyType &, const KeyType &)>> _textures;
+    std::set<BitmapKeyType, std::function<bool(const BitmapKeyType &, const BitmapKeyType &)>> _textures;
+    std::set<IesKeyType, std::function<bool(const IesKeyType &, const IesKeyType &)>> _iesTextures;
+
 public:
     TextureCache();
 
@@ -27,18 +31,11 @@ public:
     std::shared_ptr<BitmapTexture> fetchTexture(PathPtr path, TexelConversion conversion,
             bool gammaCorrect = true, bool linear = true, bool clamp = false);
 
+    std::shared_ptr<IesTexture> fetchIesTexture(const rapidjson::Value &value, const Scene *scene);
+    std::shared_ptr<IesTexture> fetchIesTexture(PathPtr path, int resolution, float scale);
+
     void loadResources();
     void prune();
-
-    const std::set<KeyType, std::function<bool(const KeyType &, const KeyType &)>> &textures() const
-    {
-        return _textures;
-    }
-
-    std::set<KeyType, std::function<bool(const KeyType &, const KeyType &)>> &textures()
-    {
-        return _textures;
-    }
 };
 
 }

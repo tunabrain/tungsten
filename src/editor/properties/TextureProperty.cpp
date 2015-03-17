@@ -7,6 +7,7 @@
 #include "materials/BitmapTexture.hpp"
 #include "materials/BladeTexture.hpp"
 #include "materials/DiskTexture.hpp"
+#include "materials/IesTexture.hpp"
 
 #include "editor/ColorPickButton.hpp"
 #include "editor/TextureDisplay.hpp"
@@ -56,6 +57,8 @@ TextureProperty::TextureMode TextureProperty::textureToMode(Texture *tex) const
             return TEXTURE_SCALAR;
         else
             return TEXTURE_RGB;
+    } else if (dynamic_cast<IesTexture *>(tex)) {
+        return TEXTURE_IES;
     } else if (dynamic_cast<BitmapTexture *>(tex)) {
         return TEXTURE_BITMAP;
     } else if (dynamic_cast<CheckerTexture *>(tex)) {
@@ -79,6 +82,7 @@ std::vector<std::string> TextureProperty::typeList()
     result.push_back("Checker");
     result.push_back("Disk");
     result.push_back("Blade");
+    result.push_back("IES");
 
     return std::move(result);
 }
@@ -107,6 +111,7 @@ void TextureProperty::buildTexturePage(PropertySheet *sheet)
     if (_currentMode == TEXTURE_CHECKER) buildTexturePage(sheet, dynamic_cast<CheckerTexture  *>(_value.get()));
     if (_currentMode == TEXTURE_DISK)    buildTexturePage(sheet, dynamic_cast<DiskTexture     *>(_value.get()));
     if (_currentMode == TEXTURE_BLADE)   buildTexturePage(sheet, dynamic_cast<BladeTexture    *>(_value.get()));
+    if (_currentMode == TEXTURE_IES)     buildTexturePage(sheet, dynamic_cast<IesTexture      *>(_value.get()));
 }
 
 void TextureProperty::buildTexturePage(PropertySheet *sheet, ConstantTexture *tex)
@@ -132,7 +137,7 @@ void TextureProperty::buildTexturePage(PropertySheet *sheet, BitmapTexture *tex)
     _linear = tex->linear();
     _clamp = tex->clamp();
 
-    std::string path = tex->path()->empty() ? "" : tex->path()->absolute().asString();
+    std::string path = (!tex->path() || tex->path()->empty()) ? "" : tex->path()->absolute().asString();
     sheet->addPathProperty(path, "File", _scene->path().absolute().asString(),
             "Open bitmap...", "Image files (*.png;*.jpg;*.hdr;*.pfm;*.tga;*.bmp;*.psd;*.gif;*.pic;*.jpeg)",
             [this, tex](const std::string &path) {
@@ -205,6 +210,32 @@ void TextureProperty::buildTexturePage(PropertySheet *sheet, DiskTexture */*tex*
     buildTextureDisplay(sheet);
 }
 
+void TextureProperty::buildTexturePage(PropertySheet *sheet, IesTexture *tex)
+{
+    _resolution = tex->resolution();
+    _scale = tex->scale();
+
+    std::string path = (!tex->path() || tex->path()->empty()) ? "" : tex->path()->absolute().asString();
+    sheet->addPathProperty(path, "File", _scene->path().absolute().asString(),
+            "Open IES profile...", "IES profiles (*.ies)",
+            [this, tex](const std::string &path) {
+                loadProfile(_scene->fetchResource(path));
+                return true;
+    });
+    sheet->addIntProperty(tex->resolution(), 32, 8192, "Resolution", [this, tex](int value) {
+        _resolution = value;
+        updateProfileFlags();
+        return true;
+    });
+    sheet->addFloatProperty(tex->scale(), "Scale", [this, tex](float f) {
+        _scale = f;
+        updateProfileFlags();
+        return true;
+    });
+
+    buildTextureDisplay(sheet);
+}
+
 void TextureProperty::buildTextureDisplay(PropertySheet *sheet)
 {
     _bitmapDisplay = new TextureDisplay(200, 200, _texturePage);
@@ -223,6 +254,7 @@ std::shared_ptr<Texture> TextureProperty::instantiateTexture(TextureMode mode)
     case TEXTURE_CHECKER: return std::make_shared<CheckerTexture>();
     case TEXTURE_DISK:    return std::make_shared<DiskTexture>();
     case TEXTURE_BLADE:   return std::make_shared<BladeTexture>();
+    case TEXTURE_IES:     return std::make_shared<IesTexture>();
     default:              return nullptr;
     }
 }
@@ -234,7 +266,7 @@ void TextureProperty::changeMode(TextureMode mode)
         tex->setValue(tex->value().x());
     } else if (!(mode == TEXTURE_RGB && _currentMode == TEXTURE_SCALAR)) {
         _value = instantiateTexture(mode);
-        if (mode == TEXTURE_BITMAP)
+        if (mode == TEXTURE_BITMAP || mode == TEXTURE_IES)
             _value->loadResources();
     }
 
@@ -267,6 +299,24 @@ void TextureProperty::loadBitmap(PathPtr path)
 void TextureProperty::updateBitmapFlags()
 {
     loadBitmap(dynamic_cast<BitmapTexture *>(_value.get())->path());
+}
+
+void TextureProperty::loadProfile(PathPtr path)
+{
+    std::shared_ptr<IesTexture> tex = _scene->textureCache()->fetchIesTexture(std::move(path),
+            _resolution, _scale);
+    tex->loadResources();
+
+    std::shared_ptr<Texture> base(tex);
+    if (_setter(base)) {
+        _value = std::move(base);
+        buildTexturePage();
+    }
+}
+
+void TextureProperty::updateProfileFlags()
+{
+    loadProfile(dynamic_cast<IesTexture *>(_value.get())->path());
 }
 
 void TextureProperty::updateTexture()

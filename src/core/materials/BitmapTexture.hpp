@@ -50,6 +50,7 @@ private:
     inline Vec3f getRgb(int x, int y) const;
     inline float weight(int x, int y) const;
 
+protected:
     TexelType getTexelType(bool isRgb, bool isHdr);
 
     void init(void *texels, int w, int h, TexelType texelType);

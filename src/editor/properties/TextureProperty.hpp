@@ -30,6 +30,7 @@ class PropertySheet;
 class ListProperty;
 class BladeTexture;
 class DiskTexture;
+class IesTexture;
 class Texture;
 class Scene;
 
@@ -46,6 +47,7 @@ class TextureProperty : public Property
         TEXTURE_CHECKER,
         TEXTURE_DISK,
         TEXTURE_BLADE,
+        TEXTURE_IES,
         TEXTURE_COUNT
     };
 
@@ -68,6 +70,9 @@ class TextureProperty : public Property
     bool _linear;
     bool _clamp;
 
+    int _resolution;
+    float _scale;
+
     TextureDisplay *_bitmapDisplay;
 
     void changeMode(TextureMode mode);
@@ -87,10 +92,14 @@ class TextureProperty : public Property
     void buildTexturePage(PropertySheet *sheet, CheckerTexture *tex);
     void buildTexturePage(PropertySheet *sheet, BladeTexture *tex);
     void buildTexturePage(PropertySheet *sheet, DiskTexture *tex);
+    void buildTexturePage(PropertySheet *sheet, IesTexture *tex);
     void buildTextureDisplay(PropertySheet *sheet);
 
     void loadBitmap(PathPtr path);
     void updateBitmapFlags();
+
+    void loadProfile(PathPtr path);
+    void updateProfileFlags();
 
     void updateTexture();
 
