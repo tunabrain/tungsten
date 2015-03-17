@@ -104,6 +104,48 @@ Use
     
 for more information.
 
+### hdrmanip ##
+
+`hdrmanip` comes with a few useful tools for manipulating HDR output files produced by the renderer. Where available, we recommend using established image manipulation tools, but where HDR support is sparsely available, this tool can be useful.
+
+To convert an HDR image to low dynamic range, use
+
+	hdrmanip -o output.png input.exr
+
+You can also specify the tonemapping operator to be applied when converting. For example, to use a filmic tonemap, use
+
+	hdrmanip --tonemap filmic -o output.png input.exr
+
+To adjust the exposure of an HDR file, you can use
+
+	hdrmanip --exposure -1.0 -o output.exr input.exr
+
+If you don't specify an output file, the tool will overwrite the input file. You can also modify several input files at once. For example, you can use 
+
+	hdrmanip --exposure -1.0 input1.exr input2.exr input3.exr
+
+to adjust the exposure of several files at once.
+
+If you don't want to overwrite the input files, you can specify an output directory with `-o`
+
+	hdrmanip -o outputdir --exposure -1.0 input1.exr input2.exr input3.exr 
+
+When specifying multiple files, `-o` is interpreted as an output directory, and its file extension is ignored. If you want to convert multiple input files to a different file format or even low dynamic range, you can use `--file-type`
+
+	hdrmanip --file-type png input1.exr input2.exr input3.exr
+
+Finally, `hdrmanip` also supports merging multiple HDR files together. This is useful when you split up a render across several machines and want to average the outputs to get a less noisy image. You can use `--merge` for this
+
+	hdrmanip --merge -o output.exr input1.exr input2.exr input3.exr
+
+Of course, you can also adjust the exposure and convert to low dynamic range while merging, all in one step.
+
+Use
+
+	hdrmanip --help
+
+for more information.
+
 ### obj2json ##
 The command
 
@@ -113,7 +155,7 @@ will parse the Wavefront OBJ `srcFile.obj`, including object hierarchy and mater
 
 In addition, meshes in the OBJ file will be automatically converted and saved to Tungsten's native `*.wo3` mesh format, which significantly reduces loading time for large meshes. This may create a large number of new files - consider pointing the `dstFile.json` path into an empty subfolder to avoid file clutter.
 
-## json2xml ##
+### json2xml ##
 The command
 
     json2xml srcFile.json dstFile.xml
@@ -122,7 +164,7 @@ will parse the scene file `srcFile.json` and convert it to an XML scene descript
 
 Note that this tool does not experience heavy testing and does not support all features of Tungsten, so it may not always work as expected.
 
-## editor ##
+### editor ##
 This is a minimalist scene editor written in Qt and OpenGL. It supports camera setup, manipulating transforms, compositing scenes and a few more features that I found useful.
 
 It is usable, but a few crucial features are currently missing from it (including documentation). The code is neither exceptionally clean nor stable, so use at your own risk.
