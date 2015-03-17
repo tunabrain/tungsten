@@ -2,11 +2,22 @@
 
 #include "FileUtils.hpp"
 
+#include "io/FileUtils.hpp"
+
 #include "Debug.hpp"
 
 #include <lodepng/lodepng.h>
 #include <stbi/stb_image.h>
 #include <cstring>
+
+#define OPENEXR_AVAILABLE 1
+
+#if OPENEXR_AVAILABLE
+#include <ImfChannelList.h>
+#include <ImfOutputFile.h>
+#include <ImfInputFile.h>
+#include <half.h>
+#endif
 
 static const int GammaCorrection[] = {
       0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
@@ -30,6 +41,94 @@ static const int GammaCorrection[] = {
 namespace Tungsten {
 
 namespace ImageIO {
+
+#if OPENEXR_AVAILABLE
+// OpenEXR found it necessary to write its own I/OStream abstractions,
+// so we need something to bridge the gap to std streams
+class ExrOStream : public Imf::OStream
+{
+    OutputStreamHandle _out;
+
+public:
+    ExrOStream(OutputStreamHandle out)
+    : Imf::OStream("Tungsten Wrapped Output Stream"),
+      _out(std::move(out))
+    {
+    }
+
+    virtual void write(const char c[/*n*/], int n) override final
+    {
+        _out->write(c, n);
+        if (!_out->good())
+            throw std::runtime_error("ExrIStream::write failed");
+    }
+
+    virtual Imf::Int64 tellp() override final
+    {
+        return _out->tellp();
+    }
+
+    virtual void seekp(Imf::Int64 pos) override final
+    {
+        _out->seekp(pos, std::ios_base::beg);
+    }
+};
+
+class ExrIStream : public Imf::IStream
+{
+    InputStreamHandle _in;
+
+    std::unique_ptr<char[]> _data;
+    uint64 _size, _offs;
+
+public:
+    ExrIStream(InputStreamHandle in)
+    : Imf::IStream("Tungsten Wrapped Input Stream"),
+      _in(std::move(in)),
+      _offs(0)
+    {
+        _in->seekg(0, std::ios_base::end);
+        _size = _in->tellg();
+        _in->seekg(0, std::ios_base::beg);
+    }
+
+    virtual bool isMemoryMapped() const
+    {
+        return false;
+    }
+
+    virtual bool read(char c[/*n*/], int n)
+    {
+        _in->read(c, n);
+        if (!_in->good())
+            throw std::runtime_error("ExrIStream::read failed");
+        _offs += n;
+        return _offs < _size;
+    }
+
+    virtual char *readMemoryMapped (int /*n*/) override final
+    {
+        throw std::runtime_error("ExrIStream::readMemoryMapped should not be called");
+    }
+
+    virtual Imf::Int64 tellg() override final
+    {
+        return _offs;
+    }
+
+    virtual void seekg(Imf::Int64 pos) override final
+    {
+        _in->seekg(pos, std::ios_base::beg);
+        _offs = pos;
+        return;
+    }
+
+    virtual void clear() override final
+    {
+        _in->clear();
+    }
+};
+#endif
 
 static int stbiReadCallback(void *user, char *data, int size)
 {
@@ -55,6 +154,10 @@ bool isHdr(const Path &path)
 {
     if (path.testExtension("pfm"))
         return true;
+#if OPENEXR_AVAILABLE
+    if (path.testExtension("exr"))
+        return true;
+#endif
 
     InputStreamHandle in = FileUtils::openInputStream(path);
     if (!in)
@@ -78,6 +181,112 @@ static T convertToScalar(TexelConversion request, T r, T g, T b, T a, bool haveA
         return T(0);
     }
 }
+
+#if OPENEXR_AVAILABLE
+static std::unique_ptr<float[]> loadExr(const Path &path, TexelConversion request, int &w, int &h)
+{
+    InputStreamHandle inputStream = FileUtils::openInputStream(path);
+    if (!inputStream)
+        return nullptr;
+
+    try {
+
+    ExrIStream in(std::move(inputStream));
+    Imf::InputFile file(in);
+    Imath::Box2i dataWindow = file.header().dataWindow();
+    w = dataWindow.max.x - dataWindow.min.x + 1;
+    h = dataWindow.max.y - dataWindow.min.y + 1;
+    int dx = dataWindow.min.x;
+    int dy = dataWindow.min.y;
+
+    const Imf::ChannelList &channels = file.header().channels();
+    const Imf::Channel *rChannel = channels.findChannel("R");
+    const Imf::Channel *gChannel = channels.findChannel("G");
+    const Imf::Channel *bChannel = channels.findChannel("B");
+    const Imf::Channel *aChannel = channels.findChannel("A");
+    const Imf::Channel *yChannel = channels.findChannel("Y");
+
+    Imf::FrameBuffer frameBuffer;
+
+    bool isScalar = request != TexelConversion::REQUEST_RGB;
+    bool acceptsAlpha =
+            request == TexelConversion::REQUEST_ALPHA ||
+            request == TexelConversion::REQUEST_AUTO;
+    int targetChannels = isScalar ? 1 : 3;
+    int sourceChannels = (rChannel ? 1 : 0) + (gChannel ? 1 : 0) + (bChannel ? 1 : 0);
+
+    std::unique_ptr<float[]> texels(new float[w*h*targetChannels]);
+    std::unique_ptr<float[]> img;
+    size_t texelSize = sizeof(float)*targetChannels;
+    char *base = reinterpret_cast<char *>(texels.get() - (dx + dy*w)*targetChannels);
+
+    if (isScalar && (yChannel != nullptr || (acceptsAlpha && aChannel != nullptr))) {
+        // The user requested a scalar texture and the file either contains an alpha channel or a luminance channel
+        // The alpha channel is only allowed if it was explicitly requested or an auto conversion was requested
+        // RGB -> Scalar falls through and is handled later
+        const char *channelName = (acceptsAlpha && aChannel != nullptr) ? "A" : "Y";
+        frameBuffer.insert(channelName, Imf::Slice(Imf::FLOAT, base, texelSize, texelSize*w));
+    } else if (!isScalar && (rChannel || gChannel || bChannel)) {
+        // The user wants RGB and we have (some) RGB channels
+        if (rChannel) frameBuffer.insert("R", Imf::Slice(Imf::FLOAT, base + 0*sizeof(float), texelSize, texelSize*w));
+        if (gChannel) frameBuffer.insert("G", Imf::Slice(Imf::FLOAT, base + 1*sizeof(float), texelSize, texelSize*w));
+        if (bChannel) frameBuffer.insert("B", Imf::Slice(Imf::FLOAT, base + 2*sizeof(float), texelSize, texelSize*w));
+        // If some channels are missing, replace them with black
+        if (!rChannel || !gChannel || !bChannel)
+            std::memset(texels.get(), 0, texelSize*w*h);
+    } else if (!isScalar && yChannel) {
+        // The user wants RGB and we have just luminance -> duplicate luminance across all three channels
+        // This is not the best solution, but we don't want to deal with chroma subsampled images
+        for (int i = 0; i < 3; ++i)
+            frameBuffer.insert("Y", Imf::Slice(Imf::FLOAT, base + i*sizeof(float), texelSize, texelSize*w));
+    } else if (isScalar) {
+        // The user wants a scalar texture and we have (some) RGB channels
+        // We can't read directly into the destination, but have to read to a temporary
+        // and do a conversion to scalar later
+        img.reset(new float[sourceChannels*w*h]);
+        char *imgBase = reinterpret_cast<char *>(img.get() - (dx + dy*w)*sourceChannels);
+
+        const Imf::Channel *channels[] = {rChannel, gChannel, bChannel};
+        const char *channelNames[] = {"R", "G", "B"};
+        int texel = 0;
+        for (int i = 0; i < 3; ++i) {
+            if (channels[i]) {
+                frameBuffer.insert(channelNames[i], Imf::Slice(Imf::FLOAT, imgBase + texel*sizeof(float),
+                        sourceChannels*sizeof(float), sourceChannels*sizeof(float)*w));
+                texel++;
+            }
+        }
+    } else {
+        return false;
+    }
+
+    file.setFrameBuffer(frameBuffer);
+    file.readPixels(dataWindow.min.y, dataWindow.max.y);
+
+    if (img) {
+        // We only get here if we need to make a scalar texture from an RGB input
+        int texel = 0;
+        int rLocation = -1, gLocation = -1, bLocation = -1;
+        if (rChannel) rLocation = texel++;
+        if (gChannel) gLocation = texel++;
+        if (bChannel) bLocation = texel++;
+
+        for (int i = 0; i < w*h; ++i) {
+            float r = rChannel ? img[i*sourceChannels + rLocation] : 0.0f;
+            float g = gChannel ? img[i*sourceChannels + gLocation] : 0.0f;
+            float b = bChannel ? img[i*sourceChannels + bLocation] : 0.0f;
+            texels[i] = convertToScalar(request, r, g, b, 0.0f, false);
+        }
+    }
+
+    return std::move(texels);
+
+    } catch(const std::exception &e) {
+        std::cout << "OpenEXR loader failed: " << e.what() << std::endl;
+        return nullptr;
+    }
+}
+#endif
 
 static std::unique_ptr<float[]> loadPfm(const Path &path, TexelConversion request, int &w, int &h)
 {
@@ -152,6 +361,10 @@ std::unique_ptr<float[]> loadHdr(const Path &path, TexelConversion request, int 
 {
     if (path.testExtension("pfm"))
         return std::move(loadPfm(path, request, w, h));
+#if OPENEXR_AVAILABLE
+    else if (path.testExtension("exr"))
+        return std::move(loadExr(path, request, w, h));
+#endif
     else
         return std::move(loadStbiHdr(path, request, w, h));
 }
@@ -245,6 +458,47 @@ bool savePfm(const Path &path, const float *img, int w, int h, int channels)
     return true;
 }
 
+#if OPENEXR_AVAILABLE
+bool saveExr(const Path &path, const float *img, int w, int h, int channels)
+{
+    if (channels <= 0 || channels > 4)
+        return false;
+
+    OutputStreamHandle outputStream = FileUtils::openOutputStream(path);
+    if (!outputStream)
+        return false;
+
+    try {
+
+    Imf::Header header(w, h, 1.0f, Imath::V2f(0, 0), 1.0f, Imf::INCREASING_Y, Imf::PIZ_COMPRESSION);
+    Imf::FrameBuffer frameBuffer;
+
+    std::unique_ptr<half[]> data(new half[w*h*channels]);
+    for (int i = 0; i < w*h*channels; ++i)
+        data[i] = half(img[i]);
+
+    const char *channelNames[] = {"R", "G", "B", "A"};
+    for (int i = 0; i < channels; ++i) {
+        const char *channelName = (channels == 1) ? "Y" : channelNames[i];
+        header.channels().insert(channelName, Imf::Channel(Imf::HALF));
+        frameBuffer.insert(channelName, Imf::Slice(Imf::HALF, reinterpret_cast<char *>(data.get() + i),
+                sizeof(half)*channels, sizeof(half)*channels*w));
+    }
+
+    ExrOStream out(std::move(outputStream));
+    Imf::OutputFile file(out, header);
+    file.setFrameBuffer(frameBuffer);
+    file.writePixels(h);
+
+    return true;
+
+    } catch(const std::exception &e) {
+        std::cout << "OpenEXR writer failed: " << e.what() << std::endl;
+        return false;
+    }
+}
+#endif
+
 bool savePng(const Path &path, const uint8 *img, int w, int h, int channels)
 {
     if (channels <= 0 || channels > 4)
@@ -272,6 +526,10 @@ bool saveHdr(const Path &path, const float *img, int w, int h, int channels)
 {
     if (path.testExtension("pfm"))
         return savePfm(path, img, w, h, channels);
+#if OPENEXR_AVAILABLE
+    else if (path.testExtension("exr"))
+        return saveExr(path, img, w, h, channels);
+#endif
 
     return false;
 }

@@ -65,6 +65,16 @@ set(core_libs core thirdparty embree)
 
 include_directories(src/core src/thirdparty src/thirdparty/embree src)
 
+find_package(OpenEXR)
+if (OPENEXR_FOUND)
+    message(STATUS "OpenEXR detected. Building with .exr support")
+    add_definitions(-DOPENEXR_AVAILABLE)
+    include_directories(${OPENEXR_INCLUDE_DIR})
+    set(core_libs ${core_libs} ${OPENEXR_LIBRARIES})
+else()
+    message(STATUS "No OpenEXR detected. Building without .exr support")
+endif()
+
 file(GLOB_RECURSE Core_SOURCES "src/core/*.cpp")
 add_library(core STATIC ${Core_SOURCES})
 
