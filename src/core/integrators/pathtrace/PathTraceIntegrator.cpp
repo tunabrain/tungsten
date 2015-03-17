@@ -33,7 +33,7 @@ void PathTraceIntegrator::diceTiles()
                 min(TileSize, _w - x),
                 min(TileSize, _h - y),
                 _scene->rendererSettings().useSobol() ?
-                    std::unique_ptr<SampleGenerator>(new SobolSampler()) :
+                    std::unique_ptr<SampleGenerator>(new SobolSampler(MathUtil::hash32(_sampler.nextI()))) :
                     std::unique_ptr<SampleGenerator>(new UniformSampler(MathUtil::hash32(_sampler.nextI()))),
                 std::unique_ptr<UniformSampler>(new UniformSampler(MathUtil::hash32(_sampler.nextI())))
             );

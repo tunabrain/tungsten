@@ -11,6 +11,7 @@ namespace Tungsten {
 
 class SobolSampler : public SampleGenerator
 {
+    uint32 _seed;
     uint32 _scramble;
     uint32 _index;
     int _dimension;
@@ -21,22 +22,24 @@ class SobolSampler : public SampleGenerator
     }
 
 public:
-    SobolSampler()
-    : _scramble(0), _index(0), _dimension(0)
+    SobolSampler(uint32 seed = 0)
+    : _seed(seed), _scramble(0), _index(0), _dimension(0)
     {
     }
 
-    virtual void saveState(OutputStreamHandle &/*out*/) override final
+    virtual void saveState(OutputStreamHandle &out) override final
     {
+        FileUtils::streamWrite(out, _seed);
     }
 
-    virtual void loadState(InputStreamHandle &/*in*/)  override final
+    virtual void loadState(InputStreamHandle &in)  override final
     {
+        FileUtils::streamRead(in, _seed);
     }
 
     virtual void setup(uint32 pixelId, int sample) override final
     {
-        _scramble = MathUtil::hash32(pixelId);
+        _scramble = _seed ^ MathUtil::hash32(pixelId);
         _index = sample;
         _dimension = 0;
     }
