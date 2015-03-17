@@ -10,8 +10,6 @@
 #include <stbi/stb_image.h>
 #include <cstring>
 
-#define OPENEXR_AVAILABLE 1
-
 #if OPENEXR_AVAILABLE
 #include <ImfChannelList.h>
 #include <ImfOutputFile.h>
