@@ -10,13 +10,15 @@ namespace Tungsten {
 
 CheckerTexture::CheckerTexture()
 : _onColor(0.8f), _offColor(0.2f),
-  _resU(20), _resV(20)
+  _resU(20), _resV(20),
+  _offsetU(0.5f), _offsetV(0.5f)
 {
 }
 
-CheckerTexture::CheckerTexture(Vec3f onColor, Vec3f offColor, int resU, int resV)
+CheckerTexture::CheckerTexture(Vec3f onColor, Vec3f offColor, int resU, int resV, float offsetU, float offsetV)
 : _onColor(onColor), _offColor(offColor),
-  _resU(resU), _resV(resV)
+  _resU(resU), _resV(resV),
+  _offsetU(offsetU), _offsetV(offsetV)
 {
 }
 
@@ -27,6 +29,8 @@ void CheckerTexture::fromJson(const rapidjson::Value &v, const Scene &scene)
     scalarOrVecFromJson(v, "off_color", _offColor);
     JsonUtils::fromJson(v, "res_u", _resU);
     JsonUtils::fromJson(v, "res_v", _resV);
+    JsonUtils::fromJson(v, "offset_u", _offsetU);
+    JsonUtils::fromJson(v, "offset_v", _offsetV);
 }
 
 rapidjson::Value CheckerTexture::toJson(Allocator &allocator) const
@@ -37,6 +41,8 @@ rapidjson::Value CheckerTexture::toJson(Allocator &allocator) const
     v.AddMember("off_color", scalarOrVecToJson(_offColor, allocator), allocator);
     v.AddMember("res_u", _resU, allocator);
     v.AddMember("res_v", _resV, allocator);
+    v.AddMember("offset_u", _offsetU, allocator);
+    v.AddMember("offset_v", _offsetV, allocator);
     return std::move(v);
 }
 
@@ -63,7 +69,7 @@ Vec3f CheckerTexture::maximum() const
 
 Vec3f CheckerTexture::operator[](const Vec2f &uv) const
 {
-    Vec2i uvI(uv*Vec2f(float(_resU), float(_resV)));
+    Vec2i uvI(uv*Vec2f(float(_resU), float(_resV)) + Vec2f(_offsetU, _offsetV));
     bool on = (uvI.x() ^ uvI.y()) & 1;
     return on ? _onColor : _offColor;
 }
@@ -117,7 +123,7 @@ float CheckerTexture::pdf(TextureMapJacobian /*jacobian*/, const Vec2f &uv) cons
     float offWeight = _offColor.max();
     if (onWeight + offWeight == 0.0f)
         return 1.0f;
-    Vec2i uvI(uv*Vec2f(float(_resU), float(_resV)));
+    Vec2i uvI(uv*Vec2f(float(_resU), float(_resV))+ Vec2f(_offsetU, _offsetV));
     bool on = (uvI.x() ^ uvI.y()) & 1;
     return (on ? onWeight : offWeight)/(onWeight + offWeight);
 }

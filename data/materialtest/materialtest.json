@@ -42,7 +42,9 @@
                     0.25
                 ],
                 "res_u": 20,
-                "res_v": 20
+                "res_v": 20,
+                "offset_u": 0.5,
+                "offset_v": 0.5
             },
             "type": "lambert"
         }
