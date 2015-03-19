@@ -190,6 +190,18 @@ void TextureProperty::buildTexturePage(PropertySheet *sheet, CheckerTexture *tex
         return true;
     });
 
+    sheet->addFloatProperty(tex->offsetU(), "Offset U", [this, tex](float f) {
+        tex->setOffsetU(f);
+        updateTexture();
+        return true;
+    });
+
+    sheet->addFloatProperty(tex->offsetV(), "Offset V", [this, tex](float f) {
+        tex->setOffsetV(f);
+        updateTexture();
+        return true;
+    });
+
     buildTextureDisplay(sheet);
 }
 
