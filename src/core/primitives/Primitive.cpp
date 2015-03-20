@@ -7,13 +7,15 @@
 namespace Tungsten {
 
 Primitive::Primitive()
-: _bumpStrength(1.0f)
+: _bumpStrength(1.0f),
+  _lightIndex(-1)
 {
 }
 
 Primitive::Primitive(const std::string &name)
 : JsonSerializable(name),
-  _bumpStrength(1.0f)
+  _bumpStrength(1.0f),
+  _lightIndex(-1)
 {
 }
 

@@ -34,6 +34,7 @@ protected:
 
     Mat4f _transform;
 
+    int _lightIndex;
     bool _needsRayTransform = false;
 
 public:
@@ -150,6 +151,16 @@ public:
     void setBumpStrength(float strength)
     {
         _bumpStrength = strength;
+    }
+
+    int lightIndex() const
+    {
+        return _lightIndex;
+    }
+
+    void setLightIndex(int id)
+    {
+        _lightIndex = id;
     }
 };
 

@@ -113,13 +113,16 @@ public:
 
             if (m->isEmissive()) {
                 lightCount++;
-                if (m->isSamplable())
+                if (m->isSamplable()) {
+                    m->setLightIndex(_lights.size());
                     _lights.push_back(m);
+                }
             }
         }
         if (lightCount == 0) {
             std::shared_ptr<InfiniteSphere> defaultLight = std::make_shared<InfiniteSphere>();;
             defaultLight->setEmission(std::make_shared<ConstantTexture>(1.0f));
+            defaultLight->setLightIndex(0);
             _lights.push_back(defaultLight);
             _infinites.push_back(defaultLight);
         }
