@@ -12,6 +12,9 @@ TraceBase::TraceBase(TraceableScene *scene, const TraceSettings &settings, uint3
 
     for (const auto &prim : scene->lights())
         prim->makeSamplable(_threadId);
+
+    if (_scene->lights().size() == 1)
+        _lightPdf[0] = 1.0f;
 }
 
 SurfaceScatterEvent TraceBase::makeLocalScatterEvent(IntersectionTemporary &data, IntersectionInfo &info,
@@ -55,44 +58,41 @@ bool TraceBase::isConsistent(const SurfaceScatterEvent &event, const Vec3f &w) c
 
 Vec3f TraceBase::generalizedShadowRay(Ray &ray,
                            const Medium *medium,
-                           const Primitive *endCap,
+                           IntersectionTemporary &data,
+                           IntersectionInfo &info,
                            int bounce)
 {
-    IntersectionTemporary data;
-    IntersectionInfo info;
-
-    float initialFarT = ray.farT();
+    const float initialFarT = ray.farT();
+    Vec3f pos = ray.pos();
     Vec3f throughput(1.0f);
     do {
-        if (_scene->intersect(ray, data, info) && info.primitive != endCap) {
-            SurfaceScatterEvent event = makeLocalScatterEvent(data, info, ray, nullptr, nullptr);
-
-            Vec3f transmittance = info.bsdf->eval(event.makeForwardEvent());
-            if (transmittance == 0.0f)
-                return Vec3f(0.0f);
-
-            throughput *= transmittance;
-            bounce++;
-
-            if (bounce >= _settings.maxBounces)
-                return Vec3f(0.0f);
-        }
-
+        if (!_scene->intersect(ray, data, info))
+            return Vec3f(0.0f);
         if (medium)
-            throughput *= medium->transmittance(VolumeScatterEvent(ray.pos(), ray.dir(), ray.farT()));
-        if (info.primitive == nullptr || info.primitive == endCap)
+            throughput *= medium->transmittance(VolumeScatterEvent(pos, ray.dir(), ray.farT()));
+
+        bounce++;
+        if (data.primitive->isEmissive())
             return bounce >= _settings.minBounces ? throughput : Vec3f(0.0f);
+        if (!info.bsdf->lobes().test(BsdfLobes::ForwardLobe) || bounce >= _settings.maxBounces)
+            return Vec3f(0.0f);
+
+        SurfaceScatterEvent event = makeLocalScatterEvent(data, info, ray, nullptr, nullptr);
+        Vec3f transmittance = info.bsdf->eval(event.makeForwardEvent());
+        if (transmittance == 0.0f)
+            return Vec3f(0.0f);
+
+        throughput *= transmittance;
         medium = info.bsdf->selectMedium(medium, !info.primitive->hitBackside(data));
 
-        ray.setPos(ray.hitpoint());
-        initialFarT -= ray.farT();
-        ray.setNearT(info.epsilon);
+        pos += ray.dir()*ray.farT();
+        ray.setNearT(ray.farT() + info.epsilon);
         ray.setFarT(initialFarT);
     } while(true);
     return Vec3f(0.0f);
 }
 
-Vec3f TraceBase::attenuatedEmission(const Primitive &light,
+Vec3f TraceBase::attenuatedEmission(const Primitive *light,
                          const Medium *medium,
                          float expectedDist,
                          IntersectionTemporary &data,
@@ -100,22 +100,19 @@ Vec3f TraceBase::attenuatedEmission(const Primitive &light,
                          int bounce,
                          Ray &ray)
 {
-    CONSTEXPR float fudgeFactor = 1.0f + 1e-3f;
 
-    if (!light.intersect(ray, data) || ray.farT()*fudgeFactor < expectedDist)
-        return Vec3f(0.0f);
-    info.w = ray.dir();
-    light.intersectionInfo(data, info);
-
-    Vec3f transmittance = generalizedShadowRay(ray, medium, &light, bounce);
+    Vec3f transmittance = generalizedShadowRay(ray, medium, data, info, bounce);
     if (transmittance == 0.0f)
         return Vec3f(0.0f);
 
-    return transmittance*light.emission(data, info);
+    CONSTEXPR float fudgeFactor = 1.0f + 1e-3f;
+    if (info.primitive != light || ray.farT()*fudgeFactor < expectedDist)
+        return Vec3f(0.0f);
+
+    return transmittance*light->emission(data, info);
 }
 
 Vec3f TraceBase::lightSample(const TangentFrame &frame,
-                  const Primitive &light,
                   const Bsdf &bsdf,
                   SurfaceScatterEvent &event,
                   const Medium *medium,
@@ -123,9 +120,14 @@ Vec3f TraceBase::lightSample(const TangentFrame &frame,
                   float epsilon,
                   const Ray &parentRay)
 {
+    float lightPdf;
+    const Primitive *light = chooseLight(*event.sampler, event.info->p, lightPdf);
+    if (light == nullptr)
+        return Vec3f(0.0f);
+
     LightSample sample(event.sampler, event.info->p);
 
-    if (!light.sampleInboundDirection(_threadId, sample))
+    if (!light->sampleInboundDirection(_threadId, sample))
         return Vec3f(0.0f);
 
     event.wo = frame.toLocal(sample.d);
@@ -150,16 +152,16 @@ Vec3f TraceBase::lightSample(const TangentFrame &frame,
     if (e == 0.0f)
         return Vec3f(0.0f);
 
-    Vec3f lightF = f*e/sample.pdf;
+    float pdf = sample.pdf*lightPdf;
+    Vec3f lightF = f*e/pdf;
 
-    if (!light.isDelta())
-        lightF *= SampleWarp::powerHeuristic(sample.pdf, bsdf.pdf(event));
+    if (!light->isDelta())
+        lightF *= SampleWarp::powerHeuristic(pdf, bsdf.pdf(event));
 
     return lightF;
 }
 
 Vec3f TraceBase::bsdfSample(const TangentFrame &frame,
-                     const Primitive &light,
                      const Bsdf &bsdf,
                      SurfaceScatterEvent &event,
                      const Medium *medium,
@@ -185,28 +187,32 @@ Vec3f TraceBase::bsdfSample(const TangentFrame &frame,
 
     IntersectionTemporary data;
     IntersectionInfo info;
-    Vec3f e = attenuatedEmission(light, medium, -1.0f, data, info, bounce, ray);
-
-    if (e == Vec3f(0.0f))
+    Vec3f throughput = generalizedShadowRay(ray, medium, data, info, bounce);
+    if (throughput == Vec3f(0.0f))
         return Vec3f(0.0f);
 
-    Vec3f bsdfF = e*event.throughput;
+    float lightPdf = info.primitive->inboundPdf(_threadId, data, info, event.info->p, wo);
+    lightPdf *= _lightPdf[info.primitive->lightIndex()];
 
-    bsdfF *= SampleWarp::powerHeuristic(event.pdf, light.inboundPdf(_threadId, data, info, event.info->p, wo));
+    Vec3f bsdfF = info.primitive->emission(data, info)*throughput*event.throughput;
+    bsdfF *= SampleWarp::powerHeuristic(event.pdf, lightPdf);
 
     return bsdfF;
 }
 
 Vec3f TraceBase::volumeLightSample(VolumeScatterEvent &event,
-                    const Primitive &light,
                     const Medium *medium,
-                    bool performMis,
                     int bounce,
                     const Ray &parentRay)
 {
+    float lightPdf;
+    const Primitive *light = chooseLight(*event.sampler, event.p, lightPdf);
+    if (light == nullptr)
+        return Vec3f(0.0f);
+
     LightSample sample(event.sampler, event.p);
 
-    if (!light.sampleInboundDirection(_threadId, sample))
+    if (!light->sampleInboundDirection(_threadId, sample))
         return Vec3f(0.0f);
     event.wo = sample.d;
 
@@ -223,16 +229,16 @@ Vec3f TraceBase::volumeLightSample(VolumeScatterEvent &event,
     if (e == 0.0f)
         return Vec3f(0.0f);
 
-    Vec3f lightF = f*e/sample.pdf;
+    float pdf = lightPdf*sample.pdf;
+    Vec3f lightF = f*e/pdf;
 
-    if (!light.isDelta() && performMis)
-        lightF *= SampleWarp::powerHeuristic(sample.pdf, medium->phasePdf(event));
+    if (!light->isDelta())
+        lightF *= SampleWarp::powerHeuristic(pdf, medium->phasePdf(event));
 
     return lightF;
 }
 
-Vec3f TraceBase::volumePhaseSample(const Primitive &light,
-                    VolumeScatterEvent &event,
+Vec3f TraceBase::volumePhaseSample(VolumeScatterEvent &event,
                     const Medium *medium,
                     int bounce,
                     const Ray &parentRay)
@@ -247,20 +253,20 @@ Vec3f TraceBase::volumePhaseSample(const Primitive &light,
 
     IntersectionTemporary data;
     IntersectionInfo info;
-    Vec3f e = attenuatedEmission(light, medium, -1.0f, data, info, bounce, ray);
-
-    if (e == Vec3f(0.0f))
+    Vec3f throughput = generalizedShadowRay(ray, medium, data, info, bounce);
+    if (throughput == Vec3f(0.0f))
         return Vec3f(0.0f);
 
-    Vec3f phaseF = e*event.throughput;
+    float lightPdf = info.primitive->inboundPdf(_threadId, data, info, event.p, event.wo);
+    lightPdf *= _lightPdf[info.primitive->lightIndex()];
 
-    phaseF *= SampleWarp::powerHeuristic(event.pdf, light.inboundPdf(_threadId, data, info, event.p, event.wo));
+    Vec3f phaseF = info.primitive->emission(data, info)*throughput*event.throughput;
+    phaseF *= SampleWarp::powerHeuristic(event.pdf, lightPdf);
 
     return phaseF;
 }
 
 Vec3f TraceBase::sampleDirect(const TangentFrame &frame,
-                   const Primitive &light,
                    const Bsdf &bsdf,
                    SurfaceScatterEvent &event,
                    const Medium *medium,
@@ -273,35 +279,29 @@ Vec3f TraceBase::sampleDirect(const TangentFrame &frame,
     if (bsdf.lobes().isPureSpecular() || bsdf.lobes().isForward())
         return Vec3f(0.0f);
 
-    result += lightSample(frame, light, bsdf, event, medium, bounce, epsilon, parentRay);
-    if (!light.isDelta())
-        result += bsdfSample(frame, light, bsdf, event, medium, bounce, epsilon, parentRay);
+    result += lightSample(frame, bsdf, event, medium, bounce, epsilon, parentRay);
+    result += bsdfSample(frame, bsdf, event, medium, bounce, epsilon, parentRay);
 
     return result;
 }
 
-Vec3f TraceBase::volumeSampleDirect(const Primitive &light,
-                    VolumeScatterEvent &event,
+Vec3f TraceBase::volumeSampleDirect(VolumeScatterEvent &event,
                     const Medium *medium,
                     int bounce,
                     const Ray &parentRay)
 {
-    // TODO: Re-enable Mis suggestions? Might be faster, but can cause fireflies
-    bool mis = true;//medium->suggestMis();
-
-    Vec3f result = volumeLightSample(event, light, medium, mis, bounce, parentRay);
-    if (!light.isDelta() && mis)
-        result += volumePhaseSample(light, event, medium, bounce, parentRay);
+    Vec3f result = volumeLightSample(event, medium, bounce, parentRay);
+    result += volumePhaseSample(event, medium, bounce, parentRay);
 
     return result;
 }
 
-const Primitive *TraceBase::chooseLight(SampleGenerator &sampler, const Vec3f &p, float &weight)
+const Primitive *TraceBase::chooseLight(SampleGenerator &sampler, const Vec3f &p, float &pdf)
 {
     if (_scene->lights().empty())
         return nullptr;
     if (_scene->lights().size() == 1) {
-        weight = 1.0f;
+        pdf = 1.0f;
         return _scene->lights()[0].get();
     }
 
@@ -329,43 +329,18 @@ const Primitive *TraceBase::chooseLight(SampleGenerator &sampler, const Vec3f &p
     }
     if (total == 0.0f)
         return nullptr;
-    float t = sampler.next1D()*total;
+    for (size_t i = 0; i < _lightPdf.size(); ++i)
+        _lightPdf[i] /= total;
+    float t = sampler.next1D();
     for (size_t i = 0; i < _lightPdf.size(); ++i) {
         if (t < _lightPdf[i] || i == _lightPdf.size() - 1) {
-            weight = total/_lightPdf[i];
+            pdf = _lightPdf[i];
             return _scene->lights()[i].get();
         } else {
             t -= _lightPdf[i];
         }
     }
     return nullptr;
-}
-
-Vec3f TraceBase::volumeEstimateDirect(VolumeScatterEvent &event,
-                    const Medium *medium,
-                    int bounce,
-                    const Ray &parentRay)
-{
-    float weight;
-    const Primitive *light = chooseLight(*event.sampler, event.p, weight);
-    if (light == nullptr)
-        return Vec3f(0.0f);
-    return volumeSampleDirect(*light, event, medium, bounce, parentRay)*weight;
-}
-
-Vec3f TraceBase::estimateDirect(const TangentFrame &frame,
-                     const Bsdf &bsdf,
-                     SurfaceScatterEvent &event,
-                     const Medium *medium,
-                     int bounce,
-                     float epsilon,
-                     const Ray &parentRay)
-{
-    float weight;
-    const Primitive *light = chooseLight(*event.sampler, event.info->p, weight);
-    if (light == nullptr)
-        return Vec3f(0.0f);
-    return sampleDirect(frame, *light, bsdf, event, medium, bounce, epsilon, parentRay)*weight;
 }
 
 bool TraceBase::handleVolume(SampleGenerator &sampler, UniformSampler &supplementalSampler,
@@ -390,7 +365,7 @@ bool TraceBase::handleVolume(SampleGenerator &sampler, UniformSampler &supplemen
 
         if (handleLights && _settings.enableVolumeLightSampling && bounce < _settings.maxBounces - 1) {
             wasSpecular = false;
-            emission += throughput*volumeEstimateDirect(event, medium, bounce + 1, ray);
+            emission += throughput*volumeSampleDirect(event, medium, bounce + 1, ray);
         }
 
         if (medium->absorb(event, state))
@@ -432,7 +407,7 @@ bool TraceBase::handleSurface(IntersectionTemporary &data, IntersectionInfo &inf
                     emission += info.primitive->emission(data, info)*throughput;
 
                 if (bounce < _settings.maxBounces - 1)
-                    emission += estimateDirect(event.frame, bsdf, event, medium, bounce + 1, info.epsilon, ray)*throughput;
+                    emission += sampleDirect(event.frame, bsdf, event, medium, bounce + 1, info.epsilon, ray)*throughput;
             } else if (bounce >= _settings.minBounces) {
                 emission += info.primitive->emission(data, info)*throughput;
             }
