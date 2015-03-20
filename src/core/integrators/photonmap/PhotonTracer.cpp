@@ -163,14 +163,7 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
         }
 
         bool geometricBackside = (wo.dot(info.Ng) < 0.0f);
-        const Medium *newMedium = medium;
-        if (bsdf.overridesMedia()) {
-            if (geometricBackside)
-                newMedium = bsdf.intMedium().get();
-            else
-                newMedium = bsdf.extMedium().get();
-        }
-        medium = newMedium;
+        medium = bsdf.selectMedium(medium, geometricBackside);
 
         ray = ray.scatter(ray.hitpoint(), wo, info.epsilon);
 

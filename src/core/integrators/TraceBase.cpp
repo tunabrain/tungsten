@@ -87,12 +87,7 @@ Vec3f TraceBase::generalizedShadowRay(Ray &ray,
             throughput *= medium->transmittance(VolumeScatterEvent(ray.pos(), ray.dir(), ray.farT()));
         if (info.primitive == nullptr || info.primitive == endCap)
             return bounce >= _settings.minBounces ? throughput : Vec3f(0.0f);
-        if (info.bsdf->overridesMedia()) {
-            if (info.primitive->hitBackside(data))
-                medium = info.bsdf->extMedium().get();
-            else
-                medium = info.bsdf->intMedium().get();
-        }
+        medium = info.bsdf->selectMedium(medium, !info.primitive->hitBackside(data));
 
         ray.setPos(ray.hitpoint());
         initialFarT -= ray.farT();
@@ -143,12 +138,7 @@ Vec3f TraceBase::lightSample(const TangentFrame &frame,
         return Vec3f(0.0f);
 
     bool geometricBackside = (sample.d.dot(event.info->Ng) < 0.0f);
-    if (bsdf.overridesMedia()) {
-        if (geometricBackside)
-            medium = bsdf.intMedium().get();
-        else
-            medium = bsdf.extMedium().get();
-    }
+    medium = bsdf.selectMedium(medium, geometricBackside);
 
     event.requestedLobe = BsdfLobes::AllButSpecular;
 
@@ -193,12 +183,7 @@ Vec3f TraceBase::bsdfSample(const TangentFrame &frame,
         return Vec3f(0.0f);
 
     bool geometricBackside = (wo.dot(event.info->Ng) < 0.0f);
-    if (bsdf.overridesMedia()) {
-        if (geometricBackside)
-            medium = bsdf.intMedium().get();
-        else
-            medium = bsdf.extMedium().get();
-    }
+    medium = bsdf.selectMedium(medium, geometricBackside);
 
     Ray ray = parentRay.scatter(event.info->p, wo, epsilon);
     ray.setPrimaryRay(false);
@@ -477,15 +462,8 @@ bool TraceBase::handleSurface(IntersectionTemporary &data, IntersectionInfo &inf
     }
 
     bool geometricBackside = (wo.dot(info.Ng) < 0.0f);
-    const Medium *newMedium = medium;
-    if (bsdf.overridesMedia()) {
-        if (geometricBackside)
-            newMedium = bsdf.intMedium().get();
-        else
-            newMedium = bsdf.extMedium().get();
-    }
+    medium = bsdf.selectMedium(medium, geometricBackside);
     state.reset();
-    medium = newMedium;
 
     ray = ray.scatter(ray.hitpoint(), wo, info.epsilon);
 

@@ -108,6 +108,14 @@ public:
     {
         return _extMedium || _intMedium;
     }
+
+    const Medium *selectMedium(const Medium *currentMedium, bool geometricBackside) const
+    {
+        if (overridesMedia())
+            return geometricBackside ? _intMedium.get() : _extMedium.get();
+        else
+            return currentMedium;
+    }
 };
 
 }
