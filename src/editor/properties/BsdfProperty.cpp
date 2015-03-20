@@ -130,7 +130,6 @@ bool BsdfProperty::hasAlbedo(BsdfType type) const
     case TYPE_FORWARD:
     case TYPE_NULL:
     case TYPE_ROUGH_COAT:
-    case TYPE_ROUGH_DIELECTRIC:
     case TYPE_SMOOTH_COAT:
     case TYPE_THIN_SHEET:
     case TYPE_TRANSPARENCY:

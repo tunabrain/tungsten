@@ -209,7 +209,9 @@ bool RoughDielectricBsdf::sample(SurfaceScatterEvent &event) const
     bool sampleT = event.requestedLobe.test(BsdfLobes::GlossyTransmissionLobe) && _enableT;
     float roughness = (*_roughness)[*event.info].x();
 
-    return sampleBase(event, sampleR, sampleT, roughness, _ior, _distribution);
+    bool result = sampleBase(event, sampleR, sampleT, roughness, _ior, _distribution);
+    event.throughput *= albedo(event.info);
+    return result;
 }
 
 Vec3f RoughDielectricBsdf::eval(const SurfaceScatterEvent &event) const
@@ -218,7 +220,7 @@ Vec3f RoughDielectricBsdf::eval(const SurfaceScatterEvent &event) const
     bool sampleT = event.requestedLobe.test(BsdfLobes::GlossyTransmissionLobe) && _enableT;
     float roughness = (*_roughness)[*event.info].x();
 
-    return evalBase(event, sampleR, sampleT, roughness, _ior, _distribution);
+    return evalBase(event, sampleR, sampleT, roughness, _ior, _distribution)*albedo(event.info);
 }
 
 float RoughDielectricBsdf::pdf(const SurfaceScatterEvent &event) const
