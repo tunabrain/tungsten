@@ -58,11 +58,6 @@ Vec3f TraceBase::generalizedShadowRay(Ray &ray,
                            const Primitive *endCap,
                            int bounce)
 {
-    // TODO: Could fire off occlusion ray regardless and only do expensive handling if we
-    // hit something. May or may not be faster.
-
-    if (!GeneralizedShadowRays)
-        return _scene->occluded(ray) ? Vec3f(0.0f) : Vec3f(1.0f);
     IntersectionTemporary data;
     IntersectionInfo info;
 
@@ -430,9 +425,6 @@ bool TraceBase::handleSurface(IntersectionTemporary &data, IntersectionInfo &inf
     if (sampler.next1D() < transparencyScalar) {
         wo = ray.dir();
         throughput *= transparency/transparencyScalar;
-
-        if (!GeneralizedShadowRays)
-            wasSpecular = true;
     } else {
         if (handleLights) {
             if (_settings.enableLightSampling) {

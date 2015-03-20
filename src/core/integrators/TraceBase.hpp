@@ -31,8 +31,6 @@ namespace Tungsten {
 
 class TraceBase
 {
-    static CONSTEXPR bool GeneralizedShadowRays = true;
-
 protected:
     const TraceableScene *_scene;
     TraceSettings _settings;
