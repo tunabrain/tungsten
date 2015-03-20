@@ -42,8 +42,6 @@ void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRan
     bool hitSurface = true;
     bool didHit = _scene->intersect(ray, data, info);
     while ((didHit || medium) && bounce < _settings.maxBounces - 2) {
-        ray.advanceFootprint();
-
         if (medium) {
             VolumeScatterEvent event(&sampler, &supplementalSampler, throughput, ray.pos(), ray.dir(), ray.farT());
             if (!medium->sampleDistance(event, state))
@@ -65,7 +63,7 @@ void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRan
                     break;
                 if (!medium->scatter(event))
                     break;
-                ray = ray.scatter(event.p, event.wo, 0.0f, event.pdf);
+                ray = ray.scatter(event.p, event.wo, 0.0f);
                 ray.setPrimaryRay(false);
                 throughput *= event.throughput;
                 hitSurface = false;
@@ -122,8 +120,6 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
     int bounce = 0;
     bool didHit = _scene->intersect(ray, data, info);
     while ((medium || didHit) && bounce < _settings.maxBounces - 1) {
-        ray.advanceFootprint();
-
         if (medium) {
             VolumeScatterEvent event(ray.pos(), ray.dir(), ray.farT());
 
@@ -153,9 +149,7 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
         float transparencyScalar = transparency.avg();
 
         Vec3f wo;
-        float pdf;
         if (sampler.next1D() < transparencyScalar) {
-            pdf = 0.0f;
             wo = ray.dir();
             throughput *= transparency/transparencyScalar;
         } else {
@@ -163,7 +157,6 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
             if (!bsdf.sample(event))
                 break;
 
-            pdf = event.pdf;
             wo = event.frame.toGlobal(event.wo);
 
             throughput *= event.throughput;
@@ -179,7 +172,7 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
         }
         medium = newMedium;
 
-        ray = ray.scatter(ray.hitpoint(), wo, info.epsilon, pdf);
+        ray = ray.scatter(ray.hitpoint(), wo, info.epsilon);
 
         if (std::isnan(ray.dir().sum() + ray.pos().sum()))
             break;

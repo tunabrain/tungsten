@@ -59,7 +59,6 @@ bool PinholeCamera::generateSample(Vec2u pixel, SampleGenerator &sampler, Vec3f 
 
     throughput = Vec3f(weight);
     ray = Ray(pos(), dir);
-    ray.setDiameter(_pixelSize.x()/_planeDist);
     return true;
 }
 

@@ -94,7 +94,6 @@ Vec3f TraceBase::generalizedShadowRay(Ray &ray,
                 medium = info.bsdf->intMedium().get();
         }
 
-        ray.advanceFootprint();
         ray.setPos(ray.hitpoint());
         initialFarT -= ray.farT();
         ray.setNearT(info.epsilon);
@@ -157,7 +156,7 @@ Vec3f TraceBase::lightSample(const TangentFrame &frame,
     if (f == 0.0f)
         return Vec3f(0.0f);
 
-    Ray ray = parentRay.scatter(sample.p, sample.d, epsilon, sample.pdf);
+    Ray ray = parentRay.scatter(sample.p, sample.d, epsilon);
     ray.setPrimaryRay(false);
 
     IntersectionTemporary data;
@@ -201,7 +200,7 @@ Vec3f TraceBase::bsdfSample(const TangentFrame &frame,
             medium = bsdf.extMedium().get();
     }
 
-    Ray ray = parentRay.scatter(event.info->p, wo, epsilon, event.pdf);
+    Ray ray = parentRay.scatter(event.info->p, wo, epsilon);
     ray.setPrimaryRay(false);
 
     IntersectionTemporary data;
@@ -235,7 +234,7 @@ Vec3f TraceBase::volumeLightSample(VolumeScatterEvent &event,
     if (f == 0.0f)
         return Vec3f(0.0f);
 
-    Ray ray = parentRay.scatter(sample.p, sample.d, 0.0f, sample.pdf);
+    Ray ray = parentRay.scatter(sample.p, sample.d, 0.0f);
     ray.setPrimaryRay(false);
 
     IntersectionTemporary data;
@@ -263,7 +262,7 @@ Vec3f TraceBase::volumePhaseSample(const Primitive &light,
     if (event.throughput == 0.0f)
         return Vec3f(0.0f);
 
-    Ray ray = parentRay.scatter(event.p, event.wo, 0.0f, event.pdf);
+    Ray ray = parentRay.scatter(event.p, event.wo, 0.0f);
     ray.setPrimaryRay(false);
 
     IntersectionTemporary data;
@@ -418,7 +417,7 @@ bool TraceBase::handleVolume(SampleGenerator &sampler, UniformSampler &supplemen
             return false;
         if (!medium->scatter(event))
             return false;
-        ray = ray.scatter(event.p, event.wo, 0.0f, event.pdf);
+        ray = ray.scatter(event.p, event.wo, 0.0f);
         ray.setPrimaryRay(false);
         throughput *= event.throughput;
         hitSurface = false;
@@ -443,9 +442,7 @@ bool TraceBase::handleSurface(IntersectionTemporary &data, IntersectionInfo &inf
     float transparencyScalar = transparency.avg();
 
     Vec3f wo;
-    float pdf;
     if (sampler.next1D() < transparencyScalar) {
-        pdf = 0.0f;
         wo = ray.dir();
         throughput *= transparency/transparencyScalar;
 
@@ -468,7 +465,6 @@ bool TraceBase::handleSurface(IntersectionTemporary &data, IntersectionInfo &inf
         if (!bsdf.sample(event))
             return false;
 
-        pdf = event.pdf;
         wo = event.frame.toGlobal(event.wo);
 
         if (!isConsistent(event, wo))
@@ -491,7 +487,7 @@ bool TraceBase::handleSurface(IntersectionTemporary &data, IntersectionInfo &inf
     state.reset();
     medium = newMedium;
 
-    ray = ray.scatter(ray.hitpoint(), wo, info.epsilon, pdf);
+    ray = ray.scatter(ray.hitpoint(), wo, info.epsilon);
 
     return true;
 }

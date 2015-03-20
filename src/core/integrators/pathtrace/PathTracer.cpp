@@ -34,8 +34,6 @@ Vec3f PathTracer::traceSample(Vec2u pixel, SampleGenerator &sampler, UniformSamp
     bool wasSpecular = true;
     bool hitSurface = true;
     while ((didHit || medium) && bounce < _settings.maxBounces) {
-        ray.advanceFootprint();
-
         if (medium && !handleVolume(sampler, supplementalSampler, medium, bounce,
                 true, ray, throughput, emission, wasSpecular, hitSurface, state))
             break;
