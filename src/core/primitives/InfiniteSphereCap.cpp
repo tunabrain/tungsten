@@ -106,7 +106,7 @@ bool InfiniteSphereCap::sampleInboundDirection(uint32 /*threadIndex*/, LightSamp
 {
     Vec3f dir = SampleWarp::uniformSphericalCap(sample.sampler->next2D(), _cosCapAngle);
     sample.d = _capFrame.toGlobal(dir);
-    sample.dist = 1e30f;
+    sample.dist = Ray::infinity();
     sample.pdf = SampleWarp::uniformSphericalCapPdf(_cosCapAngle);
     return true;
 }

@@ -130,7 +130,7 @@ bool InfiniteSphere::sampleInboundDirection(uint32 /*threadIndex*/, LightSample 
 {
     if (_emission->isConstant()) {
         sample.d = SampleWarp::uniformSphere(sample.sampler->next2D());
-        sample.dist = 1e30f;
+        sample.dist = Ray::infinity();
         sample.pdf = INV_FOUR_PI;
         return true;
     } else {
@@ -138,7 +138,7 @@ bool InfiniteSphere::sampleInboundDirection(uint32 /*threadIndex*/, LightSample 
         float sinTheta;
         sample.d = uvToDirection(uv, sinTheta);
         sample.pdf = INV_PI*INV_TWO_PI*_emission->pdf(MAP_SPHERICAL, uv)/sinTheta;
-        sample.dist = 1e30f;
+        sample.dist = Ray::infinity();
         return true;
     }
 }

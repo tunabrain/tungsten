@@ -3,6 +3,7 @@
 #include "sampling/UniformSampler.hpp"
 
 #include "math/TangentFrame.hpp"
+#include "math/Ray.hpp"
 
 #include "io/JsonUtils.hpp"
 
@@ -62,6 +63,8 @@ bool HomogeneousMedium::sampleDistance(VolumeScatterEvent &event, MediumState &s
         return false;
 
     if (_absorptionOnly) {
+        if (event.maxT == Ray::infinity())
+            return false;
         event.t = event.maxT;
         event.throughput = std::exp(-_sigmaT*event.t);
     } else {
@@ -102,7 +105,10 @@ bool HomogeneousMedium::scatter(VolumeScatterEvent &event) const
 
 Vec3f HomogeneousMedium::transmittance(const VolumeScatterEvent &event) const
 {
-    return std::exp(-_sigmaT*event.t);
+    if (event.t == Ray::infinity())
+        return Vec3f(0.0f);
+    else
+        return std::exp(-_sigmaT*event.t);
 }
 
 Vec3f HomogeneousMedium::emission(const VolumeScatterEvent &/*event*/) const
