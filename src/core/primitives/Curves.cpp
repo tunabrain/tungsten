@@ -246,6 +246,8 @@ Curves::Curves(const Curves &o)
     _curveEnds         = o._curveEnds;
     _nodeData          = o._nodeData;
     _nodeColor         = o._nodeColor;
+    _nodeNormals       = o._nodeNormals;
+    _bsdf              = o._bsdf;
     _proxy             = o._proxy;
     _bounds            = o._bounds;
 }

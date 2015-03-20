@@ -45,6 +45,7 @@ TriangleMesh::TriangleMesh(const TriangleMesh &o)
   _recomputeNormals(o._recomputeNormals),
   _verts(o._verts),
   _tris(o._tris),
+  _bsdfs(o._bsdfs),
   _bounds(o._bounds)
 {
 }
