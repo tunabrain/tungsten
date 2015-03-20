@@ -65,17 +65,7 @@ Vec3f PathTracer::traceSample(Vec2u pixel, SampleGenerator &sampler, UniformSamp
         if (bounce < _settings.maxBounces)
             didHit = _scene->intersect(ray, data, info);
     }
-    if (!didHit && !medium && bounce >= _settings.minBounces) {
-        if (_scene->intersectInfinites(ray, data, info)) {
-            if (_settings.enableLightSampling) {
-                if (bounce == 0 || wasSpecular || !info.primitive->isSamplable())
-                    emission += throughput*info.primitive->emission(data, info);
-            } else {
-                emission += throughput*info.primitive->emission(data, info);
-            }
-        }
-    }
-    if (std::isnan(throughput.sum() + emission.sum()))
+    if (std::isnan(emission.sum()))
         return nanEnvDirColor;
     return emission;
 

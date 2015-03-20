@@ -200,6 +200,10 @@ public:
                 prim->intersect(ray, data);
         }
 
+        if (!data.primitive)
+            for (const std::shared_ptr<Primitive> &p : _infinites)
+                p->intersect(ray, data);
+
         if (data.primitive) {
             info.p = ray.pos() + ray.dir()*ray.farT();
             info.w = ray.dir();
@@ -214,25 +218,6 @@ public:
                 info.epsilon = DefaultEpsilon;
                 data.primitive->intersectionInfo(data, info);
 //          }
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    bool intersectInfinites(Ray &ray, IntersectionTemporary &data, IntersectionInfo &info) const
-    {
-        info.primitive = nullptr;
-        data.primitive = nullptr;
-
-        for (const std::shared_ptr<Primitive> &p : _infinites)
-            p->intersect(ray, data);
-
-        if (data.primitive) {
-            info.p = ray.pos() + ray.dir()*ray.farT();
-            info.w = ray.dir();
-            info.epsilon = DefaultEpsilon;
-            data.primitive->intersectionInfo(data, info);
             return true;
         } else {
             return false;

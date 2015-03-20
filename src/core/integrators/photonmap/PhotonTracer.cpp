@@ -176,12 +176,9 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
         if (bounce < _settings.maxBounces)
             didHit = _scene->intersect(ray, data, info);
     }
-
-    if (!didHit) {
-        if (!medium && _scene->intersectInfinites(ray, data, info))
-            result += throughput*info.primitive->emission(data, info);
+    if (!info.primitive || info.primitive->isInfinite())
         return result;
-    }
+
     result += throughput*info.primitive->emission(data, info);
 
     int count = surfaceTree.nearestNeighbours(ray.hitpoint(), _photonQuery.get(), _distanceQuery.get(),
