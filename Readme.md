@@ -70,7 +70,7 @@ for more information.
 
 `src/thirdparty` contains all the libraries used in the project. They are included in the repository, since most of them are either tiny single-file libraries or, in the case of embree, had to be modified to work with the renderer.
 
-`src/standalone` contains the rendering application itself, which is just a small command line interface to the core rendering code.
+`src/tungsten` contains the rendering application itself, which is just a small command line interface to the core rendering code.
 
 All other folders in `src` are small utilities described below.
 
