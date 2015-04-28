@@ -14,6 +14,7 @@
 #include "primitives/Skydome.hpp"
 #include "primitives/Sphere.hpp"
 #include "primitives/Curves.hpp"
+#include "primitives/Point.hpp"
 #include "primitives/Cube.hpp"
 #include "primitives/Quad.hpp"
 #include "primitives/Disk.hpp"
@@ -175,6 +176,8 @@ std::shared_ptr<Primitive> Scene::instantiatePrimitive(std::string type, const r
         result = std::make_shared<MinecraftLoader::TraceableMinecraftMap>();
     else if (type == "skydome")
         result = std::make_shared<Skydome>();
+    else if (type == "point")
+        result = std::make_shared<Point>();
     else {
         DBG("Unknown primitive type: '%s'", type.c_str());
         return nullptr;
