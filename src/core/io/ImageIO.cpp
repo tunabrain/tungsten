@@ -14,6 +14,7 @@
 #include <ImfChannelList.h>
 #include <ImfOutputFile.h>
 #include <ImfInputFile.h>
+#include <ImfIO.h>
 #include <half.h>
 #endif
 
