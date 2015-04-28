@@ -102,8 +102,12 @@ Vec3f TraceBase::attenuatedEmission(const Primitive &light,
 {
     CONSTEXPR float fudgeFactor = 1.0f + 1e-3f;
 
-    if (!light.intersect(ray, data) || ray.farT()*fudgeFactor < expectedDist)
-        return Vec3f(0.0f);
+    if (light.isDelta()) {
+        ray.setFarT(expectedDist);
+    } else {
+        if (!light.intersect(ray, data) || ray.farT()*fudgeFactor < expectedDist)
+            return Vec3f(0.0f);
+    }
     info.w = ray.dir();
     light.intersectionInfo(data, info);
 
