@@ -77,7 +77,7 @@ bool Point::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &sample) 
     float rSq = sample.d.lengthSq();
     sample.dist = std::sqrt(rSq);
     sample.d /= sample.dist;
-    sample.pdf = 1.0f;
+    sample.pdf = rSq;
     return true;
 }
 
@@ -127,7 +127,7 @@ const TriangleMesh &Point::asTriangleMesh()
 void Point::prepareForRender()
 {
     _pos = _transform.extractTranslationVec();
-    _power = _emission ? _emission->average() : Vec3f(0.0f);
+    _power = _emission ? FOUR_PI*_emission->average() : Vec3f(0.0f);
 }
 
 void Point::teardownAfterRender()
