@@ -1,6 +1,6 @@
 #include "ProgressivePhotonMapIntegrator.hpp"
 
-#include "integrators/photonmap/PhotonTracer.hpp"
+#include "integrators/photon_map/PhotonTracer.hpp"
 
 #include "sampling/SobolSampler.hpp"
 

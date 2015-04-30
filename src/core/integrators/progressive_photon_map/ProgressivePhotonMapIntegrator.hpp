@@ -3,9 +3,9 @@
 
 #include "ProgressivePhotonMapSettings.hpp"
 
-#include "integrators/photonmap/PhotonTracer.hpp"
-#include "integrators/photonmap/KdTree.hpp"
-#include "integrators/photonmap/Photon.hpp"
+#include "integrators/photon_map/PhotonTracer.hpp"
+#include "integrators/photon_map/KdTree.hpp"
+#include "integrators/photon_map/Photon.hpp"
 #include "integrators/Integrator.hpp"
 #include "integrators/ImageTile.hpp"
 

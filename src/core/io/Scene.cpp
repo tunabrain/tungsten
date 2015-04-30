@@ -3,9 +3,9 @@
 #include "JsonUtils.hpp"
 #include "FileUtils.hpp"
 
-#include "integrators/pppm/ProgressivePhotonMapIntegrator.hpp"
-#include "integrators/pathtrace/PathTraceIntegrator.hpp"
-#include "integrators/photonmap/PhotonMapIntegrator.hpp"
+#include "integrators/progressive_photon_map/ProgressivePhotonMapIntegrator.hpp"
+#include "integrators/path_tracer/PathTraceIntegrator.hpp"
+#include "integrators/photon_map/PhotonMapIntegrator.hpp"
 
 #include "primitives/mc-loader/TraceableMinecraftMap.hpp"
 #include "primitives/InfiniteSphereCap.hpp"
@@ -206,7 +206,7 @@ std::shared_ptr<Camera> Scene::instantiateCamera(std::string type, const rapidjs
 std::shared_ptr<Integrator> Scene::instantiateIntegrator(std::string type, const rapidjson::Value &value) const
 {
     std::shared_ptr<Integrator> result;
-    if (type == "path_trace")
+    if (type == "path_tracer")
         result = std::make_shared<PathTraceIntegrator>();
     else if (type == "photon_map")
         result = std::make_shared<PhotonMapIntegrator>();

@@ -176,7 +176,7 @@
         "fov": 35
     },
     "integrator": {
-        "type": "path_trace",
+        "type": "path_tracer",
         "min_bounces": 0,
         "max_bounces": 64,
         "enable_light_sampling": true,

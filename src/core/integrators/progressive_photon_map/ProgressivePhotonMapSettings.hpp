@@ -1,7 +1,7 @@
 #ifndef PROGRESSIVEPHOTONMAPSETTINGS_HPP_
 #define PROGRESSIVEPHOTONMAPSETTINGS_HPP_
 
-#include "integrators/photonmap/PhotonMapSettings.hpp"
+#include "integrators/photon_map/PhotonMapSettings.hpp"
 
 #include "io/JsonUtils.hpp"
 
