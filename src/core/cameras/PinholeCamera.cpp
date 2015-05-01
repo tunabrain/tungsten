@@ -47,6 +47,39 @@ rapidjson::Value PinholeCamera::toJson(Allocator &allocator) const
     return std::move(v);
 }
 
+bool PinholeCamera::sampleInboundDirection(LensSample &sample) const
+{
+    sample.d = _pos - sample.p;
+
+    Vec3f localD = _invTransform.transformVector(-sample.d);
+    if (localD.z() <= 0.0f)
+        return false;
+    localD *= _planeDist/localD.z();
+
+    float weight;
+    Vec2f uv = _filter.sample(sample.sampler->next2D(), weight);
+    float pixelX = (localD.x() + 1.0f)/_pixelSize.x() - uv.x();
+    float pixelY = (_ratio - localD.y())/_pixelSize.y() - uv.y();
+    if (pixelX < 0.0f || pixelY < 0.0f)
+        return false;
+
+    sample.pixel.x() = uint32(pixelX);
+    sample.pixel.y() = uint32(pixelY);
+    if (sample.pixel.x() >= _res.x() || sample.pixel.y() >= _res.y())
+        return false;
+
+
+    float rSq = sample.d.lengthSq();
+    sample.dist = std::sqrt(rSq);
+    sample.d /= sample.dist;
+
+    weight *= sqr(_planeDist)/(_pixelSize.x()*_pixelSize.y()*rSq*cube(localD.z()/localD.length()));
+
+    sample.pdf = 1.0f;
+    sample.weight = Vec3f(weight);
+    return true;
+}
+
 bool PinholeCamera::generateSample(Vec2u pixel, SampleGenerator &sampler, Vec3f &throughput, Ray &ray) const
 {
     float weight;

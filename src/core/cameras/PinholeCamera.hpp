@@ -22,6 +22,7 @@ public:
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
+    virtual bool sampleInboundDirection(LensSample &sample) const override;
     virtual bool generateSample(Vec2u pixel, SampleGenerator &sampler, Vec3f &throughput, Ray &ray) const override;
 
     virtual Mat4f approximateProjectionMatrix(int width, int height) const override;
