@@ -25,6 +25,8 @@ struct SurfaceScatterEvent
     BsdfLobes sampledLobe;
     bool flippedFrame;
 
+    SurfaceScatterEvent() = default;
+
     SurfaceScatterEvent(const IntersectionInfo *info_,
                  SampleGenerator *sampler_,
                  UniformSampler *supplementalSampler_,

@@ -118,34 +118,73 @@ Vec3f TraceBase::attenuatedEmission(const Primitive &light,
     return transmittance*light.emission(data, info);
 }
 
-Vec3f TraceBase::lightSample(const TangentFrame &frame,
-                  const Primitive &light,
-                  const Bsdf &bsdf,
-                  SurfaceScatterEvent &event,
-                  const Medium *medium,
-                  int bounce,
-                  float epsilon,
-                  const Ray &parentRay)
+bool TraceBase::lensSample(const Camera &camera,
+                           SurfaceScatterEvent &event,
+                           const Medium *medium,
+                           int bounce,
+                           const Ray &parentRay,
+                           Vec3f &weight,
+                           Vec2u &pixel)
+{
+    LensSample sample(event.sampler, event.info->p);
+
+    if (!camera.sampleInboundDirection(sample))
+        return false;
+
+    event.wo = event.frame.toLocal(sample.d);
+    if (!isConsistent(event, sample.d))
+        return false;
+
+    bool geometricBackside = (sample.d.dot(event.info->Ng) < 0.0f);
+    medium = event.info->bsdf->selectMedium(medium, geometricBackside);
+
+    event.requestedLobe = BsdfLobes::AllButSpecular;
+
+    Vec3f f = event.info->bsdf->eval(event);
+    if (f == 0.0f)
+        return false;
+
+    Ray ray = parentRay.scatter(sample.p, sample.d, event.info->epsilon);
+    ray.setPrimaryRay(false);
+    ray.setFarT(sample.dist);
+
+    IntersectionTemporary data;
+    IntersectionInfo info;
+    Vec3f transmittance = generalizedShadowRay(ray, medium, nullptr, bounce);
+    if (transmittance == 0.0f)
+        return false;
+
+    weight = f*transmittance*sample.weight;
+    pixel = sample.pixel;
+
+    return true;
+}
+
+Vec3f TraceBase::lightSample(const Primitive &light,
+                             SurfaceScatterEvent &event,
+                             const Medium *medium,
+                             int bounce,
+                             const Ray &parentRay)
 {
     LightSample sample(event.sampler, event.info->p);
 
     if (!light.sampleInboundDirection(_threadId, sample))
         return Vec3f(0.0f);
 
-    event.wo = frame.toLocal(sample.d);
+    event.wo = event.frame.toLocal(sample.d);
     if (!isConsistent(event, sample.d))
         return Vec3f(0.0f);
 
     bool geometricBackside = (sample.d.dot(event.info->Ng) < 0.0f);
-    medium = bsdf.selectMedium(medium, geometricBackside);
+    medium = event.info->bsdf->selectMedium(medium, geometricBackside);
 
     event.requestedLobe = BsdfLobes::AllButSpecular;
 
-    Vec3f f = bsdf.eval(event);
+    Vec3f f = event.info->bsdf->eval(event);
     if (f == 0.0f)
         return Vec3f(0.0f);
 
-    Ray ray = parentRay.scatter(sample.p, sample.d, epsilon);
+    Ray ray = parentRay.scatter(sample.p, sample.d, event.info->epsilon);
     ray.setPrimaryRay(false);
 
     IntersectionTemporary data;
@@ -157,34 +196,31 @@ Vec3f TraceBase::lightSample(const TangentFrame &frame,
     Vec3f lightF = f*e/sample.pdf;
 
     if (!light.isDelta())
-        lightF *= SampleWarp::powerHeuristic(sample.pdf, bsdf.pdf(event));
+        lightF *= SampleWarp::powerHeuristic(sample.pdf, event.info->bsdf->pdf(event));
 
     return lightF;
 }
 
-Vec3f TraceBase::bsdfSample(const TangentFrame &frame,
-                     const Primitive &light,
-                     const Bsdf &bsdf,
-                     SurfaceScatterEvent &event,
-                     const Medium *medium,
-                     int bounce,
-                     float epsilon,
-                     const Ray &parentRay)
+Vec3f TraceBase::bsdfSample(const Primitive &light,
+                            SurfaceScatterEvent &event,
+                            const Medium *medium,
+                            int bounce,
+                            const Ray &parentRay)
 {
     event.requestedLobe = BsdfLobes::AllButSpecular;
-    if (!bsdf.sample(event))
+    if (!event.info->bsdf->sample(event))
         return Vec3f(0.0f);
     if (event.throughput == 0.0f)
         return Vec3f(0.0f);
 
-    Vec3f wo = frame.toGlobal(event.wo);
+    Vec3f wo = event.frame.toGlobal(event.wo);
     if (!isConsistent(event, wo))
         return Vec3f(0.0f);
 
     bool geometricBackside = (wo.dot(event.info->Ng) < 0.0f);
-    medium = bsdf.selectMedium(medium, geometricBackside);
+    medium = event.info->bsdf->selectMedium(medium, geometricBackside);
 
-    Ray ray = parentRay.scatter(event.info->p, wo, epsilon);
+    Ray ray = parentRay.scatter(event.info->p, wo, event.info->epsilon);
     ray.setPrimaryRay(false);
 
     IntersectionTemporary data;
@@ -263,23 +299,20 @@ Vec3f TraceBase::volumePhaseSample(const Primitive &light,
     return phaseF;
 }
 
-Vec3f TraceBase::sampleDirect(const TangentFrame &frame,
-                   const Primitive &light,
-                   const Bsdf &bsdf,
-                   SurfaceScatterEvent &event,
-                   const Medium *medium,
-                   int bounce,
-                   float epsilon,
-                   const Ray &parentRay)
+Vec3f TraceBase::sampleDirect(const Primitive &light,
+                              SurfaceScatterEvent &event,
+                              const Medium *medium,
+                              int bounce,
+                              const Ray &parentRay)
 {
     Vec3f result(0.0f);
 
-    if (bsdf.lobes().isPureSpecular() || bsdf.lobes().isForward())
+    if (event.info->bsdf->lobes().isPureSpecular() || event.info->bsdf->lobes().isForward())
         return Vec3f(0.0f);
 
-    result += lightSample(frame, light, bsdf, event, medium, bounce, epsilon, parentRay);
+    result += lightSample(light, event, medium, bounce, parentRay);
     if (!light.isDelta())
-        result += bsdfSample(frame, light, bsdf, event, medium, bounce, epsilon, parentRay);
+        result += bsdfSample(light, event, medium, bounce, parentRay);
 
     return result;
 }
@@ -357,19 +390,16 @@ Vec3f TraceBase::volumeEstimateDirect(VolumeScatterEvent &event,
     return volumeSampleDirect(*light, event, medium, bounce, parentRay)*weight;
 }
 
-Vec3f TraceBase::estimateDirect(const TangentFrame &frame,
-                     const Bsdf &bsdf,
-                     SurfaceScatterEvent &event,
-                     const Medium *medium,
-                     int bounce,
-                     float epsilon,
-                     const Ray &parentRay)
+Vec3f TraceBase::estimateDirect(SurfaceScatterEvent &event,
+                                const Medium *medium,
+                                int bounce,
+                                const Ray &parentRay)
 {
     float weight;
     const Primitive *light = chooseLight(*event.sampler, event.info->p, weight);
     if (light == nullptr)
         return Vec3f(0.0f);
-    return sampleDirect(frame, *light, bsdf, event, medium, bounce, epsilon, parentRay)*weight;
+    return sampleDirect(*light, event, medium, bounce, parentRay)*weight;
 }
 
 bool TraceBase::handleVolume(SampleGenerator &sampler, UniformSampler &supplementalSampler,
@@ -412,15 +442,16 @@ bool TraceBase::handleVolume(SampleGenerator &sampler, UniformSampler &supplemen
     return true;
 }
 
-bool TraceBase::handleSurface(IntersectionTemporary &data, IntersectionInfo &info,
-                   SampleGenerator &sampler, UniformSampler &supplementalSampler,
-                   const Medium *&medium, int bounce, bool handleLights, Ray &ray,
-                   Vec3f &throughput, Vec3f &emission, bool &wasSpecular,
-                   Medium::MediumState &state)
+bool TraceBase::handleSurface(SurfaceScatterEvent &event, IntersectionTemporary &data,
+                              IntersectionInfo &info, SampleGenerator &sampler,
+                              UniformSampler &supplementalSampler, const Medium *&medium,
+                              int bounce, bool handleLights, Ray &ray,
+                              Vec3f &throughput, Vec3f &emission, bool &wasSpecular,
+                              Medium::MediumState &state)
 {
     const Bsdf &bsdf = *info.bsdf;
 
-    SurfaceScatterEvent event = makeLocalScatterEvent(data, info, ray, &sampler, &supplementalSampler);
+    event = makeLocalScatterEvent(data, info, ray, &sampler, &supplementalSampler);
 
     Vec3f transparency = bsdf.eval(event.makeForwardEvent());
     float transparencyScalar = transparency.avg();
@@ -436,7 +467,7 @@ bool TraceBase::handleSurface(IntersectionTemporary &data, IntersectionInfo &inf
                     emission += info.primitive->emission(data, info)*throughput;
 
                 if (bounce < _settings.maxBounces - 1)
-                    emission += estimateDirect(event.frame, bsdf, event, medium, bounce + 1, info.epsilon, ray)*throughput;
+                    emission += estimateDirect(event, medium, bounce + 1, ray)*throughput;
             } else if (bounce >= _settings.minBounces) {
                 emission += info.primitive->emission(data, info)*throughput;
             }

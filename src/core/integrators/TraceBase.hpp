@@ -58,23 +58,25 @@ protected:
                              int bounce,
                              Ray &ray);
 
-    Vec3f lightSample(const TangentFrame &frame,
-                      const Primitive &light,
-                      const Bsdf &bsdf,
+    bool lensSample(const Camera &camera,
+                    SurfaceScatterEvent &event,
+                    const Medium *medium,
+                    int bounce,
+                    const Ray &parentRay,
+                    Vec3f &weight,
+                    Vec2u &pixel);
+
+    Vec3f lightSample(const Primitive &light,
                       SurfaceScatterEvent &event,
                       const Medium *medium,
                       int bounce,
-                      float epsilon,
                       const Ray &parentRay);
 
-    Vec3f bsdfSample(const TangentFrame &frame,
-                         const Primitive &light,
-                         const Bsdf &bsdf,
-                         SurfaceScatterEvent &event,
-                         const Medium *medium,
-                         int bounce,
-                         float epsilon,
-                         const Ray &parentRay);
+    Vec3f bsdfSample(const Primitive &light,
+                     SurfaceScatterEvent &event,
+                     const Medium *medium,
+                     int bounce,
+                     const Ray &parentRay);
 
     Vec3f volumeLightSample(VolumeScatterEvent &event,
                         const Primitive &light,
@@ -89,13 +91,10 @@ protected:
                         int bounce,
                         const Ray &parentRay);
 
-    Vec3f sampleDirect(const TangentFrame &frame,
-                       const Primitive &light,
-                       const Bsdf &bsdf,
+    Vec3f sampleDirect(const Primitive &light,
                        SurfaceScatterEvent &event,
                        const Medium *medium,
                        int bounce,
-                       float epsilon,
                        const Ray &parentRay);
 
     Vec3f volumeSampleDirect(const Primitive &light,
@@ -111,12 +110,9 @@ protected:
                         int bounce,
                         const Ray &parentRay);
 
-    Vec3f estimateDirect(const TangentFrame &frame,
-                         const Bsdf &bsdf,
-                         SurfaceScatterEvent &event,
+    Vec3f estimateDirect(SurfaceScatterEvent &event,
                          const Medium *medium,
                          int bounce,
-                         float epsilon,
                          const Ray &parentRay);
 
     bool handleVolume(SampleGenerator &sampler, UniformSampler &supplementalSampler,
@@ -124,9 +120,10 @@ protected:
                Vec3f &throughput, Vec3f &emission, bool &wasSpecular, bool &hitSurface,
                Medium::MediumState &state);
 
-    bool handleSurface(IntersectionTemporary &data, IntersectionInfo &info,
-                       SampleGenerator &sampler, UniformSampler &supplementalSampler,
-                       const Medium *&medium, int bounce, bool handleLights, Ray &ray,
+    bool handleSurface(SurfaceScatterEvent &event, IntersectionTemporary &data,
+                       IntersectionInfo &info, SampleGenerator &sampler,
+                       UniformSampler &supplementalSampler, const Medium *&medium,
+                       int bounce, bool handleLights, Ray &ray,
                        Vec3f &throughput, Vec3f &emission, bool &wasSpecular,
                        Medium::MediumState &state);
 };

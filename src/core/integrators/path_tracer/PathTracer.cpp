@@ -22,6 +22,7 @@ Vec3f PathTracer::traceSample(Vec2u pixel, SampleGenerator &sampler, UniformSamp
         return Vec3f(0.0f);
     ray.setPrimaryRay(true);
 
+    SurfaceScatterEvent event;
     IntersectionTemporary data;
     Medium::MediumState state;
     state.reset();
@@ -41,9 +42,12 @@ Vec3f PathTracer::traceSample(Vec2u pixel, SampleGenerator &sampler, UniformSamp
         if (hitSurface && !didHit)
             break;
 
-        if (hitSurface && !handleSurface(data, info, sampler, supplementalSampler, medium, bounce,
-                true, ray, throughput, emission, wasSpecular, state))
-            break;
+        if (hitSurface) {
+            event = makeLocalScatterEvent(data, info, ray, &sampler, &supplementalSampler);
+            if (!handleSurface(event, data, info, sampler, supplementalSampler, medium, bounce,
+                    true, ray, throughput, emission, wasSpecular, state))
+                break;
+        }
 
         if (throughput.max() == 0.0f)
             break;

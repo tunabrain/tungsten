@@ -30,6 +30,7 @@ void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRan
     Ray ray(sample.p, sample.d);
     Vec3f throughput(sample.weight/_lightSampler->pdf(lightIdx));
 
+    SurfaceScatterEvent event;
     IntersectionTemporary data;
     IntersectionInfo info;
     Medium::MediumState state;
@@ -84,9 +85,12 @@ void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRan
         if (volumeRange.full() && surfaceRange.full())
             break;
 
-        if (hitSurface && !handleSurface(data, info, sampler, supplementalSampler, medium, bounce,
-                false, ray, throughput, emission, wasSpecular, state))
-            break;
+        if (hitSurface) {
+            event = makeLocalScatterEvent(data, info, ray, &sampler, &supplementalSampler);
+            if (!handleSurface(event, data, info, sampler, supplementalSampler, medium, bounce,
+                    false, ray, throughput, emission, wasSpecular, state))
+                break;
+        }
 
         if (throughput.max() == 0.0f)
             break;
