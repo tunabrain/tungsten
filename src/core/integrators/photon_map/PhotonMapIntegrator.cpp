@@ -19,11 +19,6 @@ PhotonMapIntegrator::PhotonMapIntegrator()
 {
 }
 
-static int intLerp(int x0, int x1, int t, int range)
-{
-    return (x0*(range - t) + x1*t)/range;
-}
-
 void PhotonMapIntegrator::diceTiles()
 {
     for (uint32 y = 0; y < _h; y += TileSize) {

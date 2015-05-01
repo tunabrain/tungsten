@@ -75,6 +75,11 @@ T lerp(T a, T b, T ratio)
     return a*(T(1) - ratio) + b*ratio;
 }
 
+static inline int intLerp(int x0, int x1, int t, int range)
+{
+    return (x0*(range - t) + x1*t)/range;
+}
+
 template<typename ElementType, unsigned Size>
 Vec<ElementType, Size> lerp(const Vec<ElementType, Size> &a, const Vec<ElementType, Size> &b, ElementType ratio)
 {
