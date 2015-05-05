@@ -39,6 +39,46 @@ rapidjson::Value Primitive::toJson(Allocator &allocator) const
     return std::move(v);
 }
 
+bool Primitive::samplePosition(SampleGenerator &/*sampler*/, PositionSample &/*sample*/) const
+{
+    return false;
+}
+
+bool Primitive::sampleDirection(SampleGenerator &/*sampler*/, const PositionSample &/*point*/, DirectionSample &/*sample*/) const
+{
+    return false;
+}
+
+bool Primitive::sampleDirect(uint32 /*threadIndex*/, const Vec3f &/*p*/, SampleGenerator &/*sampler*/, LightSample &/*sample*/) const
+{
+    return false;
+}
+
+float Primitive::directPdf(uint32 /*threadIndex*/, const IntersectionTemporary &/*data*/,
+        const IntersectionInfo &/*info*/, const Vec3f &/*p*/) const
+{
+    return 0.0f;
+}
+
+Vec3f Primitive::evalPositionalEmission(const PositionSample &/*sample*/) const
+{
+    return Vec3f(0.0f);
+}
+
+Vec3f Primitive::evalDirectionalEmission(const PositionSample &/*point*/, const DirectionSample &/*sample*/) const
+{
+    return Vec3f(0.0f);
+}
+
+Vec3f Primitive::evalDirect(const IntersectionTemporary &data, const IntersectionInfo &info) const
+{
+    if (!_emission)
+        return Vec3f(0.0f);
+    if (hitBackside(data))
+        return Vec3f(0.0f);
+    return (*_emission)[info];
+}
+
 void Primitive::setupTangentFrame(const IntersectionTemporary &data,
         const IntersectionInfo &info, TangentFrame &dst) const
 {

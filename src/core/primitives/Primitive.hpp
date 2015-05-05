@@ -4,6 +4,8 @@
 #include "IntersectionTemporary.hpp"
 #include "IntersectionInfo.hpp"
 
+#include "samplerecords/DirectionSample.hpp"
+#include "samplerecords/PositionSample.hpp"
 #include "samplerecords/LightSample.hpp"
 
 #include "materials/Texture.hpp"
@@ -54,6 +56,19 @@ public:
 
     virtual bool isSamplable() const = 0;
     virtual void makeSamplable(uint32 threadIndex) = 0;
+
+
+    virtual bool samplePosition(SampleGenerator &sampler, PositionSample &sample) const;
+    virtual bool sampleDirection(SampleGenerator &sampler, const PositionSample &point, DirectionSample &sample) const;
+    virtual bool sampleDirect(uint32 threadIndex, const Vec3f &p, SampleGenerator &sampler, LightSample &sample) const;
+    //virtual float positionalPdf();
+    //virtual float directionPdf();
+    virtual float directPdf(uint32 threadIndex, const IntersectionTemporary &data,
+            const IntersectionInfo &info, const Vec3f &p) const;
+    virtual Vec3f evalPositionalEmission(const PositionSample &sample) const;
+    virtual Vec3f evalDirectionalEmission(const PositionSample &point, const DirectionSample &sample) const;
+    virtual Vec3f evalDirect(const IntersectionTemporary &data, const IntersectionInfo &info) const;
+
 
     virtual float inboundPdf(uint32 threadIndex, const IntersectionTemporary &data,
             const IntersectionInfo &info, const Vec3f &p, const Vec3f &d) const = 0;
