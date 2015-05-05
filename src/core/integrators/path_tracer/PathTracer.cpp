@@ -2,7 +2,7 @@
 
 namespace Tungsten {
 
-PathTracer::PathTracer(TraceableScene *scene, const TraceSettings &settings, uint32 threadId)
+PathTracer::PathTracer(TraceableScene *scene, const PathTracerSettings &settings, uint32 threadId)
 : TraceBase(scene, settings, threadId)
 {
 }

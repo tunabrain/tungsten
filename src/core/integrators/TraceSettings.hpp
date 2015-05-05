@@ -37,7 +37,6 @@ struct TraceSettings
     rapidjson::Value toJson(rapidjson::Document::AllocatorType &allocator) const
     {
         rapidjson::Value v(rapidjson::kObjectType);
-        v.AddMember("type", "path_tracer", allocator);
         v.AddMember("min_bounces", minBounces, allocator);
         v.AddMember("max_bounces", maxBounces, allocator);
         v.AddMember("enable_light_sampling", enableLightSampling, allocator);

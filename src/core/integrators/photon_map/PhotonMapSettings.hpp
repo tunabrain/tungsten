@@ -34,7 +34,6 @@ struct PhotonMapSettings : public TraceSettings
     rapidjson::Value toJson(rapidjson::Document::AllocatorType &allocator) const
     {
         rapidjson::Value v = TraceSettings::toJson(allocator);
-        v.RemoveMember("type");
         v.AddMember("type", "photon_map", allocator);
         v.AddMember("photon_count", photonCount, allocator);
         v.AddMember("volume_photon_count", volumePhotonCount, allocator);
