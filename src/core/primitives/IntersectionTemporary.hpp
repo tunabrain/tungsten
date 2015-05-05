@@ -12,10 +12,7 @@ struct IntersectionTemporary
     const Primitive *primitive;
     uint8 data[64];
 
-    IntersectionTemporary()
-    : primitive(nullptr)
-    {
-    }
+    IntersectionTemporary() = default;
 
     template<typename T>
     T *as()
