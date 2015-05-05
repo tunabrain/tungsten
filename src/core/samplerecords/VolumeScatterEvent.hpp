@@ -22,6 +22,8 @@ struct VolumeScatterEvent
     Vec3f throughput;
     float pdf;
 
+    VolumeScatterEvent() = default;
+
     VolumeScatterEvent(SampleGenerator *sampler_,
                  UniformSampler *supplementalSampler_,
                  Vec3f currentThroughput_,
