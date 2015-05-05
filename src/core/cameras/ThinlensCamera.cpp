@@ -110,8 +110,8 @@ bool ThinlensCamera::sampleInboundDirection(LensSample &/*sample*/) const
 
 bool ThinlensCamera::generateSample(Vec2u pixel, SampleGenerator &sampler, Vec3f &throughput, Ray &ray) const
 {
-    float filterWeight;
-    Vec2f pixelUv = 0.5f + _filter.sample(sampler.next2D(), filterWeight);
+    float filterWeight, filterPdf;
+    Vec2f pixelUv = 0.5f + _filter.sample(sampler.next2D(), filterWeight, filterPdf);
     Vec2f lensUv = sampler.next2D();
 
     Vec3f planePos(

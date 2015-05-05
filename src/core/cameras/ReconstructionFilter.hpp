@@ -104,7 +104,7 @@ public:
     void fromJson(const rapidjson::Value &v);
     rapidjson::Value toJson(rapidjson::Document::AllocatorType &allocator) const;
 
-    inline Vec2f sample(Vec2f uv, float &weight) const
+    inline Vec2f sample(Vec2f uv, float &weight, float &pdf) const
     {
         if (_type == Dirac) {
             weight = 1.0f;
@@ -119,7 +119,8 @@ public:
         uv = ((uv + Vec2f(float(row), float(col)))*(2.0f/Resolution) - 1.0f)*_width;
         float area = _width*_width*(4.0f/(Resolution*Resolution));
 
-        weight = eval(uv)*area/_footprint->pdf(row, col);
+        pdf = _footprint->pdf(row, col);
+        weight = eval(uv)*area/pdf;
         return uv;
     }
 
