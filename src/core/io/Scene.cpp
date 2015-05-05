@@ -4,6 +4,7 @@
 #include "FileUtils.hpp"
 
 #include "integrators/progressive_photon_map/ProgressivePhotonMapIntegrator.hpp"
+#include "integrators/light_tracer/LightTraceIntegrator.hpp"
 #include "integrators/path_tracer/PathTraceIntegrator.hpp"
 #include "integrators/photon_map/PhotonMapIntegrator.hpp"
 
@@ -208,6 +209,8 @@ std::shared_ptr<Integrator> Scene::instantiateIntegrator(std::string type, const
     std::shared_ptr<Integrator> result;
     if (type == "path_tracer")
         result = std::make_shared<PathTraceIntegrator>();
+    else if (type == "light_tracer")
+        result = std::make_shared<LightTraceIntegrator>();
     else if (type == "photon_map")
         result = std::make_shared<PhotonMapIntegrator>();
     else if (type == "progressive_photon_map")
