@@ -30,14 +30,9 @@ public:
 
         AllLobes = TransmissiveLobe | ReflectiveLobe | AnisotropicLobe,
         AllButSpecular = ~(SpecularLobe | ForwardLobe),
-
-        InvalidLobe = 0
     };
 
-    BsdfLobes()
-    : _lobes(InvalidLobe)
-    {
-    }
+    BsdfLobes() = default;
 
     BsdfLobes(const BsdfLobes &a, const BsdfLobes &b)
     : _lobes(a._lobes | b._lobes)
