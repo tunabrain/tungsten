@@ -2,6 +2,7 @@
 #define CAMERA_HPP_
 
 #include "ReconstructionFilter.hpp"
+#include "AtomicFramebuffer.hpp"
 #include "Tonemap.hpp"
 
 #include "samplerecords/LensSample.hpp"
@@ -47,6 +48,10 @@ protected:
     std::vector<Vec3d> _pixels;
     std::vector<uint32> _weights;
 
+    std::unique_ptr<AtomicFramebuffer> _splatBuffer;
+    std::vector<Vec3d> _splats;
+    uint64 _splatWeight;
+
 private:
     void precompute();
 
@@ -65,6 +70,9 @@ public:
     virtual void prepareForRender();
     virtual void teardownAfterRender();
 
+    void requestSplatBuffer();
+    void blitSplatBuffer(uint64 numSplats);
+
     void setTransform(const Vec3f &pos, const Vec3f &lookAt, const Vec3f &up);
     void setPos(const Vec3f &pos);
     void setLookAt(const Vec3f &lookAt);
@@ -77,21 +85,23 @@ public:
         _weights[idx] += weight;
     }
 
-    Vec3f tonemap(const Vec3f &c) const
+    inline Vec3f tonemap(const Vec3f &c) const
     {
         return Tonemap::tonemap(_tonemapOp, max(c, Vec3f(0.0f)));
     }
 
-    Vec3f getLinear(int x, int y) const
+    inline Vec3f getLinear(int x, int y) const
     {
         int idx = x + y*_res.x();
-        return Vec3f(_pixels[idx]/_weights[idx]);
+        Vec3d result = _pixels[idx]/_weights[idx];
+        if (!_splats.empty())
+            result += _splats[idx]/_splatWeight;
+        return Vec3f(result);
     }
 
-    Vec3f get(int x, int y) const
+    inline Vec3f get(int x, int y) const
     {
-        int idx = x + y*_res.x();
-        return tonemap(Vec3f(_pixels[idx]/_weights[idx]));
+        return tonemap(getLinear(x, y));
     }
 
     const Mat4f &transform() const
@@ -142,6 +152,11 @@ public:
     std::vector<uint32> &weights()
     {
         return _weights;
+    }
+
+    AtomicFramebuffer *splatBuffer()
+    {
+        return _splatBuffer.get();
     }
 
     void setTonemapString(const std::string &name)

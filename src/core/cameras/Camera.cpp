@@ -95,8 +95,28 @@ void Camera::teardownAfterRender()
 {
     _pixels.clear();
     _weights.clear();
+    _splats.clear();
+    _splatBuffer.reset();
     _pixels.shrink_to_fit();
     _weights.shrink_to_fit();
+    _splats.shrink_to_fit();
+    _splatWeight = 0;
+}
+
+void Camera::requestSplatBuffer()
+{
+    _splatBuffer.reset(new AtomicFramebuffer(_res.x(), _res.y()));
+    _splats.resize(_res.x()*_res.y(), Vec3d(0.0));
+    _splatWeight = 0;
+}
+
+void Camera::blitSplatBuffer(uint64 numSplats)
+{
+    for (uint32 y = 0; y < _res.y(); ++y)
+        for (uint32 x = 0; x < _res.x(); ++x)
+            _splats[x + y*_res.x()] += Vec3d(_splatBuffer->get(x, y));
+    _splatWeight += numSplats;
+    _splatBuffer->unsafeReset();
 }
 
 void Camera::setTransform(const Vec3f &pos, const Vec3f &lookAt, const Vec3f &up)
