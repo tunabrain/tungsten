@@ -84,6 +84,28 @@ rapidjson::Value Camera::toJson(Allocator &allocator) const
     return std::move(v);
 }
 
+bool Camera::samplePosition(SampleGenerator &/*sampler*/, PositionSample &/*sample*/) const
+{
+    return false;
+}
+
+bool Camera::sampleDirection(SampleGenerator &/*sampler*/, const PositionSample &/*point*/,
+        DirectionSample &/*sample*/) const
+{
+    return false;
+}
+
+bool Camera::sampleDirection(SampleGenerator &/*sampler*/, const PositionSample &/*point*/, Vec2u /*pixel*/,
+        DirectionSample &/*sample*/) const
+{
+    return false;
+}
+
+bool Camera::sampleDirect(const Vec3f &/*p*/, SampleGenerator &/*sampler*/, LensSample &/*sample*/) const
+{
+    return false;
+}
+
 void Camera::prepareForRender()
 {
     precompute();

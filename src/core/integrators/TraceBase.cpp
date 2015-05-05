@@ -126,9 +126,8 @@ bool TraceBase::lensSample(const Camera &camera,
                            Vec3f &weight,
                            Vec2u &pixel)
 {
-    LensSample sample(event.sampler, event.info->p);
-
-    if (!camera.sampleInboundDirection(sample))
+    LensSample sample;
+    if (!camera.sampleDirect(event.info->p, *event.sampler, sample))
         return false;
 
     event.wo = event.frame.toLocal(sample.d);
@@ -144,7 +143,7 @@ bool TraceBase::lensSample(const Camera &camera,
     if (f == 0.0f)
         return false;
 
-    Ray ray = parentRay.scatter(sample.p, sample.d, event.info->epsilon);
+    Ray ray = parentRay.scatter(event.info->p, sample.d, event.info->epsilon);
     ray.setPrimaryRay(false);
     ray.setFarT(sample.dist);
 

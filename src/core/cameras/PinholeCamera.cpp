@@ -47,9 +47,42 @@ rapidjson::Value PinholeCamera::toJson(Allocator &allocator) const
     return std::move(v);
 }
 
-bool PinholeCamera::sampleInboundDirection(LensSample &sample) const
+bool PinholeCamera::samplePosition(SampleGenerator &/*sampler*/, PositionSample &sample) const
 {
-    sample.d = _pos - sample.p;
+    sample.p = _pos;
+    sample.weight = Vec3f(1.0f);
+    sample.pdf = 1.0f;
+
+    return true;
+}
+
+bool PinholeCamera::sampleDirection(SampleGenerator &sampler, const PositionSample &point,
+        DirectionSample &sample) const
+{
+    Vec2u pixel(sampler.next2D()*Vec2f(_res));
+    return sampleDirection(sampler, point, pixel, sample);
+}
+
+bool PinholeCamera::sampleDirection(SampleGenerator &sampler, const PositionSample &/*point*/, Vec2u pixel,
+        DirectionSample &sample) const
+{
+    float weight, pdf;
+    Vec2f uv = _filter.sample(sampler.next2D(), weight, pdf);
+
+    sample.d =  _transform.transformVector(Vec3f(
+        -1.0f  + (float(pixel.x()) + 0.5f + uv.x())*_pixelSize.x(),
+        _ratio - (float(pixel.y()) + 0.5f + uv.y())*_pixelSize.y(),
+        _planeDist
+    )).normalized();
+    sample.weight = Vec3f(weight);
+    sample.pdf = pdf;
+
+    return true;
+}
+
+bool PinholeCamera::sampleDirect(const Vec3f &p, SampleGenerator &sampler, LensSample &sample) const
+{
+    sample.d = _pos - p;
 
     Vec3f localD = _invTransform.transformVector(-sample.d);
     if (localD.z() <= 0.0f)

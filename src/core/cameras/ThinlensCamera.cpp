@@ -103,11 +103,6 @@ rapidjson::Value ThinlensCamera::toJson(Allocator &allocator) const
     return std::move(v);
 }
 
-bool ThinlensCamera::sampleInboundDirection(LensSample &/*sample*/) const
-{
-    return false; // TODO: Implement inbound sampling for ThinLens
-}
-
 bool ThinlensCamera::generateSample(Vec2u pixel, SampleGenerator &sampler, Vec3f &throughput, Ray &ray) const
 {
     float filterWeight, filterPdf;

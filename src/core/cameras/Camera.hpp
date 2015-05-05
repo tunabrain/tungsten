@@ -5,6 +5,8 @@
 #include "AtomicFramebuffer.hpp"
 #include "Tonemap.hpp"
 
+#include "samplerecords/DirectionSample.hpp"
+#include "samplerecords/PositionSample.hpp"
 #include "samplerecords/LensSample.hpp"
 
 #include "math/Mat4f.hpp"
@@ -62,7 +64,12 @@ public:
     void fromJson(const rapidjson::Value &v, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
-    virtual bool sampleInboundDirection(LensSample &sample) const = 0;
+    virtual bool samplePosition(SampleGenerator &sampler, PositionSample &sample) const;
+    virtual bool sampleDirection(SampleGenerator &sampler, const PositionSample &point, DirectionSample &sample) const;
+    virtual bool sampleDirection(SampleGenerator &sampler, const PositionSample &point, Vec2u pixel,
+            DirectionSample &sample) const;
+    virtual bool sampleDirect(const Vec3f &p, SampleGenerator &sampler, LensSample &sample) const;
+
     virtual bool generateSample(Vec2u pixel, SampleGenerator &sampler, Vec3f &throughput, Ray &ray) const = 0;
     virtual Mat4f approximateProjectionMatrix(int width, int height) const = 0;
     virtual float approximateFov() const = 0;
