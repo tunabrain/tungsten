@@ -103,6 +103,7 @@ static uint64 sceneHash(Scene &scene)
 
 void Integrator::saveRenderResumeData(Scene &scene)
 {
+    // TODO: Camera splat buffer not saved/reconstructed
     rapidjson::Document document;
     document.SetObject();
     document.AddMember("current_spp", _currentSpp, document.GetAllocator());
@@ -129,6 +130,7 @@ void Integrator::saveRenderResumeData(Scene &scene)
 
 bool Integrator::resumeRender(Scene &scene)
 {
+    // TODO: Camera splat buffer not saved/reconstructed
     std::string json = FileUtils::loadText(_scene->rendererSettings().resumeRenderPrefix() + ".json");
     if (json.empty())
         return false;
