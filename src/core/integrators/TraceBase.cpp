@@ -451,8 +451,6 @@ bool TraceBase::handleSurface(SurfaceScatterEvent &event, IntersectionTemporary 
 {
     const Bsdf &bsdf = *info.bsdf;
 
-    event = makeLocalScatterEvent(data, info, ray, &sampler, &supplementalSampler);
-
     Vec3f transparency = bsdf.eval(event.makeForwardEvent());
     float transparencyScalar = transparency.avg();
 
