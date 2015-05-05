@@ -34,6 +34,8 @@ protected:
     std::shared_ptr<Texture> _bump;
     float _bumpStrength;
 
+    float _powerFactor;
+
     Mat4f _transform;
 
     bool _needsRayTransform = false;
