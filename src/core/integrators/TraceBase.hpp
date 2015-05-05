@@ -40,9 +40,6 @@ protected:
 
     TraceBase(TraceableScene *scene, const TraceSettings &settings, uint32 threadId);
 
-    SurfaceScatterEvent makeLocalScatterEvent(IntersectionTemporary &data, IntersectionInfo &info,
-            Ray &ray, SampleGenerator *sampler, UniformSampler *supplementalSampler) const;
-
     bool isConsistent(const SurfaceScatterEvent &event, const Vec3f &w) const;
 
     Vec3f generalizedShadowRay(Ray &ray,
@@ -114,6 +111,10 @@ protected:
                          const Medium *medium,
                          int bounce,
                          const Ray &parentRay);
+
+public:
+    SurfaceScatterEvent makeLocalScatterEvent(IntersectionTemporary &data, IntersectionInfo &info,
+            Ray &ray, SampleGenerator *sampler, UniformSampler *supplementalSampler) const;
 
     bool handleVolume(SampleGenerator &sampler, UniformSampler &supplementalSampler,
                const Medium *&medium, int bounce, bool handleLights, Ray &ray,

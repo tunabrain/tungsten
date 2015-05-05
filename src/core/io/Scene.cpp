@@ -3,6 +3,7 @@
 #include "JsonUtils.hpp"
 #include "FileUtils.hpp"
 
+#include "integrators/bidirectional_path_tracer/BidirectionalPathTraceIntegrator.hpp"
 #include "integrators/progressive_photon_map/ProgressivePhotonMapIntegrator.hpp"
 #include "integrators/light_tracer/LightTraceIntegrator.hpp"
 #include "integrators/path_tracer/PathTraceIntegrator.hpp"
@@ -215,6 +216,8 @@ std::shared_ptr<Integrator> Scene::instantiateIntegrator(std::string type, const
         result = std::make_shared<PhotonMapIntegrator>();
     else if (type == "progressive_photon_map")
         result = std::make_shared<ProgressivePhotonMapIntegrator>();
+    else if (type == "bidirectional_path_tracer")
+        result = std::make_shared<BidirectionalPathTraceIntegrator>();
     else {
         DBG("Unknown integrator type: '%s'", type.c_str());
         return nullptr;
