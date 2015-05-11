@@ -10,7 +10,7 @@ struct PositionSample
     float pdf;
 
     Vec2f uv;
-    Vec3f nG;
+    Vec3f Ng;
 };
 
 }

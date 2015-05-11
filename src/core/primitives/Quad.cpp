@@ -139,7 +139,7 @@ bool Quad::samplePosition(SampleGenerator &sampler, PositionSample &sample) cons
     sample.weight = _powerFactor*(*_emission)[xi];
     sample.pdf = _invArea;
     sample.uv = xi;
-    sample.nG = _frame.normal;
+    sample.Ng = _frame.normal;
 
     return true;
 }
