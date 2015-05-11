@@ -69,14 +69,15 @@ bool PinholeCamera::sampleDirection(SampleGenerator &sampler, const PositionSamp
 {
     float weight, pdf;
     Vec2f uv = _filter.sample(sampler.next2D(), weight, pdf);
-
-    sample.d =  _transform.transformVector(Vec3f(
+    Vec3f localD = Vec3f(
         -1.0f  + (float(pixel.x()) + 0.5f + uv.x())*_pixelSize.x(),
         _ratio - (float(pixel.y()) + 0.5f + uv.y())*_pixelSize.y(),
         _planeDist
-    )).normalized();
+    ).normalized();
+
+    sample.d =  _transform.transformVector(localD);
     sample.weight = Vec3f(weight);
-    sample.pdf = pdf;
+    sample.pdf = sqr(_planeDist)/(_pixelSize.x()*_pixelSize.y()*cube(localD.z()));
 
     return true;
 }
