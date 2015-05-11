@@ -69,6 +69,9 @@ public:
     virtual bool sampleDirection(SampleGenerator &sampler, const PositionSample &point, Vec2u pixel,
             DirectionSample &sample) const;
     virtual bool sampleDirect(const Vec3f &p, SampleGenerator &sampler, LensSample &sample) const;
+    virtual bool evalDirection(SampleGenerator &sampler, const PositionSample &point,
+            const DirectionSample &direction, Vec3f &weight, Vec2u &pixel) const;
+    virtual float directionPdf(const PositionSample &point, const DirectionSample &direction) const;
 
     virtual bool generateSample(Vec2u pixel, SampleGenerator &sampler, Vec3f &throughput, Ray &ray) const = 0;
     virtual Mat4f approximateProjectionMatrix(int width, int height) const = 0;

@@ -28,6 +28,9 @@ public:
     virtual bool sampleDirection(SampleGenerator &sampler, const PositionSample &point, Vec2u pixel,
             DirectionSample &sample) const override final;
     virtual bool sampleDirect(const Vec3f &p, SampleGenerator &sampler, LensSample &sample) const override final;
+    virtual bool evalDirection(SampleGenerator &sampler, const PositionSample &point,
+                const DirectionSample &direction, Vec3f &weight, Vec2u &pixel) const override final;
+    virtual float directionPdf(const PositionSample &point, const DirectionSample &direction) const override final;
 
     virtual bool generateSample(Vec2u pixel, SampleGenerator &sampler, Vec3f &throughput, Ray &ray) const override;
 

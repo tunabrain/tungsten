@@ -106,6 +106,17 @@ bool Camera::sampleDirect(const Vec3f &/*p*/, SampleGenerator &/*sampler*/, Lens
     return false;
 }
 
+bool Camera::evalDirection(SampleGenerator &/*sampler*/, const PositionSample &/*point*/,
+        const DirectionSample &/*direction*/, Vec3f &/*weight*/, Vec2u &/*pixel*/) const
+{
+    return false;
+}
+
+float Camera::directionPdf(const PositionSample &/*point*/, const DirectionSample &/*direction*/) const
+{
+    return 0.0f;
+}
+
 void Camera::prepareForRender()
 {
     precompute();

@@ -86,33 +86,54 @@ bool PinholeCamera::sampleDirect(const Vec3f &p, SampleGenerator &sampler, LensS
 {
     sample.d = _pos - p;
 
-    Vec3f localD = _invTransform.transformVector(-sample.d);
+    if (!evalDirection(sampler, PositionSample(), DirectionSample(-sample.d), sample.weight, sample.pixel))
+        return false;
+
+    float rSq = sample.d.lengthSq();
+    sample.dist = std::sqrt(rSq);
+    sample.d /= sample.dist;
+    sample.weight /= rSq;
+    sample.pdf = 1.0f;
+    return true;
+}
+
+bool PinholeCamera::evalDirection(SampleGenerator &sampler, const PositionSample &/*point*/,
+        const DirectionSample &direction, Vec3f &weight, Vec2u &pixel) const
+{
+    Vec3f localD = _invTransform.transformVector(direction.d);
     if (localD.z() <= 0.0f)
         return false;
     localD *= _planeDist/localD.z();
 
-    float weight, pdf;
-    Vec2f uv = _filter.sample(sampler.next2D(), weight, pdf);
+    float filterWeight, filterPdf;
+    Vec2f uv = _filter.sample(sampler.next2D(), filterWeight, filterPdf);
     float pixelX = (localD.x() + 1.0f)/_pixelSize.x() - uv.x();
     float pixelY = (_ratio - localD.y())/_pixelSize.y() - uv.y();
     if (pixelX < 0.0f || pixelY < 0.0f)
         return false;
 
-    sample.pixel.x() = uint32(pixelX);
-    sample.pixel.y() = uint32(pixelY);
-    if (sample.pixel.x() >= _res.x() || sample.pixel.y() >= _res.y())
+    pixel.x() = uint32(pixelX);
+    pixel.y() = uint32(pixelY);
+    if (pixel.x() >= _res.x() || pixel.y() >= _res.y())
         return false;
 
-
-    float rSq = sample.d.lengthSq();
-    sample.dist = std::sqrt(rSq);
-    sample.d /= sample.dist;
-
-    weight *= sqr(_planeDist)/(_pixelSize.x()*_pixelSize.y()*rSq*cube(localD.z()/localD.length()));
-
-    sample.pdf = 1.0f;
-    sample.weight = Vec3f(weight);
+    weight = Vec3f(filterWeight*sqr(_planeDist)/(_pixelSize.x()*_pixelSize.y()*cube(localD.z()/localD.length())));
     return true;
+}
+
+float PinholeCamera::directionPdf(const PositionSample &/*point*/, const DirectionSample &direction) const
+{
+    Vec3f localD = _invTransform.transformVector(direction.d);
+    if (localD.z() <= 0.0f)
+        return 0.0f;
+    localD *= _planeDist/localD.z();
+
+    float u = (localD.x() + 1.0f)*0.5f;
+    float v = (1.0f - localD.y()/_ratio)*0.5f;
+    if (u < 0.0f || v < 0.0f || u > 1.0f || v > 1.0f)
+        return 0.0f;
+
+    return sqr(_planeDist)/(_pixelSize.x()*_pixelSize.y()*cube(localD.z()/localD.length()));
 }
 
 bool PinholeCamera::generateSample(Vec2u pixel, SampleGenerator &sampler, Vec3f &throughput, Ray &ray) const
