@@ -37,11 +37,12 @@ public:
     {
     }
 
-    inline void splat(uint32 x, uint32 y, Vec3f w)
+    inline void splat(Vec2u pixel, Vec3f w)
     {
-        atomicAdd(_buffer[x + y*_w].x(), w.x());
-        atomicAdd(_buffer[x + y*_w].y(), w.y());
-        atomicAdd(_buffer[x + y*_w].z(), w.z());
+        uint32 idx = pixel.x() + pixel.y()*_w;
+        atomicAdd(_buffer[idx].x(), w.x());
+        atomicAdd(_buffer[idx].y(), w.y());
+        atomicAdd(_buffer[idx].z(), w.z());
     }
 
     inline Vec3f get(int x, int y) const
