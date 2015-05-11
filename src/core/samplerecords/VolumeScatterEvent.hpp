@@ -46,6 +46,14 @@ struct VolumeScatterEvent
     : VolumeScatterEvent(nullptr, nullptr, Vec3f(1.0f), p_, wi_, maxT_)
     {
     }
+
+    VolumeScatterEvent makeWarpedQuery(const Vec3f &newWi, const Vec3f &newWo) const
+    {
+        VolumeScatterEvent copy(*this);
+        copy.wi = newWi;
+        copy.wo = newWo;
+        return copy;
+    }
 };
 
 }
