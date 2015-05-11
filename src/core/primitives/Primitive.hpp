@@ -63,8 +63,8 @@ public:
     virtual bool samplePosition(SampleGenerator &sampler, PositionSample &sample) const;
     virtual bool sampleDirection(SampleGenerator &sampler, const PositionSample &point, DirectionSample &sample) const;
     virtual bool sampleDirect(uint32 threadIndex, const Vec3f &p, SampleGenerator &sampler, LightSample &sample) const;
-    //virtual float positionalPdf();
-    //virtual float directionPdf();
+    virtual float positionalPdf(const PositionSample &point) const;
+    virtual float directionalPdf(const PositionSample &point, const DirectionSample &sample) const;
     virtual float directPdf(uint32 threadIndex, const IntersectionTemporary &data,
             const IntersectionInfo &info, const Vec3f &p) const;
     virtual Vec3f evalPositionalEmission(const PositionSample &sample) const;

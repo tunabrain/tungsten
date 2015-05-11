@@ -54,6 +54,16 @@ bool Primitive::sampleDirect(uint32 /*threadIndex*/, const Vec3f &/*p*/, SampleG
     return false;
 }
 
+float Primitive::positionalPdf(const PositionSample &/*point*/) const
+{
+    return 0.0f;
+}
+
+float Primitive::directionalPdf(const PositionSample &/*point*/, const DirectionSample &/*sample*/) const
+{
+    return 0.0f;
+}
+
 float Primitive::directPdf(uint32 /*threadIndex*/, const IntersectionTemporary &/*data*/,
         const IntersectionInfo &/*info*/, const Vec3f &/*p*/) const
 {

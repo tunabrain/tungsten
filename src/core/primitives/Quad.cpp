@@ -172,6 +172,16 @@ bool Quad::sampleDirect(uint32 /*threadIndex*/, const Vec3f &p, SampleGenerator 
     return true;
 }
 
+float Quad::positionalPdf(const PositionSample &/*point*/) const
+{
+    return _invArea;
+}
+
+float Quad::directionalPdf(const PositionSample &/*point*/, const DirectionSample &sample) const
+{
+    return max(sample.d.dot(_frame.normal)*INV_PI, 0.0f);
+}
+
 float Quad::directPdf(uint32 /*threadIndex*/, const IntersectionTemporary &/*data*/,
         const IntersectionInfo &info, const Vec3f &p) const
 {
