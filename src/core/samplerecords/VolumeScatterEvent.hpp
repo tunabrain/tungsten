@@ -54,6 +54,11 @@ struct VolumeScatterEvent
         copy.wo = newWo;
         return copy;
     }
+
+    VolumeScatterEvent makeFlippedQuery() const
+    {
+        return makeWarpedQuery(wo, wi);
+    }
 };
 
 }

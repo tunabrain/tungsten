@@ -55,6 +55,11 @@ struct SurfaceScatterEvent
         return copy;
     }
 
+    SurfaceScatterEvent makeFlippedQuery() const
+    {
+        return makeWarpedQuery(wo, wi);
+    }
+
     SurfaceScatterEvent makeForwardEvent() const
     {
         SurfaceScatterEvent copy(*this);
