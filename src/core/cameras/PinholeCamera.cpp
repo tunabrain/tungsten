@@ -52,6 +52,7 @@ bool PinholeCamera::samplePosition(SampleGenerator &/*sampler*/, PositionSample 
     sample.p = _pos;
     sample.weight = Vec3f(1.0f);
     sample.pdf = 1.0f;
+    sample.Ng = _transform.fwd();
 
     return true;
 }
