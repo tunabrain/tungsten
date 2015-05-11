@@ -167,7 +167,7 @@ bool Quad::sampleDirect(uint32 /*threadIndex*/, const Vec3f &p, SampleGenerator 
     sample.d /= sample.dist;
     float cosTheta = -_frame.normal.dot(sample.d);
     sample.pdf = rSq/(cosTheta*_area);
-    sample.weight = _powerFactor*(*_emission)[xi]/sample.pdf;
+    sample.weight = (*_emission)[xi]/sample.pdf;
 
     return true;
 }
