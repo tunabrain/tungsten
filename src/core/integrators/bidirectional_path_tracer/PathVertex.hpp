@@ -50,223 +50,182 @@ struct TraceState
     }
 };
 
+struct CameraRootRecord
+{
+    Vec2u pixel;
+    PositionSample point;
+
+    CameraRootRecord() = default;
+    CameraRootRecord(Vec2u pixel_)
+    : pixel(pixel_)
+    {
+    }
+};
+struct EmitterRootRecord
+{
+    float weight;
+    float pdf;
+    PositionSample point;
+
+    EmitterRootRecord() = default;
+    EmitterRootRecord(float pdf_)
+    : weight(1.0f/pdf_),
+      pdf(pdf_)
+    {
+    }
+};
+struct CameraRecord
+{
+    Vec2u pixel;
+    PositionSample point;
+    DirectionSample direction;
+
+    CameraRecord() = default;
+    CameraRecord(Vec2u pixel_, const PositionSample &point_)
+    : pixel(pixel_),
+      point(point_)
+    {
+    }
+};
+struct EmitterRecord
+{
+    PositionSample point;
+    DirectionSample direction;
+
+    EmitterRecord() = default;
+    EmitterRecord(const PositionSample &point_)
+    : point(point_)
+    {
+    }
+};
+struct SurfaceRecord
+{
+    SurfaceScatterEvent event;
+    IntersectionTemporary data;
+    IntersectionInfo info;
+};
+
+struct PathEdge;
+
 struct PathVertex
 {
     enum VertexType
     {
         EmitterRoot,
         CameraRoot,
-        EmitterAreaVertex,
-        EmitterDirectionVertex,
-        CameraAreaVertex,
-        CameraDirectionVertex,
+        EmitterVertex,
+        CameraVertex,
         SurfaceVertex,
         VolumeVertex,
         InvalidVertex
     };
 
-    struct SurfaceRecord
-    {
-        SurfaceScatterEvent event;
-        IntersectionTemporary data;
-        IntersectionInfo info;
-    };
-
     union VertexRecord
     {
-        PositionSample point;
-        DirectionSample direction;
+        CameraRootRecord cameraRoot;
+        EmitterRootRecord emitterRoot;
+        CameraRecord camera;
+        EmitterRecord emitter;
         SurfaceRecord surface;
         VolumeScatterEvent volume;
 
         VertexRecord() = default;
-        VertexRecord(const      PositionSample &    point_) :     point(    point_) {}
-        VertexRecord(const     DirectionSample &direction_) : direction(direction_) {}
-        VertexRecord(const  VolumeScatterEvent &   volume_) :    volume(   volume_) {}
-        VertexRecord(const SurfaceScatterEvent &surface_, const IntersectionTemporary &data_,
-                const IntersectionInfo &info_)
-        : surface(SurfaceRecord{surface_, data_, info_})
-        {
-            surface.event = surface_;
-            surface.data = data_;
-            surface.info = info_;
-        }
+        VertexRecord(const    CameraRootRecord & cameraRoot_) :  cameraRoot( cameraRoot_) {}
+        VertexRecord(const   EmitterRootRecord &emitterRoot_) : emitterRoot(emitterRoot_) {}
+        VertexRecord(const        CameraRecord &     camera_) :      camera(     camera_) {}
+        VertexRecord(const       EmitterRecord &    emitter_) :     emitter(    emitter_) {}
+        VertexRecord(const  VolumeScatterEvent &     volume_) :      volume(     volume_) {}
+        VertexRecord(const       SurfaceRecord &    surface_) :     surface(    surface_) {}
     };
     union VertexSampler
     {
         const Camera *camera;
-        const Primitive *primitive;
+        const Primitive *emitter;
         const Bsdf *bsdf;
         const Medium *medium;
 
         VertexSampler() = default;
-        VertexSampler(const    Camera *   camera_) :    camera(   camera_) {}
-        VertexSampler(const Primitive *primitive_) : primitive(primitive_) {}
-        VertexSampler(const      Bsdf *     bsdf_) :      bsdf(     bsdf_) {}
-        VertexSampler(const    Medium *   medium_) :    medium(   medium_) {}
+        VertexSampler(const    Camera * camera_) :  camera( camera_) {}
+        VertexSampler(const Primitive *emitter_) : emitter(emitter_) {}
+        VertexSampler(const      Bsdf *   bsdf_) :    bsdf(   bsdf_) {}
+        VertexSampler(const    Medium * medium_) :  medium( medium_) {}
     };
 
     VertexType type;
-    VertexRecord record;
+    VertexRecord _record;
     VertexSampler sampler;
 
+    Vec3f throughput;
+    float pdfForward;
+    float pdfBackward;
+    bool isConnectable;
+
     PathVertex() = default;
-    PathVertex(const Camera *camera)
+    PathVertex(const Camera *camera, const CameraRootRecord &root)
     : type(CameraRoot),
-      sampler(camera)
+      _record(root),
+      sampler(camera),
+      throughput(1.0f),
+      pdfForward(1.0f),
+      isConnectable(true)
     {
     }
-    PathVertex(const Camera *camera, const PositionSample &point)
-    : type(CameraAreaVertex),
-      record(point),
-      sampler(camera)
-    {
-    }
-    PathVertex(const Camera *camera, const DirectionSample &direction)
-    : type(CameraDirectionVertex),
-      record(direction),
-      sampler(camera)
-    {
-    }
-    PathVertex(const Primitive *emitter)
+    PathVertex(const Primitive *emitter, const EmitterRootRecord &root)
     : type(EmitterRoot),
-      sampler(emitter)
+      _record(root),
+      sampler(emitter),
+      throughput(1.0f),
+      pdfForward(1.0f),
+      isConnectable(true)
     {
     }
-    PathVertex(const Primitive *emitter, const PositionSample &point)
-    : type(EmitterAreaVertex),
-      record(point),
-      sampler(emitter)
+    PathVertex(const Camera *camera, const CameraRecord &sample, const Vec3f &throughput_)
+    : type(CameraVertex),
+      _record(sample),
+      sampler(camera),
+      throughput(throughput_),
+      isConnectable(true)
     {
     }
-    PathVertex(const Primitive *emitter, const DirectionSample &direction)
-    : type(EmitterDirectionVertex),
-      record(direction),
-      sampler(emitter)
+    PathVertex(const Primitive *emitter, const EmitterRecord &sample, const Vec3f &throughput_)
+    : type(EmitterVertex),
+      _record(sample),
+      sampler(emitter),
+      throughput(throughput_),
+      isConnectable(true)
     {
     }
-    PathVertex(const Bsdf *bsdf, const SurfaceScatterEvent &event, const IntersectionTemporary &data,
-            const IntersectionInfo &info)
+    PathVertex(const Bsdf *bsdf, const SurfaceRecord &surface, const Vec3f &throughput_)
     : type(SurfaceVertex),
-      record(event, data, info),
-      sampler(bsdf)
+      _record(surface),
+      sampler(bsdf),
+      throughput(throughput_),
+      isConnectable(!bsdf->lobes().isPureSpecular())
     {
     }
-    PathVertex(const Medium *medium, const VolumeScatterEvent &event)
+    PathVertex(const Medium *medium, const VolumeScatterEvent &event, const Vec3f &throughput_)
     : type(VolumeVertex),
-      record(event),
-      sampler(medium)
+      _record(event),
+      sampler(medium),
+      throughput(throughput_),
+      isConnectable(true)
     {
     }
 
-    Vec3f weight() const
-    {
-        switch (type) {
-        case EmitterRoot:
-        case CameraRoot:
-            return Vec3f(1.0f);
-        case EmitterAreaVertex:
-        case CameraAreaVertex:
-            return record.point.weight;
-        case EmitterDirectionVertex:
-        case CameraDirectionVertex:
-            return record.direction.weight;
-        case SurfaceVertex:
-            return record.surface.event.throughput;
-        case VolumeVertex:
-            return record.volume.throughput;
-        default:
-            return Vec3f(0.0f);
-        }
-    }
+    Vec3f weight() const;
+    float pdf() const;
+    float reversePdf() const;
 
-    float pdf() const
-    {
-        switch (type) {
-        case EmitterRoot:
-        case CameraRoot:
-            return 1.0f;
-        case EmitterAreaVertex:
-        case CameraAreaVertex:
-            return record.point.pdf;
-        case EmitterDirectionVertex:
-        case CameraDirectionVertex:
-            return record.direction.pdf;
-        case SurfaceVertex:
-            return record.surface.event.pdf;
-        case VolumeVertex:
-            return record.volume.pdf;
-        default:
-            return 0.0f;
-        }
-    }
+    bool scatter(const TraceableScene &scene, TraceBase &tracer, TraceState &state,
+            PathVertex *prev, PathEdge *prevEdge, PathVertex &next, PathEdge &nextEdge);
 
-    bool scatter(const TraceableScene &scene, TraceBase &tracer, TraceState &state, PathVertex &dst)
-    {
-        dst.type = InvalidVertex;
+    Vec3f eval(const Vec3f &d) const;
+    void evalPdfs(const PathVertex *prev, const PathEdge *prevEdge, const PathVertex &next,
+            const PathEdge &nextEdge, float *forward, float *backward) const;
 
-        switch (type) {
-        case EmitterRoot: {
-            PositionSample point;
-            if (!sampler.primitive->samplePosition(state.sampler, point))
-                return false;
-            dst = PathVertex(sampler.primitive, point);
-            state.ray.setPos(point.p);
-            state.ray.setPrimaryRay(true);
-            return true;
-        } case CameraRoot: { // TODO: Set wasSpecular depending on pinhole/thinlens camera
-            PositionSample point;
-            if (!sampler.camera->samplePosition(state.sampler, point))
-                return false;
-            dst = PathVertex(sampler.camera, point);
-            state.ray.setPos(point.p);
-            return true;
-        } case EmitterAreaVertex: {
-            DirectionSample direction;
-            if (!sampler.primitive->sampleDirection(state.sampler, record.point, direction))
-                return false;
-            dst = PathVertex(sampler.primitive, direction);
-            state.ray.setDir(direction.d);
-            return true;
-        } case CameraAreaVertex: {
-            // TODO: Condition on pixel how/where?
-            DirectionSample direction;
-            if (!sampler.camera->sampleDirection(state.sampler, record.point, direction))
-                return false;
-            dst = PathVertex(sampler.camera, direction);
-            state.ray.setDir(direction.d);
-            return true;
-        } case EmitterDirectionVertex:
-        case CameraDirectionVertex:
-        case SurfaceVertex: { // TODO: Participating media
-            IntersectionTemporary data;
-            IntersectionInfo info;
-            bool didHit = scene.intersect(state.ray, data, info);
-            if (!didHit)
-                return false;
+    Vec3f pos() const;
 
-            SurfaceScatterEvent event = tracer.makeLocalScatterEvent(data, info, state.ray,
-                    &state.sampler, &state.supplementalSampler);
-
-            Vec3f throughput(1.0f);
-            Vec3f emission(0.0f);
-            bool scattered = tracer.handleSurface(event, data, info, state.sampler,
-                    state.supplementalSampler, state.medium, state.bounce,
-                    false, state.ray, throughput, emission, state.wasSpecular, state.mediumState);
-
-            dst = PathVertex(info.bsdf, event, data, info);
-
-            if (!scattered)
-                return false;
-
-            state.bounce++;
-            return true;
-        } case VolumeVertex:
-            return false;
-        default:
-            return false;
-        }
-    }
+    float cosineFactor(const Vec3f &d) const;
 
     const Camera *camera() const
     {
@@ -275,7 +234,7 @@ struct PathVertex
 
     const Primitive *emitter() const
     {
-        return sampler.primitive;
+        return sampler.emitter;
     }
 
     const Bsdf *bsdf() const
@@ -290,23 +249,124 @@ struct PathVertex
 
     const Primitive *surface() const
     {
-        return record.surface.info.primitive;
-    }
-
-    const PositionSample &positionSample() const
-    {
-        return record.point;
+        return _record.surface.info.primitive;
     }
 
     const SurfaceScatterEvent &surfaceEvent() const
     {
-        return record.surface.event;
+        return _record.surface.event;
     }
 
     bool valid() const
     {
         return type != InvalidVertex;
     }
+
+    bool isRoot() const
+    {
+        return type == CameraRoot || type == EmitterRoot;
+    }
+};
+
+struct PathEdge
+{
+    Vec3f d;
+    float r;
+    float rSq;
+
+    PathEdge() = default;
+    PathEdge(const Vec3f &d_, float r_, float rSq_)
+    : d(d_),
+      r(r_),
+      rSq(rSq_)
+    {
+    }
+    PathEdge(const PathVertex &root, const PathVertex &tip)
+    {
+        d = tip.pos() - root.pos();
+        rSq = d.lengthSq();
+        r = std::sqrt(rSq);
+        if (r != 0.0f)
+            d *= 1.0f/r;
+    }
+
+    PathEdge reverse() const
+    {
+        return PathEdge(-d, r, rSq);
+    }
+};
+
+class LightPath
+{
+    int _maxLength;
+    int _length;
+    std::unique_ptr<PathVertex[]> _vertices;
+    std::unique_ptr<PathEdge[]> _edges;
+
+public:
+    LightPath(int maxLength)
+    : _maxLength(maxLength),
+      _length(0),
+      _vertices(new PathVertex[maxLength + 4]),
+      _edges(new PathEdge[maxLength + 4])
+    {
+    }
+
+    void startCameraPath(const Camera *camera, Vec2u pixel)
+    {
+        _vertices[0] = PathVertex(camera, CameraRootRecord(pixel));
+    }
+
+    void startEmitterPath(const Primitive *emitter, float pdf)
+    {
+        _vertices[0] = PathVertex(emitter, EmitterRootRecord(pdf));
+    }
+
+    void tracePath(const TraceableScene &scene, TraceBase &tracer, SampleGenerator &sampler,
+            UniformSampler &supplementalSampler)
+    {
+        _length = 1;
+        TraceState state(sampler, supplementalSampler);
+
+        while (state.bounce < _maxLength) {
+            if (!_vertices[_length - 1].scatter(scene, tracer, state,
+                    _length == 1 ? nullptr : &_vertices[_length - 2],
+                    _length == 1 ? nullptr : &_edges[_length - 2],
+                    _vertices[_length], _edges[_length - 1]))
+                break;
+            _length++;
+        }
+    }
+
+    int length() const
+    {
+        return _length;
+    }
+
+    PathVertex &operator[](int i)
+    {
+        return _vertices[i];
+    }
+
+    const PathVertex &operator[](int i) const
+    {
+        return _vertices[i];
+    }
+
+    PathEdge &edge(int i)
+    {
+        return _edges[i];
+    }
+
+    const PathEdge &edge(int i) const
+    {
+        return _edges[i];
+    }
+
+    static Vec3f connect(const TraceableScene &scene, const PathVertex &a, const PathVertex &b);
+    static bool connect(const TraceableScene &scene, const PathVertex &a, const PathVertex &b,
+            SampleGenerator &sampler, Vec3f &weight, Vec2u &pixel);
+    static float misWeight(const LightPath &camera, const LightPath &light, int s, int t);
 };
 
 }

@@ -8,8 +8,8 @@ BidirectionalPathTracer::BidirectionalPathTracer(TraceableScene *scene, const Bi
         uint32 threadId)
 : TraceBase(scene, settings, threadId),
   _splatBuffer(scene->cam().splatBuffer()),
-  _cameraPath(new PathVertex[settings.maxBounces + 4]),
-  _lightPath(new PathVertex[settings.maxBounces + 4])
+  _cameraPath(new LightPath(settings.maxBounces)),
+  _emitterPath(new LightPath(settings.maxBounces))
 {
     std::vector<float> lightWeights(scene->lights().size());
     for (size_t i = 0; i < scene->lights().size(); ++i) {
@@ -19,119 +19,43 @@ BidirectionalPathTracer::BidirectionalPathTracer(TraceableScene *scene, const Bi
     _lightSampler.reset(new Distribution1D(std::move(lightWeights)));
 }
 
-int BidirectionalPathTracer::traceCameraPath(SampleGenerator &sampler, UniformSampler &supplementalSampler, Vec2u pixel)
+Vec3f BidirectionalPathTracer::traceSample(Vec2u pixel, SampleGenerator &sampler, UniformSampler &supplementalSampler)
 {
-    const Camera *camera = &_scene->cam();
+    LightPath & cameraPath = * _cameraPath;
+    LightPath &emitterPath = *_emitterPath;
 
-    PositionSample point;
-    if (!camera->samplePosition(sampler, point))
-        return 0;
-    DirectionSample direction;
-    if (!camera->sampleDirection(sampler, point, pixel, direction))
-        return 0;
-
-    int idx = 0;
-    _cameraPath[idx++] = PathVertex(camera);
-    _cameraPath[idx++] = PathVertex(camera, point);
-    _cameraPath[idx++] = PathVertex(camera, direction);
-
-    TraceState state(sampler, supplementalSampler);
-
-    state.ray = Ray(point.p, direction.d);
-    state.ray.setPrimaryRay(true);
-
-    while (state.bounce < _settings.maxBounces) {
-        if (!_cameraPath[idx - 1].scatter(*_scene, *this, state, _cameraPath[idx]))
-            break;
-        idx++;
-    }
-
-    if (_cameraPath[idx].valid())
-        idx++;
-
-    return idx;
-}
-
-int BidirectionalPathTracer::traceLightPath(SampleGenerator &sampler, UniformSampler &supplementalSampler)
-{
     float u = supplementalSampler.next1D();
     int lightIdx;
     _lightSampler->warp(u, lightIdx);
-    const Primitive *light = _scene->lights()[lightIdx].get(); // TODO: Multiple lights, for real
+    const Primitive *light = _scene->lights()[lightIdx].get();
 
-    int idx = 0;
-    _lightPath[idx++] = PathVertex(light);
+    cameraPath.startCameraPath(&_scene->cam(), pixel);
+    emitterPath.startEmitterPath(light, _lightSampler->pdf(lightIdx));
 
-    TraceState state(sampler, supplementalSampler);
+     cameraPath.tracePath(*_scene, *this, sampler, supplementalSampler);
+    emitterPath.tracePath(*_scene, *this, sampler, supplementalSampler);
 
-    while (state.bounce < _settings.maxBounces) {
-        if (!_lightPath[idx - 1].scatter(*_scene, *this, state, _lightPath[idx]))
-            break;
-        idx++;
-    }
+    int cameraLength =  _cameraPath->length();
+    int  lightLength = _emitterPath->length();
 
-    if (_lightPath[idx].valid())
-        idx++;
+    Vec3f result(0.0f);
+    for (int s = 1; s < lightLength; ++s) {
+        int lowerBound = max(_settings.minBounces - s + 2, 1);
+        int upperBound = min(_settings.maxBounces - s + 1, cameraLength - 1);
+        for (int t = lowerBound; t <= upperBound; ++t) {
+            float weight = LightPath::misWeight(cameraPath, emitterPath, s, t);
 
-    return idx;
-}
-
-Vec3f BidirectionalPathTracer::traceSample(Vec2u pixel, SampleGenerator &sampler, UniformSampler &supplementalSampler)
-{
-    int lightLength = traceLightPath(sampler, supplementalSampler);
-
-    Vec3f throughput(1.0f);
-    for (int i = 0; i < lightLength; ++i) {
-        const PathVertex &vertex = _lightPath[i];
-
-        if (vertex.type == PathVertex::SurfaceVertex) {
-            SurfaceScatterEvent event = vertex.surfaceEvent();
-            event.info = &vertex.record.surface.info; // TODO: Ugly pointer fixup - remove
-            event.sampler = &sampler;
-            event.supplementalSampler = &supplementalSampler;
-
-            Vec3f splatWeight;
-            Vec2u pixel;
-            // TODO: Ray
-            if (lensSample(_scene->cam(), event, nullptr, i - 3, Ray(), splatWeight, pixel))
-                _splatBuffer->splat(pixel.x(), pixel.y(), Vec3f(splatWeight*throughput));
-        } else if (vertex.type == PathVertex::EmitterAreaVertex) {
-            PositionSample point = vertex.positionSample();
-
-            LensSample splat;
-            if (_scene->cam().sampleDirect(point.p, sampler, splat)) {
-                Ray shadowRay(point.p, splat.d);
-                shadowRay.setFarT(splat.dist);
-
-                // TODO: Volume handling
-                Vec3f transmission = generalizedShadowRay(shadowRay, nullptr, nullptr, 0);
-                if (transmission != 0.0f) {
-                    Vec3f value = throughput*transmission*splat.weight*point.weight
-                            *vertex.emitter()->evalDirectionalEmission(point, DirectionSample(splat.d));
-                    _splatBuffer->splat(splat.pixel.x(), splat.pixel.y(), value);
-                }
+            if (t > 1) {
+                result += LightPath::connect(*_scene, cameraPath[t], emitterPath[s])*weight;
+            } else {
+                Vec2u pixel;
+                Vec3f splatWeight;
+                if (LightPath::connect(*_scene, cameraPath[t], emitterPath[s], sampler, splatWeight, pixel))
+                    _splatBuffer->splat(pixel, splatWeight*weight);
             }
         }
-
-        throughput *= vertex.weight();
     }
-
-    return Vec3f(0.0f);
-
-//    int idx = traceCameraPath(sampler, supplementalSampler, pixel);
-//
-//    Vec3f emission(0.0f);
-//    Vec3f throughput(1.0f);
-//    for (int i = 0; i < idx; ++i) {
-//        const PathVertex &vertex = _cameraPath[i];
-//
-//        if (vertex.type == PathVertex::SurfaceVertex && vertex.surface()->isEmissive()) {
-//            emission += throughput*vertex.surface()->evalDirect(vertex.record.surface.data,
-//                    vertex.record.surface.info);
-//        }
-//        throughput *= vertex.weight();
-//    }
-//    return emission;
+    return result;
 }
 
 }

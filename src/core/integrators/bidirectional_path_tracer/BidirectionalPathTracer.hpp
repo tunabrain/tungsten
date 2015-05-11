@@ -18,11 +18,8 @@ class BidirectionalPathTracer : public TraceBase
 
     std::unique_ptr<Distribution1D> _lightSampler;
 
-    std::unique_ptr<PathVertex[]> _cameraPath;
-    std::unique_ptr<PathVertex[]> _lightPath;
-
-    int traceCameraPath(SampleGenerator &sampler, UniformSampler &supplementalSampler, Vec2u pixel);
-    int traceLightPath(SampleGenerator &sampler, UniformSampler &supplementalSampler);
+    std::unique_ptr<LightPath> _cameraPath;
+    std::unique_ptr<LightPath> _emitterPath;
 
 public:
     BidirectionalPathTracer(TraceableScene *scene, const BidirectionalPathTracerSettings &settings, uint32 threadId);
