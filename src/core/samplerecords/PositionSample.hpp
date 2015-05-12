@@ -1,6 +1,8 @@
 #ifndef POSITIONSAMPLE_HPP_
 #define POSITIONSAMPLE_HPP_
 
+#include "primitives/IntersectionInfo.hpp"
+
 namespace Tungsten {
 
 struct PositionSample
@@ -11,6 +13,16 @@ struct PositionSample
 
     Vec2f uv;
     Vec3f Ng;
+
+    PositionSample() = default;
+    PositionSample(const IntersectionInfo &info)
+    : p(info.p),
+      weight(0.0f),
+      pdf(0.0f),
+      uv(info.uv),
+      Ng(info.Ng)
+    {
+    }
 };
 
 }
