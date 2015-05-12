@@ -35,22 +35,22 @@ Vec3f BidirectionalPathTracer::traceSample(Vec2u pixel, SampleGenerator &sampler
      cameraPath.tracePath(*_scene, *this, sampler, supplementalSampler);
     emitterPath.tracePath(*_scene, *this, sampler, supplementalSampler);
 
-    int cameraLength =  _cameraPath->length();
-    int  lightLength = _emitterPath->length();
+    int cameraLength =  cameraPath.length();
+    int  lightLength = emitterPath.length();
 
     Vec3f result(0.0f);
-    for (int s = 1; s < lightLength; ++s) {
+    for (int s = 1; s <= lightLength; ++s) {
         int lowerBound = max(_settings.minBounces - s + 2, 1);
-        int upperBound = min(_settings.maxBounces - s + 1, cameraLength - 1);
+        int upperBound = min(_settings.maxBounces - s + 1, cameraLength);
         for (int t = lowerBound; t <= upperBound; ++t) {
             float weight = LightPath::misWeight(cameraPath, emitterPath, s, t);
 
             if (t > 1) {
-                result += LightPath::connect(*_scene, cameraPath[t], emitterPath[s])*weight;
+                result += LightPath::connect(*_scene, cameraPath[t - 1], emitterPath[s - 1])*weight;
             } else {
                 Vec2u pixel;
                 Vec3f splatWeight;
-                if (LightPath::connect(*_scene, cameraPath[t], emitterPath[s], sampler, splatWeight, pixel))
+                if (LightPath::connect(*_scene, cameraPath[t - 1], emitterPath[s - 1], sampler, splatWeight, pixel))
                     _splatBuffer->splat(pixel, splatWeight*weight);
             }
         }

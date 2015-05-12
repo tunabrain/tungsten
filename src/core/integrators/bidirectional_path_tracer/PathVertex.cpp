@@ -2,88 +2,43 @@
 
 namespace Tungsten {
 
-Vec3f PathVertex::weight() const
+bool PathVertex::sampleRootVertex(TraceState &state)
 {
     switch (type) {
-    case EmitterRoot:
-        return _record.emitterRoot.point.weight*_record.emitterRoot.weight;
-    case CameraRoot:
-        return _record.cameraRoot.point.weight;
-    case EmitterVertex:
-        return _record.emitter.direction.weight;
-    case CameraVertex:
-        return _record.camera.direction.weight;
-    case SurfaceVertex:
-        return _record.surface.event.throughput;
-    case VolumeVertex:
-        return _record.volume.throughput;
-    default:
-        return Vec3f(0.0f);
-    }
-}
-
-float PathVertex::pdf() const
-{
-    switch (type) {
-    case EmitterRoot:
-        return _record.emitterRoot.pdf*_record.emitterRoot.point.pdf;
-    case CameraRoot:
-        return _record.cameraRoot.point.pdf;
-    case EmitterVertex:
-        return _record.emitter.direction.pdf;
-    case CameraVertex:
-        return _record.camera.direction.pdf;
-    case SurfaceVertex:
-        return _record.surface.event.pdf;
-    case VolumeVertex:
-        return _record.volume.pdf;
-    default:
-        return 0.0f;
-    }
-}
-
-float PathVertex::reversePdf() const
-{
-    switch (type) {
-    case SurfaceVertex:
-        return sampler.bsdf->pdf(_record.surface.event.makeFlippedQuery());
-    case VolumeVertex:
-        return sampler.medium->phasePdf(_record.volume.makeFlippedQuery());
-    default:
-        return 0.0f;
-    }
-}
-
-bool PathVertex::scatter(const TraceableScene &scene, TraceBase &tracer, TraceState &state,
-        PathVertex *prev, PathEdge *prevEdge, PathVertex &next, PathEdge &nextEdge)
-{
-    float pdf;
-
-    switch (type) {
-    case EmitterRoot: {
-        EmitterRootRecord &record = _record.emitterRoot;
+    case EmitterVertex: {
+        EmitterRecord &record = _record.emitter;
         if (!sampler.emitter->samplePosition(state.sampler, record.point))
             return false;
 
-        next = PathVertex(sampler.emitter, EmitterRecord(record.point), weight());
-        nextEdge = PathEdge(*this, next);
-        next.pdfForward = record.point.pdf;
+        throughput = record.point.weight/record.emitterPdf;
+        pdfForward = record.point.pdf*record.emitterPdf;
         return true;
-    } case CameraRoot: {
-        CameraRootRecord &record = _record.cameraRoot;
+    } case CameraVertex: {
+        CameraRecord &record = _record.camera;
         if (!sampler.camera->samplePosition(state.sampler, record.point))
             return false;
 
-        next = PathVertex(sampler.camera, CameraRecord(record.pixel, record.point), weight());
-        nextEdge = PathEdge(*this, next);
-        next.pdfForward = record.point.pdf;
+        throughput = record.point.weight;
+        pdfForward = record.point.pdf;
         return true;
-    } case EmitterVertex: {
+    } default:
+        return false;
+    }
+}
+
+bool PathVertex::sampleNextVertex(const TraceableScene &scene, TraceBase &tracer, TraceState &state,
+        PathVertex *prev, PathEdge *prevEdge, PathVertex &next, PathEdge &nextEdge)
+{
+    Vec3f weight;
+    float pdf;
+
+    switch (type) {
+    case EmitterVertex: {
         EmitterRecord &record = _record.emitter;
         if (!sampler.emitter->sampleDirection(state.sampler, record.point, record.direction))
             return false;
 
-        prev->pdfBackward = 1.0f;
+        weight = record.direction.weight;
         pdf = record.direction.pdf;
 
         state.ray = Ray(record.point.p, record.direction.d);
@@ -93,7 +48,7 @@ bool PathVertex::scatter(const TraceableScene &scene, TraceBase &tracer, TraceSt
         if (!sampler.camera->sampleDirection(state.sampler, record.point, record.pixel, record.direction))
             return false;
 
-        prev->pdfBackward = 1.0f;
+        weight = record.direction.weight;
         pdf = record.direction.pdf;
 
         state.ray = Ray(record.point.p, record.direction.d);
@@ -110,15 +65,25 @@ bool PathVertex::scatter(const TraceableScene &scene, TraceBase &tracer, TraceSt
         if (!scattered)
             return false;
 
-        prev->pdfBackward = reversePdf()*prev->cosineFactor(prevEdge->d)/prevEdge->rSq;
+        prev->pdfBackward = sampler.bsdf->pdf(record.event.makeFlippedQuery());
+        if (prev->isConnectable)
+            prev->pdfBackward *= prev->cosineFactor(prevEdge->d)/prevEdge->rSq;
+        //else
+        //    prev->pdfBackward /= cosineFactor(prevEdge->d);
+        weight = record.event.throughput;
         pdf = record.event.pdf;
 
         break;
     } case VolumeVertex: {
         VolumeScatterEvent &record = _record.volume;
 
+        // TODO: Participating media
+
+        prev->pdfBackward = sampler.medium->phasePdf(_record.volume.makeFlippedQuery())
+                *prev->cosineFactor(prevEdge->d)/prevEdge->rSq;
+        weight = record.throughput;
         pdf = record.pdf;
-        return false; // TODO: Participating media
+        return false;
     } default:
         return false;
     }
@@ -131,11 +96,15 @@ bool PathVertex::scatter(const TraceableScene &scene, TraceBase &tracer, TraceSt
     record.event = tracer.makeLocalScatterEvent(record.data, record.info, state.ray,
             &state.sampler, &state.supplementalSampler);
 
-    next = PathVertex(record.info.bsdf, record, throughput*weight());
+    next = PathVertex(record.info.bsdf, record, throughput*weight);
     next._record.surface.event.info = &next._record.surface.info;
     state.bounce++;
     nextEdge = PathEdge(*this, next);
-    next.pdfForward = pdf*next.cosineFactor(nextEdge.d)/nextEdge.rSq;
+    next.pdfForward = pdf;
+    if (next.isConnectable)
+        next.pdfForward *= next.cosineFactor(nextEdge.d)/nextEdge.rSq;
+    //else
+    //    next.pdfForward /= cosineFactor(nextEdge.d);
 
     return true;
 }
@@ -143,9 +112,6 @@ bool PathVertex::scatter(const TraceableScene &scene, TraceBase &tracer, TraceSt
 Vec3f PathVertex::eval(const Vec3f &d) const
 {
     switch (type) {
-    case EmitterRoot:
-    case CameraRoot:
-        return Vec3f(0.0f);
     case EmitterVertex:
         return sampler.emitter->evalDirectionalEmission(_record.emitter.point, DirectionSample(d));
     case CameraVertex:
@@ -165,21 +131,13 @@ void PathVertex::evalPdfs(const PathVertex *prev, const PathEdge *prevEdge, cons
         const PathEdge &nextEdge, float *forward, float *backward) const
 {
     switch (type) {
-    case EmitterRoot:
-        *forward = _record.emitterRoot.point.pdf;
-        break;
-    case CameraRoot:
-        *forward = _record.cameraRoot.point.pdf;
-        break;
     case EmitterVertex:
         *forward = next.cosineFactor(nextEdge.d)/nextEdge.rSq*
                 sampler.emitter->directionalPdf(_record.emitter.point, DirectionSample(nextEdge.d));
-        *backward = 1.0f;
         break;
     case CameraVertex:
         *forward = next.cosineFactor(nextEdge.d)/nextEdge.rSq*
                 sampler.camera->directionPdf(_record.camera.point, DirectionSample(nextEdge.d));
-        *backward = 1.0f;
         break;
     case SurfaceVertex: {
         const SurfaceScatterEvent &event = _record.surface.event;
@@ -195,18 +153,12 @@ void PathVertex::evalPdfs(const PathVertex *prev, const PathEdge *prevEdge, cons
         *forward  = sampler.medium->phasePdf(event.makeWarpedQuery(dPrev, dNext))*next .cosineFactor(nextEdge .d)/nextEdge .rSq;
         *backward = sampler.medium->phasePdf(event.makeWarpedQuery(dNext, dPrev))*prev->cosineFactor(prevEdge->d)/prevEdge->rSq;
         break;
-    } default:
-        *forward = *backward = 0.0f;
-        break;
-    }
+    }}
 }
 
 Vec3f PathVertex::pos() const
 {
     switch (type) {
-    case EmitterRoot:
-    case CameraRoot:
-        return Vec3f(0.0f);
     case EmitterVertex:
         return _record.emitter.point.p;
     case CameraVertex:
@@ -229,8 +181,10 @@ float PathVertex::cosineFactor(const Vec3f &d) const
         return std::abs(_record.camera.point.Ng.dot(d));
     case SurfaceVertex:
         return std::abs(_record.surface.info.Ng.dot(d));
-    default:
+    case VolumeVertex:
         return 1.0f;
+    default:
+        return 0.0f;
     }
 }
 

@@ -50,30 +50,6 @@ struct TraceState
     }
 };
 
-struct CameraRootRecord
-{
-    Vec2u pixel;
-    PositionSample point;
-
-    CameraRootRecord() = default;
-    CameraRootRecord(Vec2u pixel_)
-    : pixel(pixel_)
-    {
-    }
-};
-struct EmitterRootRecord
-{
-    float weight;
-    float pdf;
-    PositionSample point;
-
-    EmitterRootRecord() = default;
-    EmitterRootRecord(float pdf_)
-    : weight(1.0f/pdf_),
-      pdf(pdf_)
-    {
-    }
-};
 struct CameraRecord
 {
     Vec2u pixel;
@@ -81,20 +57,20 @@ struct CameraRecord
     DirectionSample direction;
 
     CameraRecord() = default;
-    CameraRecord(Vec2u pixel_, const PositionSample &point_)
-    : pixel(pixel_),
-      point(point_)
+    CameraRecord(Vec2u pixel_)
+    : pixel(pixel_)
     {
     }
 };
 struct EmitterRecord
 {
+    float emitterPdf;
     PositionSample point;
     DirectionSample direction;
 
     EmitterRecord() = default;
-    EmitterRecord(const PositionSample &point_)
-    : point(point_)
+    EmitterRecord(float emitterPdf_)
+    : emitterPdf(emitterPdf_)
     {
     }
 };
@@ -111,27 +87,20 @@ struct PathVertex
 {
     enum VertexType
     {
-        EmitterRoot,
-        CameraRoot,
         EmitterVertex,
         CameraVertex,
         SurfaceVertex,
-        VolumeVertex,
-        InvalidVertex
+        VolumeVertex
     };
 
     union VertexRecord
     {
-        CameraRootRecord cameraRoot;
-        EmitterRootRecord emitterRoot;
         CameraRecord camera;
         EmitterRecord emitter;
         SurfaceRecord surface;
         VolumeScatterEvent volume;
 
         VertexRecord() = default;
-        VertexRecord(const    CameraRootRecord & cameraRoot_) :  cameraRoot( cameraRoot_) {}
-        VertexRecord(const   EmitterRootRecord &emitterRoot_) : emitterRoot(emitterRoot_) {}
         VertexRecord(const        CameraRecord &     camera_) :      camera(     camera_) {}
         VertexRecord(const       EmitterRecord &    emitter_) :     emitter(    emitter_) {}
         VertexRecord(const  VolumeScatterEvent &     volume_) :      volume(     volume_) {}
@@ -161,37 +130,17 @@ struct PathVertex
     bool isConnectable;
 
     PathVertex() = default;
-    PathVertex(const Camera *camera, const CameraRootRecord &root)
-    : type(CameraRoot),
-      _record(root),
-      sampler(camera),
-      throughput(1.0f),
-      pdfForward(1.0f),
-      isConnectable(true)
-    {
-    }
-    PathVertex(const Primitive *emitter, const EmitterRootRecord &root)
-    : type(EmitterRoot),
-      _record(root),
-      sampler(emitter),
-      throughput(1.0f),
-      pdfForward(1.0f),
-      isConnectable(true)
-    {
-    }
-    PathVertex(const Camera *camera, const CameraRecord &sample, const Vec3f &throughput_)
-    : type(CameraVertex),
-      _record(sample),
-      sampler(camera),
-      throughput(throughput_),
-      isConnectable(true)
-    {
-    }
-    PathVertex(const Primitive *emitter, const EmitterRecord &sample, const Vec3f &throughput_)
+    PathVertex(const Primitive *emitter, float emitterPdf)
     : type(EmitterVertex),
-      _record(sample),
+      _record(EmitterRecord(emitterPdf)),
       sampler(emitter),
-      throughput(throughput_),
+      isConnectable(true)
+    {
+    }
+    PathVertex(const Camera *camera, Vec2u pixel)
+    : type(CameraVertex),
+      _record(CameraRecord(pixel)),
+      sampler(camera),
       isConnectable(true)
     {
     }
@@ -212,11 +161,8 @@ struct PathVertex
     {
     }
 
-    Vec3f weight() const;
-    float pdf() const;
-    float reversePdf() const;
-
-    bool scatter(const TraceableScene &scene, TraceBase &tracer, TraceState &state,
+    bool sampleRootVertex(TraceState &state);
+    bool sampleNextVertex(const TraceableScene &scene, TraceBase &tracer, TraceState &state,
             PathVertex *prev, PathEdge *prevEdge, PathVertex &next, PathEdge &nextEdge);
 
     Vec3f eval(const Vec3f &d) const;
@@ -226,46 +172,6 @@ struct PathVertex
     Vec3f pos() const;
 
     float cosineFactor(const Vec3f &d) const;
-
-    const Camera *camera() const
-    {
-        return sampler.camera;
-    }
-
-    const Primitive *emitter() const
-    {
-        return sampler.emitter;
-    }
-
-    const Bsdf *bsdf() const
-    {
-        return sampler.bsdf;
-    }
-
-    const Medium *medium() const
-    {
-        return sampler.medium;
-    }
-
-    const Primitive *surface() const
-    {
-        return _record.surface.info.primitive;
-    }
-
-    const SurfaceScatterEvent &surfaceEvent() const
-    {
-        return _record.surface.event;
-    }
-
-    bool valid() const
-    {
-        return type != InvalidVertex;
-    }
-
-    bool isRoot() const
-    {
-        return type == CameraRoot || type == EmitterRoot;
-    }
 };
 
 struct PathEdge
@@ -314,22 +220,24 @@ public:
 
     void startCameraPath(const Camera *camera, Vec2u pixel)
     {
-        _vertices[0] = PathVertex(camera, CameraRootRecord(pixel));
+        _vertices[0] = PathVertex(camera, pixel);
     }
 
-    void startEmitterPath(const Primitive *emitter, float pdf)
+    void startEmitterPath(const Primitive *emitter, float emitterPdf)
     {
-        _vertices[0] = PathVertex(emitter, EmitterRootRecord(pdf));
+        _vertices[0] = PathVertex(emitter, emitterPdf);
     }
 
     void tracePath(const TraceableScene &scene, TraceBase &tracer, SampleGenerator &sampler,
             UniformSampler &supplementalSampler)
     {
-        _length = 1;
         TraceState state(sampler, supplementalSampler);
+        if (!_vertices[0].sampleRootVertex(state))
+            return;
 
+        _length = 1;
         while (state.bounce < _maxLength) {
-            if (!_vertices[_length - 1].scatter(scene, tracer, state,
+            if (!_vertices[_length - 1].sampleNextVertex(scene, tracer, state,
                     _length == 1 ? nullptr : &_vertices[_length - 2],
                     _length == 1 ? nullptr : &_edges[_length - 2],
                     _vertices[_length], _edges[_length - 1]))
