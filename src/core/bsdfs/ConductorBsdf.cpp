@@ -61,20 +61,28 @@ bool ConductorBsdf::sample(SurfaceScatterEvent &event) const
         return false;
 
     event.wo = Vec3f(-event.wi.x(), -event.wi.y(), event.wi.z());
-    event.pdf = 0.0f;
+    event.pdf = 1.0f;
     event.throughput = albedo(event.info)*Fresnel::conductorReflectance(_eta, _k, event.wi.z());
     event.sampledLobe = BsdfLobes::SpecularReflectionLobe;
     return true;
 }
 
-Vec3f ConductorBsdf::eval(const SurfaceScatterEvent &/*event*/) const
+Vec3f ConductorBsdf::eval(const SurfaceScatterEvent &event) const
 {
-    return Vec3f(0.0f);
+    bool evalR = event.requestedLobe.test(BsdfLobes::SpecularReflectionLobe);
+    if (evalR && checkReflectionConstraint(event.wi, event.wo))
+        return albedo(event.info)*Fresnel::conductorReflectance(_eta, _k, event.wi.z());
+    else
+        return Vec3f(0.0f);
 }
 
-float ConductorBsdf::pdf(const SurfaceScatterEvent &/*event*/) const
+float ConductorBsdf::pdf(const SurfaceScatterEvent &event) const
 {
-    return 0.0f;
+    bool sampleR = event.requestedLobe.test(BsdfLobes::SpecularReflectionLobe);
+    if (sampleR && checkReflectionConstraint(event.wi, event.wo))
+        return 1.0f;
+    else
+        return 0.0f;
 }
 
 }

@@ -25,6 +25,8 @@ class Medium;
 class Bsdf : public JsonSerializable
 {
 protected:
+    static CONSTEXPR float DiracAcceptanceThreshold = 1e-3f;
+
     BsdfLobes _lobes;
 
     std::shared_ptr<Medium> _intMedium;
@@ -35,6 +37,17 @@ protected:
     Vec3f albedo(const IntersectionInfo *info) const
     {
         return (*_albedo)[*info];
+    }
+
+    static inline bool checkReflectionConstraint(const Vec3f &wi, const Vec3f &wo)
+    {
+        return std::abs(wi.z()*wo.z() - wi.x()*wo.x() - wi.y()*wo.y() - 1.0f) < DiracAcceptanceThreshold;
+    }
+
+    static inline bool checkRefractionConstraint(const Vec3f &wi, const Vec3f &wo, float eta, float cosThetaT)
+    {
+        float dotP = -wi.x()*wo.x()*eta - wi.y()*wo.y()*eta - std::copysign(cosThetaT, wi.z())*wo.z();
+        return std::abs(dotP - 1.0f) < DiracAcceptanceThreshold;
     }
 
 public:

@@ -54,7 +54,7 @@ bool ThinSheetBsdf::sample(SurfaceScatterEvent &event) const
         return false;
 
     event.wo = Vec3f(-event.wi.x(), -event.wi.y(), event.wi.z());
-    event.pdf = 0.0f;
+    event.pdf = 1.0f;
     event.sampledLobe = BsdfLobes::SpecularReflectionLobe;
 
     if (_sigmaA == 0.0f && !_enableInterference) {
@@ -105,9 +105,13 @@ Vec3f ThinSheetBsdf::eval(const SurfaceScatterEvent &event) const
     return transmittance;
 }
 
-float ThinSheetBsdf::pdf(const SurfaceScatterEvent &/*event*/) const
+float ThinSheetBsdf::pdf(const SurfaceScatterEvent &event) const
 {
-    return 0.0f;
+    bool sampleR = event.requestedLobe.test(BsdfLobes::SpecularReflectionLobe);
+    if (sampleR && checkReflectionConstraint(event.wi, event.wo))
+        return 1.0f;
+    else
+        return 0.0f;
 }
 
 }

@@ -32,20 +32,28 @@ bool MirrorBsdf::sample(SurfaceScatterEvent &event) const
     if (!event.requestedLobe.test(BsdfLobes::SpecularReflectionLobe))
         return false;
     event.wo = Vec3f(-event.wi.x(), -event.wi.y(), event.wi.z());
-    event.pdf = 0.0f;
+    event.pdf = 1.0f;
     event.sampledLobe = BsdfLobes::SpecularReflectionLobe;
     event.throughput = albedo(event.info);
     return true;
 }
 
-Vec3f MirrorBsdf::eval(const SurfaceScatterEvent &/*event*/) const
+Vec3f MirrorBsdf::eval(const SurfaceScatterEvent &event) const
 {
-    return Vec3f(0.0f);
+    bool evalR = event.requestedLobe.test(BsdfLobes::SpecularReflectionLobe);
+    if (evalR && checkReflectionConstraint(event.wi, event.wo))
+        return albedo(event.info);
+    else
+        return Vec3f(0.0f);
 }
 
-float MirrorBsdf::pdf(const SurfaceScatterEvent &/*event*/) const
+float MirrorBsdf::pdf(const SurfaceScatterEvent &event) const
 {
-    return 0.0f;
+    bool sampleR = event.requestedLobe.test(BsdfLobes::SpecularReflectionLobe);
+    if (sampleR && checkReflectionConstraint(event.wi, event.wo))
+        return 1.0f;
+    else
+        return 0.0f;
 }
 
 }

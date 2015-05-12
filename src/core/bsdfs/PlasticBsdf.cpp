@@ -55,15 +55,20 @@ bool PlasticBsdf::sample(SurfaceScatterEvent &event) const
     float Fi = Fresnel::dielectricReflectance(eta, wi.z());
     float substrateWeight = _avgTransmittance*(1.0f - Fi);
     float specularWeight = Fi;
-    float specularProbability = specularWeight/(specularWeight + substrateWeight);
+    float specularProbability;
+    if (sampleR && sampleT)
+        specularProbability = specularWeight/(specularWeight + substrateWeight);
+    else if (sampleR)
+        specularProbability = 1.0f;
+    else if (sampleT)
+        specularProbability = 0.0f;
+    else
+        return false;
 
-    if (sampleR && (event.sampler->next1D() < specularProbability || !sampleT)) {
+    if (sampleR && event.sampler->next1D() < specularProbability) {
         event.wo = Vec3f(-wi.x(), -wi.y(), wi.z());
-        event.pdf = 0.0f;
-        if (sampleT)
-            event.throughput = Vec3f(Fi/specularProbability);
-        else
-            event.throughput = Vec3f(Fi);
+        event.pdf = specularProbability;
+        event.throughput = Vec3f(Fi/specularProbability);
         event.sampledLobe = BsdfLobes::SpecularReflectionLobe;
     } else {
         Vec3f wo(SampleWarp::cosineHemisphere(event.sampler->next2D()));
@@ -75,11 +80,8 @@ bool PlasticBsdf::sample(SurfaceScatterEvent &event) const
         if (_scaledSigmaA.max() > 0.0f)
             event.throughput *= std::exp(_scaledSigmaA*(-1.0f/event.wo.z() - 1.0f/event.wi.z()));
 
-        event.pdf = SampleWarp::cosineHemispherePdf(event.wo);
-        if (sampleR) {
-            event.pdf *= 1.0f - specularProbability;
-            event.throughput /= 1.0f - specularProbability;
-        }
+        event.pdf = SampleWarp::cosineHemispherePdf(event.wo)*(1.0f - specularProbability);
+        event.throughput /= 1.0f - specularProbability;
         event.sampledLobe = BsdfLobes::DiffuseReflectionLobe;
     }
     return true;
@@ -87,23 +89,31 @@ bool PlasticBsdf::sample(SurfaceScatterEvent &event) const
 
 Vec3f PlasticBsdf::eval(const SurfaceScatterEvent &event) const
 {
-    if (!event.requestedLobe.test(BsdfLobes::DiffuseReflectionLobe))
-        return Vec3f(0.0f);
     if (event.wi.z() <= 0.0f || event.wo.z() <= 0.0f)
         return Vec3f(0.0f);
+
+    bool evalR = event.requestedLobe.test(BsdfLobes::SpecularReflectionLobe);
+    bool evalT = event.requestedLobe.test(BsdfLobes::DiffuseReflectionLobe);
 
     float eta = 1.0f/_ior;
     float Fi = Fresnel::dielectricReflectance(eta, event.wi.z());
     float Fo = Fresnel::dielectricReflectance(eta, event.wo.z());
 
-    Vec3f diffuseAlbedo = albedo(event.info);
+    Vec3f result(0.0f);
+    if (evalT) {
+        Vec3f diffuseAlbedo = albedo(event.info);
 
-    Vec3f brdf = ((1.0f - Fi)*(1.0f - Fo)*eta*eta*event.wo.z()*INV_PI)*(diffuseAlbedo/(1.0f - diffuseAlbedo*_diffuseFresnel));
+        Vec3f brdf = ((1.0f - Fi)*(1.0f - Fo)*eta*eta*event.wo.z()*INV_PI)*
+                (diffuseAlbedo/(1.0f - diffuseAlbedo*_diffuseFresnel));
 
-    if (_scaledSigmaA.max() > 0.0f)
-        brdf *= std::exp(_scaledSigmaA*(-1.0f/event.wo.z() - 1.0f/event.wi.z()));
+        if (_scaledSigmaA.max() > 0.0f)
+            brdf *= std::exp(_scaledSigmaA*(-1.0f/event.wo.z() - 1.0f/event.wi.z()));
+        result += brdf;
+    }
+    if (evalR && checkReflectionConstraint(event.wi, event.wo))
+        result += Fi;
 
-    return brdf;
+    return result;
 }
 
 float PlasticBsdf::pdf(const SurfaceScatterEvent &event) const
@@ -114,18 +124,23 @@ float PlasticBsdf::pdf(const SurfaceScatterEvent &event) const
     bool sampleR = event.requestedLobe.test(BsdfLobes::SpecularReflectionLobe);
     bool sampleT = event.requestedLobe.test(BsdfLobes::DiffuseReflectionLobe);
 
-    if (!sampleT)
-        return 0.0f;
-
-    float pdf = SampleWarp::cosineHemispherePdf(event.wo);
-    if (sampleR) {
+    if (sampleR && sampleT) {
+        float pdf = SampleWarp::cosineHemispherePdf(event.wo);
         float Fi = Fresnel::dielectricReflectance(1.0f/_ior, event.wi.z());
         float substrateWeight = _avgTransmittance*(1.0f - Fi);
         float specularWeight = Fi;
         float specularProbability = specularWeight/(specularWeight + substrateWeight);
         pdf *= (1.0f - specularProbability);
+        if (checkReflectionConstraint(event.wi, event.wo))
+            pdf += specularProbability;
+        return pdf;
+    } else if (sampleT) {
+        return SampleWarp::cosineHemispherePdf(event.wo);
+    } else if (sampleR) {
+        return checkReflectionConstraint(event.wi, event.wo) ? 1.0f : 0.0f;
+    } else {
+        return 0.0f;
     }
-    return pdf;
 }
 
 void PlasticBsdf::prepareForRender()
