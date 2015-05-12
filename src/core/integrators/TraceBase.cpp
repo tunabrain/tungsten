@@ -15,7 +15,7 @@ TraceBase::TraceBase(TraceableScene *scene, const TraceSettings &settings, uint3
 }
 
 SurfaceScatterEvent TraceBase::makeLocalScatterEvent(IntersectionTemporary &data, IntersectionInfo &info,
-        Ray &ray, SampleGenerator *sampler, UniformSampler *supplementalSampler) const
+        Ray &ray, SampleGenerator *sampler, SampleGenerator *supplementalSampler) const
 {
     TangentFrame frame;
     info.primitive->setupTangentFrame(data, info, frame);
@@ -401,7 +401,7 @@ Vec3f TraceBase::estimateDirect(SurfaceScatterEvent &event,
     return sampleDirect(*light, event, medium, bounce, parentRay)*weight;
 }
 
-bool TraceBase::handleVolume(SampleGenerator &sampler, UniformSampler &supplementalSampler,
+bool TraceBase::handleVolume(SampleGenerator &sampler, SampleGenerator &supplementalSampler,
            const Medium *&medium, int bounce, bool handleLights, Ray &ray,
            Vec3f &throughput, Vec3f &emission, bool &wasSpecular, bool &hitSurface,
            Medium::MediumState &state)
@@ -443,7 +443,7 @@ bool TraceBase::handleVolume(SampleGenerator &sampler, UniformSampler &supplemen
 
 bool TraceBase::handleSurface(SurfaceScatterEvent &event, IntersectionTemporary &data,
                               IntersectionInfo &info, SampleGenerator &sampler,
-                              UniformSampler &supplementalSampler, const Medium *&medium,
+                              SampleGenerator &supplementalSampler, const Medium *&medium,
                               int bounce, bool handleLights, Ray &ray,
                               Vec3f &throughput, Vec3f &emission, bool &wasSpecular,
                               Medium::MediumState &state)

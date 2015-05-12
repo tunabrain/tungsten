@@ -33,7 +33,7 @@ void ProgressivePhotonMapIntegrator::diceTiles()
                 _scene->rendererSettings().useSobol() ?
                     std::unique_ptr<SampleGenerator>(new SobolSampler(MathUtil::hash32(_sampler.nextI()))) :
                     std::unique_ptr<SampleGenerator>(new UniformSampler(MathUtil::hash32(_sampler.nextI()))),
-                std::unique_ptr<UniformSampler>(new UniformSampler(MathUtil::hash32(_sampler.nextI())))
+                std::unique_ptr<SampleGenerator>(new UniformSampler(MathUtil::hash32(_sampler.nextI())))
             );
         }
     }
@@ -197,7 +197,7 @@ void ProgressivePhotonMapIntegrator::prepareForRender(TraceableScene &scene, uin
             _scene->rendererSettings().useSobol() ?
                 std::unique_ptr<SampleGenerator>(new SobolSampler(MathUtil::hash32(_sampler.nextI()))) :
                 std::unique_ptr<SampleGenerator>(new UniformSampler(MathUtil::hash32(_sampler.nextI()))),
-            std::unique_ptr<UniformSampler>(new UniformSampler(MathUtil::hash32(_sampler.nextI()))),
+            std::unique_ptr<SampleGenerator>(new UniformSampler(MathUtil::hash32(_sampler.nextI()))),
             SurfacePhotonRange(&_surfacePhotons[0], surfaceRangeStart, surfaceRangeEnd),
             VolumePhotonRange(_volumePhotons.empty() ? nullptr : &_volumePhotons[0], volumeRangeStart, volumeRangeEnd)
         });

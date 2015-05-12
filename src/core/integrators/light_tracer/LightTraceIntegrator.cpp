@@ -67,7 +67,7 @@ void LightTraceIntegrator::prepareForRender(TraceableScene &scene, uint32 seed)
             _scene->rendererSettings().useSobol() ?
                 std::unique_ptr<SampleGenerator>(new SobolSampler(MathUtil::hash32(_sampler.nextI()))) :
                 std::unique_ptr<SampleGenerator>(new UniformSampler(MathUtil::hash32(_sampler.nextI()))),
-            std::unique_ptr<UniformSampler>(new UniformSampler(MathUtil::hash32(_sampler.nextI())))
+            std::unique_ptr<SampleGenerator>(new UniformSampler(MathUtil::hash32(_sampler.nextI())))
         });
 
         _tracers.emplace_back(new LightTracer(&scene, _settings, i));

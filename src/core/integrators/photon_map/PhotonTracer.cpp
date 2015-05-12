@@ -17,7 +17,7 @@ PhotonTracer::PhotonTracer(TraceableScene *scene, const PhotonMapSettings &setti
 }
 
 void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRange &volumeRange,
-        SampleGenerator &sampler, UniformSampler &supplementalSampler)
+        SampleGenerator &sampler, SampleGenerator &supplementalSampler)
 {
     float u = supplementalSampler.next1D();
     int lightIdx;
@@ -108,7 +108,7 @@ void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRan
 
 Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
         const KdTree<VolumePhoton> *mediumTree, SampleGenerator &sampler,
-        UniformSampler &supplementalSampler, float gatherRadius)
+        SampleGenerator &supplementalSampler, float gatherRadius)
 {
     Ray ray;
     Vec3f throughput(1.0f);
@@ -153,7 +153,7 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
         float transparencyScalar = transparency.avg();
 
         Vec3f wo;
-        if (sampler.next1D() < transparencyScalar) {
+        if (supplementalSampler.next1D() < transparencyScalar) {
             wo = ray.dir();
             throughput *= transparency/transparencyScalar;
         } else {

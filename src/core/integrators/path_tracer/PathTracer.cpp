@@ -7,7 +7,7 @@ PathTracer::PathTracer(TraceableScene *scene, const PathTracerSettings &settings
 {
 }
 
-Vec3f PathTracer::traceSample(Vec2u pixel, SampleGenerator &sampler, UniformSampler &supplementalSampler)
+Vec3f PathTracer::traceSample(Vec2u pixel, SampleGenerator &sampler, SampleGenerator &supplementalSampler)
 {
     // TODO: Put diagnostic colors in JSON?
     const Vec3f nanDirColor(0.0f, 0.0f, 0.0f);

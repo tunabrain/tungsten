@@ -19,7 +19,7 @@ BidirectionalPathTracer::BidirectionalPathTracer(TraceableScene *scene, const Bi
     _lightSampler.reset(new Distribution1D(std::move(lightWeights)));
 }
 
-Vec3f BidirectionalPathTracer::traceSample(Vec2u pixel, SampleGenerator &sampler, UniformSampler &supplementalSampler)
+Vec3f BidirectionalPathTracer::traceSample(Vec2u pixel, SampleGenerator &sampler, SampleGenerator &supplementalSampler)
 {
     LightPath & cameraPath = * _cameraPath;
     LightPath &emitterPath = *_emitterPath;

@@ -60,7 +60,7 @@ float LightPath::misWeight(const LightPath &camera, const LightPath &emitter,
 }
 
 void LightPath::tracePath(const TraceableScene &scene, TraceBase &tracer, SampleGenerator &sampler,
-        UniformSampler &supplementalSampler)
+        SampleGenerator &supplementalSampler)
 {
     TraceState state(sampler, supplementalSampler);
     if (!_vertices[0].sampleRootVertex(state))
@@ -157,7 +157,7 @@ bool LightPath::bdptCameraConnect(const TraceableScene &scene, const LightPath &
 
 void LightPath::samplePathsInterleaved(LightPath &cameraPath, LightPath &emitterPath,
         const TraceableScene &scene, TraceBase &tracer, SampleGenerator &sampler,
-        UniformSampler &supplementalSampler)
+        SampleGenerator &supplementalSampler)
 {
     TraceState  cameraState(sampler, supplementalSampler);
     TraceState emitterState(sampler, supplementalSampler);

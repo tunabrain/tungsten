@@ -31,7 +31,7 @@ void BidirectionalPathTraceIntegrator::diceTiles()
                 _scene->rendererSettings().useSobol() ?
                     std::unique_ptr<SampleGenerator>(new SobolSampler(MathUtil::hash32(_sampler.nextI()))) :
                     std::unique_ptr<SampleGenerator>(new UniformSampler(MathUtil::hash32(_sampler.nextI()))),
-                std::unique_ptr<UniformSampler>(new UniformSampler(MathUtil::hash32(_sampler.nextI())))
+                std::unique_ptr<SampleGenerator>(new UniformSampler(MathUtil::hash32(_sampler.nextI())))
             );
         }
     }

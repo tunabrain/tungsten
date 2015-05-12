@@ -26,7 +26,7 @@ class LightTraceIntegrator : public Integrator
     struct SubTaskData
     {
         std::unique_ptr<SampleGenerator> sampler;
-        std::unique_ptr<UniformSampler> supplementalSampler;
+        std::unique_ptr<SampleGenerator> supplementalSampler;
     };
 
     LightTracerSettings _settings;

@@ -18,7 +18,7 @@ class LightTracer : public TraceBase
 public:
     LightTracer(TraceableScene *scene, const LightTracerSettings &settings, uint32 threadId);
 
-    void traceSample(SampleGenerator &sampler, UniformSampler &supplementalSampler);
+    void traceSample(SampleGenerator &sampler, SampleGenerator &supplementalSampler);
 };
 
 }

@@ -114,16 +114,16 @@ protected:
 
 public:
     SurfaceScatterEvent makeLocalScatterEvent(IntersectionTemporary &data, IntersectionInfo &info,
-            Ray &ray, SampleGenerator *sampler, UniformSampler *supplementalSampler) const;
+            Ray &ray, SampleGenerator *sampler, SampleGenerator *supplementalSampler) const;
 
-    bool handleVolume(SampleGenerator &sampler, UniformSampler &supplementalSampler,
+    bool handleVolume(SampleGenerator &sampler, SampleGenerator &supplementalSampler,
                const Medium *&medium, int bounce, bool handleLights, Ray &ray,
                Vec3f &throughput, Vec3f &emission, bool &wasSpecular, bool &hitSurface,
                Medium::MediumState &state);
 
     bool handleSurface(SurfaceScatterEvent &event, IntersectionTemporary &data,
                        IntersectionInfo &info, SampleGenerator &sampler,
-                       UniformSampler &supplementalSampler, const Medium *&medium,
+                       SampleGenerator &supplementalSampler, const Medium *&medium,
                        int bounce, bool handleLights, Ray &ray,
                        Vec3f &throughput, Vec3f &emission, bool &wasSpecular,
                        Medium::MediumState &state);

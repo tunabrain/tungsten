@@ -12,7 +12,7 @@ class PathTracer : public TraceBase
 public:
     PathTracer(TraceableScene *scene, const PathTracerSettings &settings, uint32 threadId);
 
-    Vec3f traceSample(Vec2u pixel, SampleGenerator &sampler, UniformSampler &supplementalSampler);
+    Vec3f traceSample(Vec2u pixel, SampleGenerator &sampler, SampleGenerator &supplementalSampler);
 };
 
 }

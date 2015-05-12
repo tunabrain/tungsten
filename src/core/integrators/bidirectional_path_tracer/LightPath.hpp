@@ -38,7 +38,7 @@ public:
     }
 
     void tracePath(const TraceableScene &scene, TraceBase &tracer, SampleGenerator &sampler,
-            UniformSampler &supplementalSampler);
+            SampleGenerator &supplementalSampler);
 
     int maxLength() const
     {
@@ -80,7 +80,7 @@ public:
 
     static void samplePathsInterleaved(LightPath &cameraPath, LightPath &emitterPath,
             const TraceableScene &scene, TraceBase &tracer, SampleGenerator &sampler,
-            UniformSampler &supplementalSampler);
+            SampleGenerator &supplementalSampler);
 };
 
 }

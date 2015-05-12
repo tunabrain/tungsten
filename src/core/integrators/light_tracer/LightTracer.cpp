@@ -14,7 +14,7 @@ LightTracer::LightTracer(TraceableScene *scene, const LightTracerSettings &setti
     _lightSampler.reset(new Distribution1D(std::move(lightWeights)));
 }
 
-void LightTracer::traceSample(SampleGenerator &sampler, UniformSampler &supplementalSampler)
+void LightTracer::traceSample(SampleGenerator &sampler, SampleGenerator &supplementalSampler)
 {
     float u = supplementalSampler.next1D();
     int lightIdx;

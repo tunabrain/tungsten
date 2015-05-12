@@ -24,7 +24,7 @@ class BidirectionalPathTracer : public TraceBase
 public:
     BidirectionalPathTracer(TraceableScene *scene, const BidirectionalPathTracerSettings &settings, uint32 threadId);
 
-    Vec3f traceSample(Vec2u pixel, SampleGenerator &sampler, UniformSampler &supplementalSampler);
+    Vec3f traceSample(Vec2u pixel, SampleGenerator &sampler, SampleGenerator &supplementalSampler);
 };
 
 }
