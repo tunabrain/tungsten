@@ -18,7 +18,7 @@ struct PathEdge;
 class Camera;
 class Medium;
 
-struct PathVertex
+class PathVertex
 {
     enum VertexType
     {
@@ -55,44 +55,45 @@ struct PathVertex
         VertexSampler(const    Medium * medium_) :  medium( medium_) {}
     };
 
-    VertexType type;
+    VertexType _type;
     VertexRecord _record;
-    VertexSampler sampler;
+    VertexSampler _sampler;
 
-    Vec3f throughput;
-    float pdfForward;
-    float pdfBackward;
-    bool isConnectable;
+    Vec3f _throughput;
+    float _pdfForward;
+    float _pdfBackward;
+    bool _connectable;
 
+public:
     PathVertex() = default;
     PathVertex(const Primitive *emitter, float emitterPdf)
-    : type(EmitterVertex),
+    : _type(EmitterVertex),
       _record(EmitterRecord(emitterPdf)),
-      sampler(emitter),
-      isConnectable(true)
+      _sampler(emitter),
+      _connectable(true)
     {
     }
     PathVertex(const Camera *camera, Vec2u pixel)
-    : type(CameraVertex),
+    : _type(CameraVertex),
       _record(CameraRecord(pixel)),
-      sampler(camera),
-      isConnectable(true)
+      _sampler(camera),
+      _connectable(true)
     {
     }
     PathVertex(const Bsdf *bsdf, const SurfaceRecord &surface, const Vec3f &throughput_)
-    : type(SurfaceVertex),
+    : _type(SurfaceVertex),
       _record(surface),
-      sampler(bsdf),
-      throughput(throughput_),
-      isConnectable(!bsdf->lobes().isPureSpecular())
+      _sampler(bsdf),
+      _throughput(throughput_),
+      _connectable(!bsdf->lobes().isPureSpecular())
     {
     }
     PathVertex(const Medium *medium, const VolumeScatterEvent &event, const Vec3f &throughput_)
-    : type(VolumeVertex),
+    : _type(VolumeVertex),
       _record(event),
-      sampler(medium),
-      throughput(throughput_),
-      isConnectable(true)
+      _sampler(medium),
+      _throughput(throughput_),
+      _connectable(true)
     {
     }
 
@@ -107,6 +108,66 @@ struct PathVertex
     Vec3f pos() const;
 
     float cosineFactor(const Vec3f &d) const;
+
+    const CameraRecord &cameraRecord() const
+    {
+        return _record.camera;
+    }
+
+    const EmitterRecord &emitterRecord() const
+    {
+        return _record.emitter;
+    }
+
+    const SurfaceRecord &surfaceRecord() const
+    {
+        return _record.surface;
+    }
+
+    const VolumeScatterEvent &volumeRecord() const
+    {
+        return _record.volume;
+    }
+
+    const Camera *camera() const
+    {
+        return _sampler.camera;
+    }
+
+    const Primitive *emitter() const
+    {
+        return _sampler.emitter;
+    }
+
+    const Bsdf *bsdf() const
+    {
+        return _sampler.bsdf;
+    }
+
+    const Medium *medium() const
+    {
+        return _sampler.medium;
+    }
+
+    const Vec3f &throughput() const
+    {
+        return _throughput;
+    }
+
+    float pdfForward() const
+    {
+        return _pdfForward;
+    }
+
+    float pdfBackward() const
+    {
+        return _pdfBackward;
+    }
+
+    bool connectable() const
+    {
+        return _connectable;
+    }
 };
 
 }

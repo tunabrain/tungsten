@@ -35,35 +35,35 @@ Vec3f LightPath::weightedPathEmission(int minLength, int maxLength) const
 {
     // TODO: Naive, slow version to make sure it's correct. Optimize this
 
-    float *pdfForward    = reinterpret_cast<float *>(alloca(_length*sizeof(float)));
-    float *pdfBackward   = reinterpret_cast<float *>(alloca(_length*sizeof(float)));
-    bool  *isConnectable = reinterpret_cast<bool  *>(alloca(_length*sizeof(bool)));
+    float *pdfForward  = reinterpret_cast<float *>(alloca(_length*sizeof(float)));
+    float *pdfBackward = reinterpret_cast<float *>(alloca(_length*sizeof(float)));
+    bool  *connectable = reinterpret_cast<bool  *>(alloca(_length*sizeof(bool)));
 
     Vec3f result(0.0f);
     for (int t = max(minLength, 2); t <= min(_length, maxLength); ++t) {
-        Vec3f emission = _vertices[t - 1]._record.surface.info.primitive->emission(_vertices[t - 1]._record.surface.data,
-                _vertices[t - 1]._record.surface.info);
+        Vec3f emission = _vertices[t - 1].surfaceRecord().info.primitive->emission(_vertices[t - 1].surfaceRecord().data,
+                _vertices[t - 1].surfaceRecord().info);
         if (emission == 0.0f)
             continue;
 
         for (int i = 0; i < t; ++i) {
-            pdfForward   [t - (i + 1)] = _vertices[i].pdfBackward;
-            pdfBackward  [t - (i + 1)] = _vertices[i].pdfForward;
-            isConnectable[t - (i + 1)] = _vertices[i].isConnectable;
+            pdfForward [t - (i + 1)] = _vertices[i].pdfBackward();
+            pdfBackward[t - (i + 1)] = _vertices[i].pdfForward();
+            connectable[t - (i + 1)] = _vertices[i].connectable();
         }
-        isConnectable[0] = true;
+        connectable[0] = true;
 
-        PositionSample point(_vertices[t - 1]._record.surface.info);
+        PositionSample point(_vertices[t - 1].surfaceRecord().info);
         DirectionSample direction(-_edges[t - 2].d);
-        pdfForward[0] = _vertices[t - 1]._record.surface.info.primitive->positionalPdf(point);
-        pdfForward[1] = _vertices[t - 1]._record.surface.info.primitive->directionalPdf(point, direction)*
+        pdfForward[0] = _vertices[t - 1].surfaceRecord().info.primitive->positionalPdf(point);
+        pdfForward[1] = _vertices[t - 1].surfaceRecord().info.primitive->directionalPdf(point, direction)*
                 _vertices[t - 2].cosineFactor(_edges[t - 2].d)/_edges[t - 2].rSq;
 
         float weight = 1.0f;
         float pi = 1.0f;
         for (int i = 1; i < t; ++i) {
             pi *= pdfForward[i - 1]/pdfBackward[i - 1];
-            if (isConnectable[i - 1] && isConnectable[i])
+            if (connectable[i - 1] && connectable[i])
                 weight += pi;
         }
         result += emission/weight;
@@ -78,7 +78,7 @@ Vec3f LightPath::connect(const TraceableScene &scene, const PathVertex &a, const
     if (scene.occluded(Ray(a.pos(), edge.d, 1e-4f, edge.r*(1.0f - 1e-4f))))
         return Vec3f(0.0f);
 
-    return a.throughput*a.eval(edge.d)*b.eval(-edge.d)*b.throughput/edge.rSq;
+    return a.throughput()*a.eval(edge.d)*b.eval(-edge.d)*b.throughput()/edge.rSq;
 }
 
 bool LightPath::connect(const TraceableScene &scene, const PathVertex &a, const PathVertex &b,
@@ -89,29 +89,29 @@ bool LightPath::connect(const TraceableScene &scene, const PathVertex &a, const 
         return false;
 
     Vec3f splatWeight;
-    if (!a.sampler.camera->evalDirection(sampler, a._record.camera.point, DirectionSample(edge.d), splatWeight, pixel))
+    if (!a.camera()->evalDirection(sampler, a.cameraRecord().point, DirectionSample(edge.d), splatWeight, pixel))
         return false;
 
-    weight = splatWeight*a.throughput*b.eval(-edge.d)*b.throughput/edge.rSq;
+    weight = splatWeight*a.throughput()*b.eval(-edge.d)*b.throughput()/edge.rSq;
 
     return true;
 }
 
 float LightPath::misWeight(const LightPath &camera, const LightPath &emitter, int s, int t)
 {
-    float *pdfForward    = reinterpret_cast<float *>(alloca((s + t)*sizeof(float)));
-    float *pdfBackward   = reinterpret_cast<float *>(alloca((s + t)*sizeof(float)));
-    bool  *isConnectable = reinterpret_cast<bool  *>(alloca((s + t)*sizeof(bool)));
+    float *pdfForward  = reinterpret_cast<float *>(alloca((s + t)*sizeof(float)));
+    float *pdfBackward = reinterpret_cast<float *>(alloca((s + t)*sizeof(float)));
+    bool  *connectable = reinterpret_cast<bool  *>(alloca((s + t)*sizeof(bool)));
 
     for (int i = 0; i < s; ++i) {
-        pdfForward   [i] = emitter[i].pdfForward;
-        pdfBackward  [i] = emitter[i].pdfBackward;
-        isConnectable[i] = emitter[i].isConnectable;
+        pdfForward [i] = emitter[i].pdfForward();
+        pdfBackward[i] = emitter[i].pdfBackward();
+        connectable[i] = emitter[i].connectable();
     }
     for (int i = 0; i < t; ++i) {
-        pdfForward   [s + t - (i + 1)] = camera[i].pdfBackward;
-        pdfBackward  [s + t - (i + 1)] = camera[i].pdfForward;
-        isConnectable[s + t - (i + 1)] = camera[i].isConnectable;
+        pdfForward [s + t - (i + 1)] = camera[i].pdfBackward();
+        pdfBackward[s + t - (i + 1)] = camera[i].pdfForward();
+        connectable[s + t - (i + 1)] = camera[i].connectable();
     }
 
     PathEdge edge(emitter[s - 1], camera[t - 1]);
@@ -128,16 +128,16 @@ float LightPath::misWeight(const LightPath &camera, const LightPath &emitter, in
     float pi = 1.0f;
     for (int i = s + 1; i < s + t; ++i) {
         pi *= pdfForward[i - 1]/pdfBackward[i - 1];
-        if (isConnectable[i - 1] && isConnectable[i])
+        if (connectable[i - 1] && connectable[i])
             weight += pi;
     }
     pi = 1.0f;
     for (int i = s - 1; i >= 1; --i) {
         pi *= pdfBackward[i]/pdfForward[i];
-        if (isConnectable[i - 1] && isConnectable[i])
+        if (connectable[i - 1] && connectable[i])
             weight += pi;
     }
-    if (!emitter[0].sampler.emitter->isDelta())
+    if (!emitter[0].emitter()->isDelta())
         weight += pi*pdfBackward[0]/pdfForward[0];
 
     return 1.0f/weight;

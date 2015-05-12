@@ -43,7 +43,7 @@ Vec3f BidirectionalPathTracer::traceSample(Vec2u pixel, SampleGenerator &sampler
         int lowerBound = max(_settings.minBounces - s + 2, 1);
         int upperBound = min(_settings.maxBounces - s + 1, cameraLength);
         for (int t = lowerBound; t <= upperBound; ++t) {
-            if (!cameraPath[t - 1].isConnectable || !emitterPath[s - 1].isConnectable)
+            if (!cameraPath[t - 1].connectable() || !emitterPath[s - 1].connectable())
                 continue;
 
             float weight = LightPath::misWeight(cameraPath, emitterPath, s, t);

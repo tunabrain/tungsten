@@ -19,22 +19,22 @@ namespace Tungsten {
 
 bool PathVertex::sampleRootVertex(TraceState &state)
 {
-    switch (type) {
+    switch (_type) {
     case EmitterVertex: {
         EmitterRecord &record = _record.emitter;
-        if (!sampler.emitter->samplePosition(state.sampler, record.point))
+        if (!_sampler.emitter->samplePosition(state.sampler, record.point))
             return false;
 
-        throughput = record.point.weight/record.emitterPdf;
-        pdfForward = record.point.pdf*record.emitterPdf;
+        _throughput = record.point.weight/record.emitterPdf;
+        _pdfForward = record.point.pdf*record.emitterPdf;
         return true;
     } case CameraVertex: {
         CameraRecord &record = _record.camera;
-        if (!sampler.camera->samplePosition(state.sampler, record.point))
+        if (!_sampler.camera->samplePosition(state.sampler, record.point))
             return false;
 
-        throughput = record.point.weight;
-        pdfForward = record.point.pdf;
+        _throughput = record.point.weight;
+        _pdfForward = record.point.pdf;
         return true;
     } default:
         return false;
@@ -47,10 +47,10 @@ bool PathVertex::sampleNextVertex(const TraceableScene &scene, TraceBase &tracer
     Vec3f weight;
     float pdf;
 
-    switch (type) {
+    switch (_type) {
     case EmitterVertex: {
         EmitterRecord &record = _record.emitter;
-        if (!sampler.emitter->sampleDirection(state.sampler, record.point, record.direction))
+        if (!_sampler.emitter->sampleDirection(state.sampler, record.point, record.direction))
             return false;
 
         weight = record.direction.weight;
@@ -60,7 +60,7 @@ bool PathVertex::sampleNextVertex(const TraceableScene &scene, TraceBase &tracer
         break;
     } case CameraVertex: {
         CameraRecord &record = _record.camera;
-        if (!sampler.camera->sampleDirection(state.sampler, record.point, record.pixel, record.direction))
+        if (!_sampler.camera->sampleDirection(state.sampler, record.point, record.pixel, record.direction))
             return false;
 
         weight = record.direction.weight;
@@ -80,11 +80,11 @@ bool PathVertex::sampleNextVertex(const TraceableScene &scene, TraceBase &tracer
         if (!scattered)
             return false;
 
-        prev->pdfBackward = sampler.bsdf->pdf(record.event.makeFlippedQuery());
-        if (prev->isConnectable)
-            prev->pdfBackward *= prev->cosineFactor(prevEdge->d)/prevEdge->rSq;
+        prev->_pdfBackward = _sampler.bsdf->pdf(record.event.makeFlippedQuery());
+        if (prev->connectable())
+            prev->_pdfBackward *= prev->cosineFactor(prevEdge->d)/prevEdge->rSq;
         //else
-        //    prev->pdfBackward /= cosineFactor(prevEdge->d);
+        //    prev->_pdfBackward /= cosineFactor(prevEdge->d);
         weight = record.event.throughput;
         pdf = record.event.pdf;
 
@@ -94,7 +94,7 @@ bool PathVertex::sampleNextVertex(const TraceableScene &scene, TraceBase &tracer
 
         // TODO: Participating media
 
-        prev->pdfBackward = sampler.medium->phasePdf(_record.volume.makeFlippedQuery())
+        prev->_pdfBackward = _sampler.medium->phasePdf(_record.volume.makeFlippedQuery())
                 *prev->cosineFactor(prevEdge->d)/prevEdge->rSq;
         weight = record.throughput;
         pdf = record.pdf;
@@ -111,32 +111,32 @@ bool PathVertex::sampleNextVertex(const TraceableScene &scene, TraceBase &tracer
     record.event = tracer.makeLocalScatterEvent(record.data, record.info, state.ray,
             &state.sampler, &state.supplementalSampler);
 
-    next = PathVertex(record.info.bsdf, record, throughput*weight);
+    next = PathVertex(record.info.bsdf, record, _throughput*weight);
     next._record.surface.event.info = &next._record.surface.info;
     state.bounce++;
     nextEdge = PathEdge(*this, next);
-    next.pdfForward = pdf;
-    if (next.isConnectable)
-        next.pdfForward *= next.cosineFactor(nextEdge.d)/nextEdge.rSq;
+    next._pdfForward = pdf;
+    if (next.connectable())
+        next._pdfForward *= next.cosineFactor(nextEdge.d)/nextEdge.rSq;
     //else
-    //    next.pdfForward /= cosineFactor(nextEdge.d);
+    //    next._pdfForward /= cosineFactor(nextEdge.d);
 
     return true;
 }
 
 Vec3f PathVertex::eval(const Vec3f &d) const
 {
-    switch (type) {
+    switch (_type) {
     case EmitterVertex:
-        return sampler.emitter->evalDirectionalEmission(_record.emitter.point, DirectionSample(d));
+        return _sampler.emitter->evalDirectionalEmission(_record.emitter.point, DirectionSample(d));
     case CameraVertex:
         return Vec3f(0.0f);
     case SurfaceVertex:
-        return sampler.bsdf->eval(_record.surface.event.makeWarpedQuery(
+        return _sampler.bsdf->eval(_record.surface.event.makeWarpedQuery(
                 _record.surface.event.wi,
                 _record.surface.event.frame.toLocal(d)));
     case VolumeVertex:
-        return sampler.medium->phaseEval(_record.volume.makeWarpedQuery(_record.volume.wi, d));
+        return _sampler.medium->phaseEval(_record.volume.makeWarpedQuery(_record.volume.wi, d));
     default:
         return Vec3f(0.0f);
     }
@@ -145,35 +145,35 @@ Vec3f PathVertex::eval(const Vec3f &d) const
 void PathVertex::evalPdfs(const PathVertex *prev, const PathEdge *prevEdge, const PathVertex &next,
         const PathEdge &nextEdge, float *forward, float *backward) const
 {
-    switch (type) {
+    switch (_type) {
     case EmitterVertex:
         *forward = next.cosineFactor(nextEdge.d)/nextEdge.rSq*
-                sampler.emitter->directionalPdf(_record.emitter.point, DirectionSample(nextEdge.d));
+                _sampler.emitter->directionalPdf(_record.emitter.point, DirectionSample(nextEdge.d));
         break;
     case CameraVertex:
         *forward = next.cosineFactor(nextEdge.d)/nextEdge.rSq*
-                sampler.camera->directionPdf(_record.camera.point, DirectionSample(nextEdge.d));
+                _sampler.camera->directionPdf(_record.camera.point, DirectionSample(nextEdge.d));
         break;
     case SurfaceVertex: {
         const SurfaceScatterEvent &event = _record.surface.event;
         Vec3f dPrev = event.frame.toLocal(-prevEdge->d);
         Vec3f dNext = event.frame.toLocal(nextEdge.d);
-        *forward  = sampler.bsdf->pdf(event.makeWarpedQuery(dPrev, dNext))*next .cosineFactor(nextEdge .d)/nextEdge .rSq;
-        *backward = sampler.bsdf->pdf(event.makeWarpedQuery(dNext, dPrev))*prev->cosineFactor(prevEdge->d)/prevEdge->rSq;
+        *forward  = _sampler.bsdf->pdf(event.makeWarpedQuery(dPrev, dNext))*next .cosineFactor(nextEdge .d)/nextEdge .rSq;
+        *backward = _sampler.bsdf->pdf(event.makeWarpedQuery(dNext, dPrev))*prev->cosineFactor(prevEdge->d)/prevEdge->rSq;
         break;
     } case VolumeVertex: {
         const VolumeScatterEvent &event = _record.volume;
         Vec3f dPrev = -prevEdge->d;
         Vec3f dNext = nextEdge.d;
-        *forward  = sampler.medium->phasePdf(event.makeWarpedQuery(dPrev, dNext))*next .cosineFactor(nextEdge .d)/nextEdge .rSq;
-        *backward = sampler.medium->phasePdf(event.makeWarpedQuery(dNext, dPrev))*prev->cosineFactor(prevEdge->d)/prevEdge->rSq;
+        *forward  = _sampler.medium->phasePdf(event.makeWarpedQuery(dPrev, dNext))*next .cosineFactor(nextEdge .d)/nextEdge .rSq;
+        *backward = _sampler.medium->phasePdf(event.makeWarpedQuery(dNext, dPrev))*prev->cosineFactor(prevEdge->d)/prevEdge->rSq;
         break;
     }}
 }
 
 Vec3f PathVertex::pos() const
 {
-    switch (type) {
+    switch (_type) {
     case EmitterVertex:
         return _record.emitter.point.p;
     case CameraVertex:
@@ -189,7 +189,7 @@ Vec3f PathVertex::pos() const
 
 float PathVertex::cosineFactor(const Vec3f &d) const
 {
-    switch (type) {
+    switch (_type) {
     case EmitterVertex:
         return std::abs(_record.emitter.point.Ng.dot(d));
     case CameraVertex:
