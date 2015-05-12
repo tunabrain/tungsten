@@ -3,13 +3,12 @@
 
 #include "SampleGenerator.hpp"
 
-#include <SFMT/SFMT.h>
-
 namespace Tungsten {
 
 class UniformSampler : public SampleGenerator
 {
-    SFMT_T _state;
+    uint64 _state;
+    uint64 _sequence;
 
 public:
     UniformSampler()
@@ -17,9 +16,10 @@ public:
     {
     }
 
-    UniformSampler(uint32 seed)
+    UniformSampler(uint64 seed, uint64 sequence = 0)
+    : _state(seed),
+      _sequence(sequence)
     {
-        sfmt_init_gen_rand(&_state, seed);
     }
 
     virtual void saveState(OutputStreamHandle &out) override final
@@ -36,9 +36,15 @@ public:
     {
     }
 
+    // PCG random number generator
+    // See http://www.pcg-random.org/
     inline uint32 nextI()
     {
-        return sfmt_genrand_uint32(&_state);
+        uint64 oldState = _state;
+        _state = oldState*6364136223846793005ULL + (_sequence | 1);
+        uint32 xorShifted = ((oldState >> 18u) ^ oldState) >> 27u;
+        uint32 rot = oldState >> 59u;
+        return (xorShifted >> rot) | (xorShifted << ((-rot) & 31));
     }
 
     inline virtual float next1D() override final

@@ -54,8 +54,7 @@ add_library(thirdparty STATIC
 		src/thirdparty/sobol/sobol.cpp
 		src/thirdparty/stbi/stb_image.c
 		src/thirdparty/miniz/miniz.c
-		src/thirdparty/skylight/ArHosekSkyModel.cpp
-		src/thirdparty/SFMT/SFMT.c)
+		src/thirdparty/skylight/ArHosekSkyModel.cpp)
 
 if (CMAKE_COMPILER_IS_GNUCXX)
     set(CXX_WARNINGS "-Wall -Wextra -Wpointer-arith -Wcast-align -fstrict-aliasing -Wno-unused-local-typedefs")
