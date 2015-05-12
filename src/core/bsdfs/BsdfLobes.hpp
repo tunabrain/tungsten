@@ -12,6 +12,7 @@ class BsdfLobes
 public:
     enum Lobe
     {
+        NullLobe                 = 0,
         GlossyReflectionLobe     = (1 << 0),
         GlossyTransmissionLobe   = (1 << 1),
         DiffuseReflectionLobe    = (1 << 2),
@@ -71,17 +72,17 @@ public:
 
     bool isPureGlossy() const
     {
-        return (_lobes & ~GlossyLobe) == 0;
+        return _lobes != 0 && (_lobes & ~GlossyLobe) == 0;
     }
 
     bool isPureSpecular() const
     {
-        return (_lobes & ~SpecularLobe) == 0;
+        return _lobes != 0 && (_lobes & ~SpecularLobe) == 0;
     }
 
     bool isPureDiffuse() const
     {
-        return (_lobes & ~DiffuseLobe) == 0;
+        return _lobes != 0 && (_lobes & ~DiffuseLobe) == 0;
     }
 
     bool isTransmissive() const
