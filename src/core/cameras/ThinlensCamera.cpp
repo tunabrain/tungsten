@@ -56,7 +56,7 @@ Vec3f ThinlensCamera::aberration(const Vec3f &planePos, Vec2u pixel, Vec2f &aper
     shift.normalize();
     float shiftAmount = dist*_chromaticAberration;
     Vec3f shiftAmounts(shiftAmount, 0.0f, -shiftAmount);
-    int sampleKernel = sampler.nextI() % 3;
+    int sampleKernel = min(int(sampler.next1D()*3.0f), 2);
     float amount = shiftAmounts[sampleKernel];
     shiftAmounts -= amount;
 

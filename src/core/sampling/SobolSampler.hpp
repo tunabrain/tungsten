@@ -44,11 +44,40 @@ public:
         _dimension = 0;
     }
 
-    virtual uint32 nextI() override final
+    inline uint32 nextI()
     {
         if (_dimension >= 1024)
             FAIL("Sobol sampler dimension > 1024!");
         return sobol::sample(permutedIndex(), _dimension++, _scramble);
+    }
+
+    inline virtual float next1D() override final
+    {
+        return BitManip::normalizedUint(nextI());
+    }
+
+    inline virtual Vec2f next2D() override final
+    {
+        float a = next1D();
+        float b = next1D();
+        return Vec2f(a, b);
+    }
+
+    inline virtual Vec3f next3D() override final
+    {
+        float a = next1D();
+        float b = next1D();
+        float c = next1D();
+        return Vec3f(a, b, c);
+    }
+
+    inline virtual Vec4f next4D() override final
+    {
+        float a = next1D();
+        float b = next1D();
+        float c = next1D();
+        float d = next1D();
+        return Vec4f(a, b, c, d);
     }
 };
 

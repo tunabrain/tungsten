@@ -18,36 +18,10 @@ public:
     virtual void saveState(OutputStreamHandle &out) = 0;
     virtual void loadState(InputStreamHandle &in) = 0;
 
-    virtual uint32 nextI() = 0;
-
-    virtual float next1D()
-    {
-        return BitManip::normalizedUint(nextI());
-    }
-
-    virtual Vec2f next2D()
-    {
-        float a = next1D();
-        float b = next1D();
-        return Vec2f(a, b);
-    }
-
-    virtual Vec3f next3D()
-    {
-        float a = next1D();
-        float b = next1D();
-        float c = next1D();
-        return Vec3f(a, b, c);
-    }
-
-    virtual Vec4f next4D()
-    {
-        float a = next1D();
-        float b = next1D();
-        float c = next1D();
-        float d = next1D();
-        return Vec4f(a, b, c, d);
-    }
+    virtual float next1D() = 0;
+    virtual Vec2f next2D() = 0;
+    virtual Vec3f next3D() = 0;
+    virtual Vec4f next4D() = 0;
 };
 
 }

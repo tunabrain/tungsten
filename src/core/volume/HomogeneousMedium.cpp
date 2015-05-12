@@ -68,7 +68,7 @@ bool HomogeneousMedium::sampleDistance(VolumeScatterEvent &event, MediumState &s
         event.t = event.maxT;
         event.throughput = std::exp(-_sigmaT*event.t);
     } else {
-        int component = event.supplementalSampler->nextI() % 3;
+        int component = min(int(event.supplementalSampler->next1D()*3.0f), 2);
         float sigmaTc = _sigmaT[component];
 
         float t = -std::log(1.0f - event.sampler->next1D())/sigmaTc;
