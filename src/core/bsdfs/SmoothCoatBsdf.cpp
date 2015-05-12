@@ -62,7 +62,7 @@ bool SmoothCoatBsdf::sample(SurfaceScatterEvent &event) const
     else
         return false;
 
-    if (sampleR && event.sampler->next1D() < specularProbability) {
+    if (sampleR && event.supplementalSampler->next1D() < specularProbability) {
         event.wo = Vec3f(-wi.x(), -wi.y(), wi.z());
         event.pdf = specularProbability;
         event.throughput = Vec3f(Fi/specularProbability);

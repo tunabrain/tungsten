@@ -304,7 +304,7 @@ bool AtmosphericMedium::sampleDistance(VolumeScatterEvent &event, MediumState &s
 
 bool AtmosphericMedium::absorb(VolumeScatterEvent &event, MediumState &state) const
 {
-    if (insideClouds(event.p) && event.sampler->next1D() >= _cloudAlbedo)
+    if (insideClouds(event.p) && event.supplementalSampler->next1D() >= _cloudAlbedo)
         return true;
 
     event.throughput = Vec3f(0.0f);

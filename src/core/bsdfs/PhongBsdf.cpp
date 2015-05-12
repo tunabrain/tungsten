@@ -3,6 +3,7 @@
 #include "samplerecords/SurfaceScatterEvent.hpp"
 
 #include "sampling/SampleGenerator.hpp"
+#include "sampling/UniformSampler.hpp"
 #include "sampling/SampleWarp.hpp"
 
 #include "math/TangentFrame.hpp"
@@ -49,7 +50,7 @@ bool PhongBsdf::sample(SurfaceScatterEvent &event) const
 
     bool sampleGlossy;
     if (evalGlossy && evalDiffuse)
-        sampleGlossy = event.sampler->next1D() >= _diffuseRatio;
+        sampleGlossy = event.supplementalSampler->next1D() >= _diffuseRatio;
     else
         sampleGlossy = evalGlossy;
 

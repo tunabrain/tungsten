@@ -454,7 +454,7 @@ bool TraceBase::handleSurface(SurfaceScatterEvent &event, IntersectionTemporary 
     float transparencyScalar = transparency.avg();
 
     Vec3f wo;
-    if (sampler.next1D() < transparencyScalar) {
+    if (supplementalSampler.next1D() < transparencyScalar) {
         wo = ray.dir();
         throughput *= transparency/transparencyScalar;
     } else {

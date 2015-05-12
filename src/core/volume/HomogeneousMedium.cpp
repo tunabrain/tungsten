@@ -87,7 +87,7 @@ bool HomogeneousMedium::sampleDistance(VolumeScatterEvent &event, MediumState &s
 
 bool HomogeneousMedium::absorb(VolumeScatterEvent &event, MediumState &/*state*/) const
 {
-    if (event.sampler->next1D() >= _maxAlbedo)
+    if (event.supplementalSampler->next1D() >= _maxAlbedo)
         return true;
     event.throughput = Vec3f(_absorptionWeight);
     return false;

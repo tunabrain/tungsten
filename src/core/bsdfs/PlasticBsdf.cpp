@@ -4,6 +4,7 @@
 #include "samplerecords/SurfaceScatterEvent.hpp"
 
 #include "sampling/SampleGenerator.hpp"
+#include "sampling/UniformSampler.hpp"
 #include "sampling/SampleWarp.hpp"
 
 #include "math/MathUtil.hpp"
@@ -65,7 +66,7 @@ bool PlasticBsdf::sample(SurfaceScatterEvent &event) const
     else
         return false;
 
-    if (sampleR && event.sampler->next1D() < specularProbability) {
+    if (sampleR && event.supplementalSampler->next1D() < specularProbability) {
         event.wo = Vec3f(-wi.x(), -wi.y(), wi.z());
         event.pdf = specularProbability;
         event.throughput = Vec3f(Fi/specularProbability);
