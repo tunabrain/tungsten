@@ -3,7 +3,6 @@
 #include "samplerecords/SurfaceScatterEvent.hpp"
 
 #include "sampling/SampleGenerator.hpp"
-#include "sampling/UniformSampler.hpp"
 #include "sampling/SampleWarp.hpp"
 
 #include "math/TangentFrame.hpp"

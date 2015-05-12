@@ -5,7 +5,7 @@
 
 #include "materials/ConstantTexture.hpp"
 
-#include "sampling/UniformSampler.hpp"
+#include "sampling/SampleGenerator.hpp"
 
 #include "math/Vec.hpp"
 

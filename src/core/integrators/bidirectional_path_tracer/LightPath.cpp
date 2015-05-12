@@ -7,7 +7,6 @@
 #include "renderer/TraceableScene.hpp"
 
 #include "sampling/SampleGenerator.hpp"
-#include "sampling/UniformSampler.hpp"
 
 #include "cameras/Camera.hpp"
 

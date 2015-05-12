@@ -10,7 +10,6 @@
 #include "integrators/ImageTile.hpp"
 
 #include "sampling/SampleGenerator.hpp"
-#include "sampling/UniformSampler.hpp"
 
 #include "thread/TaskGroup.hpp"
 

@@ -1,6 +1,6 @@
 #include "HomogeneousMedium.hpp"
 
-#include "sampling/UniformSampler.hpp"
+#include "sampling/SampleGenerator.hpp"
 
 #include "math/TangentFrame.hpp"
 #include "math/Ray.hpp"
