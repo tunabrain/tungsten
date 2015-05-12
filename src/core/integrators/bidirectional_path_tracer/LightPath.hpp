@@ -78,6 +78,9 @@ public:
             const LightPath &emitter, int s, SampleGenerator &sampler,
             Vec3f &weight, Vec2u &pixel);
 
+    static void samplePathsInterleaved(LightPath &cameraPath, LightPath &emitterPath,
+            const TraceableScene &scene, TraceBase &tracer, SampleGenerator &sampler,
+            UniformSampler &supplementalSampler);
 };
 
 }
