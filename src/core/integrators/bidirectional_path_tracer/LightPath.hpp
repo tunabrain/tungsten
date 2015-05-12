@@ -15,6 +15,9 @@ class LightPath
     std::unique_ptr<PathVertex[]> _vertices;
     std::unique_ptr<PathEdge[]> _edges;
 
+    static float misWeight(const LightPath &camera, const LightPath &emitter,
+            const PathEdge &edge, int s, int t);
+
 public:
     LightPath(int maxLength)
     : _maxLength(maxLength),
@@ -36,6 +39,11 @@ public:
 
     void tracePath(const TraceableScene &scene, TraceBase &tracer, SampleGenerator &sampler,
             UniformSampler &supplementalSampler);
+
+    int maxLength() const
+    {
+        return _maxLength;
+    }
 
     int length() const
     {
@@ -62,12 +70,14 @@ public:
         return _edges[i];
     }
 
-    Vec3f weightedPathEmission(int minLength, int maxLength) const;
+    Vec3f bdptWeightedPathEmission(int minLength, int maxLength) const;
 
-    static Vec3f connect(const TraceableScene &scene, const PathVertex &a, const PathVertex &b);
-    static bool connect(const TraceableScene &scene, const PathVertex &a, const PathVertex &b,
-            SampleGenerator &sampler, Vec3f &weight, Vec2u &pixel);
-    static float misWeight(const LightPath &camera, const LightPath &light, int s, int t);
+    static Vec3f bdptConnect(const TraceableScene &scene, const LightPath &camera,
+            const LightPath &emitter, int s, int t);
+    static bool bdptCameraConnect(const TraceableScene &scene, const LightPath &camera,
+            const LightPath &emitter, int s, SampleGenerator &sampler,
+            Vec3f &weight, Vec2u &pixel);
+
 };
 
 }

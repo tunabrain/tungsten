@@ -13,6 +13,52 @@
 
 namespace Tungsten {
 
+float LightPath::misWeight(const LightPath &camera, const LightPath &emitter,
+            const PathEdge &edge, int s, int t)
+{
+    float *pdfForward  = reinterpret_cast<float *>(alloca((s + t)*sizeof(float)));
+    float *pdfBackward = reinterpret_cast<float *>(alloca((s + t)*sizeof(float)));
+    bool  *connectable = reinterpret_cast<bool  *>(alloca((s + t)*sizeof(bool)));
+
+    for (int i = 0; i < s; ++i) {
+        pdfForward [i] = emitter[i].pdfForward();
+        pdfBackward[i] = emitter[i].pdfBackward();
+        connectable[i] = emitter[i].connectable();
+    }
+    for (int i = 0; i < t; ++i) {
+        pdfForward [s + t - (i + 1)] = camera[i].pdfBackward();
+        pdfBackward[s + t - (i + 1)] = camera[i].pdfForward();
+        connectable[s + t - (i + 1)] = camera[i].connectable();
+    }
+
+    emitter[s - 1].evalPdfs(s == 1 ? nullptr : &emitter[s - 2],
+                            s == 1 ? nullptr : &emitter.edge(s - 2),
+                            camera[t - 1], edge, &pdfForward[s],
+                            s == 1 ? nullptr : &pdfBackward[s - 2]);
+    camera[t - 1].evalPdfs(t == 1 ? nullptr : &camera[t - 2],
+                           t == 1 ? nullptr : &camera.edge(t - 2),
+                           emitter[s - 1], edge.reverse(), &pdfBackward[s - 1],
+                           t == 1 ? nullptr : &pdfForward[s + 1]);
+
+    float weight = 1.0f;
+    float pi = 1.0f;
+    for (int i = s + 1; i < s + t; ++i) {
+        pi *= pdfForward[i - 1]/pdfBackward[i - 1];
+        if (connectable[i - 1] && connectable[i])
+            weight += pi;
+    }
+    pi = 1.0f;
+    for (int i = s - 1; i >= 1; --i) {
+        pi *= pdfBackward[i]/pdfForward[i];
+        if (connectable[i - 1] && connectable[i])
+            weight += pi;
+    }
+    if (!emitter[0].emitter()->isDelta())
+        weight += pi*pdfBackward[0]/pdfForward[0];
+
+    return 1.0f/weight;
+}
+
 void LightPath::tracePath(const TraceableScene &scene, TraceBase &tracer, SampleGenerator &sampler,
         UniformSampler &supplementalSampler)
 {
@@ -31,7 +77,7 @@ void LightPath::tracePath(const TraceableScene &scene, TraceBase &tracer, Sample
     }
 }
 
-Vec3f LightPath::weightedPathEmission(int minLength, int maxLength) const
+Vec3f LightPath::bdptWeightedPathEmission(int minLength, int maxLength) const
 {
     // TODO: Naive, slow version to make sure it's correct. Optimize this
 
@@ -73,75 +119,40 @@ Vec3f LightPath::weightedPathEmission(int minLength, int maxLength) const
     return result;
 }
 
-Vec3f LightPath::connect(const TraceableScene &scene, const PathVertex &a, const PathVertex &b)
+Vec3f LightPath::bdptConnect(const TraceableScene &scene, const LightPath &camera,
+        const LightPath &emitter, int s, int t)
 {
+    const PathVertex &a = emitter[s - 1];
+    const PathVertex &b = camera[t - 1];
+
     PathEdge edge(a, b);
     if (scene.occluded(Ray(a.pos(), edge.d, 1e-4f, edge.r*(1.0f - 1e-4f))))
         return Vec3f(0.0f);
 
-    return a.throughput()*a.eval(edge.d)*b.eval(-edge.d)*b.throughput()/edge.rSq;
+    Vec3f unweightedContrib = a.throughput()*a.eval(edge.d)*b.eval(-edge.d)*b.throughput()/edge.rSq;
+
+    return unweightedContrib*misWeight(camera, emitter, edge, s, t);
 }
 
-bool LightPath::connect(const TraceableScene &scene, const PathVertex &a, const PathVertex &b,
-        SampleGenerator &sampler, Vec3f &weight, Vec2u &pixel)
+bool LightPath::bdptCameraConnect(const TraceableScene &scene, const LightPath &camera,
+        const LightPath &emitter, int s, SampleGenerator &sampler,
+        Vec3f &weight, Vec2u &pixel)
 {
+    const PathVertex &a = emitter[s - 1];
+    const PathVertex &b = camera[0];
+
     PathEdge edge(a, b);
     if (scene.occluded(Ray(a.pos(), edge.d, 1e-4f, edge.r*(1.0f - 1e-4f))))
         return false;
 
     Vec3f splatWeight;
-    if (!a.camera()->evalDirection(sampler, a.cameraRecord().point, DirectionSample(edge.d), splatWeight, pixel))
+    if (!b.camera()->evalDirection(sampler, b.cameraRecord().point, DirectionSample(-edge.d), splatWeight, pixel))
         return false;
 
-    weight = splatWeight*a.throughput()*b.eval(-edge.d)*b.throughput()/edge.rSq;
+    weight = splatWeight*b.throughput()*a.eval(edge.d)*a.throughput()/edge.rSq;
+    weight *= misWeight(camera, emitter, edge, s, 1);
 
     return true;
-}
-
-float LightPath::misWeight(const LightPath &camera, const LightPath &emitter, int s, int t)
-{
-    float *pdfForward  = reinterpret_cast<float *>(alloca((s + t)*sizeof(float)));
-    float *pdfBackward = reinterpret_cast<float *>(alloca((s + t)*sizeof(float)));
-    bool  *connectable = reinterpret_cast<bool  *>(alloca((s + t)*sizeof(bool)));
-
-    for (int i = 0; i < s; ++i) {
-        pdfForward [i] = emitter[i].pdfForward();
-        pdfBackward[i] = emitter[i].pdfBackward();
-        connectable[i] = emitter[i].connectable();
-    }
-    for (int i = 0; i < t; ++i) {
-        pdfForward [s + t - (i + 1)] = camera[i].pdfBackward();
-        pdfBackward[s + t - (i + 1)] = camera[i].pdfForward();
-        connectable[s + t - (i + 1)] = camera[i].connectable();
-    }
-
-    PathEdge edge(emitter[s - 1], camera[t - 1]);
-    emitter[s - 1].evalPdfs(s == 1 ? nullptr : &emitter[s - 2],
-                            s == 1 ? nullptr : &emitter.edge(s - 2),
-                            camera[t - 1], edge, &pdfForward[s],
-                            s == 1 ? nullptr : &pdfBackward[s - 2]);
-    camera[t - 1].evalPdfs(t == 1 ? nullptr : &camera[t - 2],
-                           t == 1 ? nullptr : &camera.edge(t - 2),
-                           emitter[s - 1], edge.reverse(), &pdfBackward[s - 1],
-                           t == 1 ? nullptr : &pdfForward[s + 1]);
-
-    float weight = 1.0f;
-    float pi = 1.0f;
-    for (int i = s + 1; i < s + t; ++i) {
-        pi *= pdfForward[i - 1]/pdfBackward[i - 1];
-        if (connectable[i - 1] && connectable[i])
-            weight += pi;
-    }
-    pi = 1.0f;
-    for (int i = s - 1; i >= 1; --i) {
-        pi *= pdfBackward[i]/pdfForward[i];
-        if (connectable[i - 1] && connectable[i])
-            weight += pi;
-    }
-    if (!emitter[0].emitter()->isDelta())
-        weight += pi*pdfBackward[0]/pdfForward[0];
-
-    return 1.0f/weight;
 }
 
 }
