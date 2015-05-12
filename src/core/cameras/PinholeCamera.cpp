@@ -77,7 +77,7 @@ bool PinholeCamera::sampleDirection(SampleGenerator &sampler, const PositionSamp
 
     sample.d =  _transform.transformVector(localD);
     sample.weight = Vec3f(weight);
-    sample.pdf = sqr(_planeDist)/(_pixelSize.x()*_pixelSize.y()*cube(localD.z()));
+    sample.pdf = (_planeDist*2.0f)*(_planeDist*_ratio*2.0f)/cube(localD.z());
 
     return true;
 }
@@ -133,7 +133,7 @@ float PinholeCamera::directionPdf(const PositionSample &/*point*/, const Directi
     if (u < 0.0f || v < 0.0f || u > 1.0f || v > 1.0f)
         return 0.0f;
 
-    return sqr(_planeDist)/(_pixelSize.x()*_pixelSize.y()*cube(localD.z()/localD.length()));
+    return  (_planeDist*2.0f)*(_planeDist*_ratio*2.0f)/cube(localD.z()/localD.length());
 }
 
 bool PinholeCamera::generateSample(Vec2u pixel, SampleGenerator &sampler, Vec3f &throughput, Ray &ray) const
