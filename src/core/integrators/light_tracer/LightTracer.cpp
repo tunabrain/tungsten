@@ -60,7 +60,7 @@ void LightTracer::traceSample(SampleGenerator &sampler, SampleGenerator &supplem
     bool wasSpecular = true;
     bool hitSurface = true;
     bool didHit = _scene->intersect(ray, data, info);
-    while ((didHit || medium) && bounce < _settings.maxBounces - 2) {
+    while ((didHit || medium) && bounce < _settings.maxBounces - 1) {
         if (medium) {
             VolumeScatterEvent event(&sampler, &supplementalSampler, throughput, ray.pos(), ray.dir(), ray.farT());
             if (!medium->sampleDistance(event, state))
