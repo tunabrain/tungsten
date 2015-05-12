@@ -158,15 +158,19 @@ void PathVertex::evalPdfs(const PathVertex *prev, const PathEdge *prevEdge, cons
         const SurfaceScatterEvent &event = _record.surface.event;
         Vec3f dPrev = event.frame.toLocal(-prevEdge->d);
         Vec3f dNext = event.frame.toLocal(nextEdge.d);
-        *forward  = _sampler.bsdf->pdf(event.makeWarpedQuery(dPrev, dNext))*next .cosineFactor(nextEdge .d)/nextEdge .rSq;
-        *backward = _sampler.bsdf->pdf(event.makeWarpedQuery(dNext, dPrev))*prev->cosineFactor(prevEdge->d)/prevEdge->rSq;
+        *forward  = next .cosineFactor(nextEdge .d)/nextEdge .rSq*
+                _sampler.bsdf->pdf(event.makeWarpedQuery(dPrev, dNext));
+        *backward = prev->cosineFactor(prevEdge->d)/prevEdge->rSq*
+                _sampler.bsdf->pdf(event.makeWarpedQuery(dNext, dPrev));
         break;
     } case VolumeVertex: {
         const VolumeScatterEvent &event = _record.volume;
         Vec3f dPrev = -prevEdge->d;
         Vec3f dNext = nextEdge.d;
-        *forward  = _sampler.medium->phasePdf(event.makeWarpedQuery(dPrev, dNext))*next .cosineFactor(nextEdge .d)/nextEdge .rSq;
-        *backward = _sampler.medium->phasePdf(event.makeWarpedQuery(dNext, dPrev))*prev->cosineFactor(prevEdge->d)/prevEdge->rSq;
+        *forward  = next .cosineFactor(nextEdge .d)/nextEdge .rSq*
+                _sampler.medium->phasePdf(event.makeWarpedQuery(dPrev, dNext));
+        *backward = prev->cosineFactor(prevEdge->d)/prevEdge->rSq*
+                _sampler.medium->phasePdf(event.makeWarpedQuery(dNext, dPrev));
         break;
     }}
 }

@@ -41,7 +41,8 @@ Vec3f LightPath::weightedPathEmission(int minLength, int maxLength) const
 
     Vec3f result(0.0f);
     for (int t = max(minLength, 2); t <= min(_length, maxLength); ++t) {
-        Vec3f emission = _vertices[t - 1].surfaceRecord().info.primitive->emission(_vertices[t - 1].surfaceRecord().data,
+        Vec3f emission = _vertices[t - 1].surfaceRecord().info.primitive->emission(
+                _vertices[t - 1].surfaceRecord().data,
                 _vertices[t - 1].surfaceRecord().info);
         if (emission == 0.0f)
             continue;
