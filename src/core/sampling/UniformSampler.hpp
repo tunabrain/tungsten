@@ -58,6 +58,16 @@ public:
         float b = next1D();
         return Vec2f(a, b);
     }
+
+    uint64 state() const
+    {
+        return _state;
+    }
+
+    uint64 sequence() const
+    {
+        return _sequence;
+    }
 };
 
 }
