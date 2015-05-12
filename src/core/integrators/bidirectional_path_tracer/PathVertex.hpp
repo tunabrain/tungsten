@@ -271,6 +271,8 @@ public:
         return _edges[i];
     }
 
+    Vec3f weightedPathEmission(int minLength, int maxLength) const;
+
     static Vec3f connect(const TraceableScene &scene, const PathVertex &a, const PathVertex &b);
     static bool connect(const TraceableScene &scene, const PathVertex &a, const PathVertex &b,
             SampleGenerator &sampler, Vec3f &weight, Vec2u &pixel);
