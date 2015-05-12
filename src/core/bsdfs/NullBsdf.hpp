@@ -11,7 +11,7 @@ struct SurfaceScatterEvent;
 class NullBsdf : public Bsdf
 {
 public:
-    NullBsdf() = default;
+    NullBsdf();
 
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
 

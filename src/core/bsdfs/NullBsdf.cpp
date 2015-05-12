@@ -6,6 +6,11 @@
 
 namespace Tungsten {
 
+NullBsdf::NullBsdf()
+{
+    _lobes = BsdfLobes::NullLobe;
+}
+
 rapidjson::Value NullBsdf::toJson(Allocator &allocator) const
 {
     rapidjson::Value v = Bsdf::toJson(allocator);
