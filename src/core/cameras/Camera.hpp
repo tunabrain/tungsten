@@ -103,7 +103,7 @@ public:
     inline Vec3f getLinear(int x, int y) const
     {
         int idx = x + y*_res.x();
-        Vec3d result = _pixels[idx]/_weights[idx];
+        Vec3d result = _pixels[idx]/max(_weights[idx], 1u);
         if (!_splats.empty())
             result += _splats[idx]/max(_splatWeight, 1ull);
         return Vec3f(result);
