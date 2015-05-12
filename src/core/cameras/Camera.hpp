@@ -105,7 +105,7 @@ public:
         int idx = x + y*_res.x();
         Vec3d result = _pixels[idx]/_weights[idx];
         if (!_splats.empty())
-            result += _splats[idx]/_splatWeight;
+            result += _splats[idx]/max(_splatWeight, 1ull);
         return Vec3f(result);
     }
 
