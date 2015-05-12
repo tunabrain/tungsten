@@ -108,9 +108,11 @@ public:
     {
         if (_type == Dirac) {
             weight = 1.0f;
+            pdf = 1.0f;
             return Vec2f(0.0f);
         } else if (_type == Box) {
             weight = 1.0f;
+            pdf = 1.0f;
             return uv*0.5f - 0.5f;
         }
 
