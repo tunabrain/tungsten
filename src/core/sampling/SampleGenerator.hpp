@@ -20,8 +20,6 @@ public:
 
     virtual float next1D() = 0;
     virtual Vec2f next2D() = 0;
-    virtual Vec3f next3D() = 0;
-    virtual Vec4f next4D() = 0;
 };
 
 }

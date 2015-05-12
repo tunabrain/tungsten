@@ -58,23 +58,6 @@ public:
         float b = next1D();
         return Vec2f(a, b);
     }
-
-    inline virtual Vec3f next3D() override final
-    {
-        float a = next1D();
-        float b = next1D();
-        float c = next1D();
-        return Vec3f(a, b, c);
-    }
-
-    inline virtual Vec4f next4D() override final
-    {
-        float a = next1D();
-        float b = next1D();
-        float c = next1D();
-        float d = next1D();
-        return Vec4f(a, b, c, d);
-    }
 };
 
 }
