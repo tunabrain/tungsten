@@ -2,7 +2,7 @@
 #define BIDIRECTIONALPATHTRACER_HPP_
 
 #include "BidirectionalPathTracerSettings.hpp"
-#include "PathVertex.hpp"
+#include "LightPath.hpp"
 
 #include "integrators/TraceBase.hpp"
 
