@@ -33,6 +33,7 @@ class TriangleMesh : public Primitive
 
     std::unique_ptr<Distribution1D> _triSampler;
     float _totalArea;
+    float _invArea;
 
     Box3f _bounds;
 
@@ -78,6 +79,20 @@ public:
 
     virtual bool isSamplable() const override;
     virtual void makeSamplable(uint32 threadIndex) override;
+
+    virtual bool samplePosition(SampleGenerator &sampler, PositionSample &sample) const override final;
+    virtual bool sampleDirection(SampleGenerator &sampler, const PositionSample &point,
+            DirectionSample &sample) const override final;
+    virtual bool sampleDirect(uint32 threadIndex, const Vec3f &p, SampleGenerator &sampler,
+            LightSample &sample) const override;
+    virtual float positionalPdf(const PositionSample &point) const;
+    virtual float directionalPdf(const PositionSample &point, const DirectionSample &sample) const override;
+    virtual float directPdf(uint32 threadIndex, const IntersectionTemporary &data,
+            const IntersectionInfo &info, const Vec3f &p) const override;
+    virtual Vec3f evalPositionalEmission(const PositionSample &sample) const override;
+    virtual Vec3f evalDirectionalEmission(const PositionSample &point,
+            const DirectionSample &sample) const override;
+    virtual Vec3f evalDirect(const IntersectionTemporary &data, const IntersectionInfo &info) const override;
 
     virtual float inboundPdf(uint32 threadIndex, const IntersectionTemporary &data,
             const IntersectionInfo &info, const Vec3f &p, const Vec3f &d) const override;

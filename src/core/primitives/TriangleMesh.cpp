@@ -384,6 +384,95 @@ void TriangleMesh::makeSamplable(uint32 /*threadIndex*/)
         _totalArea += areas[i];
     }
     _triSampler.reset(new Distribution1D(std::move(areas)));
+    _invArea = 1.0f/_totalArea;
+
+    _powerFactor = PI*_totalArea;
+}
+
+bool TriangleMesh::samplePosition(SampleGenerator &sampler, PositionSample &sample) const
+{
+    float u = sampler.next1D();
+    int idx;
+    _triSampler->warp(u, idx);
+
+    Vec3f p0 = _tfVerts[_tris[idx].v0].pos();
+    Vec3f p1 = _tfVerts[_tris[idx].v1].pos();
+    Vec3f p2 = _tfVerts[_tris[idx].v2].pos();
+    Vec2f uv0 = _tfVerts[_tris[idx].v0].uv();
+    Vec2f uv1 = _tfVerts[_tris[idx].v1].uv();
+    Vec2f uv2 = _tfVerts[_tris[idx].v2].uv();
+    Vec3f normal = (p1 - p0).cross(p2 - p0).normalized();
+
+    Vec2f lambda = SampleWarp::uniformTriangleUv(sampler.next2D());
+
+    sample.p = p0*lambda.x() + p1*lambda.y() + p2*(1.0f - lambda.x() - lambda.y());
+    sample.uv = uv0*lambda.x() + uv1*lambda.y() + uv2*(1.0f - lambda.x() - lambda.y());
+    sample.weight = _powerFactor*(*_emission)[sample.uv];
+    sample.pdf = _invArea;
+    sample.Ng = normal;
+
+    return true;
+}
+
+bool TriangleMesh::sampleDirection(SampleGenerator &sampler, const PositionSample &point, DirectionSample &sample) const
+{
+    Vec3f d = SampleWarp::cosineHemisphere(sampler.next2D());
+    sample.d = TangentFrame(point.Ng).toGlobal(d);
+    sample.weight = Vec3f(1.0f);
+    sample.pdf = SampleWarp::cosineHemispherePdf(d);
+
+    return true;
+}
+
+bool TriangleMesh::sampleDirect(uint32 /*threadIndex*/, const Vec3f &p,
+        SampleGenerator &sampler, LightSample &sample) const
+{
+    PositionSample point;
+    samplePosition(sampler, point);
+
+    Vec3f L = point.p - p;
+
+    float rSq = L.lengthSq();
+    sample.dist = std::sqrt(rSq);
+    sample.d = L/sample.dist;
+    float cosTheta = -(point.Ng.dot(sample.d));
+    if (cosTheta <= 0.0f)
+        return false;
+    sample.pdf = rSq/(cosTheta*_totalArea);
+    sample.weight = (*_emission)[point.uv]/sample.pdf;
+
+    return true;
+}
+
+float TriangleMesh::positionalPdf(const PositionSample &/*point*/) const
+{
+    return _invArea;
+}
+
+float TriangleMesh::directionalPdf(const PositionSample &point, const DirectionSample &sample) const
+{
+    return max(sample.d.dot(point.Ng)*INV_PI, 0.0f);
+}
+
+float TriangleMesh::directPdf(uint32 /*threadIndex*/, const IntersectionTemporary &/*data*/,
+        const IntersectionInfo &info, const Vec3f &p) const
+{
+    return (p - info.p).lengthSq()/(-info.w.dot(info.Ng)*_totalArea);
+}
+
+Vec3f TriangleMesh::evalPositionalEmission(const PositionSample &sample) const
+{
+    return _invArea*_powerFactor*(*_emission)[sample.uv];
+}
+
+Vec3f TriangleMesh::evalDirectionalEmission(const PositionSample &point, const DirectionSample &sample) const
+{
+    return Vec3f(max(sample.d.dot(point.Ng), 0.0f)*INV_PI);
+}
+
+Vec3f TriangleMesh::evalDirect(const IntersectionTemporary &data, const IntersectionInfo &info) const
+{
+    return data.as<MeshIntersection>()->backSide ? Vec3f(0.0f) : (*_emission)[info.uv];
 }
 
 float TriangleMesh::inboundPdf(uint32 /*threadIndex*/, const IntersectionTemporary &/*data*/,
