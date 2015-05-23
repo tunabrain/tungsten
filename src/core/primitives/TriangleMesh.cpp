@@ -389,7 +389,7 @@ void TriangleMesh::makeSamplable(uint32 /*threadIndex*/)
 float TriangleMesh::inboundPdf(uint32 /*threadIndex*/, const IntersectionTemporary &/*data*/,
         const IntersectionInfo &info, const Vec3f &p, const Vec3f &d) const
 {
-    return (p - info.p).lengthSq()/(-d.dot(info.Ng.normalized())*_totalArea);
+    return (p - info.p).lengthSq()/(-d.dot(info.Ng)*_totalArea);
 }
 
 bool TriangleMesh::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
