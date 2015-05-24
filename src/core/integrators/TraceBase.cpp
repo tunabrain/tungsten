@@ -67,7 +67,8 @@ Vec3f TraceBase::generalizedShadowRay(Ray &ray,
         if (_scene->intersect(ray, data, info) && info.primitive != endCap) {
             SurfaceScatterEvent event = makeLocalScatterEvent(data, info, ray, nullptr, nullptr);
 
-            Vec3f transmittance = info.bsdf->eval(event.makeForwardEvent());
+            // For forward events, the transport direction does not matter (since wi = -wo)
+            Vec3f transmittance = info.bsdf->eval(event.makeForwardEvent(), false);
             if (transmittance == 0.0f)
                 return Vec3f(0.0f);
 
@@ -140,7 +141,7 @@ bool TraceBase::lensSample(const Camera &camera,
 
     event.requestedLobe = BsdfLobes::AllButSpecular;
 
-    Vec3f f = event.info->bsdf->eval(event);
+    Vec3f f = event.info->bsdf->eval(event, true);
     if (f == 0.0f)
         return false;
 
@@ -180,7 +181,7 @@ Vec3f TraceBase::lightSample(const Primitive &light,
 
     event.requestedLobe = BsdfLobes::AllButSpecular;
 
-    Vec3f f = event.info->bsdf->eval(event);
+    Vec3f f = event.info->bsdf->eval(event, false);
     if (f == 0.0f)
         return Vec3f(0.0f);
 
@@ -208,7 +209,7 @@ Vec3f TraceBase::bsdfSample(const Primitive &light,
                             const Ray &parentRay)
 {
     event.requestedLobe = BsdfLobes::AllButSpecular;
-    if (!event.info->bsdf->sample(event))
+    if (!event.info->bsdf->sample(event, false))
         return Vec3f(0.0f);
     if (event.throughput == 0.0f)
         return Vec3f(0.0f);
@@ -403,7 +404,7 @@ Vec3f TraceBase::estimateDirect(SurfaceScatterEvent &event,
 }
 
 bool TraceBase::handleVolume(SampleGenerator &sampler, SampleGenerator &supplementalSampler,
-           const Medium *&medium, int bounce, bool handleLights, Ray &ray,
+           const Medium *&medium, int bounce, bool adjoint, Ray &ray,
            Vec3f &throughput, Vec3f &emission, bool &wasSpecular, bool &hitSurface,
            Medium::MediumState &state)
 {
@@ -413,7 +414,7 @@ bool TraceBase::handleVolume(SampleGenerator &sampler, SampleGenerator &suppleme
     throughput *= event.throughput;
     event.throughput = Vec3f(1.0f);
 
-    if (handleLights && bounce >= _settings.minBounces)
+    if (!adjoint && bounce >= _settings.minBounces)
         emission += throughput*medium->emission(event);
 
     if (!_settings.enableVolumeLightSampling)
@@ -422,7 +423,7 @@ bool TraceBase::handleVolume(SampleGenerator &sampler, SampleGenerator &suppleme
     if (event.t < event.maxT) {
         event.p += event.t*event.wi;
 
-        if (handleLights && _settings.enableVolumeLightSampling && bounce < _settings.maxBounces - 1) {
+        if (!adjoint && _settings.enableVolumeLightSampling && bounce < _settings.maxBounces - 1) {
             wasSpecular = false;
             emission += throughput*volumeEstimateDirect(event, medium, bounce + 1, ray);
         }
@@ -445,13 +446,14 @@ bool TraceBase::handleVolume(SampleGenerator &sampler, SampleGenerator &suppleme
 bool TraceBase::handleSurface(SurfaceScatterEvent &event, IntersectionTemporary &data,
                               IntersectionInfo &info, SampleGenerator &sampler,
                               SampleGenerator &supplementalSampler, const Medium *&medium,
-                              int bounce, bool handleLights, Ray &ray,
+                              int bounce, bool adjoint, Ray &ray,
                               Vec3f &throughput, Vec3f &emission, bool &wasSpecular,
                               Medium::MediumState &state)
 {
     const Bsdf &bsdf = *info.bsdf;
 
-    Vec3f transparency = bsdf.eval(event.makeForwardEvent());
+    // For forward events, the transport direction does not matter (since wi = -wo)
+    Vec3f transparency = bsdf.eval(event.makeForwardEvent(), false);
     float transparencyScalar = transparency.avg();
 
     Vec3f wo;
@@ -459,7 +461,7 @@ bool TraceBase::handleSurface(SurfaceScatterEvent &event, IntersectionTemporary 
         wo = ray.dir();
         throughput *= transparency/transparencyScalar;
     } else {
-        if (handleLights) {
+        if (!adjoint) {
             if (_settings.enableLightSampling) {
                 if ((wasSpecular || !info.primitive->isSamplable()) && bounce >= _settings.minBounces)
                     emission += info.primitive->emission(data, info)*throughput;
@@ -472,7 +474,7 @@ bool TraceBase::handleSurface(SurfaceScatterEvent &event, IntersectionTemporary 
         }
 
         event.requestedLobe = BsdfLobes::AllLobes;
-        if (!bsdf.sample(event))
+        if (!bsdf.sample(event, adjoint))
             return false;
 
         wo = event.frame.toGlobal(event.wo);

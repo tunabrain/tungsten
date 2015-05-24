@@ -232,9 +232,18 @@ float RoughDielectricBsdf::pdf(const SurfaceScatterEvent &event) const
     return pdfBase(event, sampleR, sampleT, roughness, _ior, _distribution);
 }
 
+float RoughDielectricBsdf::eta(const SurfaceScatterEvent &event) const
+{
+    if (event.wi.z()*event.wo.z() >= 0.0f)
+        return 1.0f;
+    else
+        return event.wi.z() < 0.0f ? _ior : _invIor;
+}
+
 void RoughDielectricBsdf::prepareForRender()
 {
     _distribution = Microfacet::stringToType(_distributionName);
+    _invIor = 1.0f/_ior;
 }
 
 }

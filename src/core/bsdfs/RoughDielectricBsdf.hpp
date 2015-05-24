@@ -12,6 +12,7 @@ class RoughDielectricBsdf : public Bsdf
 
     std::shared_ptr<Texture> _roughness;
     float _ior;
+    float _invIor;
     bool _enableT;
 
     Microfacet::Distribution _distribution;
@@ -34,6 +35,7 @@ public:
     virtual bool sample(SurfaceScatterEvent &event) const override;
     virtual Vec3f eval(const SurfaceScatterEvent &event) const override;
     virtual float pdf(const SurfaceScatterEvent &event) const override;
+    virtual float eta(const SurfaceScatterEvent &event) const override;
 
     virtual void prepareForRender() override;
 

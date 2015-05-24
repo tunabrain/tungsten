@@ -10,6 +10,7 @@
 #include "materials/Texture.hpp"
 
 #include "math/TangentFrame.hpp"
+#include "math/MathUtil.hpp"
 #include "math/Vec.hpp"
 
 #include "io/JsonSerializable.hpp"
@@ -60,9 +61,43 @@ public:
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
-    virtual bool sample(SurfaceScatterEvent &event) const = 0;
     virtual Vec3f eval(const SurfaceScatterEvent &event) const = 0;
+    virtual bool sample(SurfaceScatterEvent &event) const = 0;
     virtual float pdf(const SurfaceScatterEvent &event) const = 0;
+
+    inline bool sample(SurfaceScatterEvent &event, bool adjoint) const
+    {
+        if (!sample(event))
+            return false;
+
+        if (adjoint)
+            event.throughput *= std::abs(
+                (event.frame.toGlobal(event.wo).dot(event.info->Ng)*event.wi.z())/
+                (event.frame.toGlobal(event.wi).dot(event.info->Ng)*event.wo.z())); // TODO: Optimize
+        else
+            event.throughput *= sqr(eta(event));
+
+        return true;
+    }
+    inline Vec3f eval(const SurfaceScatterEvent &event, bool adjoint) const
+    {
+        Vec3f f = eval(event);
+
+        if (adjoint)
+            f *= std::abs(
+                 (event.frame.toGlobal(event.wo).dot(event.info->Ng)*event.wi.z())/
+                 (event.frame.toGlobal(event.wi).dot(event.info->Ng)*event.wo.z())); // TODO: Optimize
+        else
+            f *= sqr(eta(event));
+
+        return f;
+    }
+
+    // Returns etaI/etaO
+    virtual float eta(const SurfaceScatterEvent &/*event*/) const
+    {
+        return 1.0f;
+    }
 
     virtual void prepareForRender() {}
     virtual void teardownAfterRender() {}

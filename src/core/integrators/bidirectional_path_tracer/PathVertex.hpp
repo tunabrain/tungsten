@@ -98,10 +98,10 @@ public:
     }
 
     bool sampleRootVertex(TraceState &state);
-    bool sampleNextVertex(const TraceableScene &scene, TraceBase &tracer, TraceState &state,
+    bool sampleNextVertex(const TraceableScene &scene, TraceBase &tracer, TraceState &state, bool adjoint,
             PathVertex *prev, PathEdge *prevEdge, PathVertex &next, PathEdge &nextEdge);
 
-    Vec3f eval(const Vec3f &d) const;
+    Vec3f eval(const Vec3f &d, bool adjoint) const;
     void evalPdfs(const PathVertex *prev, const PathEdge *prevEdge, const PathVertex &next,
             const PathEdge &nextEdge, float *forward, float *backward) const;
 

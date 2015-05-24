@@ -51,7 +51,7 @@ bool DielectricBsdf::sample(SurfaceScatterEvent &event) const
     bool sampleR = event.requestedLobe.test(BsdfLobes::SpecularReflectionLobe);
     bool sampleT = event.requestedLobe.test(BsdfLobes::SpecularTransmissionLobe) && _enableT;
 
-    float eta = event.wi.z() < 0.0f ? _ior : 1.0f/_ior;
+    float eta = event.wi.z() < 0.0f ? _ior : _invIor;
 
     float cosThetaT = 0.0f;
     float F = Fresnel::dielectricReflectance(eta, std::abs(event.wi.z()), cosThetaT);
@@ -90,7 +90,7 @@ Vec3f DielectricBsdf::eval(const SurfaceScatterEvent &event) const
     bool evalR = event.requestedLobe.test(BsdfLobes::SpecularReflectionLobe);
     bool evalT = event.requestedLobe.test(BsdfLobes::SpecularTransmissionLobe) && _enableT;
 
-    float eta = event.wi.z() < 0.0f ? _ior : 1.0f/_ior;
+    float eta = event.wi.z() < 0.0f ? _ior : _invIor;
     float cosThetaT = 0.0f;
     float F = Fresnel::dielectricReflectance(eta, std::abs(event.wi.z()), cosThetaT);
 
@@ -112,7 +112,7 @@ float DielectricBsdf::pdf(const SurfaceScatterEvent &event) const
     bool sampleR = event.requestedLobe.test(BsdfLobes::SpecularReflectionLobe);
     bool sampleT = event.requestedLobe.test(BsdfLobes::SpecularTransmissionLobe) && _enableT;
 
-    float eta = event.wi.z() < 0.0f ? _ior : 1.0f/_ior;
+    float eta = event.wi.z() < 0.0f ? _ior : _invIor;
     float cosThetaT = 0.0f;
     float F = Fresnel::dielectricReflectance(eta, std::abs(event.wi.z()), cosThetaT);
 
@@ -129,12 +129,22 @@ float DielectricBsdf::pdf(const SurfaceScatterEvent &event) const
     }
 }
 
+float DielectricBsdf::eta(const SurfaceScatterEvent &event) const
+{
+    if (event.wi.z()*event.wo.z() >= 0.0f)
+        return 1.0f;
+    else
+        return event.wi.z() < 0.0f ? _ior : _invIor;
+}
+
 void DielectricBsdf::prepareForRender()
 {
     if (_enableT)
         _lobes = BsdfLobes(BsdfLobes::SpecularReflectionLobe | BsdfLobes::SpecularTransmissionLobe);
     else
         _lobes = BsdfLobes(BsdfLobes::SpecularReflectionLobe);
+
+    _invIor = 1.0f/_ior;
 }
 
 }

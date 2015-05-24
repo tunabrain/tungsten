@@ -67,7 +67,7 @@ void LightPath::tracePath(const TraceableScene &scene, TraceBase &tracer, Sample
 
     _length = 1;
     while (state.bounce < _maxLength) {
-        if (!_vertices[_length - 1].sampleNextVertex(scene, tracer, state,
+        if (!_vertices[_length - 1].sampleNextVertex(scene, tracer, state, _adjoint,
                 _length == 1 ? nullptr : &_vertices[_length - 2],
                 _length == 1 ? nullptr : &_edges[_length - 2],
                 _vertices[_length], _edges[_length - 1]))
@@ -125,10 +125,13 @@ Vec3f LightPath::bdptConnect(const TraceableScene &scene, const LightPath &camer
     const PathVertex &b = camera[t - 1];
 
     PathEdge edge(a, b);
+    // Catch the case where both vertices land on the same surface
+    if (a.cosineFactor(edge.d) < 1e-5f || b.cosineFactor(edge.d) < 1e-5f)
+        return Vec3f(0.0f);
     if (scene.occluded(Ray(a.pos(), edge.d, 1e-4f, edge.r*(1.0f - 1e-4f))))
         return Vec3f(0.0f);
 
-    Vec3f unweightedContrib = a.throughput()*a.eval(edge.d)*b.eval(-edge.d)*b.throughput()/edge.rSq;
+    Vec3f unweightedContrib = a.throughput()*a.eval(edge.d, true)*b.eval(-edge.d, false)*b.throughput()/edge.rSq;
 
     return unweightedContrib*misWeight(camera, emitter, edge, s, t);
 }
@@ -148,7 +151,7 @@ bool LightPath::bdptCameraConnect(const TraceableScene &scene, const LightPath &
     if (!b.camera()->evalDirection(sampler, b.cameraRecord().point, DirectionSample(-edge.d), splatWeight, pixel))
         return false;
 
-    weight = splatWeight*b.throughput()*a.eval(edge.d)*a.throughput()/edge.rSq;
+    weight = splatWeight*b.throughput()*a.eval(edge.d, true)*a.throughput()/edge.rSq;
     weight *= misWeight(camera, emitter, edge, s, 1);
 
     return true;
@@ -169,7 +172,7 @@ void LightPath::samplePathsInterleaved(LightPath &cameraPath, LightPath &emitter
         if (cameraPathValid) {
             cameraLength++;
             cameraPathValid = cameraLength < cameraPath.maxLength() &&
-                    cameraPath[cameraLength - 1].sampleNextVertex(scene, tracer, cameraState,
+                    cameraPath[cameraLength - 1].sampleNextVertex(scene, tracer, cameraState, false,
                             cameraLength == 1 ? nullptr : &cameraPath[cameraLength - 2],
                             cameraLength == 1 ? nullptr : &cameraPath.edge(cameraLength - 2),
                             cameraPath[cameraLength], cameraPath.edge(cameraLength - 1));
@@ -177,7 +180,7 @@ void LightPath::samplePathsInterleaved(LightPath &cameraPath, LightPath &emitter
         if (emitterPathValid) {
             emitterLength++;
             emitterPathValid = emitterLength < emitterPath.maxLength() &&
-                    emitterPath[emitterLength - 1].sampleNextVertex(scene, tracer, emitterState,
+                    emitterPath[emitterLength - 1].sampleNextVertex(scene, tracer, emitterState, true,
                             emitterLength == 1 ? nullptr : &emitterPath[emitterLength - 2],
                             emitterLength == 1 ? nullptr : &emitterPath.edge(emitterLength - 2),
                             emitterPath[emitterLength], emitterPath.edge(emitterLength - 1));

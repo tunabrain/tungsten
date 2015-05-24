@@ -12,6 +12,7 @@ class LightPath
 {
     int _maxLength;
     int _length;
+    bool _adjoint;
     std::unique_ptr<PathVertex[]> _vertices;
     std::unique_ptr<PathEdge[]> _edges;
 
@@ -22,6 +23,7 @@ public:
     LightPath(int maxLength)
     : _maxLength(maxLength),
       _length(0),
+      _adjoint(false),
       _vertices(new PathVertex[maxLength + 4]),
       _edges(new PathEdge[maxLength + 4])
     {
@@ -30,11 +32,13 @@ public:
     void startCameraPath(const Camera *camera, Vec2u pixel)
     {
         _vertices[0] = PathVertex(camera, pixel);
+        _adjoint = false;
     }
 
     void startEmitterPath(const Primitive *emitter, float emitterPdf)
     {
         _vertices[0] = PathVertex(emitter, emitterPdf);
+        _adjoint = true;
     }
 
     void tracePath(const TraceableScene &scene, TraceBase &tracer, SampleGenerator &sampler,

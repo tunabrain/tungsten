@@ -78,7 +78,7 @@ void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRan
                 Photon &p = surfaceRange.addPhoton();
                 p.pos = info.p;
                 p.dir = ray.dir();
-                p.power = throughput;
+                p.power = throughput*std::abs(info.Ns.dot(ray.dir())/info.Ng.dot(ray.dir()));
             }
         }
 
@@ -88,7 +88,7 @@ void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRan
         if (hitSurface) {
             event = makeLocalScatterEvent(data, info, ray, &sampler, &supplementalSampler);
             if (!handleSurface(event, data, info, sampler, supplementalSampler, medium, bounce,
-                    false, ray, throughput, emission, wasSpecular, state))
+                    true, ray, throughput, emission, wasSpecular, state))
                 break;
         }
 
@@ -149,7 +149,7 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
 
         SurfaceScatterEvent event = makeLocalScatterEvent(data, info, ray, &sampler, &supplementalSampler);
 
-        Vec3f transparency = bsdf.eval(event.makeForwardEvent());
+        Vec3f transparency = bsdf.eval(event.makeForwardEvent(), false);
         float transparencyScalar = transparency.avg();
 
         Vec3f wo;
@@ -158,7 +158,7 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
             throughput *= transparency/transparencyScalar;
         } else {
             event.requestedLobe = BsdfLobes::SpecularLobe;
-            if (!bsdf.sample(event))
+            if (!bsdf.sample(event, false))
                 break;
 
             wo = event.frame.toGlobal(event.wo);
@@ -199,7 +199,9 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
     Vec3f surfaceEstimate(0.0f);
     for (int i = 0; i < count; ++i) {
         event.wo = event.frame.toLocal(-_photonQuery[i]->dir);
-        surfaceEstimate += _photonQuery[i]->power*bsdf.eval(event)/std::abs(event.wo.z());
+        // Asymmetry due to shading normals already compensated for when storing the photon,
+        // so we don't use the adjoint BSDF here
+        surfaceEstimate += _photonQuery[i]->power*bsdf.eval(event, false)/std::abs(event.wo.z());
     }
     float radiusSq = count == int(_settings.gatherCount) ? _distanceQuery[0] : gatherRadius*gatherRadius;
     result += throughput*surfaceEstimate*(INV_PI/radiusSq);

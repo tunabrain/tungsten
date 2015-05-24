@@ -40,7 +40,7 @@ bool PathVertex::sampleRootVertex(TraceState &state)
     }
 }
 
-bool PathVertex::sampleNextVertex(const TraceableScene &scene, TraceBase &tracer, TraceState &state,
+bool PathVertex::sampleNextVertex(const TraceableScene &scene, TraceBase &tracer, TraceState &state, bool adjoint,
         PathVertex *prev, PathEdge *prevEdge, PathVertex &next, PathEdge &nextEdge)
 {
     Vec3f weight;
@@ -74,7 +74,7 @@ bool PathVertex::sampleNextVertex(const TraceableScene &scene, TraceBase &tracer
         Vec3f scatterWeight(1.0f);
         Vec3f emission(0.0f);
         bool scattered = tracer.handleSurface(record.event, record.data, record.info, state.sampler,
-                state.supplementalSampler, state.medium, state.bounce, false, state.ray,
+                state.supplementalSampler, state.medium, state.bounce, adjoint, state.ray,
                 scatterWeight, emission, state.wasSpecular, state.mediumState);
         if (!scattered)
             return false;
@@ -123,7 +123,7 @@ bool PathVertex::sampleNextVertex(const TraceableScene &scene, TraceBase &tracer
     return true;
 }
 
-Vec3f PathVertex::eval(const Vec3f &d) const
+Vec3f PathVertex::eval(const Vec3f &d, bool adjoint) const
 {
     switch (_type) {
     case EmitterVertex:
@@ -133,7 +133,8 @@ Vec3f PathVertex::eval(const Vec3f &d) const
     case SurfaceVertex:
         return _sampler.bsdf->eval(_record.surface.event.makeWarpedQuery(
                 _record.surface.event.wi,
-                _record.surface.event.frame.toLocal(d)));
+                _record.surface.event.frame.toLocal(d)),
+                adjoint);
     case VolumeVertex:
         return _sampler.medium->phaseEval(_record.volume.makeWarpedQuery(_record.volume.wi, d));
     default:

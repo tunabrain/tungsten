@@ -95,7 +95,7 @@ void LightTracer::traceSample(SampleGenerator &sampler, SampleGenerator &supplem
                 _splatBuffer->splat(pixel, weight*throughput);
 
             if (!handleSurface(event, data, info, sampler, supplementalSampler, medium, bounce,
-                    false, ray, throughput, emission, wasSpecular, state))
+                    true, ray, throughput, emission, wasSpecular, state))
                     break;
         }
 
