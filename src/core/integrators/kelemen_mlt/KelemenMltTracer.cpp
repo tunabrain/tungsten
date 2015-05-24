@@ -63,9 +63,10 @@ void KelemenMltTracer::startSampleChain(int chainLength)
     sampler.accept();
     sampler.setHelperGenerator(&_sampler);
 
-    float currentWeight = 0.0f;
+    float accumulatedWeight = 0.0f;
     for (int i = 1; i < chainLength; ++i) {
-        sampler.setLargeStep(_sampler.next1D() < _settings.largeStepProbability);
+        bool largeStep = _sampler.next1D() < _settings.largeStepProbability;
+        sampler.setLargeStep(largeStep);
 
         Vec2u proposedPixel;
         Vec3f proposedF;
@@ -74,21 +75,24 @@ void KelemenMltTracer::startSampleChain(int chainLength)
 
         float a = currentI == 0.0f ? 1.0f : min(proposedI/currentI, 1.0f);
 
-        currentWeight += 1.0f - a;
+        float currentWeight = (1.0f - a)/((currentI/weight) + _settings.largeStepProbability);
+        float proposedWeight = (a + (largeStep ? 1.0f : 0.0f))/((proposedI/weight) + _settings.largeStepProbability);
+
+        accumulatedWeight += currentWeight;
 
         if (_sampler.next1D() < a) {
             if (currentI != 0.0f)
-                _splatBuffer->splat(currentPixel, currentF*(weight*currentWeight/currentI));
+                _splatBuffer->splat(currentPixel, currentF*accumulatedWeight);
 
             currentPixel = proposedPixel;
             currentF = proposedF;
             currentI = proposedI;
-            currentWeight = a;
+            accumulatedWeight = proposedWeight;
 
             sampler.accept();
         } else {
             if (proposedI != 0.0f)
-                _splatBuffer->splat(proposedPixel, proposedF*(weight*a/proposedI));
+                _splatBuffer->splat(proposedPixel, proposedF*proposedWeight);
 
             sampler.reject();
         }
