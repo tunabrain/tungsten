@@ -127,6 +127,7 @@ public:
                 }
                 for (int i = sample.time + 1; i < _currentTime; ++i)
                     sample.value = mutate(sample.value);
+                sample.time = _currentTime - 1;
                 push(idx);
                 sample.value = mutate(sample.value);
             }
