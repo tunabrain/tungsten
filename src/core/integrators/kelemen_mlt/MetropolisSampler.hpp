@@ -49,7 +49,7 @@ class MetropolisSampler : public SampleGenerator
         bool negative = random < 0.5f;
         random = negative ? random*2.0f : (random - 0.5f)*2.0f;
 
-        float delta = S2*std::exp(-Factor*random);
+        float delta = S2*std::exp(Factor*random);
         if (negative) {
             value -= delta;
             if (value < 0.0f)
