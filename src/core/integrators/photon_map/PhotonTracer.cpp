@@ -22,13 +22,17 @@ void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRan
     float u = supplementalSampler.next1D();
     int lightIdx;
     _lightSampler->warp(u, lightIdx);
+    const Primitive &light = *_scene->lights()[lightIdx];
 
-    LightSample sample(&sampler);
-    if (!_scene->lights()[lightIdx]->sampleOutboundDirection(_threadId, sample))
+    PositionSample point;
+    if (!light.samplePosition(sampler, point))
+        return;
+    DirectionSample direction;
+    if (!light.sampleDirection(sampler, point, direction))
         return;
 
-    Ray ray(sample.p, sample.d);
-    Vec3f throughput(sample.weight/_lightSampler->pdf(lightIdx));
+    Ray ray(point.p, direction.d);
+    Vec3f throughput(point.weight*direction.weight/_lightSampler->pdf(lightIdx));
 
     SurfaceScatterEvent event;
     IntersectionTemporary data;
@@ -36,13 +40,13 @@ void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRan
     Medium::MediumState state;
     state.reset();
     Vec3f emission(0.0f);
-    const Medium *medium = sample.medium;
+    const Medium *medium = nullptr; // TODO: Media
 
     int bounce = 0;
     bool wasSpecular = true;
     bool hitSurface = true;
     bool didHit = _scene->intersect(ray, data, info);
-    while ((didHit || medium) && bounce < _settings.maxBounces - 2) {
+    while ((didHit || medium) && bounce < _settings.maxBounces - 1) {
         if (medium) {
             VolumeScatterEvent event(&sampler, &supplementalSampler, throughput, ray.pos(), ray.dir(), ray.farT());
             if (!medium->sampleDistance(event, state))
