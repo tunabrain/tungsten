@@ -720,7 +720,7 @@ bool TraceableMinecraftMap::invertParametrization(Vec2f /*uv*/, Vec3f &/*pos*/) 
     return false;
 }
 
-bool TraceableMinecraftMap::isDelta() const
+bool TraceableMinecraftMap::isDirac() const
 {
     return false;
 }

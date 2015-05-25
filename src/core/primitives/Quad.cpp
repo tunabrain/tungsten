@@ -248,7 +248,7 @@ bool Quad::invertParametrization(Vec2f uv, Vec3f &pos) const
     return true;
 }
 
-bool Quad::isDelta() const
+bool Quad::isDirac() const
 {
     return false;
 }

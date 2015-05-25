@@ -73,7 +73,7 @@ public:
 
     virtual bool invertParametrization(Vec2f uv, Vec3f &pos) const override;
 
-    virtual bool isDelta() const override;
+    virtual bool isDirac() const override;
     virtual bool isInfinite() const override;
 
     virtual float approximateRadiance(uint32 threadIndex, const Vec3f &p) const override;

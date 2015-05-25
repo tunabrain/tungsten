@@ -52,7 +52,7 @@ float LightPath::misWeight(const LightPath &camera, const LightPath &emitter,
         if (connectable[i - 1] && connectable[i])
             weight += pi;
     }
-    if (!emitter[0].emitter()->isDelta())
+    if (!emitter[0].emitter()->isDirac())
         weight += pi*pdfBackward[0]/pdfForward[0];
 
     return 1.0f/weight;

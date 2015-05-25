@@ -121,7 +121,7 @@ bool InfiniteSphereCap::invertParametrization(Vec2f /*uv*/, Vec3f &/*pos*/) cons
     return false;
 }
 
-bool InfiniteSphereCap::isDelta() const
+bool InfiniteSphereCap::isDirac() const
 {
     return false;
 }

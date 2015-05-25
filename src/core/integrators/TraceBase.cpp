@@ -110,7 +110,7 @@ Vec3f TraceBase::attenuatedEmission(const Primitive &light,
 {
     CONSTEXPR float fudgeFactor = 1.0f + 1e-3f;
 
-    if (light.isDelta()) {
+    if (light.isDirac()) {
         ray.setFarT(expectedDist);
     } else {
         if (!light.intersect(ray, data) || ray.farT()*fudgeFactor < expectedDist)
@@ -203,7 +203,7 @@ Vec3f TraceBase::lightSample(const Primitive &light,
 
     Vec3f lightF = f*e/sample.pdf;
 
-    if (!light.isDelta())
+    if (!light.isDirac())
         lightF *= SampleWarp::powerHeuristic(sample.pdf, event.info->bsdf->pdf(event));
 
     return lightF;
@@ -273,7 +273,7 @@ Vec3f TraceBase::volumeLightSample(VolumeScatterEvent &event,
 
     Vec3f lightF = f*e/sample.pdf;
 
-    if (!light.isDelta() && performMis)
+    if (!light.isDirac() && performMis)
         lightF *= SampleWarp::powerHeuristic(sample.pdf, medium->phasePdf(event));
 
     return lightF;
@@ -319,7 +319,7 @@ Vec3f TraceBase::sampleDirect(const Primitive &light,
         return Vec3f(0.0f);
 
     result += lightSample(light, event, medium, bounce, parentRay);
-    if (!light.isDelta())
+    if (!light.isDirac())
         result += bsdfSample(light, event, medium, bounce, parentRay);
 
     return result;
@@ -335,7 +335,7 @@ Vec3f TraceBase::volumeSampleDirect(const Primitive &light,
     bool mis = true;//medium->suggestMis();
 
     Vec3f result = volumeLightSample(event, light, medium, mis, bounce, parentRay);
-    if (!light.isDelta() && mis)
+    if (!light.isDirac() && mis)
         result += volumePhaseSample(light, event, medium, bounce, parentRay);
 
     return result;

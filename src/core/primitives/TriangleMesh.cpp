@@ -531,7 +531,7 @@ bool TriangleMesh::invertParametrization(Vec2f /*uv*/, Vec3f &/*pos*/) const
     return false;
 }
 
-bool TriangleMesh::isDelta() const
+bool TriangleMesh::isDirac() const
 {
     return _verts.empty() || _tris.empty();
 }

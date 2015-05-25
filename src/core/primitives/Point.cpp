@@ -97,7 +97,7 @@ bool Point::invertParametrization(Vec2f /*uv*/, Vec3f &/*pos*/) const
     return false;
 }
 
-bool Point::isDelta() const
+bool Point::isDirac() const
 {
     return true;
 }

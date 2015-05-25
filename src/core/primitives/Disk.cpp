@@ -180,7 +180,7 @@ bool Disk::invertParametrization(Vec2f uv, Vec3f &pos) const
     return true;
 }
 
-bool Disk::isDelta() const
+bool Disk::isDirac() const
 {
     return false;
 }

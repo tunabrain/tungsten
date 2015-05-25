@@ -171,7 +171,7 @@ bool Cube::invertParametrization(Vec2f /*uv*/, Vec3f &/*pos*/) const
     return false;
 }
 
-bool Cube::isDelta() const
+bool Cube::isDirac() const
 {
     return false;
 }

@@ -250,7 +250,7 @@ bool MultiQuadLight::invertParametrization(Vec2f /*uv*/, Vec3f &/*pos*/) const
     return false;
 }
 
-bool MultiQuadLight::isDelta() const
+bool MultiQuadLight::isDirac() const
 {
     return false;
 }

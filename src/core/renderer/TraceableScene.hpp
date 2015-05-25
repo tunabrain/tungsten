@@ -107,7 +107,7 @@ public:
 
             if (m->isInfinite()) {
                 _infinites.push_back(m);
-            } else if (!m->isDelta()) {
+            } else if (!m->isDirac()) {
                 finiteCount++;
             }
 
@@ -128,7 +128,7 @@ public:
             _scene = new embree::VirtualScene(finiteCount, "bvh2");
             embree::VirtualScene::Object *objects = _scene->objects;
             for (std::shared_ptr<Primitive> &m : _primitives) {
-                if (m->isInfinite() || m->isDelta())
+                if (m->isInfinite() || m->isDirac())
                     continue;
 
                 if (m->needsRayTransform()) {
@@ -151,7 +151,7 @@ public:
             _intersector = embree::rtcQueryIntersector1(_scene, "fast");
         } else {
             for (std::shared_ptr<Primitive> &m : _primitives)
-                if (!m->isInfinite() && !m->isDelta())
+                if (!m->isInfinite() && !m->isDirac())
                     _finites.push_back(m.get());
         }
 

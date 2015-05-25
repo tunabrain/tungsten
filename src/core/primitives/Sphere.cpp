@@ -182,7 +182,7 @@ bool Sphere::invertParametrization(Vec2f uv, Vec3f &pos) const
     return true;
 }
 
-bool Sphere::isDelta() const
+bool Sphere::isDirac() const
 {
     return false;
 }

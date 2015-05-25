@@ -554,7 +554,7 @@ bool Curves::invertParametrization(Vec2f /*uv*/, Vec3f &/*pos*/) const
     return false;
 }
 
-bool Curves::isDelta() const
+bool Curves::isDirac() const
 {
     return _nodeCount == 0 || _curveCount == 0;
 }

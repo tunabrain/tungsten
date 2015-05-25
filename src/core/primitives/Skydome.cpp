@@ -161,7 +161,7 @@ bool Skydome::invertParametrization(Vec2f /*uv*/, Vec3f &/*pos*/) const
     return false;
 }
 
-bool Skydome::isDelta() const
+bool Skydome::isDirac() const
 {
     return false;
 }

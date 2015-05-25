@@ -153,7 +153,7 @@ bool InfiniteSphere::invertParametrization(Vec2f /*uv*/, Vec3f &/*pos*/) const
     return false;
 }
 
-bool InfiniteSphere::isDelta() const
+bool InfiniteSphere::isDirac() const
 {
     return false;
 }
