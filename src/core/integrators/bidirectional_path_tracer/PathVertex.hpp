@@ -7,6 +7,8 @@
 
 #include "samplerecords/VolumeScatterEvent.hpp"
 
+#include "cameras/Camera.hpp"
+
 #include "bsdfs/Bsdf.hpp"
 
 namespace Tungsten {
@@ -15,7 +17,6 @@ class TraceableScene;
 class TraceState;
 class TraceBase;
 struct PathEdge;
-class Camera;
 class Medium;
 
 class PathVertex
@@ -77,7 +78,7 @@ public:
     : _type(CameraVertex),
       _record(CameraRecord(pixel)),
       _sampler(camera),
-      _connectable(true)
+      _connectable(!camera->isFilterDirac())
     {
     }
     PathVertex(const Bsdf *bsdf, const SurfaceRecord &surface, const Vec3f &throughput_)
