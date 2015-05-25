@@ -112,7 +112,7 @@ Vec3f LightPath::bdptWeightedPathEmission(int minLength, int maxLength) const
             if (connectable[i - 1] && connectable[i])
                 weight += pi;
         }
-        result += emission/weight;
+        result += _vertices[t - 1].throughput()*emission/weight;
     }
 
     return result;
