@@ -8,31 +8,23 @@ PhotonTracer::PhotonTracer(TraceableScene *scene, const PhotonMapSettings &setti
   _photonQuery(new const Photon *[settings.gatherCount]),
   _distanceQuery(new float[settings.gatherCount])
 {
-    std::vector<float> lightWeights(scene->lights().size());
-    for (size_t i = 0; i < scene->lights().size(); ++i) {
-        scene->lights()[i]->makeSamplable(_threadId);
-        lightWeights[i] = 1.0f; // TODO
-    }
-    _lightSampler.reset(new Distribution1D(std::move(lightWeights)));
 }
 
 void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRange &volumeRange,
         SampleGenerator &sampler, SampleGenerator &supplementalSampler)
 {
-    float u = supplementalSampler.next1D();
-    int lightIdx;
-    _lightSampler->warp(u, lightIdx);
-    const Primitive &light = *_scene->lights()[lightIdx];
+    float lightPdf;
+    const Primitive *light = chooseLightAdjoint(supplementalSampler, lightPdf);
 
     PositionSample point;
-    if (!light.samplePosition(sampler, point))
+    if (!light->samplePosition(sampler, point))
         return;
     DirectionSample direction;
-    if (!light.sampleDirection(sampler, point, direction))
+    if (!light->sampleDirection(sampler, point, direction))
         return;
 
     Ray ray(point.p, direction.d);
-    Vec3f throughput(point.weight*direction.weight/_lightSampler->pdf(lightIdx));
+    Vec3f throughput(point.weight*direction.weight/lightPdf);
 
     SurfaceScatterEvent event;
     IntersectionTemporary data;

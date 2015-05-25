@@ -10,6 +10,13 @@ TraceBase::TraceBase(TraceableScene *scene, const TraceSettings &settings, uint3
     _scene = scene;
     _lightPdf.resize(scene->lights().size());
 
+    std::vector<float> lightWeights(scene->lights().size());
+    for (size_t i = 0; i < scene->lights().size(); ++i) {
+        scene->lights()[i]->makeSamplable(_threadId);
+        lightWeights[i] = 1.0f; // TODO: Use light power here
+    }
+    _lightSampler.reset(new Distribution1D(std::move(lightWeights)));
+
     for (const auto &prim : scene->lights())
         prim->makeSamplable(_threadId);
 }
@@ -377,6 +384,15 @@ const Primitive *TraceBase::chooseLight(SampleGenerator &sampler, const Vec3f &p
         }
     }
     return nullptr;
+}
+
+const Primitive *TraceBase::chooseLightAdjoint(SampleGenerator &sampler, float &pdf)
+{
+    float u = sampler.next1D();
+    int lightIdx;
+    _lightSampler->warp(u, lightIdx);
+    pdf = _lightSampler->pdf(lightIdx);
+    return _scene->lights()[lightIdx].get();
 }
 
 Vec3f TraceBase::volumeEstimateDirect(VolumeScatterEvent &event,

@@ -6,26 +6,18 @@ LightTracer::LightTracer(TraceableScene *scene, const LightTracerSettings &setti
 : TraceBase(scene, settings, threadId),
   _splatBuffer(scene->cam().splatBuffer())
 {
-    std::vector<float> lightWeights(scene->lights().size());
-    for (size_t i = 0; i < scene->lights().size(); ++i) {
-        scene->lights()[i]->makeSamplable(_threadId);
-        lightWeights[i] = 1.0f; // TODO
-    }
-    _lightSampler.reset(new Distribution1D(std::move(lightWeights)));
 }
 
 void LightTracer::traceSample(SampleGenerator &sampler, SampleGenerator &supplementalSampler)
 {
-    float u = supplementalSampler.next1D();
-    int lightIdx;
-    _lightSampler->warp(u, lightIdx);
-    const Primitive &light = *_scene->lights()[lightIdx];
+    float lightPdf;
+    const Primitive *light = chooseLightAdjoint(supplementalSampler, lightPdf);
 
     PositionSample point;
-    if (!light.samplePosition(sampler, point))
+    if (!light->samplePosition(sampler, point))
         return;
 
-    Vec3f throughput(point.weight/_lightSampler->pdf(lightIdx));
+    Vec3f throughput(point.weight/lightPdf);
 
     LensSample splat;
     if (_scene->cam().sampleDirect(point.p, sampler, splat)) {
@@ -36,13 +28,13 @@ void LightTracer::traceSample(SampleGenerator &sampler, SampleGenerator &supplem
         Vec3f transmission = generalizedShadowRay(shadowRay, nullptr, nullptr, 0);
         if (transmission != 0.0f) {
             Vec3f value = throughput*transmission*splat.weight
-                    *light.evalDirectionalEmission(point, DirectionSample(splat.d));
+                    *light->evalDirectionalEmission(point, DirectionSample(splat.d));
             _splatBuffer->splat(splat.pixel, value);
         }
     }
 
     DirectionSample direction;
-    if (!light.sampleDirection(sampler, point, direction))
+    if (!light->sampleDirection(sampler, point, direction))
         return;
 
     Ray ray(point.p, direction.d);

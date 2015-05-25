@@ -11,12 +11,6 @@ BidirectionalPathTracer::BidirectionalPathTracer(TraceableScene *scene, const Bi
   _cameraPath(new LightPath(settings.maxBounces)),
   _emitterPath(new LightPath(settings.maxBounces))
 {
-    std::vector<float> lightWeights(scene->lights().size());
-    for (size_t i = 0; i < scene->lights().size(); ++i) {
-        scene->lights()[i]->makeSamplable(_threadId);
-        lightWeights[i] = 1.0f; // TODO
-    }
-    _lightSampler.reset(new Distribution1D(std::move(lightWeights)));
 }
 
 Vec3f BidirectionalPathTracer::traceSample(Vec2u pixel, SampleGenerator &sampler, SampleGenerator &supplementalSampler)
@@ -24,13 +18,11 @@ Vec3f BidirectionalPathTracer::traceSample(Vec2u pixel, SampleGenerator &sampler
     LightPath & cameraPath = * _cameraPath;
     LightPath &emitterPath = *_emitterPath;
 
-    float u = supplementalSampler.next1D();
-    int lightIdx;
-    _lightSampler->warp(u, lightIdx);
-    const Primitive *light = _scene->lights()[lightIdx].get();
+    float lightPdf;
+    const Primitive *light = chooseLightAdjoint(supplementalSampler, lightPdf);
 
     cameraPath.startCameraPath(&_scene->cam(), pixel);
-    emitterPath.startEmitterPath(light, _lightSampler->pdf(lightIdx));
+    emitterPath.startEmitterPath(light, lightPdf);
 
      cameraPath.tracePath(*_scene, *this, sampler, supplementalSampler);
     emitterPath.tracePath(*_scene, *this, sampler, supplementalSampler);

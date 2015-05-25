@@ -8,14 +8,11 @@
 
 #include "integrators/TraceBase.hpp"
 
-#include "sampling/Distribution1D.hpp"
-
 namespace Tungsten {
 
 class PhotonTracer : public TraceBase
 {
     PhotonMapSettings _settings;
-    std::unique_ptr<Distribution1D> _lightSampler;
     std::unique_ptr<const Photon *[]> _photonQuery;
     std::unique_ptr<float[]> _distanceQuery;
 

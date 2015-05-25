@@ -6,8 +6,6 @@
 
 #include "integrators/TraceBase.hpp"
 
-#include "sampling/Distribution1D.hpp"
-
 namespace Tungsten {
 
 struct PathVertex;
@@ -15,8 +13,6 @@ struct PathVertex;
 class BidirectionalPathTracer : public TraceBase
 {
     AtomicFramebuffer *_splatBuffer;
-
-    std::unique_ptr<Distribution1D> _lightSampler;
 
     std::unique_ptr<LightPath> _cameraPath;
     std::unique_ptr<LightPath> _emitterPath;

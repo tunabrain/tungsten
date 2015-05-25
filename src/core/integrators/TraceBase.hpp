@@ -9,6 +9,7 @@
 
 #include "sampling/SampleGenerator.hpp"
 #include "sampling/UniformSampler.hpp"
+#include "sampling/Distribution1D.hpp"
 #include "sampling/SampleWarp.hpp"
 
 #include "renderer/TraceableScene.hpp"
@@ -36,7 +37,10 @@ protected:
     TraceSettings _settings;
     uint32 _threadId;
 
+    // For computing direct lighting probabilities
     std::vector<float> _lightPdf;
+    // For sampling light sources in adjoint light tracing
+    std::unique_ptr<Distribution1D> _lightSampler;
 
     TraceBase(TraceableScene *scene, const TraceSettings &settings, uint32 threadId);
 
@@ -101,6 +105,7 @@ protected:
                         const Ray &parentRay);
 
     const Primitive *chooseLight(SampleGenerator &sampler, const Vec3f &p, float &weight);
+    const Primitive *chooseLightAdjoint(SampleGenerator &sampler, float &pdf);
 
     Vec3f volumeEstimateDirect(VolumeScatterEvent &event,
                         const Medium *medium,
