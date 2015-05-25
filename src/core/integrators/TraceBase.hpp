@@ -65,7 +65,7 @@ protected:
                     int bounce,
                     const Ray &parentRay,
                     Vec3f &weight,
-                    Vec2u &pixel);
+                    Vec2f &pixel);
 
     Vec3f lightSample(const Primitive &light,
                       SurfaceScatterEvent &event,

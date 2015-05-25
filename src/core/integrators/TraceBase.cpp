@@ -133,7 +133,7 @@ bool TraceBase::lensSample(const Camera &camera,
                            int bounce,
                            const Ray &parentRay,
                            Vec3f &weight,
-                           Vec2u &pixel)
+                           Vec2f &pixel)
 {
     LensSample sample;
     if (!camera.sampleDirect(event.info->p, *event.sampler, sample))

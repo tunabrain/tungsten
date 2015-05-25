@@ -4,7 +4,6 @@
 #include "sampling/Distribution2D.hpp"
 
 #include "math/MathUtil.hpp"
-#include "math/Bessel.hpp"
 #include "math/Angle.hpp"
 #include "math/Vec.hpp"
 
@@ -14,10 +13,7 @@
 
 namespace Tungsten {
 
-// Note: Although this class can load and store to Json, it does not qualify
-// as a JsonSerializable. It can never exist on its own, only as
-// a Camera member, so it does not derive from the serializable base
-// class.
+#define RFILTER_RESOLUTION 31
 
 class ReconstructionFilter
 {
@@ -29,25 +25,21 @@ class ReconstructionFilter
         MitchellNetravali,
         CatmullRom,
         Lanczos,
-        Airy,
     };
 
-    static CONSTEXPR int Resolution = 256;
-
     static Type stringToType(const std::string &s);
+    static float filterWidth(Type type);
 
     std::string _typeString;
     Type _type;
 
     float _width;
-    float _alpha;
+    float _binSize;
+    float _invBinSize;
+    float _filter[RFILTER_RESOLUTION + 1];
+    float _cdf[RFILTER_RESOLUTION + 1];
 
-public:
-    float _normalizationFactor;
-    float _offset;
-    std::unique_ptr<Distribution2D> _footprint;
-
-    inline float mitchellNetravali1D(float x) const
+    inline float mitchellNetravali(float x) const
     {
         CONSTEXPR float B = 1.0f/3.0f;
         CONSTEXPR float C = 1.0f/3.0f;
@@ -66,7 +58,7 @@ public:
             return 0.0f;
     }
 
-    inline float catmullRom1D(float x) const
+    inline float catmullRom(float x) const
     {
         if (x < 1.0f)
             return 1.0f/6.0f*((12.0f - 3.0f)*x*x*x + (-18.0f + 3.0f)*x*x + 6.0f);
@@ -76,97 +68,113 @@ public:
             return 0.0f;
     }
 
-    inline float lanczos1D(float x) const
+    inline float lanczos(float x) const
     {
         if (x == 0.0f)
             return 1.0f;
-        else if (x < _width)
-            return std::sin(PI*x)*std::sin(PI*x/_width)/(PI*PI*x*x);
+        else if (x < 2.0f)
+            return std::sin(PI*x)*std::sin(PI*x/2.0f)/(PI*PI*x*x/2.0f);
         else
             return 0.0f;
     }
 
-    float defaultWidth();
     void precompute();
 
+    void sample(float xi, float &u, float &pdf) const
+    {
+        bool negative = xi < 0.5f;
+        xi = negative ? xi*2.0f : (xi - 0.5f)*2.0f;
+
+        int idx = RFILTER_RESOLUTION - 1;
+        for (int i = 0; i < RFILTER_RESOLUTION - 1; ++i) {
+            if (xi < _cdf[i]) {
+                idx = i;
+                break;
+            }
+        }
+        pdf = _cdf[idx] - _cdf[idx - 1];
+        u = clamp(_binSize*(idx + (xi - _cdf[idx - 1])/pdf), 0.0f, 1.0f);
+        pdf *= 0.5f*_invBinSize;
+        if (negative)
+            u = -u;
+    }
+
 public:
-    ReconstructionFilter()
-    : _typeString("airy"),
-      _type(Airy),
-      _width(6.0f),
-      _alpha(1.5f),
-      _normalizationFactor(1.0f),
-      _offset(0.0f)
+    ReconstructionFilter(const std::string &name = "tent")
+    : _typeString(name),
+      _type(stringToType(name))
     {
         precompute();
     }
 
-    void fromJson(const rapidjson::Value &v);
-    rapidjson::Value toJson(rapidjson::Document::AllocatorType &allocator) const;
-
-    inline Vec2f sample(Vec2f uv, float &weight, float &pdf) const
+    inline Vec2f sample(Vec2f uv, float &pdf) const
     {
         if (_type == Dirac) {
-            weight = 1.0f;
             pdf = 1.0f;
             return Vec2f(0.0f);
         } else if (_type == Box) {
-            weight = 1.0f;
             pdf = 1.0f;
-            return uv*0.5f - 0.5f;
+            return uv - 0.5f;
         }
 
-        int row, col;
-        _footprint->warp(uv, row, col);
-        uv = ((uv + Vec2f(float(row), float(col)))*(2.0f/Resolution) - 1.0f)*_width;
-        float area = _width*_width*(4.0f/(Resolution*Resolution));
+        Vec2f result;
+        float pdfX, pdfY;
+        sample(uv.x(), result.x(), pdfX);
+        sample(uv.y(), result.y(), pdfY);
 
-        pdf = _footprint->pdf(row, col);
-        weight = eval(uv)*area/pdf;
-        return uv;
+        pdf = pdfX*pdfY;
+        return result;
     }
 
-    inline float eval(Vec2f uv) const
+    float eval(float x) const
     {
         switch (_type) {
         case Dirac:
             return 0.0f;
         case Box:
-            if (uv.x() >= -1.0f && uv.y() >= -1.0f && uv.x() <= 1.0f && uv.y() <= 1.0f)
-                return 1.0f;
-            else
-                return 0.0f;
+            return (x >= -0.5f && x <= -0.5f) ? 1.0f : 0.0f;
         case Tent:
-            return (3.0f*INV_PI)*max(1.0f - uv.length(), 0.0f);
-        case Gaussian:
-            return _normalizationFactor*max(std::exp(-_alpha*uv.lengthSq()) - _offset, 0.0f);
-        case MitchellNetravali:
-            return
-                mitchellNetravali1D(std::abs(uv.x()))*
-                mitchellNetravali1D(std::abs(uv.y()));
+            return 1.0f - std::abs(x);
+        case Gaussian: {
+            const float Alpha = 2.0f;
+            return max(std::exp(-Alpha*x*x) - std::exp(-Alpha*4.0f), 0.0f);
+        } case MitchellNetravali:
+            return mitchellNetravali(std::abs(x));
         case CatmullRom:
-            return
-                catmullRom1D(std::abs(uv.x()))*
-                catmullRom1D(std::abs(uv.y()));
+            return catmullRom(std::abs(x));
         case Lanczos:
-            return _normalizationFactor*lanczos1D(std::abs(uv.x()))*lanczos1D(std::abs(uv.y()));
-        case Airy: {
-            float r = uv.length()*3.5f;
-            if (r == 0.0f)
-                return _normalizationFactor;
-            else if (r < _width)
-                return _normalizationFactor*sqr(2.0f*Bessel::J1(r)/r);
-            else
-                return 0.0f;
-        }
+            return lanczos(std::abs(x));
         default:
             return 0.0f;
         }
     }
+
+    inline float evalApproximate(float x) const
+    {
+        return _filter[min(int(std::abs(x*_invBinSize)), RFILTER_RESOLUTION)];
+    }
+
+    float width() const
+    {
+        return _width;
+    }
+
+    const std::string &name() const
+    {
+        return _typeString;
+    }
+
+    bool isDirac() const
+    {
+        return _type == Dirac;
+    }
+
+    bool isBox() const
+    {
+        return _type == Box;
+    }
 };
 
 }
-
-
 
 #endif /* RECONSTRUCTIONFILTER_HPP_ */

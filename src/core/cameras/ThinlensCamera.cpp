@@ -105,8 +105,8 @@ rapidjson::Value ThinlensCamera::toJson(Allocator &allocator) const
 
 bool ThinlensCamera::generateSample(Vec2u pixel, SampleGenerator &sampler, Vec3f &throughput, Ray &ray) const
 {
-    float filterWeight, filterPdf;
-    Vec2f pixelUv = 0.5f + _filter.sample(sampler.next2D(), filterWeight, filterPdf);
+    float filterPdf;
+    Vec2f pixelUv = 0.5f + _filter.sample(sampler.next2D(), filterPdf);
     Vec2f lensUv = sampler.next2D();
 
     Vec3f planePos(
@@ -133,10 +133,14 @@ bool ThinlensCamera::generateSample(Vec2u pixel, SampleGenerator &sampler, Vec3f
             return false;
     }
 
-    throughput *= filterWeight;
     ray = Ray(_transform*lensPos, dir);
 
     return true;
+}
+
+bool ThinlensCamera::isDirac() const
+{
+    return false;
 }
 
 void ThinlensCamera::prepareForRender()

@@ -39,10 +39,10 @@ Vec3f BidirectionalPathTracer::traceSample(Vec2u pixel, SampleGenerator &sampler
                 continue;
 
             if (t == 1) {
-                Vec2u pixel;
+                Vec2f pixel;
                 Vec3f splatWeight;
                 if (LightPath::bdptCameraConnect(*_scene, cameraPath, emitterPath, s, sampler, splatWeight, pixel))
-                    _splatBuffer->splat(pixel, splatWeight);
+                    _splatBuffer->splatFiltered(pixel, splatWeight);
             } else {
                 result += LightPath::bdptConnect(*_scene, cameraPath, emitterPath, s, t);
             }

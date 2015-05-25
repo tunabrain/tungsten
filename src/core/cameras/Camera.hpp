@@ -70,8 +70,10 @@ public:
             DirectionSample &sample) const;
     virtual bool sampleDirect(const Vec3f &p, SampleGenerator &sampler, LensSample &sample) const;
     virtual bool evalDirection(SampleGenerator &sampler, const PositionSample &point,
-            const DirectionSample &direction, Vec3f &weight, Vec2u &pixel) const;
+            const DirectionSample &direction, Vec3f &weight, Vec2f &pixel) const;
     virtual float directionPdf(const PositionSample &point, const DirectionSample &direction) const;
+
+    virtual bool isDirac() const = 0;
 
     virtual bool generateSample(Vec2u pixel, SampleGenerator &sampler, Vec3f &throughput, Ray &ray) const = 0;
     virtual Mat4f approximateProjectionMatrix(int width, int height) const = 0;
@@ -167,6 +169,11 @@ public:
     AtomicFramebuffer *splatBuffer()
     {
         return _splatBuffer.get();
+    }
+
+    bool isFilterDirac() const
+    {
+        return _filter.isDirac();
     }
 
     void setTonemapString(const std::string &name)

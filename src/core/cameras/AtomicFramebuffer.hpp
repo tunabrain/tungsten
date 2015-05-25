@@ -1,6 +1,8 @@
 #ifndef ATOMICFRAMEBUFFER_HPP_
 #define ATOMICFRAMEBUFFER_HPP_
 
+#include "ReconstructionFilter.hpp"
+
 #include "math/Vec.hpp"
 
 #include "Debug.hpp"
@@ -19,6 +21,7 @@ class AtomicFramebuffer
 
     uint32 _w;
     uint32 _h;
+    ReconstructionFilter _filter;
 
     std::unique_ptr<Vec3fa[]> _buffer;
 
@@ -30,11 +33,40 @@ class AtomicFramebuffer
     }
 
 public:
-    AtomicFramebuffer(uint32 w, uint32 h)
+    AtomicFramebuffer(uint32 w, uint32 h, const ReconstructionFilter &filter)
     : _w(w),
       _h(h),
+      _filter(filter),
       _buffer(new Vec3fa[w*h])
     {
+    }
+
+    inline void splatFiltered(Vec2f pixel, Vec3f w)
+    {
+        if (_filter.isDirac()) {
+            return;
+        } else if (_filter.isBox()) {
+            splat(Vec2u(pixel), w);
+        } else {
+            float px = pixel.x() - 0.5f;
+            float py = pixel.y() - 0.5f;
+
+            uint32 minX = max(int(px + 1.0f - _filter.width()), 0);
+            uint32 maxX = min(int(px        + _filter.width()), int(_w) - 1);
+            uint32 minY = max(int(py + 1.0f - _filter.width()), 0);
+            uint32 maxY = min(int(py        + _filter.width()), int(_h) - 1);
+
+            // Maximum filter width is 2 pixels
+            float weightX[4], weightY[4];
+            for (uint32 x = minX; x <= maxX; ++x)
+                weightX[x - minX] = _filter.evalApproximate(x - px);
+            for (uint32 y = minY; y <= maxY; ++y)
+                weightY[y - minY] = _filter.evalApproximate(y - py);
+
+            for (uint32 y = minY; y <= maxY; ++y)
+                for (uint32 x = minX; x <= maxX; ++x)
+                    splat(Vec2u(x, y), w*weightX[x - minX]*weightY[y - minY]);
+        }
     }
 
     inline void splat(Vec2u pixel, Vec3f w)

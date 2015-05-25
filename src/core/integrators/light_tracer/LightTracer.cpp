@@ -29,7 +29,7 @@ void LightTracer::traceSample(SampleGenerator &sampler, SampleGenerator &supplem
         if (transmission != 0.0f) {
             Vec3f value = throughput*transmission*splat.weight
                     *light->evalDirectionalEmission(point, DirectionSample(splat.d));
-            _splatBuffer->splat(splat.pixel, value);
+            _splatBuffer->splatFiltered(splat.pixel, value);
         }
     }
 
@@ -82,9 +82,9 @@ void LightTracer::traceSample(SampleGenerator &sampler, SampleGenerator &supplem
             event = makeLocalScatterEvent(data, info, ray, &sampler, &supplementalSampler);
 
             Vec3f weight;
-            Vec2u pixel;
+            Vec2f pixel;
             if (lensSample(_scene->cam(), event, medium, bounce, ray, weight, pixel))
-                _splatBuffer->splat(pixel, weight*throughput);
+                _splatBuffer->splatFiltered(pixel, weight*throughput);
 
             if (!handleSurface(event, data, info, sampler, supplementalSampler, medium, bounce,
                     true, ray, throughput, emission, wasSpecular, state))

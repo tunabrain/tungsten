@@ -7,7 +7,7 @@ namespace Tungsten {
 
 struct LensSample
 {
-    Vec2u pixel;
+    Vec2f pixel;
     Vec3f d;
     float dist;
     float pdf;

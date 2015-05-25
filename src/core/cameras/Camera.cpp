@@ -47,7 +47,8 @@ void Camera::fromJson(const rapidjson::Value &v, const Scene &scene)
     if (const rapidjson::Value::Member *medium = v.FindMember("medium"))
         _medium = scene.fetchMedium(medium->value);
     if (const rapidjson::Value::Member *filter = v.FindMember("reconstruction_filter"))
-        _filter.fromJson(filter->value);
+        if (filter->value.IsString())
+            _filter = ReconstructionFilter(filter->value.GetString());
 
     if (const rapidjson::Value::Member *transform = v.FindMember("transform")) {
     	JsonUtils::fromJson(transform->value, _transform);
@@ -73,7 +74,7 @@ rapidjson::Value Camera::toJson(Allocator &allocator) const
     v.AddMember("resolution", JsonUtils::toJsonValue<uint32, 2>(_res, allocator), allocator);
     if (_medium)
         JsonUtils::addObjectMember(v, "medium", *_medium,  allocator);
-    v.AddMember("reconstruction_filter", _filter.toJson(allocator), allocator);
+    v.AddMember("reconstruction_filter", _filter.name().c_str(), allocator);
 
     rapidjson::Value tform(rapidjson::kObjectType);
     tform.AddMember("position", JsonUtils::toJsonValue<float, 3>(_pos,    allocator), allocator);
@@ -107,7 +108,7 @@ bool Camera::sampleDirect(const Vec3f &/*p*/, SampleGenerator &/*sampler*/, Lens
 }
 
 bool Camera::evalDirection(SampleGenerator &/*sampler*/, const PositionSample &/*point*/,
-        const DirectionSample &/*direction*/, Vec3f &/*weight*/, Vec2u &/*pixel*/) const
+        const DirectionSample &/*direction*/, Vec3f &/*weight*/, Vec2f &/*pixel*/) const
 {
     return false;
 }
@@ -138,7 +139,7 @@ void Camera::teardownAfterRender()
 
 void Camera::requestSplatBuffer()
 {
-    _splatBuffer.reset(new AtomicFramebuffer(_res.x(), _res.y()));
+    _splatBuffer.reset(new AtomicFramebuffer(_res.x(), _res.y(), _filter));
     _splats.resize(_res.x()*_res.y(), Vec3d(0.0));
     _splatWeight = 0;
 }

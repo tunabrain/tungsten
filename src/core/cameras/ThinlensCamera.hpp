@@ -37,6 +37,8 @@ public:
 
     virtual bool generateSample(Vec2u pixel, SampleGenerator &sampler, Vec3f &throughput, Ray &ray) const override;
 
+    virtual bool isDirac() const override;
+
     virtual void prepareForRender() override;
 
     virtual Mat4f approximateProjectionMatrix(int width, int height) const override;

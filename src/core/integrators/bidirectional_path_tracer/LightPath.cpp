@@ -138,7 +138,7 @@ Vec3f LightPath::bdptConnect(const TraceableScene &scene, const LightPath &camer
 
 bool LightPath::bdptCameraConnect(const TraceableScene &scene, const LightPath &camera,
         const LightPath &emitter, int s, SampleGenerator &sampler,
-        Vec3f &weight, Vec2u &pixel)
+        Vec3f &weight, Vec2f &pixel)
 {
     const PathVertex &a = emitter[s - 1];
     const PathVertex &b = camera[0];
