@@ -9,16 +9,63 @@ KelemenMltTracer::KelemenMltTracer(TraceableScene *scene, const KelemenMltSettin
   _splatBuffer(scene->cam().splatBuffer()),
   _settings(settings),
   _sampler(MathUtil::hash32(threadId)),
-  _pathCandidates(new PathCandidate[settings.initialSamplePool])
+  _currentSplats(new SplatQueue(_settings.maxBounces + 4)),
+  _proposedSplats(new SplatQueue(_settings.maxBounces + 4)),
+  _pathCandidates(new PathCandidate[settings.initialSamplePool]),
+  _cameraPath(new LightPath(settings.maxBounces)),
+  _emitterPath(new LightPath(settings.maxBounces))
 {
 }
 
-void KelemenMltTracer::tracePath(SampleGenerator &sampler, Vec2u &pixel, Vec3f &f, float &i)
+void KelemenMltTracer::tracePath(SampleGenerator &cameraSampler, SampleGenerator &emitterSampler,
+        SplatQueue &splatQueue)
 {
-    pixel = min(Vec2u(Vec2f(_scene->cam().resolution())*sampler.next2D()), _scene->cam().resolution());
+    splatQueue.clear();
 
-    f = traceSample(pixel, sampler, sampler);
-    i = f.luminance();
+    Vec2f resF(_scene->cam().resolution());
+    Vec2u pixel = min(Vec2u(resF*cameraSampler.next2D()), _scene->cam().resolution());
+
+    if (!_settings.bidirectional) {
+        splatQueue.addSplat(pixel, traceSample(pixel, cameraSampler, cameraSampler));
+        return;
+    }
+
+    LightPath & cameraPath = * _cameraPath;
+    LightPath &emitterPath = *_emitterPath;
+
+    float lightPdf;
+    const Primitive *light = chooseLightAdjoint(emitterSampler, lightPdf);
+
+    float lightSplatScale = 1.0f/resF.product();
+
+    cameraPath.startCameraPath(&_scene->cam(), pixel);
+    emitterPath.startEmitterPath(light, lightPdf);
+
+     cameraPath.tracePath(*_scene, *this,  cameraSampler,  cameraSampler);
+    emitterPath.tracePath(*_scene, *this, emitterSampler, emitterSampler);
+
+    int cameraLength =  cameraPath.length();
+    int  lightLength = emitterPath.length();
+
+    Vec3f primarySplat = cameraPath.bdptWeightedPathEmission(_settings.minBounces + 2, _settings.maxBounces + 1);
+    for (int s = 1; s <= lightLength; ++s) {
+        int lowerBound = max(_settings.minBounces - s + 2, 1);
+        int upperBound = min(_settings.maxBounces - s + 1, cameraLength);
+        for (int t = lowerBound; t <= upperBound; ++t) {
+            if (!cameraPath[t - 1].connectable() || !emitterPath[s - 1].connectable())
+                continue;
+
+            if (t == 1) {
+                Vec2f pixel;
+                Vec3f splatWeight;
+                if (LightPath::bdptCameraConnect(*_scene, cameraPath, emitterPath, s, emitterSampler, splatWeight, pixel))
+                    splatQueue.addFilteredSplat(pixel, splatWeight*lightSplatScale);
+            } else {
+                primarySplat += LightPath::bdptConnect(*_scene, cameraPath, emitterPath, s, t);
+            }
+        }
+    }
+    splatQueue.addSplat(pixel, primarySplat);
 }
 
 void KelemenMltTracer::selectSeedPath(int &idx, float &weight)
@@ -26,9 +73,9 @@ void KelemenMltTracer::selectSeedPath(int &idx, float &weight)
     for (int i = 0; i < _settings.initialSamplePool; ++i) {
         _pathCandidates[i].state = _sampler.state();
 
-        Vec2u pixel;
-        Vec3f f;
-        tracePath(_sampler, pixel, f, _pathCandidates[i].luminanceSum);
+        tracePath(_sampler, _sampler, *_currentSplats);
+
+        _pathCandidates[i].luminanceSum = _currentSplats->totalLuminance();
 
         if (i > 0)
             _pathCandidates[i].luminanceSum += _pathCandidates[i - 1].luminanceSum;
@@ -53,25 +100,26 @@ void KelemenMltTracer::startSampleChain(int chainLength)
     selectSeedPath(idx, weight);
 
     UniformSampler replaySampler(_pathCandidates[idx].state, _sampler.sequence());
-    MetropolisSampler sampler(&replaySampler, _settings.maxBounces*16);
+    MetropolisSampler cameraSampler(&replaySampler, _settings.maxBounces*16);
+    MetropolisSampler emitterSampler(&replaySampler, _settings.maxBounces*16);
 
-    Vec2u currentPixel;
-    Vec3f currentF;
-    float currentI;
-    tracePath(sampler, currentPixel, currentF, currentI);
+    tracePath(cameraSampler, emitterSampler, *_currentSplats);
 
-    sampler.accept();
-    sampler.setHelperGenerator(&_sampler);
+    cameraSampler.accept();
+    emitterSampler.accept();
+    cameraSampler.setHelperGenerator(&_sampler);
+    emitterSampler.setHelperGenerator(&_sampler);
 
     float accumulatedWeight = 0.0f;
     for (int i = 1; i < chainLength; ++i) {
         bool largeStep = _sampler.next1D() < _settings.largeStepProbability;
-        sampler.setLargeStep(largeStep);
+        cameraSampler.setLargeStep(largeStep);
+        emitterSampler.setLargeStep(largeStep);
 
-        Vec2u proposedPixel;
-        Vec3f proposedF;
-        float proposedI;
-        tracePath(sampler, proposedPixel, proposedF, proposedI);
+        tracePath(cameraSampler, emitterSampler, *_proposedSplats);
+
+        float currentI = _currentSplats->totalLuminance();
+        float proposedI = _proposedSplats->totalLuminance();
 
         float a = currentI == 0.0f ? 1.0f : min(proposedI/currentI, 1.0f);
 
@@ -82,19 +130,19 @@ void KelemenMltTracer::startSampleChain(int chainLength)
 
         if (_sampler.next1D() < a) {
             if (currentI != 0.0f)
-                _splatBuffer->splat(currentPixel, currentF*accumulatedWeight);
+                _currentSplats->apply(*_splatBuffer, accumulatedWeight);
 
-            currentPixel = proposedPixel;
-            currentF = proposedF;
-            currentI = proposedI;
+            std::swap(_currentSplats, _proposedSplats);
             accumulatedWeight = proposedWeight;
 
-            sampler.accept();
+            cameraSampler.accept();
+            emitterSampler.accept();
         } else {
             if (proposedI != 0.0f)
-                _splatBuffer->splat(proposedPixel, proposedF*proposedWeight);
+                _proposedSplats->apply(*_splatBuffer, proposedWeight);
 
-            sampler.reject();
+            cameraSampler.reject();
+            emitterSampler.reject();
         }
     }
 }

@@ -3,6 +3,9 @@
 
 #include "KelemenMltSettings.hpp"
 #include "MetropolisSampler.hpp"
+#include "SplatQueue.hpp"
+
+#include "integrators/bidirectional_path_tracer/LightPath.hpp"
 
 #include "integrators/path_tracer/PathTracer.hpp"
 
@@ -22,9 +25,14 @@ class KelemenMltTracer : public PathTracer
     KelemenMltSettings _settings;
     UniformSampler _sampler;
 
+    std::unique_ptr<SplatQueue> _currentSplats;
+    std::unique_ptr<SplatQueue> _proposedSplats;
     std::unique_ptr<PathCandidate[]> _pathCandidates;
 
-    void tracePath(SampleGenerator &sampler, Vec2u &pixel, Vec3f &f, float &i);
+    std::unique_ptr<LightPath> _cameraPath;
+    std::unique_ptr<LightPath> _emitterPath;
+
+    void tracePath(SampleGenerator &cameraSampler, SampleGenerator &emitterSampler, SplatQueue &splatQueue);
 
     void selectSeedPath(int &idx, float &weight);
 
