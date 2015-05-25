@@ -9,6 +9,8 @@ namespace Tungsten {
 
 class PathTracer : public TraceBase
 {
+    PathTracerSettings _settings;
+
 public:
     PathTracer(TraceableScene *scene, const PathTracerSettings &settings, uint32 threadId);
 

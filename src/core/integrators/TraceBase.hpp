@@ -122,14 +122,14 @@ public:
             Ray &ray, SampleGenerator *sampler, SampleGenerator *supplementalSampler) const;
 
     bool handleVolume(SampleGenerator &sampler, SampleGenerator &supplementalSampler,
-               const Medium *&medium, int bounce, bool adjoint, Ray &ray,
+               const Medium *&medium, int bounce, bool adjoint, bool enableLightSampling, Ray &ray,
                Vec3f &throughput, Vec3f &emission, bool &wasSpecular, bool &hitSurface,
                Medium::MediumState &state);
 
     bool handleSurface(SurfaceScatterEvent &event, IntersectionTemporary &data,
                        IntersectionInfo &info, SampleGenerator &sampler,
                        SampleGenerator &supplementalSampler, const Medium *&medium,
-                       int bounce, bool adjoint, Ray &ray,
+                       int bounce, bool adjoint, bool enableLightSampling, Ray &ray,
                        Vec3f &throughput, Vec3f &emission, bool &wasSpecular,
                        Medium::MediumState &state);
 };

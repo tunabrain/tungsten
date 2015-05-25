@@ -3,7 +3,8 @@
 namespace Tungsten {
 
 PathTracer::PathTracer(TraceableScene *scene, const PathTracerSettings &settings, uint32 threadId)
-: TraceBase(scene, settings, threadId)
+: TraceBase(scene, settings, threadId),
+  _settings(settings)
 {
 }
 
@@ -36,7 +37,7 @@ Vec3f PathTracer::traceSample(Vec2u pixel, SampleGenerator &sampler, SampleGener
     bool hitSurface = true;
     while ((didHit || medium) && bounce < _settings.maxBounces) {
         if (medium && !handleVolume(sampler, supplementalSampler, medium, bounce,
-                false, ray, throughput, emission, wasSpecular, hitSurface, state))
+                false, _settings.enableVolumeLightSampling, ray, throughput, emission, wasSpecular, hitSurface, state))
             break;
 
         if (hitSurface && !didHit)
@@ -45,7 +46,7 @@ Vec3f PathTracer::traceSample(Vec2u pixel, SampleGenerator &sampler, SampleGener
         if (hitSurface) {
             event = makeLocalScatterEvent(data, info, ray, &sampler, &supplementalSampler);
             if (!handleSurface(event, data, info, sampler, supplementalSampler, medium, bounce,
-                    false, ray, throughput, emission, wasSpecular, state))
+                    false, _settings.enableLightSampling, ray, throughput, emission, wasSpecular, state))
                 break;
         }
 

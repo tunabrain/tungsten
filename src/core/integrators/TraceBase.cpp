@@ -420,7 +420,7 @@ Vec3f TraceBase::estimateDirect(SurfaceScatterEvent &event,
 }
 
 bool TraceBase::handleVolume(SampleGenerator &sampler, SampleGenerator &supplementalSampler,
-           const Medium *&medium, int bounce, bool adjoint, Ray &ray,
+           const Medium *&medium, int bounce, bool adjoint, bool enableLightSampling, Ray &ray,
            Vec3f &throughput, Vec3f &emission, bool &wasSpecular, bool &hitSurface,
            Medium::MediumState &state)
 {
@@ -433,13 +433,13 @@ bool TraceBase::handleVolume(SampleGenerator &sampler, SampleGenerator &suppleme
     if (!adjoint && bounce >= _settings.minBounces)
         emission += throughput*medium->emission(event);
 
-    if (!_settings.enableVolumeLightSampling)
+    if (!enableLightSampling)
         wasSpecular = !hitSurface;
 
     if (event.t < event.maxT) {
         event.p += event.t*event.wi;
 
-        if (!adjoint && _settings.enableVolumeLightSampling && bounce < _settings.maxBounces - 1) {
+        if (!adjoint && enableLightSampling && bounce < _settings.maxBounces - 1) {
             wasSpecular = false;
             emission += throughput*volumeEstimateDirect(event, medium, bounce + 1, ray);
         }
@@ -462,7 +462,7 @@ bool TraceBase::handleVolume(SampleGenerator &sampler, SampleGenerator &suppleme
 bool TraceBase::handleSurface(SurfaceScatterEvent &event, IntersectionTemporary &data,
                               IntersectionInfo &info, SampleGenerator &sampler,
                               SampleGenerator &supplementalSampler, const Medium *&medium,
-                              int bounce, bool adjoint, Ray &ray,
+                              int bounce, bool adjoint, bool enableLightSampling, Ray &ray,
                               Vec3f &throughput, Vec3f &emission, bool &wasSpecular,
                               Medium::MediumState &state)
 {
@@ -478,7 +478,7 @@ bool TraceBase::handleSurface(SurfaceScatterEvent &event, IntersectionTemporary 
         throughput *= transparency/transparencyScalar;
     } else {
         if (!adjoint) {
-            if (_settings.enableLightSampling) {
+            if (enableLightSampling) {
                 if ((wasSpecular || !info.primitive->isSamplable()) && bounce >= _settings.minBounces)
                     emission += info.primitive->emission(data, info)*throughput;
 

@@ -74,7 +74,7 @@ bool PathVertex::sampleNextVertex(const TraceableScene &scene, TraceBase &tracer
         Vec3f scatterWeight(1.0f);
         Vec3f emission(0.0f);
         bool scattered = tracer.handleSurface(record.event, record.data, record.info, state.sampler,
-                state.supplementalSampler, state.medium, state.bounce, adjoint, state.ray,
+                state.supplementalSampler, state.medium, state.bounce, adjoint, false, state.ray,
                 scatterWeight, emission, state.wasSpecular, state.mediumState);
         if (!scattered)
             return false;
