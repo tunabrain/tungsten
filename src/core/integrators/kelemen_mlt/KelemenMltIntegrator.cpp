@@ -1,6 +1,6 @@
 #include "KelemenMltIntegrator.hpp"
 
-#include "sampling/SobolSampler.hpp"
+#include "sampling/SobolPathSampler.hpp"
 
 #include "cameras/Camera.hpp"
 

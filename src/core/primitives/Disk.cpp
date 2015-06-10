@@ -1,6 +1,6 @@
 #include "Disk.hpp"
 
-#include "sampling/SampleGenerator.hpp"
+#include "sampling/PathSampleGenerator.hpp"
 #include "sampling/SampleWarp.hpp"
 
 #include "io/Scene.hpp"
@@ -145,7 +145,7 @@ bool Disk::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &sample) c
     if (_n.dot(sample.p - _center) < 0.0f)
         return false;
 
-    Vec2f lQ = SampleWarp::uniformDisk(sample.sampler->next2D()).xy()*_r;
+    Vec2f lQ = SampleWarp::uniformDisk(sample.sampler->next2D(EmitterSample)).xy()*_r;
     Vec3f q = _center + lQ.x()*_frame.bitangent + lQ.y()*_frame.tangent;
     sample.d = q - sample.p;
     float rSq = sample.d.lengthSq();
@@ -160,10 +160,10 @@ bool Disk::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &sample) c
 
 bool Disk::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
 {
-    Vec2f xi = sample.sampler->next2D();
+    Vec2f xi = sample.sampler->next2D(EmitterSample);
     Vec2f lQ = SampleWarp::uniformDisk(xi).xy();
     sample.p = _center + lQ.x()*_frame.bitangent + lQ.y()*_frame.tangent;
-    sample.d = SampleWarp::cosineHemisphere(sample.sampler->next2D());
+    sample.d = SampleWarp::cosineHemisphere(sample.sampler->next2D(EmitterSample));
     sample.pdf = SampleWarp::cosineHemispherePdf(sample.d)/(_r*_r*PI);
     TangentFrame frame(_n);
     sample.weight = PI*(*_emission)[xi]*(_r*_r*PI);

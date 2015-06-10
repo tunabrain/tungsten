@@ -1,7 +1,7 @@
 #include "Quad.hpp"
 #include "TriangleMesh.hpp"
 
-#include "sampling/SampleGenerator.hpp"
+#include "sampling/PathSampleGenerator.hpp"
 #include "sampling/SampleWarp.hpp"
 
 #include "io/Scene.hpp"
@@ -132,9 +132,9 @@ void Quad::makeSamplable(uint32 /*threadIndex*/)
 {
 }
 
-bool Quad::samplePosition(SampleGenerator &sampler, PositionSample &sample) const
+bool Quad::samplePosition(PathSampleGenerator &sampler, PositionSample &sample) const
 {
-    Vec2f xi = sampler.next2D();
+    Vec2f xi = sampler.next2D(EmitterSample);
     sample.p = _base + xi.x()*_edge0 + xi.y()*_edge1;
     sample.weight = _powerFactor*(*_emission)[xi];
     sample.pdf = _invArea;
@@ -144,9 +144,9 @@ bool Quad::samplePosition(SampleGenerator &sampler, PositionSample &sample) cons
     return true;
 }
 
-bool Quad::sampleDirection(SampleGenerator &sampler, const PositionSample &/*point*/, DirectionSample &sample) const
+bool Quad::sampleDirection(PathSampleGenerator &sampler, const PositionSample &/*point*/, DirectionSample &sample) const
 {
-    Vec3f d = SampleWarp::cosineHemisphere(sampler.next2D());
+    Vec3f d = SampleWarp::cosineHemisphere(sampler.next2D(EmitterSample));
     sample.d = _frame.toGlobal(d);
     sample.weight = Vec3f(1.0f);
     sample.pdf = SampleWarp::cosineHemispherePdf(d);
@@ -154,12 +154,12 @@ bool Quad::sampleDirection(SampleGenerator &sampler, const PositionSample &/*poi
     return true;
 }
 
-bool Quad::sampleDirect(uint32 /*threadIndex*/, const Vec3f &p, SampleGenerator &sampler, LightSample &sample) const
+bool Quad::sampleDirect(uint32 /*threadIndex*/, const Vec3f &p, PathSampleGenerator &sampler, LightSample &sample) const
 {
     if (_frame.normal.dot(p - _base) < 0.0f)
         return false;
 
-    Vec2f xi = sampler.next2D();
+    Vec2f xi = sampler.next2D(EmitterSample);
     Vec3f q = _base + xi.x()*_edge0 + xi.y()*_edge1;
     sample.d = q - p;
     float rSq = sample.d.lengthSq();
@@ -219,7 +219,7 @@ bool Quad::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &sample) c
     if (_frame.normal.dot(sample.p - _base) < 0.0f)
         return false;
 
-    Vec2f xi = sample.sampler->next2D();
+    Vec2f xi = sample.sampler->next2D(EmitterSample);
     Vec3f q = _base + xi.x()*_edge0 + xi.y()*_edge1;
     sample.d = q - sample.p;
     float rSq = sample.d.lengthSq();
@@ -232,9 +232,9 @@ bool Quad::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &sample) c
 
 bool Quad::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
 {
-    Vec2f xi = sample.sampler->next2D();
+    Vec2f xi = sample.sampler->next2D(EmitterSample);
     sample.p = _base + xi.x()*_edge0 + (1.0f - xi.y())*_edge1;
-    sample.d = SampleWarp::cosineHemisphere(sample.sampler->next2D());
+    sample.d = SampleWarp::cosineHemisphere(sample.sampler->next2D(EmitterSample));
     sample.pdf = SampleWarp::cosineHemispherePdf(sample.d)/_area;
     sample.weight = PI*(*_emission)[xi]*_area;
     sample.d = _frame.toGlobal(sample.d);

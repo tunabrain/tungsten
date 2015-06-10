@@ -39,17 +39,17 @@ rapidjson::Value Primitive::toJson(Allocator &allocator) const
     return std::move(v);
 }
 
-bool Primitive::samplePosition(SampleGenerator &/*sampler*/, PositionSample &/*sample*/) const
+bool Primitive::samplePosition(PathSampleGenerator &/*sampler*/, PositionSample &/*sample*/) const
 {
     return false;
 }
 
-bool Primitive::sampleDirection(SampleGenerator &/*sampler*/, const PositionSample &/*point*/, DirectionSample &/*sample*/) const
+bool Primitive::sampleDirection(PathSampleGenerator &/*sampler*/, const PositionSample &/*point*/, DirectionSample &/*sample*/) const
 {
     return false;
 }
 
-bool Primitive::sampleDirect(uint32 /*threadIndex*/, const Vec3f &/*p*/, SampleGenerator &/*sampler*/, LightSample &/*sample*/) const
+bool Primitive::sampleDirect(uint32 /*threadIndex*/, const Vec3f &/*p*/, PathSampleGenerator &/*sampler*/, LightSample &/*sample*/) const
 {
     return false;
 }

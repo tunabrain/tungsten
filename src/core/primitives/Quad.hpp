@@ -37,9 +37,9 @@ public:
     virtual bool isSamplable() const override;
     virtual void makeSamplable(uint32 threadIndex) override;
 
-    virtual bool samplePosition(SampleGenerator &sampler, PositionSample &sample) const override;
-    virtual bool sampleDirection(SampleGenerator &sampler, const PositionSample &point, DirectionSample &sample) const override;
-    virtual bool sampleDirect(uint32 threadIndex, const Vec3f &p, SampleGenerator &sampler, LightSample &sample) const override;
+    virtual bool samplePosition(PathSampleGenerator &sampler, PositionSample &sample) const override;
+    virtual bool sampleDirection(PathSampleGenerator &sampler, const PositionSample &point, DirectionSample &sample) const override;
+    virtual bool sampleDirect(uint32 threadIndex, const Vec3f &p, PathSampleGenerator &sampler, LightSample &sample) const override;
     virtual float positionalPdf(const PositionSample &point) const;
     virtual float directionalPdf(const PositionSample &point, const DirectionSample &sample) const override;
     virtual float directPdf(uint32 threadIndex, const IntersectionTemporary &data,

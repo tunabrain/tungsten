@@ -85,29 +85,29 @@ rapidjson::Value Camera::toJson(Allocator &allocator) const
     return std::move(v);
 }
 
-bool Camera::samplePosition(SampleGenerator &/*sampler*/, PositionSample &/*sample*/) const
+bool Camera::samplePosition(PathSampleGenerator &/*sampler*/, PositionSample &/*sample*/) const
 {
     return false;
 }
 
-bool Camera::sampleDirection(SampleGenerator &/*sampler*/, const PositionSample &/*point*/,
+bool Camera::sampleDirection(PathSampleGenerator &/*sampler*/, const PositionSample &/*point*/,
         DirectionSample &/*sample*/) const
 {
     return false;
 }
 
-bool Camera::sampleDirection(SampleGenerator &/*sampler*/, const PositionSample &/*point*/, Vec2u /*pixel*/,
+bool Camera::sampleDirection(PathSampleGenerator &/*sampler*/, const PositionSample &/*point*/, Vec2u /*pixel*/,
         DirectionSample &/*sample*/) const
 {
     return false;
 }
 
-bool Camera::sampleDirect(const Vec3f &/*p*/, SampleGenerator &/*sampler*/, LensSample &/*sample*/) const
+bool Camera::sampleDirect(const Vec3f &/*p*/, PathSampleGenerator &/*sampler*/, LensSample &/*sample*/) const
 {
     return false;
 }
 
-bool Camera::evalDirection(SampleGenerator &/*sampler*/, const PositionSample &/*point*/,
+bool Camera::evalDirection(PathSampleGenerator &/*sampler*/, const PositionSample &/*point*/,
         const DirectionSample &/*direction*/, Vec3f &/*weight*/, Vec2f &/*pixel*/) const
 {
     return false;

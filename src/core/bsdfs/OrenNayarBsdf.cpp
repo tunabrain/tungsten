@@ -4,7 +4,7 @@
 
 #include "materials/ConstantTexture.hpp"
 
-#include "sampling/SampleGenerator.hpp"
+#include "sampling/PathSampleGenerator.hpp"
 #include "sampling/SampleWarp.hpp"
 
 #include "math/Angle.hpp"
@@ -48,10 +48,10 @@ bool OrenNayarBsdf::sample(SurfaceScatterEvent &event) const
 
     float roughness = (*_roughness)[*event.info].x();
     float ratio = clamp(roughness, 0.01f, 1.0f);
-    if (event.supplementalSampler->next1D() < ratio)
-        event.wo  = SampleWarp::uniformHemisphere(event.sampler->next2D());
+    if (event.sampler->nextBoolean(DiscreteBsdfSample, ratio))
+        event.wo  = SampleWarp::uniformHemisphere(event.sampler->next2D(BsdfSample));
     else
-        event.wo  = SampleWarp::cosineHemisphere(event.sampler->next2D());
+        event.wo  = SampleWarp::cosineHemisphere(event.sampler->next2D(BsdfSample));
 
     event.pdf = SampleWarp::uniformHemispherePdf(event.wo)*ratio + SampleWarp::cosineHemispherePdf(event.wo)*(1.0f - ratio);
     event.throughput = eval(event)/event.pdf;

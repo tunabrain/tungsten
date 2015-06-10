@@ -9,13 +9,12 @@
 namespace Tungsten {
 
 struct IntersectionInfo;
-class SampleGenerator;
+class PathSampleGenerator;
 
 struct SurfaceScatterEvent
 {
     const IntersectionInfo *info;
-    SampleGenerator *sampler;
-    SampleGenerator *supplementalSampler;
+    PathSampleGenerator *sampler;
     TangentFrame frame;
     Vec3f wi, wo;
     Vec3f throughput;
@@ -27,15 +26,13 @@ struct SurfaceScatterEvent
     SurfaceScatterEvent() = default;
 
     SurfaceScatterEvent(const IntersectionInfo *info_,
-                 SampleGenerator *sampler_,
-                 SampleGenerator *supplementalSampler_,
+                 PathSampleGenerator *sampler_,
                  const TangentFrame &frame_,
                  const Vec3f &wi_,
                  BsdfLobes requestedLobe_,
                  bool flippedFrame_)
     : info(info_),
       sampler(sampler_),
-      supplementalSampler(supplementalSampler_),
       frame(frame_),
       wi(wi_),
       wo(0.0f),

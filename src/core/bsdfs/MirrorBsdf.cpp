@@ -2,7 +2,7 @@
 
 #include "samplerecords/SurfaceScatterEvent.hpp"
 
-#include "sampling/SampleGenerator.hpp"
+#include "sampling/PathSampleGenerator.hpp"
 #include "sampling/SampleWarp.hpp"
 
 #include "math/MathUtil.hpp"

@@ -20,10 +20,10 @@ public:
     PhotonTracer(TraceableScene *scene, const PhotonMapSettings &settings, uint32 threadId);
 
     void tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRange &volumeRange,
-            SampleGenerator &sampler, SampleGenerator &supplementalSampler);
+            PathSampleGenerator &sampler);
     Vec3f traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
-            const KdTree<VolumePhoton> *mediumTree, SampleGenerator &sampler,
-            SampleGenerator &supplementalSampler, float gatherRadius);
+            const KdTree<VolumePhoton> *mediumTree, PathSampleGenerator &sampler,
+            float gatherRadius);
 };
 
 }

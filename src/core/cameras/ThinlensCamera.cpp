@@ -2,7 +2,7 @@
 
 #include "materials/DiskTexture.hpp"
 
-#include "sampling/SampleGenerator.hpp"
+#include "sampling/PathSampleGenerator.hpp"
 
 #include "math/Angle.hpp"
 
@@ -47,7 +47,7 @@ float ThinlensCamera::evalApertureThroughput(Vec3f planePos, Vec2f aperturePos) 
     return aperture/_aperture->maximum().x();
 }
 
-Vec3f ThinlensCamera::aberration(const Vec3f &planePos, Vec2u pixel, Vec2f &aperturePos, SampleGenerator &sampler) const
+Vec3f ThinlensCamera::aberration(const Vec3f &planePos, Vec2u pixel, Vec2f &aperturePos, PathSampleGenerator &sampler) const
 {
     Vec2f shift = (Vec2f(Vec2i(pixel) - Vec2i(_res/2))/Vec2f(_res))*2.0f;
     shift.y() = -shift.y();
@@ -55,8 +55,8 @@ Vec3f ThinlensCamera::aberration(const Vec3f &planePos, Vec2u pixel, Vec2f &aper
     float dist = shift.length();
     shift.normalize();
     float shiftAmount = dist*_chromaticAberration;
-    Vec3f shiftAmounts(shiftAmount, 0.0f, -shiftAmount);
-    int sampleKernel = min(int(sampler.next1D()*3.0f), 2);
+    Vec3f shiftAmounts = Vec3f(shiftAmount, 0.0f, -shiftAmount);
+    int sampleKernel = sampler.nextDiscrete(DiscreteCameraSample, 3);
     float amount = shiftAmounts[sampleKernel];
     shiftAmounts -= amount;
 
@@ -103,13 +103,13 @@ rapidjson::Value ThinlensCamera::toJson(Allocator &allocator) const
     return std::move(v);
 }
 
-bool ThinlensCamera::generateSample(Vec2u pixel, SampleGenerator &sampler, Vec3f &throughput, Ray &ray) const
+bool ThinlensCamera::generateSample(Vec2u pixel, PathSampleGenerator &sampler, Vec3f &throughput, Ray &ray) const
 {
     float filterPdf;
-    Vec2f pixelUv = 0.5f + _filter.sample(sampler.next2D(), filterPdf);
-    Vec2f lensUv = sampler.next2D();
+    Vec2f pixelUv = 0.5f + _filter.sample(sampler.next2D(CameraSample), filterPdf);
+    Vec2f lensUv = sampler.next2D(CameraSample);
 
-    Vec3f planePos(
+    Vec3f planePos = Vec3f(
         -1.0f  + (float(pixel.x()) + pixelUv.x())*_pixelSize.x(),
         _ratio - (float(pixel.y()) + pixelUv.y())*_pixelSize.y(),
         _planeDist

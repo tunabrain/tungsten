@@ -1,7 +1,7 @@
 #include "Sphere.hpp"
 #include "TriangleMesh.hpp"
 
-#include "sampling/SampleGenerator.hpp"
+#include "sampling/PathSampleGenerator.hpp"
 #include "sampling/SampleWarp.hpp"
 
 #include "io/Scene.hpp"
@@ -151,7 +151,7 @@ bool Sphere::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &sample)
     float d = L.length();
     L.normalize();
     float cosTheta = std::sqrt(max(d*d - _radius*_radius, 0.0f))/d;
-    sample.d = SampleWarp::uniformSphericalCap(sample.sampler->next2D(), cosTheta);
+    sample.d = SampleWarp::uniformSphericalCap(sample.sampler->next2D(EmitterSample), cosTheta);
 
     TangentFrame frame(L);
     sample.dist = d;
@@ -163,8 +163,8 @@ bool Sphere::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &sample)
 
 bool Sphere::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
 {
-    sample.p = SampleWarp::uniformSphere(sample.sampler->next2D());
-    sample.d = SampleWarp::cosineHemisphere(sample.sampler->next2D());
+    sample.p = SampleWarp::uniformSphere(sample.sampler->next2D(EmitterSample));
+    sample.d = SampleWarp::cosineHemisphere(sample.sampler->next2D(EmitterSample));
     sample.pdf = SampleWarp::cosineHemispherePdf(sample.d)/(FOUR_PI*_radius*_radius);
     TangentFrame frame(sample.p);
     sample.d = frame.toGlobal(sample.d);

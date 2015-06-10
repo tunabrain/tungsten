@@ -7,7 +7,8 @@
 #include "integrators/Integrator.hpp"
 #include "integrators/ImageTile.hpp"
 
-#include "sampling/SampleGenerator.hpp"
+#include "sampling/PathSampleGenerator.hpp"
+#include "sampling/UniformPathSampler.hpp"
 #include "sampling/UniformSampler.hpp"
 
 #include "thread/TaskGroup.hpp"

@@ -1,7 +1,7 @@
 #include "TriangleMesh.hpp"
 #include "EmbreeUtil.hpp"
 
-#include "sampling/SampleGenerator.hpp"
+#include "sampling/PathSampleGenerator.hpp"
 #include "sampling/SampleWarp.hpp"
 
 #include "math/TangentFrame.hpp"
@@ -389,9 +389,9 @@ void TriangleMesh::makeSamplable(uint32 /*threadIndex*/)
     _powerFactor = PI*_totalArea;
 }
 
-bool TriangleMesh::samplePosition(SampleGenerator &sampler, PositionSample &sample) const
+bool TriangleMesh::samplePosition(PathSampleGenerator &sampler, PositionSample &sample) const
 {
-    float u = sampler.next1D();
+    float u = sampler.next1D(EmitterSample);
     int idx;
     _triSampler->warp(u, idx);
 
@@ -403,7 +403,7 @@ bool TriangleMesh::samplePosition(SampleGenerator &sampler, PositionSample &samp
     Vec2f uv2 = _tfVerts[_tris[idx].v2].uv();
     Vec3f normal = (p1 - p0).cross(p2 - p0).normalized();
 
-    Vec2f lambda = SampleWarp::uniformTriangleUv(sampler.next2D());
+    Vec2f lambda = SampleWarp::uniformTriangleUv(sampler.next2D(EmitterSample));
 
     sample.p = p0*lambda.x() + p1*lambda.y() + p2*(1.0f - lambda.x() - lambda.y());
     sample.uv = uv0*lambda.x() + uv1*lambda.y() + uv2*(1.0f - lambda.x() - lambda.y());
@@ -414,9 +414,9 @@ bool TriangleMesh::samplePosition(SampleGenerator &sampler, PositionSample &samp
     return true;
 }
 
-bool TriangleMesh::sampleDirection(SampleGenerator &sampler, const PositionSample &point, DirectionSample &sample) const
+bool TriangleMesh::sampleDirection(PathSampleGenerator &sampler, const PositionSample &point, DirectionSample &sample) const
 {
-    Vec3f d = SampleWarp::cosineHemisphere(sampler.next2D());
+    Vec3f d = SampleWarp::cosineHemisphere(sampler.next2D(EmitterSample));
     sample.d = TangentFrame(point.Ng).toGlobal(d);
     sample.weight = Vec3f(1.0f);
     sample.pdf = SampleWarp::cosineHemispherePdf(d);
@@ -425,7 +425,7 @@ bool TriangleMesh::sampleDirection(SampleGenerator &sampler, const PositionSampl
 }
 
 bool TriangleMesh::sampleDirect(uint32 /*threadIndex*/, const Vec3f &p,
-        SampleGenerator &sampler, LightSample &sample) const
+        PathSampleGenerator &sampler, LightSample &sample) const
 {
     PositionSample point;
     samplePosition(sampler, point);
@@ -483,7 +483,7 @@ float TriangleMesh::inboundPdf(uint32 /*threadIndex*/, const IntersectionTempora
 
 bool TriangleMesh::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
 {
-    float u = sample.sampler->next1D();
+    float u = sample.sampler->next1D(EmitterSample);
     int idx;
     _triSampler->warp(u, idx);
 
@@ -492,7 +492,7 @@ bool TriangleMesh::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &s
     Vec3f p2 = _tfVerts[_tris[idx].v2].pos();
     Vec3f normal = (p1 - p0).cross(p2 - p0).normalized();
 
-    Vec3f p = SampleWarp::uniformTriangle(sample.sampler->next2D(), p0, p1, p2);
+    Vec3f p = SampleWarp::uniformTriangle(sample.sampler->next2D(EmitterSample), p0, p1, p2);
     Vec3f L = p - sample.p;
 
     float rSq = L.lengthSq();
@@ -508,7 +508,7 @@ bool TriangleMesh::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &s
 
 bool TriangleMesh::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
 {
-    float u = sample.sampler->next1D();
+    float u = sample.sampler->next1D(EmitterSample);
     int idx;
     _triSampler->warp(u, idx);
 
@@ -518,8 +518,8 @@ bool TriangleMesh::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &
     Vec3f normal = (p1 - p0).cross(p2 - p0).normalized();
     TangentFrame frame(normal);
 
-    sample.p = SampleWarp::uniformTriangle(sample.sampler->next2D(), p0, p1, p2);
-    sample.d = SampleWarp::cosineHemisphere(sample.sampler->next2D());
+    sample.p = SampleWarp::uniformTriangle(sample.sampler->next2D(EmitterSample), p0, p1, p2);
+    sample.d = SampleWarp::cosineHemisphere(sample.sampler->next2D(EmitterSample));
     sample.pdf = SampleWarp::cosineHemispherePdf(sample.d)/_totalArea;
     sample.d = frame.toGlobal(sample.d);
 

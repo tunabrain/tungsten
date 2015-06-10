@@ -1,6 +1,7 @@
 #ifndef METROPOLISSAMPLER_HPP_
 #define METROPOLISSAMPLER_HPP_
 
+#include "sampling/PathSampleGenerator.hpp"
 #include "sampling/UniformSampler.hpp"
 
 #include "Debug.hpp"
@@ -10,7 +11,7 @@
 
 namespace Tungsten {
 
-class MetropolisSampler : public SampleGenerator
+class MetropolisSampler : public PathSampleGenerator
 {
     struct SampleRecord
     {
@@ -77,10 +78,19 @@ public:
         std::memset(_sampleVector.get(), 0, maxVectorSize*sizeof(SampleRecord));
     }
 
-    virtual void setup(uint32 /*pixelId*/, int /*sample*/) override {}
+    virtual void startPath(uint32 /*pixelId*/, int /*sample*/) override
+    {
+    }
+    virtual void advancePath() override
+    {
+    }
 
-    virtual void saveState(OutputStreamHandle &/*out*/) override {}
-    virtual void loadState(InputStreamHandle &/*in*/) override {}
+    virtual void saveState(OutputStreamHandle &/*out*/) override
+    {
+    }
+    virtual void loadState(InputStreamHandle &/*in*/) override
+    {
+    }
 
     void setHelperGenerator(UniformSampler *generator)
     {
@@ -109,7 +119,22 @@ public:
         _stackIdx = 0;
     }
 
-    inline virtual float next1D() override final
+    void setRandomElement(int idx, float value)
+    {
+        _sampleVector[idx].value = value;
+        _sampleVector[idx].time = _currentTime;
+    }
+
+    virtual bool nextBoolean(SampleBlock block, float pTrue) override final
+    {
+        return next1D(block) < pTrue;
+    }
+    virtual int nextDiscrete(SampleBlock block, int numChoices) override final
+    {
+        return int(next1D(block)*numChoices);
+    }
+
+    inline virtual float next1D(SampleBlock /*block*/) override final
     {
         if (_vectorIdx == _maxSize)
             FAIL("Terrible things have occurred! Exceeded maximum size of metropolis sampler");
@@ -136,10 +161,10 @@ public:
         return sample.value;
     }
 
-    inline virtual Vec2f next2D() override final
+    inline virtual Vec2f next2D(SampleBlock block) override final
     {
-        float a = next1D();
-        float b = next1D();
+        float a = next1D(block);
+        float b = next1D(block);
         return Vec2f(a, b);
     }
 };

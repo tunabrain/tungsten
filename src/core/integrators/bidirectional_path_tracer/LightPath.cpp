@@ -6,7 +6,7 @@
 
 #include "renderer/TraceableScene.hpp"
 
-#include "sampling/SampleGenerator.hpp"
+#include "sampling/PathSampleGenerator.hpp"
 
 #include "cameras/Camera.hpp"
 
@@ -58,20 +58,23 @@ float LightPath::misWeight(const LightPath &camera, const LightPath &emitter,
     return 1.0f/weight;
 }
 
-void LightPath::tracePath(const TraceableScene &scene, TraceBase &tracer, SampleGenerator &sampler,
-        SampleGenerator &supplementalSampler)
+void LightPath::tracePath(const TraceableScene &scene, TraceBase &tracer, PathSampleGenerator &sampler, int length)
 {
-    TraceState state(sampler, supplementalSampler);
+    if (length == -1)
+        length = _maxLength;
+
+    TraceState state(sampler);
     if (!_vertices[0].sampleRootVertex(state))
         return;
 
     _length = 1;
-    while (state.bounce < _maxLength) {
+    while (_length < length) {
         if (!_vertices[_length - 1].sampleNextVertex(scene, tracer, state, _adjoint,
                 _length == 1 ? nullptr : &_vertices[_length - 2],
                 _length == 1 ? nullptr : &_edges[_length - 2],
                 _vertices[_length], _edges[_length - 1]))
             break;
+        sampler.advancePath();
         _length++;
     }
 }
@@ -112,6 +115,7 @@ Vec3f LightPath::bdptWeightedPathEmission(int minLength, int maxLength) const
             if (connectable[i - 1] && connectable[i])
                 weight += pi;
         }
+
         result += _vertices[t - 1].throughput()*emission/weight;
     }
 
@@ -137,7 +141,7 @@ Vec3f LightPath::bdptConnect(const TraceableScene &scene, const LightPath &camer
 }
 
 bool LightPath::bdptCameraConnect(const TraceableScene &scene, const LightPath &camera,
-        const LightPath &emitter, int s, SampleGenerator &sampler,
+        const LightPath &emitter, int s, PathSampleGenerator &sampler,
         Vec3f &weight, Vec2f &pixel)
 {
     const PathVertex &a = emitter[s - 1];
@@ -158,11 +162,10 @@ bool LightPath::bdptCameraConnect(const TraceableScene &scene, const LightPath &
 }
 
 void LightPath::samplePathsInterleaved(LightPath &cameraPath, LightPath &emitterPath,
-        const TraceableScene &scene, TraceBase &tracer, SampleGenerator &sampler,
-        SampleGenerator &supplementalSampler)
+        const TraceableScene &scene, TraceBase &tracer, PathSampleGenerator &sampler)
 {
-    TraceState  cameraState(sampler, supplementalSampler);
-    TraceState emitterState(sampler, supplementalSampler);
+    TraceState  cameraState(sampler);
+    TraceState emitterState(sampler);
     bool  cameraPathValid =  cameraPath[0].sampleRootVertex( cameraState);
     bool emitterPathValid = emitterPath[0].sampleRootVertex(emitterState);
 
@@ -176,6 +179,7 @@ void LightPath::samplePathsInterleaved(LightPath &cameraPath, LightPath &emitter
                             cameraLength == 1 ? nullptr : &cameraPath[cameraLength - 2],
                             cameraLength == 1 ? nullptr : &cameraPath.edge(cameraLength - 2),
                             cameraPath[cameraLength], cameraPath.edge(cameraLength - 1));
+            sampler.advancePath();
         }
         if (emitterPathValid) {
             emitterLength++;
@@ -184,6 +188,7 @@ void LightPath::samplePathsInterleaved(LightPath &cameraPath, LightPath &emitter
                             emitterLength == 1 ? nullptr : &emitterPath[emitterLength - 2],
                             emitterLength == 1 ? nullptr : &emitterPath.edge(emitterLength - 2),
                             emitterPath[emitterLength], emitterPath.edge(emitterLength - 1));
+            sampler.advancePath();
         }
     }
      cameraPath._length =  cameraLength;

@@ -2,7 +2,7 @@
 
 #include "primitives/Primitive.hpp"
 
-#include "sampling/SampleGenerator.hpp"
+#include "sampling/PathSampleGenerator.hpp"
 
 #include "io/Scene.hpp"
 
@@ -66,29 +66,12 @@ bool AtmosphericMedium::insideClouds(const Vec3f &p) const
 
 void AtmosphericMedium::sampleColorChannel(VolumeScatterEvent &event, MediumState &state) const
 {
-    float cdf0 = event.currentThroughput.x();
-    float cdf1 = event.currentThroughput.y() + cdf0;
-    float cdf2 = event.currentThroughput.z() + cdf1;
-    cdf0 /= cdf2;
-    cdf1 /= cdf2;
-
-    float pick = event.supplementalSampler->next1D();
-    float componentWeight;
-    if (pick < cdf0) {
-        state.component = 0;
-        componentWeight = 1.0f/cdf0;
-    } else if (pick < cdf1) {
-        state.component = 1;
-        componentWeight = 1.0f/(cdf1 - cdf0);
-    } else {
-        state.component = 2;
-        componentWeight = 1.0f/(1.0f - cdf1);
-    }
+    state.component = event.sampler->nextDiscrete(DiscreteTransmittanceSample, 3);
     event.throughput = Vec3f(0.0f);
-    event.throughput[state.component] = componentWeight;
+    event.throughput[state.component] = 1.0f/3.0f;
 }
 
-Vec4f AtmosphericMedium::spectralOpticalDepthAndT(const Vec3f &p, const Vec3f &w, float maxT, float targetDepth, int targetChannel, float rand) const
+Vec4f AtmosphericMedium::spectralOpticalDepthAndT(const Vec3f &p, const Vec3f &w, float maxT, float targetDepth, int targetChannel) const
 {
     CONSTEXPR int MaxStepCount = 1024*10;
     CONSTEXPR float maxError = 0.02f;
@@ -102,7 +85,7 @@ Vec4f AtmosphericMedium::spectralOpticalDepthAndT(const Vec3f &p, const Vec3f &w
     Vec2f dD = densityAndDerivative(r, mu, 0.0f, r);
     Vec3f sigmaS = lerp(_backgroundSigmaS, _sigmaS, dD.x());
     float dT = min(maxError/dD.y(), maxT*0.2f);
-    float t = dT*rand;
+    float t = 0.0f;
     while (t < maxT) {
         float d = std::sqrt(r*r + t*t + 2.0f*r*t*mu);
 
@@ -282,7 +265,7 @@ bool AtmosphericMedium::sampleDistance(VolumeScatterEvent &event, MediumState &s
     }
     state.advance();
 
-    float targetDepth = -std::log(1.0f - event.sampler->next1D())/_sigmaS[state.component];
+    float targetDepth = -std::log(1.0f - event.sampler->next1D(TransmittanceSample))/_sigmaS[state.component];
     float minT = max(0.0f, tSpan.x());
     Vec3f p = event.p + minT*event.wi;
     float maxT = min(event.maxT - minT, tSpan.y());
@@ -290,7 +273,7 @@ bool AtmosphericMedium::sampleDistance(VolumeScatterEvent &event, MediumState &s
     float sampledT;
     if (_cloudThickness) {
         targetDepth *= _sigmaS[state.component];
-        Vec4f depthAndT = spectralOpticalDepthAndT(p, event.wi, maxT, targetDepth, state.component, event.sampler->next1D());
+        Vec4f depthAndT = spectralOpticalDepthAndT(p, event.wi, maxT, targetDepth, state.component);
         sampledT = depthAndT.w();
     } else {
         Vec2f depthAndT = opticalDepthAndT(p, event.wi, maxT, targetDepth);
@@ -304,7 +287,7 @@ bool AtmosphericMedium::sampleDistance(VolumeScatterEvent &event, MediumState &s
 
 bool AtmosphericMedium::absorb(VolumeScatterEvent &event, MediumState &state) const
 {
-    if (insideClouds(event.p) && event.supplementalSampler->next1D() >= _cloudAlbedo)
+    if (insideClouds(event.p) && event.sampler->nextBoolean(DiscreteMediumSample, 1.0f - _cloudAlbedo))
         return true;
 
     event.throughput = Vec3f(0.0f);
@@ -315,10 +298,10 @@ bool AtmosphericMedium::absorb(VolumeScatterEvent &event, MediumState &state) co
 bool AtmosphericMedium::scatter(VolumeScatterEvent &event) const
 {
     if (insideClouds(event.p)) {
-        event.wo  = PhaseFunction::sample(PhaseFunction::Isotropic, 0.0f, event.sampler->next2D());
+        event.wo  = PhaseFunction::sample(PhaseFunction::Isotropic, 0.0f, event.sampler->next2D(MediumSample));
         event.pdf = PhaseFunction::eval(PhaseFunction::Isotropic, event.wo.z(), 0.0f);
     } else {
-        event.wo = PhaseFunction::sample(PhaseFunction::Rayleigh, 0.0f, event.sampler->next2D());
+        event.wo = PhaseFunction::sample(PhaseFunction::Rayleigh, 0.0f, event.sampler->next2D(MediumSample));
         event.pdf = PhaseFunction::eval(PhaseFunction::Rayleigh, event.wo.z(), 0.0f);
         TangentFrame frame(event.wi);
         event.wo = frame.toGlobal(event.wo);
@@ -337,7 +320,7 @@ Vec3f AtmosphericMedium::transmittance(const VolumeScatterEvent &event) const
     float maxT = min(event.maxT - minT, tSpan.y());
 
     if (_cloudThickness) {
-        Vec4f depthAndT = spectralOpticalDepthAndT(p, event.wi, maxT, 1.0f, 0, 1.0f);
+        Vec4f depthAndT = spectralOpticalDepthAndT(p, event.wi, maxT, 1.0f, 0);
 
         return std::exp(-depthAndT.xyz());
     } else {

@@ -1,11 +1,14 @@
 #ifndef UNIFORMSAMPLER_HPP_
 #define UNIFORMSAMPLER_HPP_
 
-#include "SampleGenerator.hpp"
+#include "math/BitManip.hpp"
+#include "math/Vec.hpp"
+
+#include "io/FileUtils.hpp"
 
 namespace Tungsten {
 
-class UniformSampler : public SampleGenerator
+class UniformSampler
 {
     uint64 _state;
     uint64 _sequence;
@@ -22,18 +25,14 @@ public:
     {
     }
 
-    virtual void saveState(OutputStreamHandle &out) override final
+    void saveState(OutputStreamHandle &out)
     {
         FileUtils::streamWrite(out, _state);
     }
 
-    virtual void loadState(InputStreamHandle &in)  override final
+    void loadState(InputStreamHandle &in)
     {
         FileUtils::streamRead(in, _state);
-    }
-
-    virtual void setup(uint32 /*pixelId*/, int /*sample*/) override final
-    {
     }
 
     // PCG random number generator
@@ -47,12 +46,12 @@ public:
         return (xorShifted >> rot) | (xorShifted << ((-rot) & 31));
     }
 
-    inline virtual float next1D() override final
+    inline float next1D()
     {
         return BitManip::normalizedUint(nextI());
     }
 
-    inline virtual Vec2f next2D() override final
+    inline Vec2f next2D()
     {
         float a = next1D();
         float b = next1D();

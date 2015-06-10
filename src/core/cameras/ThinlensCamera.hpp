@@ -27,7 +27,7 @@ class ThinlensCamera : public Camera
     void precompute();
 
     float evalApertureThroughput(Vec3f planePos, Vec2f aperturePos) const;
-    Vec3f aberration(const Vec3f &planePos, Vec2u pixel, Vec2f &aperturePos, SampleGenerator &sampler) const;
+    Vec3f aberration(const Vec3f &planePos, Vec2u pixel, Vec2f &aperturePos, PathSampleGenerator &sampler) const;
 
 public:
     ThinlensCamera();
@@ -35,7 +35,7 @@ public:
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
-    virtual bool generateSample(Vec2u pixel, SampleGenerator &sampler, Vec3f &throughput, Ray &ray) const override;
+    virtual bool generateSample(Vec2u pixel, PathSampleGenerator &sampler, Vec3f &throughput, Ray &ray) const override;
 
     virtual bool isDirac() const override;
 

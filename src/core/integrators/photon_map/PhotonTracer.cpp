@@ -11,10 +11,10 @@ PhotonTracer::PhotonTracer(TraceableScene *scene, const PhotonMapSettings &setti
 }
 
 void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRange &volumeRange,
-        SampleGenerator &sampler, SampleGenerator &supplementalSampler)
+        PathSampleGenerator &sampler)
 {
     float lightPdf;
-    const Primitive *light = chooseLightAdjoint(supplementalSampler, lightPdf);
+    const Primitive *light = chooseLightAdjoint(sampler, lightPdf);
 
     PositionSample point;
     if (!light->samplePosition(sampler, point))
@@ -22,6 +22,7 @@ void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRan
     DirectionSample direction;
     if (!light->sampleDirection(sampler, point, direction))
         return;
+    sampler.advancePath();
 
     Ray ray(point.p, direction.d);
     Vec3f throughput(point.weight*direction.weight/lightPdf);
@@ -40,7 +41,7 @@ void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRan
     bool didHit = _scene->intersect(ray, data, info);
     while ((didHit || medium) && bounce < _settings.maxBounces - 1) {
         if (medium) {
-            VolumeScatterEvent event(&sampler, &supplementalSampler, throughput, ray.pos(), ray.dir(), ray.farT());
+            VolumeScatterEvent event(&sampler, throughput, ray.pos(), ray.dir(), ray.farT());
             if (!medium->sampleDistance(event, state))
                 break;
             throughput *= event.throughput;
@@ -82,8 +83,8 @@ void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRan
             break;
 
         if (hitSurface) {
-            event = makeLocalScatterEvent(data, info, ray, &sampler, &supplementalSampler);
-            if (!handleSurface(event, data, info, sampler, supplementalSampler, medium, bounce,
+            event = makeLocalScatterEvent(data, info, ray, &sampler);
+            if (!handleSurface(event, data, info, sampler, medium, bounce,
                     true, false, ray, throughput, emission, wasSpecular, state))
                 break;
         }
@@ -96,6 +97,7 @@ void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRan
         if (std::isnan(throughput.sum()))
             break;
 
+        sampler.advancePath();
         bounce++;
         if (bounce < _settings.maxBounces)
             didHit = _scene->intersect(ray, data, info);
@@ -103,14 +105,15 @@ void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRan
 }
 
 Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
-        const KdTree<VolumePhoton> *mediumTree, SampleGenerator &sampler,
-        SampleGenerator &supplementalSampler, float gatherRadius)
+        const KdTree<VolumePhoton> *mediumTree, PathSampleGenerator &sampler,
+        float gatherRadius)
 {
     Ray ray;
     Vec3f throughput(1.0f);
     if (!_scene->cam().generateSample(pixel, sampler, throughput, ray))
         return Vec3f(0.0f);
     ray.setPrimaryRay(true);
+    sampler.advancePath();
 
     IntersectionTemporary data;
     IntersectionInfo info;
@@ -143,13 +146,13 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
 
         const Bsdf &bsdf = *info.bsdf;
 
-        SurfaceScatterEvent event = makeLocalScatterEvent(data, info, ray, &sampler, &supplementalSampler);
+        SurfaceScatterEvent event = makeLocalScatterEvent(data, info, ray, &sampler);
 
         Vec3f transparency = bsdf.eval(event.makeForwardEvent(), false);
         float transparencyScalar = transparency.avg();
 
         Vec3f wo;
-        if (supplementalSampler.next1D() < transparencyScalar) {
+        if (sampler.nextBoolean(DiscreteTransparencySample, transparencyScalar)) {
             wo = ray.dir();
             throughput *= transparency/transparencyScalar;
         } else {
@@ -172,6 +175,7 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
         if (std::isnan(throughput.sum()))
             break;
 
+        sampler.advancePath();
         bounce++;
         if (bounce < _settings.maxBounces)
             didHit = _scene->intersect(ray, data, info);
@@ -190,7 +194,7 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
         return result;
 
     const Bsdf &bsdf = *info.bsdf;
-    SurfaceScatterEvent event = makeLocalScatterEvent(data, info, ray, &sampler, &supplementalSampler);
+    SurfaceScatterEvent event = makeLocalScatterEvent(data, info, ray, &sampler);
 
     Vec3f surfaceEstimate(0.0f);
     for (int i = 0; i < count; ++i) {

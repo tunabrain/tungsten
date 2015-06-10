@@ -2,7 +2,7 @@
 
 #include "primitives/TriangleMesh.hpp"
 
-#include "sampling/SampleGenerator.hpp"
+#include "sampling/PathSampleGenerator.hpp"
 #include "sampling/SampleWarp.hpp"
 
 #include "bsdfs/LambertBsdf.hpp"
@@ -211,7 +211,7 @@ float MultiQuadLight::inboundPdf(uint32 /*threadIndex*/, const IntersectionTempo
 
 bool MultiQuadLight::sampleInboundDirection(uint32 threadIndex, LightSample &sample) const
 {
-    float xi = sample.sampler->next1D();
+    float xi = sample.sampler->next1D(EmitterSample);
 
     ThreadlocalSampleInfo &sampler = *_samplers[threadIndex];
 
@@ -222,11 +222,11 @@ bool MultiQuadLight::sampleInboundDirection(uint32 threadIndex, LightSample &sam
     if (result.first == -1)
         return false;
 
-    int idx = sample.sampler->next1D() < 0.5f ? result.first*2 : result.first*2 + 1;
+    int idx = sample.sampler->next1D(EmitterSample) < 0.5f ? result.first*2 : result.first*2 + 1;
 
     const QuadGeometry::TriangleInfo &t = _geometry.triangle(idx);
 
-    Vec3f p = SampleWarp::uniformTriangle(sample.sampler->next2D(), t.p0, t.p1, t.p2);
+    Vec3f p = SampleWarp::uniformTriangle(sample.sampler->next2D(EmitterSample), t.p0, t.p1, t.p2);
     Vec3f L = p - sample.p;
 
     float rSq = L.lengthSq();

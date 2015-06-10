@@ -1,6 +1,7 @@
 #include "PathTraceIntegrator.hpp"
 
-#include "sampling/SobolSampler.hpp"
+#include "sampling/UniformPathSampler.hpp"
+#include "sampling/SobolPathSampler.hpp"
 
 #include "cameras/Camera.hpp"
 
@@ -33,9 +34,8 @@ void PathTraceIntegrator::diceTiles()
                 min(TileSize, _w - x),
                 min(TileSize, _h - y),
                 _scene->rendererSettings().useSobol() ?
-                    std::unique_ptr<SampleGenerator>(new SobolSampler(MathUtil::hash32(_sampler.nextI()))) :
-                    std::unique_ptr<SampleGenerator>(new UniformSampler(MathUtil::hash32(_sampler.nextI()))),
-                std::unique_ptr<SampleGenerator>(new UniformSampler(MathUtil::hash32(_sampler.nextI())))
+                    std::unique_ptr<PathSampleGenerator>(new SobolPathSampler(MathUtil::hash32(_sampler.nextI()))) :
+                    std::unique_ptr<PathSampleGenerator>(new UniformPathSampler(MathUtil::hash32(_sampler.nextI())))
             );
         }
     }
@@ -146,8 +146,8 @@ void PathTraceIntegrator::renderTile(uint32 id, uint32 tileId)
             int spp = record.nextSampleCount;
             Vec3f c(0.0f);
             for (int i = 0; i < spp; ++i) {
-                tile.sampler->setup(pixelIndex, record.sampleIndex + i);
-                Vec3f s(_tracers[id]->traceSample(pixel, *tile.sampler, *tile.supplementalSampler));
+                tile.sampler->startPath(pixelIndex, record.sampleIndex + i);
+                Vec3f s(_tracers[id]->traceSample(pixel, *tile.sampler));
 
                 record.addSample(s);
                 c += s;
@@ -162,20 +162,16 @@ void PathTraceIntegrator::saveState(OutputStreamHandle &out)
 {
     for (SampleRecord &s : _samples)
         s.saveState(out);
-    for (ImageTile &i : _tiles) {
+    for (ImageTile &i : _tiles)
         i.sampler->saveState(out);
-        i.supplementalSampler->saveState(out);
-    }
 }
 
 void PathTraceIntegrator::loadState(InputStreamHandle &in)
 {
     for (SampleRecord &s : _samples)
         s.loadState(in);
-    for (ImageTile &i : _tiles) {
+    for (ImageTile &i : _tiles)
         i.sampler->loadState(in);
-        i.supplementalSampler->loadState(in);
-    }
 }
 
 void PathTraceIntegrator::fromJson(const rapidjson::Value &v, const Scene &/*scene*/)

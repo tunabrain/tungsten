@@ -47,7 +47,7 @@ class AtmosphericMedium : public Medium
 
     void sampleColorChannel(VolumeScatterEvent &event, MediumState &state) const;
 
-    Vec4f spectralOpticalDepthAndT(const Vec3f &p, const Vec3f &w, float maxT, float targetDepth, int targetChannel, float rand) const;
+    Vec4f spectralOpticalDepthAndT(const Vec3f &p, const Vec3f &w, float maxT, float targetDepth, int targetChannel) const;
     Vec2f opticalDepthAndT(const Vec3f &p, const Vec3f &w, float maxT, float targetDepth) const;
 
 public:

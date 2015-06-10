@@ -9,6 +9,8 @@
 #include "samplerecords/PositionSample.hpp"
 #include "samplerecords/LensSample.hpp"
 
+#include "sampling/PathSampleGenerator.hpp"
+
 #include "math/Mat4f.hpp"
 #include "math/Vec.hpp"
 
@@ -64,18 +66,18 @@ public:
     void fromJson(const rapidjson::Value &v, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
-    virtual bool samplePosition(SampleGenerator &sampler, PositionSample &sample) const;
-    virtual bool sampleDirection(SampleGenerator &sampler, const PositionSample &point, DirectionSample &sample) const;
-    virtual bool sampleDirection(SampleGenerator &sampler, const PositionSample &point, Vec2u pixel,
+    virtual bool samplePosition(PathSampleGenerator &sampler, PositionSample &sample) const;
+    virtual bool sampleDirection(PathSampleGenerator &sampler, const PositionSample &point, DirectionSample &sample) const;
+    virtual bool sampleDirection(PathSampleGenerator &sampler, const PositionSample &point, Vec2u pixel,
             DirectionSample &sample) const;
-    virtual bool sampleDirect(const Vec3f &p, SampleGenerator &sampler, LensSample &sample) const;
-    virtual bool evalDirection(SampleGenerator &sampler, const PositionSample &point,
+    virtual bool sampleDirect(const Vec3f &p, PathSampleGenerator &sampler, LensSample &sample) const;
+    virtual bool evalDirection(PathSampleGenerator &sampler, const PositionSample &point,
             const DirectionSample &direction, Vec3f &weight, Vec2f &pixel) const;
     virtual float directionPdf(const PositionSample &point, const DirectionSample &direction) const;
 
     virtual bool isDirac() const = 0;
 
-    virtual bool generateSample(Vec2u pixel, SampleGenerator &sampler, Vec3f &throughput, Ray &ray) const = 0;
+    virtual bool generateSample(Vec2u pixel, PathSampleGenerator &sampler, Vec3f &throughput, Ray &ray) const = 0;
     virtual Mat4f approximateProjectionMatrix(int width, int height) const = 0;
     virtual float approximateFov() const = 0;
 

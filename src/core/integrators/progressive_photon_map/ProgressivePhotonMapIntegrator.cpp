@@ -2,7 +2,8 @@
 
 #include "integrators/photon_map/PhotonTracer.hpp"
 
-#include "sampling/SobolSampler.hpp"
+#include "sampling/UniformPathSampler.hpp"
+#include "sampling/SobolPathSampler.hpp"
 
 #include "cameras/Camera.hpp"
 
@@ -31,9 +32,8 @@ void ProgressivePhotonMapIntegrator::diceTiles()
                 min(TileSize, _w - x),
                 min(TileSize, _h - y),
                 _scene->rendererSettings().useSobol() ?
-                    std::unique_ptr<SampleGenerator>(new SobolSampler(MathUtil::hash32(_sampler.nextI()))) :
-                    std::unique_ptr<SampleGenerator>(new UniformSampler(MathUtil::hash32(_sampler.nextI()))),
-                std::unique_ptr<SampleGenerator>(new UniformSampler(MathUtil::hash32(_sampler.nextI())))
+                    std::unique_ptr<PathSampleGenerator>(new SobolPathSampler(MathUtil::hash32(_sampler.nextI()))) :
+                    std::unique_ptr<PathSampleGenerator>(new UniformPathSampler(MathUtil::hash32(_sampler.nextI())))
             );
         }
     }
@@ -57,12 +57,11 @@ void ProgressivePhotonMapIntegrator::tracePhotons(uint32 taskId, uint32 numSubTa
     uint32 totalSurfaceCast = 0;
     uint32 totalVolumeCast = 0;
     for (uint32 i = 0; i < photonsToCast; ++i) {
-        data.sampler->setup(taskId + _iteration*_settings.photonCount, photonBase + i);
+        data.sampler->startPath(taskId + _iteration*_settings.photonCount, photonBase + i);
         _tracers[threadId]->tracePhoton(
             data.surfaceRange,
             data.volumeRange,
-            *data.sampler,
-            *data.supplementalSampler
+            *data.sampler
         );
         if (!data.surfaceRange.full())
             totalSurfaceCast++;
@@ -93,12 +92,11 @@ void ProgressivePhotonMapIntegrator::tracePixels(uint32 tileId, uint32 threadId)
 
             Vec3f c(0.0f);
             for (int i = 0; i < spp; ++i) {
-                tile.sampler->setup(pixelIndex, _currentSpp + i);
+                tile.sampler->startPath(pixelIndex, _currentSpp + i);
                 Vec3f s(_tracers[threadId]->traceSample(pixel,
                     *_surfaceTree,
                     _volumeTree.get(),
                     *tile.sampler,
-                    *tile.supplementalSampler,
                     radius
                 ));
                 c += s;
@@ -195,9 +193,8 @@ void ProgressivePhotonMapIntegrator::prepareForRender(TraceableScene &scene, uin
         uint32  volumeRangeEnd   = intLerp(0, uint32( _volumePhotons.size()), i + 1, numThreads);
         _taskData.emplace_back(SubTaskData{
             _scene->rendererSettings().useSobol() ?
-                std::unique_ptr<SampleGenerator>(new SobolSampler(MathUtil::hash32(_sampler.nextI()))) :
-                std::unique_ptr<SampleGenerator>(new UniformSampler(MathUtil::hash32(_sampler.nextI()))),
-            std::unique_ptr<SampleGenerator>(new UniformSampler(MathUtil::hash32(_sampler.nextI()))),
+                std::unique_ptr<PathSampleGenerator>(new SobolPathSampler(MathUtil::hash32(_sampler.nextI()))) :
+                std::unique_ptr<PathSampleGenerator>(new UniformPathSampler(MathUtil::hash32(_sampler.nextI()))),
             SurfacePhotonRange(&_surfacePhotons[0], surfaceRangeStart, surfaceRangeEnd),
             VolumePhotonRange(_volumePhotons.empty() ? nullptr : &_volumePhotons[0], volumeRangeStart, volumeRangeEnd)
         });

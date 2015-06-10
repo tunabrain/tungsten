@@ -3,7 +3,7 @@
 
 #include "samplerecords/SurfaceScatterEvent.hpp"
 
-#include "sampling/SampleGenerator.hpp"
+#include "sampling/PathSampleGenerator.hpp"
 #include "sampling/SampleWarp.hpp"
 
 #include "math/MathUtil.hpp"
@@ -66,7 +66,7 @@ bool DielectricBsdf::sample(SurfaceScatterEvent &event) const
     else
         return false;
 
-    if (event.supplementalSampler->next1D() < reflectionProbability) {
+    if (event.sampler->nextBoolean(DiscreteBsdfSample, reflectionProbability)) {
         event.wo = Vec3f(-event.wi.x(), -event.wi.y(), event.wi.z());
         event.pdf = reflectionProbability;
         event.sampledLobe = BsdfLobes::SpecularReflectionLobe;

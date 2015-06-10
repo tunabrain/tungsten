@@ -3,7 +3,7 @@
 
 #include "samplerecords/SurfaceScatterEvent.hpp"
 
-#include "sampling/SampleGenerator.hpp"
+#include "sampling/PathSampleGenerator.hpp"
 #include "sampling/SampleWarp.hpp"
 
 #include "math/MathUtil.hpp"
@@ -65,13 +65,13 @@ bool PlasticBsdf::sample(SurfaceScatterEvent &event) const
     else
         return false;
 
-    if (sampleR && event.supplementalSampler->next1D() < specularProbability) {
+    if (sampleR && event.sampler->nextBoolean(DiscreteBsdfSample, specularProbability)) {
         event.wo = Vec3f(-wi.x(), -wi.y(), wi.z());
         event.pdf = specularProbability;
         event.throughput = Vec3f(Fi/specularProbability);
         event.sampledLobe = BsdfLobes::SpecularReflectionLobe;
     } else {
-        Vec3f wo(SampleWarp::cosineHemisphere(event.sampler->next2D()));
+        Vec3f wo(SampleWarp::cosineHemisphere(event.sampler->next2D(BsdfSample)));
         float Fo = Fresnel::dielectricReflectance(eta, wo.z());
         Vec3f diffuseAlbedo = albedo(event.info);
 

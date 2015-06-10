@@ -5,12 +5,11 @@
 
 namespace Tungsten {
 
-class SampleGenerator;
+class PathSampleGenerator;
 
 struct VolumeScatterEvent
 {
-    SampleGenerator *sampler;
-    SampleGenerator *supplementalSampler;
+    PathSampleGenerator *sampler;
     Vec3f currentThroughput;
     Vec3f p;
     Vec3f wi;
@@ -23,14 +22,12 @@ struct VolumeScatterEvent
 
     VolumeScatterEvent() = default;
 
-    VolumeScatterEvent(SampleGenerator *sampler_,
-                 SampleGenerator *supplementalSampler_,
+    VolumeScatterEvent(PathSampleGenerator *sampler_,
                  Vec3f currentThroughput_,
                  const Vec3f &p_,
                  const Vec3f &wi_,
                  float maxT_)
     : sampler(sampler_),
-      supplementalSampler(supplementalSampler_),
       currentThroughput(currentThroughput_),
       p(p_),
       wi(wi_),
@@ -42,7 +39,7 @@ struct VolumeScatterEvent
     }
 
     VolumeScatterEvent(const Vec3f &p_, const Vec3f &wi_, float maxT_)
-    : VolumeScatterEvent(nullptr, nullptr, Vec3f(1.0f), p_, wi_, maxT_)
+    : VolumeScatterEvent(nullptr, Vec3f(1.0f), p_, wi_, maxT_)
     {
     }
 

@@ -8,14 +8,18 @@ LightTracer::LightTracer(TraceableScene *scene, const LightTracerSettings &setti
 {
 }
 
-void LightTracer::traceSample(SampleGenerator &sampler, SampleGenerator &supplementalSampler)
+void LightTracer::traceSample(PathSampleGenerator &sampler)
 {
     float lightPdf;
-    const Primitive *light = chooseLightAdjoint(supplementalSampler, lightPdf);
+    const Primitive *light = chooseLightAdjoint(sampler, lightPdf);
 
     PositionSample point;
     if (!light->samplePosition(sampler, point))
         return;
+    DirectionSample direction;
+    if (!light->sampleDirection(sampler, point, direction))
+        return;
+    sampler.advancePath();
 
     Vec3f throughput(point.weight/lightPdf);
 
@@ -32,10 +36,7 @@ void LightTracer::traceSample(SampleGenerator &sampler, SampleGenerator &supplem
             _splatBuffer->splatFiltered(splat.pixel, value);
         }
     }
-
-    DirectionSample direction;
-    if (!light->sampleDirection(sampler, point, direction))
-        return;
+    sampler.advancePath();
 
     Ray ray(point.p, direction.d);
     throughput *= direction.weight;
@@ -54,7 +55,7 @@ void LightTracer::traceSample(SampleGenerator &sampler, SampleGenerator &supplem
     bool didHit = _scene->intersect(ray, data, info);
     while ((didHit || medium) && bounce < _settings.maxBounces - 1) {
         if (medium) {
-            VolumeScatterEvent event(&sampler, &supplementalSampler, throughput, ray.pos(), ray.dir(), ray.farT());
+            VolumeScatterEvent event(&sampler, throughput, ray.pos(), ray.dir(), ray.farT());
             if (!medium->sampleDistance(event, state))
                 break;
             throughput *= event.throughput;
@@ -79,14 +80,14 @@ void LightTracer::traceSample(SampleGenerator &sampler, SampleGenerator &supplem
         }
 
         if (hitSurface) {
-            event = makeLocalScatterEvent(data, info, ray, &sampler, &supplementalSampler);
+            event = makeLocalScatterEvent(data, info, ray, &sampler);
 
             Vec3f weight;
             Vec2f pixel;
             if (lensSample(_scene->cam(), event, medium, bounce, ray, weight, pixel))
                 _splatBuffer->splatFiltered(pixel, weight*throughput);
 
-            if (!handleSurface(event, data, info, sampler, supplementalSampler, medium, bounce,
+            if (!handleSurface(event, data, info, sampler, medium, bounce,
                     true, false, ray, throughput, emission, wasSpecular, state))
                     break;
         }
@@ -98,6 +99,7 @@ void LightTracer::traceSample(SampleGenerator &sampler, SampleGenerator &supplem
         if (std::isnan(throughput.sum()))
             break;
 
+        sampler.advancePath();
         bounce++;
         if (bounce < _settings.maxBounces)
             didHit = _scene->intersect(ray, data, info);

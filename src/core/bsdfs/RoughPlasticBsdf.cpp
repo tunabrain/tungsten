@@ -6,7 +6,7 @@
 
 #include "materials/ConstantTexture.hpp"
 
-#include "sampling/SampleGenerator.hpp"
+#include "sampling/PathSampleGenerator.hpp"
 #include "sampling/SampleWarp.hpp"
 
 #include "math/MathUtil.hpp"
@@ -73,7 +73,7 @@ bool RoughPlasticBsdf::sample(SurfaceScatterEvent &event) const
     float specularWeight = Fi;
     float specularProbability = specularWeight/(specularWeight + substrateWeight);
 
-    if (sampleR && (event.supplementalSampler->next1D() < specularProbability || !sampleT)) {
+    if (sampleR && (event.sampler->nextBoolean(DiscreteBsdfSample, specularProbability) || !sampleT)) {
         float roughness = (*_roughness)[*event.info].x();
         if (!RoughDielectricBsdf::sampleBase(event, true, false, roughness, _ior, _distribution))
             return false;
@@ -91,7 +91,7 @@ bool RoughPlasticBsdf::sample(SurfaceScatterEvent &event) const
         }
         return true;
     } else {
-        Vec3f wo(SampleWarp::cosineHemisphere(event.sampler->next2D()));
+        Vec3f wo(SampleWarp::cosineHemisphere(event.sampler->next2D(BsdfSample)));
         float Fo = Fresnel::dielectricReflectance(eta, wo.z());
         Vec3f diffuseAlbedo = albedo(event.info);
 

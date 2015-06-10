@@ -5,7 +5,7 @@
 
 #include "materials/ConstantTexture.hpp"
 
-#include "sampling/SampleGenerator.hpp"
+#include "sampling/PathSampleGenerator.hpp"
 
 #include "math/Vec.hpp"
 
@@ -77,7 +77,7 @@ bool MixedBsdf::sample(SurfaceScatterEvent &event) const
     if (!adjustedRatio(event.requestedLobe, event.info, ratio))
         return false;
 
-    if (event.supplementalSampler->next1D() < ratio) {
+    if (event.sampler->nextBoolean(DiscreteBsdfSample, ratio)) {
         if (!_bsdf0->sample(event))
             return false;
 

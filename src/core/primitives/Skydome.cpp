@@ -1,7 +1,7 @@
 #include "Skydome.hpp"
 #include "TriangleMesh.hpp"
 
-#include "sampling/SampleGenerator.hpp"
+#include "sampling/PathSampleGenerator.hpp"
 #include "sampling/SampleWarp.hpp"
 
 #include "math/Spectral.hpp"
@@ -143,7 +143,7 @@ float Skydome::inboundPdf(uint32 /*threadIndex*/, const IntersectionTemporary &d
 
 bool Skydome::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
 {
-    Vec2f uv = _sky->sample(MAP_SPHERICAL, sample.sampler->next2D());
+    Vec2f uv = _sky->sample(MAP_SPHERICAL, sample.sampler->next2D(EmitterSample));
     float sinTheta;
     sample.d = uvToDirection(uv, sinTheta);
     sample.pdf = INV_PI*INV_TWO_PI*_sky->pdf(MAP_SPHERICAL, uv)/sinTheta;

@@ -1,7 +1,7 @@
 #include "InfiniteSphere.hpp"
 #include "TriangleMesh.hpp"
 
-#include "sampling/SampleGenerator.hpp"
+#include "sampling/PathSampleGenerator.hpp"
 #include "sampling/SampleWarp.hpp"
 
 #include "math/Angle.hpp"
@@ -129,12 +129,12 @@ float InfiniteSphere::inboundPdf(uint32 /*threadIndex*/, const IntersectionTempo
 bool InfiniteSphere::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
 {
     if (_emission->isConstant()) {
-        sample.d = SampleWarp::uniformSphere(sample.sampler->next2D());
+        sample.d = SampleWarp::uniformSphere(sample.sampler->next2D(EmitterSample));
         sample.dist = Ray::infinity();
         sample.pdf = INV_FOUR_PI;
         return true;
     } else {
-        Vec2f uv = _emission->sample(MAP_SPHERICAL, sample.sampler->next2D());
+        Vec2f uv = _emission->sample(MAP_SPHERICAL, sample.sampler->next2D(EmitterSample));
         float sinTheta;
         sample.d = uvToDirection(uv, sinTheta);
         sample.pdf = INV_PI*INV_TWO_PI*_emission->pdf(MAP_SPHERICAL, uv)/sinTheta;

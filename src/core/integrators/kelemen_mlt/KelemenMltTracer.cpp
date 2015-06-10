@@ -1,5 +1,6 @@
 #include "KelemenMltTracer.hpp"
 
+#include "sampling/UniformPathSampler.hpp"
 #include "sampling/UniformSampler.hpp"
 
 namespace Tungsten {
@@ -12,21 +13,21 @@ KelemenMltTracer::KelemenMltTracer(TraceableScene *scene, const KelemenMltSettin
   _currentSplats(new SplatQueue(_settings.maxBounces + 4)),
   _proposedSplats(new SplatQueue(_settings.maxBounces + 4)),
   _pathCandidates(new PathCandidate[settings.initialSamplePool]),
-  _cameraPath(new LightPath(settings.maxBounces)),
-  _emitterPath(new LightPath(settings.maxBounces))
+  _cameraPath(new LightPath(settings.maxBounces + 1)),
+  _emitterPath(new LightPath(settings.maxBounces + 1))
 {
 }
 
-void KelemenMltTracer::tracePath(SampleGenerator &cameraSampler, SampleGenerator &emitterSampler,
+void KelemenMltTracer::tracePath(PathSampleGenerator &cameraSampler, PathSampleGenerator &emitterSampler,
         SplatQueue &splatQueue)
 {
     splatQueue.clear();
 
     Vec2f resF(_scene->cam().resolution());
-    Vec2u pixel = min(Vec2u(resF*cameraSampler.next2D()), _scene->cam().resolution());
+    Vec2u pixel = min(Vec2u(resF*cameraSampler.next2D(CameraSample)), _scene->cam().resolution());
 
     if (!_settings.bidirectional) {
-        splatQueue.addSplat(pixel, traceSample(pixel, cameraSampler, cameraSampler));
+        splatQueue.addSplat(pixel, traceSample(pixel, cameraSampler));
         return;
     }
 
@@ -41,8 +42,8 @@ void KelemenMltTracer::tracePath(SampleGenerator &cameraSampler, SampleGenerator
     cameraPath.startCameraPath(&_scene->cam(), pixel);
     emitterPath.startEmitterPath(light, lightPdf);
 
-     cameraPath.tracePath(*_scene, *this,  cameraSampler,  cameraSampler);
-    emitterPath.tracePath(*_scene, *this, emitterSampler, emitterSampler);
+     cameraPath.tracePath(*_scene, *this,  cameraSampler);
+    emitterPath.tracePath(*_scene, *this, emitterSampler);
 
     int cameraLength =  cameraPath.length();
     int  lightLength = emitterPath.length();
@@ -70,16 +71,18 @@ void KelemenMltTracer::tracePath(SampleGenerator &cameraSampler, SampleGenerator
 
 void KelemenMltTracer::selectSeedPath(int &idx, float &weight)
 {
+    UniformPathSampler pathSampler(_sampler);
     for (int i = 0; i < _settings.initialSamplePool; ++i) {
-        _pathCandidates[i].state = _sampler.state();
+        _pathCandidates[i].state = pathSampler.sampler().state();
 
-        tracePath(_sampler, _sampler, *_currentSplats);
+        tracePath(pathSampler, pathSampler, *_currentSplats);
 
         _pathCandidates[i].luminanceSum = _currentSplats->totalLuminance();
 
         if (i > 0)
             _pathCandidates[i].luminanceSum += _pathCandidates[i - 1].luminanceSum;
     }
+    _sampler = pathSampler.sampler();
 
     float totalSum = _pathCandidates[_settings.initialSamplePool - 1].luminanceSum;
     float target = totalSum*_sampler.next1D();

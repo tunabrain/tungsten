@@ -2,7 +2,7 @@
 
 #include "samplerecords/SurfaceScatterEvent.hpp"
 
-#include "sampling/SampleGenerator.hpp"
+#include "sampling/PathSampleGenerator.hpp"
 #include "sampling/SampleWarp.hpp"
 
 #include "math/Angle.hpp"
@@ -32,7 +32,7 @@ bool LambertBsdf::sample(SurfaceScatterEvent &event) const
         return false;
     if (event.wi.z() <= 0.0f)
         return false;
-    event.wo  = SampleWarp::cosineHemisphere(event.sampler->next2D());
+    event.wo  = SampleWarp::cosineHemisphere(event.sampler->next2D(BsdfSample));
     event.pdf = SampleWarp::cosineHemispherePdf(event.wo);
     event.throughput = albedo(event.info);
     event.sampledLobe = BsdfLobes::DiffuseReflectionLobe;

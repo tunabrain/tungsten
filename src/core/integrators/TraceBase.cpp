@@ -22,7 +22,7 @@ TraceBase::TraceBase(TraceableScene *scene, const TraceSettings &settings, uint3
 }
 
 SurfaceScatterEvent TraceBase::makeLocalScatterEvent(IntersectionTemporary &data, IntersectionInfo &info,
-        Ray &ray, SampleGenerator *sampler, SampleGenerator *supplementalSampler) const
+        Ray &ray, PathSampleGenerator *sampler) const
 {
     TangentFrame frame;
     info.primitive->setupTangentFrame(data, info, frame);
@@ -43,7 +43,6 @@ SurfaceScatterEvent TraceBase::makeLocalScatterEvent(IntersectionTemporary &data
     return SurfaceScatterEvent(
         &info,
         sampler,
-        supplementalSampler,
         frame,
         frame.toLocal(-ray.dir()),
         BsdfLobes::AllLobes,
@@ -72,7 +71,7 @@ Vec3f TraceBase::generalizedShadowRay(Ray &ray,
     Vec3f throughput(1.0f);
     do {
         if (_scene->intersect(ray, data, info) && info.primitive != endCap) {
-            SurfaceScatterEvent event = makeLocalScatterEvent(data, info, ray, nullptr, nullptr);
+            SurfaceScatterEvent event = makeLocalScatterEvent(data, info, ray, nullptr);
 
             // For forward events, the transport direction does not matter (since wi = -wo)
             Vec3f transmittance = info.bsdf->eval(event.makeForwardEvent(), false);
@@ -319,8 +318,11 @@ Vec3f TraceBase::sampleDirect(const Primitive &light,
         return Vec3f(0.0f);
 
     result += lightSample(light, event, medium, bounce, parentRay);
-    if (!light.isDirac())
+    event.sampler->advancePath();
+    if (!light.isDirac()) {
         result += bsdfSample(light, event, medium, bounce, parentRay);
+        event.sampler->advancePath();
+    }
 
     return result;
 }
@@ -335,13 +337,16 @@ Vec3f TraceBase::volumeSampleDirect(const Primitive &light,
     bool mis = true;//medium->suggestMis();
 
     Vec3f result = volumeLightSample(event, light, medium, mis, bounce, parentRay);
-    if (!light.isDirac() && mis)
+    event.sampler->advancePath();
+    if (!light.isDirac() && mis) {
         result += volumePhaseSample(light, event, medium, bounce, parentRay);
+        event.sampler->advancePath();
+    }
 
     return result;
 }
 
-const Primitive *TraceBase::chooseLight(SampleGenerator &sampler, const Vec3f &p, float &weight)
+const Primitive *TraceBase::chooseLight(PathSampleGenerator &sampler, const Vec3f &p, float &weight)
 {
     if (_scene->lights().empty())
         return nullptr;
@@ -374,7 +379,7 @@ const Primitive *TraceBase::chooseLight(SampleGenerator &sampler, const Vec3f &p
     }
     if (total == 0.0f)
         return nullptr;
-    float t = sampler.next1D()*total;
+    float t = sampler.next1D(EmitterSample)*total;
     for (size_t i = 0; i < _lightPdf.size(); ++i) {
         if (t < _lightPdf[i] || i == _lightPdf.size() - 1) {
             weight = total/_lightPdf[i];
@@ -386,9 +391,9 @@ const Primitive *TraceBase::chooseLight(SampleGenerator &sampler, const Vec3f &p
     return nullptr;
 }
 
-const Primitive *TraceBase::chooseLightAdjoint(SampleGenerator &sampler, float &pdf)
+const Primitive *TraceBase::chooseLightAdjoint(PathSampleGenerator &sampler, float &pdf)
 {
-    float u = sampler.next1D();
+    float u = sampler.next1D(EmitterSample);
     int lightIdx;
     _lightSampler->warp(u, lightIdx);
     pdf = _lightSampler->pdf(lightIdx);
@@ -419,12 +424,12 @@ Vec3f TraceBase::estimateDirect(SurfaceScatterEvent &event,
     return sampleDirect(*light, event, medium, bounce, parentRay)*weight;
 }
 
-bool TraceBase::handleVolume(SampleGenerator &sampler, SampleGenerator &supplementalSampler,
-           const Medium *&medium, int bounce, bool adjoint, bool enableLightSampling, Ray &ray,
+bool TraceBase::handleVolume(PathSampleGenerator &sampler, const Medium *&medium, int bounce,
+           bool adjoint, bool enableLightSampling, Ray &ray,
            Vec3f &throughput, Vec3f &emission, bool &wasSpecular, bool &hitSurface,
            Medium::MediumState &state)
 {
-    VolumeScatterEvent event(&sampler, &supplementalSampler, throughput, ray.pos(), ray.dir(), ray.farT());
+    VolumeScatterEvent event(&sampler, throughput, ray.pos(), ray.dir(), ray.farT());
     if (!medium->sampleDistance(event, state))
         return false;
     throughput *= event.throughput;
@@ -460,8 +465,7 @@ bool TraceBase::handleVolume(SampleGenerator &sampler, SampleGenerator &suppleme
 }
 
 bool TraceBase::handleSurface(SurfaceScatterEvent &event, IntersectionTemporary &data,
-                              IntersectionInfo &info, SampleGenerator &sampler,
-                              SampleGenerator &supplementalSampler, const Medium *&medium,
+                              IntersectionInfo &info, PathSampleGenerator &sampler, const Medium *&medium,
                               int bounce, bool adjoint, bool enableLightSampling, Ray &ray,
                               Vec3f &throughput, Vec3f &emission, bool &wasSpecular,
                               Medium::MediumState &state)
@@ -473,7 +477,7 @@ bool TraceBase::handleSurface(SurfaceScatterEvent &event, IntersectionTemporary 
     float transparencyScalar = transparency.avg();
 
     Vec3f wo;
-    if (supplementalSampler.next1D() < transparencyScalar) {
+    if (sampler.nextBoolean(DiscreteTransparencySample, transparencyScalar) ){
         wo = ray.dir();
         throughput *= transparency/transparencyScalar;
     } else {

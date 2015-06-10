@@ -5,7 +5,7 @@
 
 #include "materials/ConstantTexture.hpp"
 
-#include "sampling/SampleGenerator.hpp"
+#include "sampling/PathSampleGenerator.hpp"
 
 #include "io/Scene.hpp"
 
@@ -100,7 +100,7 @@ bool RoughCoatBsdf::sample(SurfaceScatterEvent &event) const
     float specularWeight = Fi;
     float specularProbability = specularWeight/(specularWeight + substrateWeight);
 
-    if (sampleR && (event.supplementalSampler->next1D() < specularProbability || !sampleT)) {
+    if (sampleR && (event.sampler->nextBoolean(DiscreteBsdfSample, specularProbability) || !sampleT)) {
         float roughness = (*_roughness)[*event.info].x();
         if (!RoughDielectricBsdf::sampleBase(event, true, false, roughness, _ior, _distribution))
             return false;

@@ -8,24 +8,24 @@ BidirectionalPathTracer::BidirectionalPathTracer(TraceableScene *scene, const Bi
         uint32 threadId)
 : TraceBase(scene, settings, threadId),
   _splatBuffer(scene->cam().splatBuffer()),
-  _cameraPath(new LightPath(settings.maxBounces)),
-  _emitterPath(new LightPath(settings.maxBounces))
+  _cameraPath(new LightPath(settings.maxBounces + 1)),
+  _emitterPath(new LightPath(settings.maxBounces + 1))
 {
 }
 
-Vec3f BidirectionalPathTracer::traceSample(Vec2u pixel, SampleGenerator &sampler, SampleGenerator &supplementalSampler)
+Vec3f BidirectionalPathTracer::traceSample(Vec2u pixel, PathSampleGenerator &sampler)
 {
     LightPath & cameraPath = * _cameraPath;
     LightPath &emitterPath = *_emitterPath;
 
     float lightPdf;
-    const Primitive *light = chooseLightAdjoint(supplementalSampler, lightPdf);
+    const Primitive *light = chooseLightAdjoint(sampler, lightPdf);
 
     cameraPath.startCameraPath(&_scene->cam(), pixel);
     emitterPath.startEmitterPath(light, lightPdf);
 
-     cameraPath.tracePath(*_scene, *this, sampler, supplementalSampler);
-    emitterPath.tracePath(*_scene, *this, sampler, supplementalSampler);
+     cameraPath.tracePath(*_scene, *this, sampler);
+    emitterPath.tracePath(*_scene, *this, sampler);
 
     int cameraLength =  cameraPath.length();
     int  lightLength = emitterPath.length();

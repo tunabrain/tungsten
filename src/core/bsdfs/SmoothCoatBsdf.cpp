@@ -2,7 +2,7 @@
 #include "RoughConductorBsdf.hpp"
 #include "Fresnel.hpp"
 
-#include "sampling/SampleGenerator.hpp"
+#include "sampling/PathSampleGenerator.hpp"
 
 #include "io/Scene.hpp"
 
@@ -62,7 +62,7 @@ bool SmoothCoatBsdf::sample(SurfaceScatterEvent &event) const
     else
         return false;
 
-    if (sampleR && event.supplementalSampler->next1D() < specularProbability) {
+    if (sampleR && event.sampler->nextBoolean(DiscreteBsdfSample, specularProbability)) {
         event.wo = Vec3f(-wi.x(), -wi.y(), wi.z());
         event.pdf = specularProbability;
         event.throughput = Vec3f(Fi/specularProbability);

@@ -1,7 +1,7 @@
 #include "Point.hpp"
 #include "TriangleMesh.hpp"
 
-#include "sampling/SampleGenerator.hpp"
+#include "sampling/PathSampleGenerator.hpp"
 #include "sampling/SampleWarp.hpp"
 
 #include "Debug.hpp"
@@ -83,7 +83,7 @@ bool Point::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &sample) 
 
 bool Point::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
 {
-    Vec2f xi = sample.sampler->next2D();
+    Vec2f xi = sample.sampler->next2D(EmitterSample);
     sample.p = _pos;
     sample.d = SampleWarp::uniformSphere(xi);
     sample.pdf = SampleWarp::uniformSpherePdf();

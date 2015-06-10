@@ -3,7 +3,7 @@
 
 #include "materials/ConstantTexture.hpp"
 
-#include "sampling/SampleGenerator.hpp"
+#include "sampling/PathSampleGenerator.hpp"
 
 #include "io/JsonUtils.hpp"
 #include "io/Scene.hpp"
@@ -65,7 +65,7 @@ bool RoughDielectricBsdf::sampleBase(SurfaceScatterEvent &event, bool sampleR, b
     float alpha = Microfacet::roughnessToAlpha(distribution, roughness);
     float sampleAlpha = Microfacet::roughnessToAlpha(distribution, sampleRoughness);
 
-    Vec3f m = Microfacet::sample(distribution, sampleAlpha, event.sampler->next2D());
+    Vec3f m = Microfacet::sample(distribution, sampleAlpha, event.sampler->next2D(BsdfSample));
     float pm = Microfacet::pdf(distribution, sampleAlpha, m);
 
     if (pm < 1e-10f)
@@ -78,7 +78,7 @@ bool RoughDielectricBsdf::sampleBase(SurfaceScatterEvent &event, bool sampleR, b
 
     bool reflect;
     if (sampleR && sampleT) {
-        reflect = event.supplementalSampler->next1D() < F;
+        reflect = event.sampler->nextBoolean(DiscreteBsdfSample, F);
     } else if (sampleT) {
         if (F == 1.0f)
             return false;

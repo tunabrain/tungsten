@@ -1,7 +1,7 @@
 #include "InfiniteSphereCap.hpp"
 #include "TriangleMesh.hpp"
 
-#include "sampling/SampleGenerator.hpp"
+#include "sampling/PathSampleGenerator.hpp"
 #include "sampling/SampleWarp.hpp"
 
 #include "io/Scene.hpp"
@@ -104,7 +104,7 @@ float InfiniteSphereCap::inboundPdf(uint32 /*threadIndex*/, const IntersectionTe
 
 bool InfiniteSphereCap::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
 {
-    Vec3f dir = SampleWarp::uniformSphericalCap(sample.sampler->next2D(), _cosCapAngle);
+    Vec3f dir = SampleWarp::uniformSphericalCap(sample.sampler->next2D(EmitterSample), _cosCapAngle);
     sample.d = _capFrame.toGlobal(dir);
     sample.dist = Ray::infinity();
     sample.pdf = SampleWarp::uniformSphericalCapPdf(_cosCapAngle);

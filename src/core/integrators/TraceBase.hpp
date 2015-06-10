@@ -7,7 +7,7 @@
 #include "samplerecords/VolumeScatterEvent.hpp"
 #include "samplerecords/LightSample.hpp"
 
-#include "sampling/SampleGenerator.hpp"
+#include "sampling/PathSampleGenerator.hpp"
 #include "sampling/UniformSampler.hpp"
 #include "sampling/Distribution1D.hpp"
 #include "sampling/SampleWarp.hpp"
@@ -104,8 +104,8 @@ protected:
                         int bounce,
                         const Ray &parentRay);
 
-    const Primitive *chooseLight(SampleGenerator &sampler, const Vec3f &p, float &weight);
-    const Primitive *chooseLightAdjoint(SampleGenerator &sampler, float &pdf);
+    const Primitive *chooseLight(PathSampleGenerator &sampler, const Vec3f &p, float &weight);
+    const Primitive *chooseLightAdjoint(PathSampleGenerator &sampler, float &pdf);
 
     Vec3f volumeEstimateDirect(VolumeScatterEvent &event,
                         const Medium *medium,
@@ -119,16 +119,15 @@ protected:
 
 public:
     SurfaceScatterEvent makeLocalScatterEvent(IntersectionTemporary &data, IntersectionInfo &info,
-            Ray &ray, SampleGenerator *sampler, SampleGenerator *supplementalSampler) const;
+            Ray &ray, PathSampleGenerator *sampler) const;
 
-    bool handleVolume(SampleGenerator &sampler, SampleGenerator &supplementalSampler,
-               const Medium *&medium, int bounce, bool adjoint, bool enableLightSampling, Ray &ray,
+    bool handleVolume(PathSampleGenerator &sampler, const Medium *&medium, int bounce,
+               bool adjoint, bool enableLightSampling, Ray &ray,
                Vec3f &throughput, Vec3f &emission, bool &wasSpecular, bool &hitSurface,
                Medium::MediumState &state);
 
     bool handleSurface(SurfaceScatterEvent &event, IntersectionTemporary &data,
-                       IntersectionInfo &info, SampleGenerator &sampler,
-                       SampleGenerator &supplementalSampler, const Medium *&medium,
+                       IntersectionInfo &info, PathSampleGenerator &sampler, const Medium *&medium,
                        int bounce, bool adjoint, bool enableLightSampling, Ray &ray,
                        Vec3f &throughput, Vec3f &emission, bool &wasSpecular,
                        Medium::MediumState &state);

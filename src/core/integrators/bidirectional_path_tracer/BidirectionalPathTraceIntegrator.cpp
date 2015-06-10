@@ -1,6 +1,6 @@
 #include "BidirectionalPathTraceIntegrator.hpp"
 
-#include "sampling/SobolSampler.hpp"
+#include "sampling/SobolPathSampler.hpp"
 
 #include "cameras/Camera.hpp"
 
@@ -29,9 +29,8 @@ void BidirectionalPathTraceIntegrator::diceTiles()
                 min(TileSize, _w - x),
                 min(TileSize, _h - y),
                 _scene->rendererSettings().useSobol() ?
-                    std::unique_ptr<SampleGenerator>(new SobolSampler(MathUtil::hash32(_sampler.nextI()))) :
-                    std::unique_ptr<SampleGenerator>(new UniformSampler(MathUtil::hash32(_sampler.nextI()))),
-                std::unique_ptr<SampleGenerator>(new UniformSampler(MathUtil::hash32(_sampler.nextI())))
+                    std::unique_ptr<PathSampleGenerator>(new SobolPathSampler(MathUtil::hash32(_sampler.nextI()))) :
+                    std::unique_ptr<PathSampleGenerator>(new UniformPathSampler(MathUtil::hash32(_sampler.nextI())))
             );
         }
     }
@@ -49,8 +48,8 @@ void BidirectionalPathTraceIntegrator::renderTile(uint32 id, uint32 tileId)
 
             Vec3f c(0.0f);
             for (int i = 0; i < spp; ++i) {
-                tile.sampler->setup(pixelIndex, _currentSpp + i);
-                Vec3f s(_tracers[id]->traceSample(pixel, *tile.sampler, *tile.supplementalSampler));
+                tile.sampler->startPath(pixelIndex, _currentSpp + i);
+                Vec3f s(_tracers[id]->traceSample(pixel, *tile.sampler));
 
                 c += s;
             }
@@ -62,18 +61,14 @@ void BidirectionalPathTraceIntegrator::renderTile(uint32 id, uint32 tileId)
 
 void BidirectionalPathTraceIntegrator::saveState(OutputStreamHandle &out)
 {
-    for (ImageTile &i : _tiles) {
+    for (ImageTile &i : _tiles)
         i.sampler->saveState(out);
-        i.supplementalSampler->saveState(out);
-    }
 }
 
 void BidirectionalPathTraceIntegrator::loadState(InputStreamHandle &in)
 {
-    for (ImageTile &i : _tiles) {
+    for (ImageTile &i : _tiles)
         i.sampler->loadState(in);
-        i.supplementalSampler->loadState(in);
-    }
 }
 
 void BidirectionalPathTraceIntegrator::fromJson(const rapidjson::Value &v, const Scene &/*scene*/)

@@ -9,7 +9,7 @@
 #include "integrators/Integrator.hpp"
 #include "integrators/ImageTile.hpp"
 
-#include "sampling/SampleGenerator.hpp"
+#include "sampling/PathSampleGenerator.hpp"
 #include "sampling/UniformSampler.hpp"
 
 #include "thread/TaskGroup.hpp"
@@ -28,8 +28,7 @@ class ProgressivePhotonMapIntegrator : public Integrator
 
     struct SubTaskData
     {
-        std::unique_ptr<SampleGenerator> sampler;
-        std::unique_ptr<SampleGenerator> supplementalSampler;
+        std::unique_ptr<PathSampleGenerator> sampler;
         SurfacePhotonRange surfaceRange;
         VolumePhotonRange volumeRange;
     };

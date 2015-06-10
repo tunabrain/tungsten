@@ -7,22 +7,20 @@
 
 namespace Tungsten {
 
-class SampleGenerator;
+class PathSampleGenerator;
 
 // TODO: Modify TraceBase to primarily take/return TraceState as parameter
 struct TraceState
 {
-    SampleGenerator &sampler;
-    SampleGenerator &supplementalSampler;
+    PathSampleGenerator &sampler;
     Medium::MediumState mediumState;
     const Medium *medium;
     bool wasSpecular;
     Ray ray;
     int bounce;
 
-    TraceState(SampleGenerator &sampler_, SampleGenerator &supplementalSampler_)
+    TraceState(PathSampleGenerator &sampler_)
     : sampler(sampler_),
-      supplementalSampler(supplementalSampler_),
       medium(nullptr),
       wasSpecular(true),
       ray(Vec3f(0.0f), Vec3f(0.0f)),

@@ -8,12 +8,12 @@ PathTracer::PathTracer(TraceableScene *scene, const PathTracerSettings &settings
 {
 }
 
-Vec3f PathTracer::traceSample(Vec2u pixel, SampleGenerator &sampler, SampleGenerator &supplementalSampler)
+Vec3f PathTracer::traceSample(Vec2u pixel, PathSampleGenerator &sampler)
 {
     // TODO: Put diagnostic colors in JSON?
-    const Vec3f nanDirColor(0.0f, 0.0f, 0.0f);
-    const Vec3f nanEnvDirColor(0.0f, 0.0f, 0.0f);
-    const Vec3f nanBsdfColor(0.0f, 0.0f, 0.0f);
+    const Vec3f nanDirColor = Vec3f(0.0f);
+    const Vec3f nanEnvDirColor = Vec3f(0.0f);
+    const Vec3f nanBsdfColor = Vec3f(0.0f);
 
     try {
 
@@ -21,6 +21,7 @@ Vec3f PathTracer::traceSample(Vec2u pixel, SampleGenerator &sampler, SampleGener
     Vec3f throughput(1.0f);
     if (!_scene->cam().generateSample(pixel, sampler, throughput, ray))
         return Vec3f(0.0f);
+    sampler.advancePath();
     ray.setPrimaryRay(true);
 
     SurfaceScatterEvent event;
@@ -36,7 +37,7 @@ Vec3f PathTracer::traceSample(Vec2u pixel, SampleGenerator &sampler, SampleGener
     bool wasSpecular = true;
     bool hitSurface = true;
     while ((didHit || medium) && bounce < _settings.maxBounces) {
-        if (medium && !handleVolume(sampler, supplementalSampler, medium, bounce,
+        if (medium && !handleVolume(sampler, medium, bounce,
                 false, _settings.enableVolumeLightSampling, ray, throughput, emission, wasSpecular, hitSurface, state))
             break;
 
@@ -44,8 +45,8 @@ Vec3f PathTracer::traceSample(Vec2u pixel, SampleGenerator &sampler, SampleGener
             break;
 
         if (hitSurface) {
-            event = makeLocalScatterEvent(data, info, ray, &sampler, &supplementalSampler);
-            if (!handleSurface(event, data, info, sampler, supplementalSampler, medium, bounce,
+            event = makeLocalScatterEvent(data, info, ray, &sampler);
+            if (!handleSurface(event, data, info, sampler, medium, bounce,
                     false, _settings.enableLightSampling, ray, throughput, emission, wasSpecular, state))
                 break;
         }
@@ -55,7 +56,7 @@ Vec3f PathTracer::traceSample(Vec2u pixel, SampleGenerator &sampler, SampleGener
 
         float roulettePdf = std::abs(throughput).max();
         if (bounce > 2 && roulettePdf < 0.1f) {
-            if (supplementalSampler.next1D() < roulettePdf)
+            if (sampler.nextBoolean(DiscreteRouletteSample, roulettePdf))
                 throughput /= roulettePdf;
             else
                 break;
@@ -66,6 +67,7 @@ Vec3f PathTracer::traceSample(Vec2u pixel, SampleGenerator &sampler, SampleGener
         if (std::isnan(throughput.sum() + emission.sum()))
             return nanBsdfColor;
 
+        sampler.advancePath();
         bounce++;
         if (bounce < _settings.maxBounces)
             didHit = _scene->intersect(ray, data, info);

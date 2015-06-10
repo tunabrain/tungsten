@@ -1,6 +1,6 @@
 #include "PinholeCamera.hpp"
 
-#include "sampling/SampleGenerator.hpp"
+#include "sampling/PathSampleGenerator.hpp"
 
 #include "math/Angle.hpp"
 #include "math/Ray.hpp"
@@ -47,7 +47,7 @@ rapidjson::Value PinholeCamera::toJson(Allocator &allocator) const
     return std::move(v);
 }
 
-bool PinholeCamera::samplePosition(SampleGenerator &/*sampler*/, PositionSample &sample) const
+bool PinholeCamera::samplePosition(PathSampleGenerator &/*sampler*/, PositionSample &sample) const
 {
     sample.p = _pos;
     sample.weight = Vec3f(1.0f);
@@ -57,18 +57,18 @@ bool PinholeCamera::samplePosition(SampleGenerator &/*sampler*/, PositionSample 
     return true;
 }
 
-bool PinholeCamera::sampleDirection(SampleGenerator &sampler, const PositionSample &point,
+bool PinholeCamera::sampleDirection(PathSampleGenerator &sampler, const PositionSample &point,
         DirectionSample &sample) const
 {
-    Vec2u pixel(sampler.next2D()*Vec2f(_res));
+    Vec2u pixel(sampler.next2D(CameraSample)*Vec2f(_res));
     return sampleDirection(sampler, point, pixel, sample);
 }
 
-bool PinholeCamera::sampleDirection(SampleGenerator &sampler, const PositionSample &/*point*/, Vec2u pixel,
+bool PinholeCamera::sampleDirection(PathSampleGenerator &sampler, const PositionSample &/*point*/, Vec2u pixel,
         DirectionSample &sample) const
 {
     float pdf;
-    Vec2f uv = _filter.sample(sampler.next2D(), pdf);
+    Vec2f uv = _filter.sample(sampler.next2D(CameraSample), pdf);
     Vec3f localD = Vec3f(
         -1.0f  + (float(pixel.x()) + 0.5f + uv.x())*_pixelSize.x(),
         _ratio - (float(pixel.y()) + 0.5f + uv.y())*_pixelSize.y(),
@@ -82,7 +82,7 @@ bool PinholeCamera::sampleDirection(SampleGenerator &sampler, const PositionSamp
     return true;
 }
 
-bool PinholeCamera::sampleDirect(const Vec3f &p, SampleGenerator &sampler, LensSample &sample) const
+bool PinholeCamera::sampleDirect(const Vec3f &p, PathSampleGenerator &sampler, LensSample &sample) const
 {
     sample.d = _pos - p;
 
@@ -97,7 +97,7 @@ bool PinholeCamera::sampleDirect(const Vec3f &p, SampleGenerator &sampler, LensS
     return true;
 }
 
-bool PinholeCamera::evalDirection(SampleGenerator &/*sampler*/, const PositionSample &/*point*/,
+bool PinholeCamera::evalDirection(PathSampleGenerator &/*sampler*/, const PositionSample &/*point*/,
         const DirectionSample &direction, Vec3f &weight, Vec2f &pixel) const
 {
     Vec3f localD = _invTransform.transformVector(direction.d);
@@ -135,10 +135,10 @@ bool PinholeCamera::isDirac() const
     return true;
 }
 
-bool PinholeCamera::generateSample(Vec2u pixel, SampleGenerator &sampler, Vec3f &throughput, Ray &ray) const
+bool PinholeCamera::generateSample(Vec2u pixel, PathSampleGenerator &sampler, Vec3f &throughput, Ray &ray) const
 {
     float pdf;
-    Vec2f uv = _filter.sample(sampler.next2D(), pdf);
+    Vec2f uv = _filter.sample(sampler.next2D(CameraSample), pdf);
     Vec3f dir = _transform.transformVector(Vec3f(
         -1.0f  + (float(pixel.x()) + 0.5f + uv.x())*_pixelSize.x(),
         _ratio - (float(pixel.y()) + 0.5f + uv.y())*_pixelSize.y(),

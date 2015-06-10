@@ -8,7 +8,7 @@
 
 #include "renderer/TraceableScene.hpp"
 
-#include "sampling/SampleGenerator.hpp"
+#include "sampling/PathSampleGenerator.hpp"
 
 #include "cameras/Camera.hpp"
 
@@ -74,7 +74,7 @@ bool PathVertex::sampleNextVertex(const TraceableScene &scene, TraceBase &tracer
         Vec3f scatterWeight(1.0f);
         Vec3f emission(0.0f);
         bool scattered = tracer.handleSurface(record.event, record.data, record.info, state.sampler,
-                state.supplementalSampler, state.medium, state.bounce, adjoint, false, state.ray,
+                state.medium, state.bounce, adjoint, false, state.ray,
                 scatterWeight, emission, state.wasSpecular, state.mediumState);
         if (!scattered)
             return false;
@@ -107,8 +107,7 @@ bool PathVertex::sampleNextVertex(const TraceableScene &scene, TraceBase &tracer
     if (!didHit)
         return false;
 
-    record.event = tracer.makeLocalScatterEvent(record.data, record.info, state.ray,
-            &state.sampler, &state.supplementalSampler);
+    record.event = tracer.makeLocalScatterEvent(record.data, record.info, state.ray, &state.sampler);
 
     next = PathVertex(record.info.bsdf, record, _throughput*weight);
     next._record.surface.event.info = &next._record.surface.info;

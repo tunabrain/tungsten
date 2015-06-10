@@ -5,7 +5,7 @@
 
 #include "materials/ConstantTexture.hpp"
 
-#include "sampling/SampleGenerator.hpp"
+#include "sampling/PathSampleGenerator.hpp"
 
 #include "io/JsonUtils.hpp"
 #include "io/Scene.hpp"
@@ -74,7 +74,7 @@ bool RoughConductorBsdf::sample(SurfaceScatterEvent &event) const
     float alpha = Microfacet::roughnessToAlpha(_distribution, roughness);
     float sampleAlpha = Microfacet::roughnessToAlpha(_distribution, sampleRoughness);
 
-    Vec3f m = Microfacet::sample(_distribution, sampleAlpha, event.sampler->next2D());
+    Vec3f m = Microfacet::sample(_distribution, sampleAlpha, event.sampler->next2D(BsdfSample));
     float wiDotM = event.wi.dot(m);
     event.wo = 2.0f*wiDotM*m - event.wi;
     if (wiDotM <= 0.0f || event.wo.z() <= 0.0f)

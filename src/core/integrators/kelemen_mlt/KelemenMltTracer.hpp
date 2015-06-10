@@ -32,7 +32,7 @@ class KelemenMltTracer : public PathTracer
     std::unique_ptr<LightPath> _cameraPath;
     std::unique_ptr<LightPath> _emitterPath;
 
-    void tracePath(SampleGenerator &cameraSampler, SampleGenerator &emitterSampler, SplatQueue &splatQueue);
+    void tracePath(PathSampleGenerator &cameraSampler, PathSampleGenerator &emitterSampler, SplatQueue &splatQueue);
 
     void selectSeedPath(int &idx, float &weight);
 
