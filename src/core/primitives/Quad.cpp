@@ -58,6 +58,8 @@ rapidjson::Value Quad::toJson(Allocator &allocator) const
 bool Quad::intersect(Ray &ray, IntersectionTemporary &data) const
 {
     float nDotW = ray.dir().dot(_frame.normal);
+    if (std::abs(nDotW) < 1e-6f)
+        return false;
 
     float t = _frame.normal.dot(_base - ray.pos())/nDotW;
     if (t < ray.nearT() || t > ray.farT())
@@ -156,7 +158,7 @@ bool Quad::sampleDirection(PathSampleGenerator &sampler, const PositionSample &/
 
 bool Quad::sampleDirect(uint32 /*threadIndex*/, const Vec3f &p, PathSampleGenerator &sampler, LightSample &sample) const
 {
-    if (_frame.normal.dot(p - _base) < 0.0f)
+    if (_frame.normal.dot(p - _base) <= 0.0f)
         return false;
 
     Vec2f xi = sampler.next2D(EmitterSample);
@@ -216,7 +218,7 @@ float Quad::inboundPdf(uint32 /*threadIndex*/, const IntersectionTemporary &/*da
 
 bool Quad::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
 {
-    if (_frame.normal.dot(sample.p - _base) < 0.0f)
+    if (_frame.normal.dot(sample.p - _base) <= 0.0f)
         return false;
 
     Vec2f xi = sample.sampler->next2D(EmitterSample);
