@@ -60,6 +60,8 @@ class MetropolisSampler : public PathSampleGenerator
             if (value >= 1.0f)
                 value -= 1.0f;
         }
+        if (value == 1.0f)
+            value = 0.0f;
         return value;
     }
 
