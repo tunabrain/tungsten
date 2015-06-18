@@ -9,13 +9,12 @@ class IesTexture : public BitmapTexture
 {
     PathPtr _path;
     int _resolution;
-    float _scale;
 
     typedef JsonSerializable::Allocator Allocator;
 
 public:
     IesTexture();
-    IesTexture(PathPtr path, int resolution, float scale);
+    IesTexture(PathPtr path, int resolution);
 
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
@@ -32,22 +31,16 @@ public:
         return _resolution;
     }
 
-    float scale() const
-    {
-        return _scale;
-    }
-
     bool operator<(const IesTexture &o) const
     {
         return _path != o._path ? _path < o._path :
             _resolution != o._resolution ? _resolution < o._resolution :
-            _scale != o._scale ? _scale < o._scale:
             false;
     }
 
     bool operator==(const IesTexture &o) const
     {
-        return _path == o._path && _resolution == o._resolution && _scale == o._scale;
+        return _path == o._path && _resolution == o._resolution;
     }
 };
 

@@ -217,7 +217,6 @@ void TextureProperty::buildTexturePage(PropertySheet *sheet, DiskTexture */*tex*
 void TextureProperty::buildTexturePage(PropertySheet *sheet, IesTexture *tex)
 {
     _resolution = tex->resolution();
-    _scale = tex->scale();
 
     std::string path = (!tex->path() || tex->path()->empty()) ? "" : tex->path()->absolute().asString();
     sheet->addPathProperty(path, "File", _scene->path().absolute().asString(),
@@ -228,11 +227,6 @@ void TextureProperty::buildTexturePage(PropertySheet *sheet, IesTexture *tex)
     });
     sheet->addIntProperty(tex->resolution(), 32, 8192, "Resolution", [this, tex](int value) {
         _resolution = value;
-        updateProfileFlags();
-        return true;
-    });
-    sheet->addFloatProperty(tex->scale(), "Scale", [this, tex](float f) {
-        _scale = f;
         updateProfileFlags();
         return true;
     });
@@ -308,7 +302,7 @@ void TextureProperty::updateBitmapFlags()
 void TextureProperty::loadProfile(PathPtr path)
 {
     std::shared_ptr<IesTexture> tex = _scene->textureCache()->fetchIesTexture(std::move(path),
-            _resolution, _scale);
+            _resolution);
     tex->loadResources();
 
     std::shared_ptr<Texture> base(tex);

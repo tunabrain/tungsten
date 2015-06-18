@@ -51,9 +51,9 @@ std::shared_ptr<IesTexture> TextureCache::fetchIesTexture(const rapidjson::Value
     return *iter;
 }
 
-std::shared_ptr<IesTexture> TextureCache::fetchIesTexture(PathPtr path, int resolution, float scale)
+std::shared_ptr<IesTexture> TextureCache::fetchIesTexture(PathPtr path, int resolution)
 {
-    IesKeyType key = std::make_shared<IesTexture>(std::move(path), resolution, scale);
+    IesKeyType key = std::make_shared<IesTexture>(std::move(path), resolution);
 
     auto iter = _iesTextures.find(key);
     if (iter == _iesTextures.end())

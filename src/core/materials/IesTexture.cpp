@@ -13,15 +13,13 @@ namespace Tungsten {
 
 IesTexture::IesTexture()
 : _path(std::make_shared<Path>("")),
-  _resolution(256),
-  _scale(1.0f)
+  _resolution(256)
 {
 }
 
-IesTexture::IesTexture(PathPtr path, int resolution, float scale)
+IesTexture::IesTexture(PathPtr path, int resolution)
 : _path(std::move(path)),
-  _resolution(resolution),
-  _scale(scale)
+  _resolution(resolution)
 {
 }
 
@@ -29,7 +27,6 @@ void IesTexture::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     _path = scene.fetchResource(v, "file");
     JsonUtils::fromJson(v, "resolution", _resolution);
-    JsonUtils::fromJson(v, "scale", _scale);
 }
 
 rapidjson::Value IesTexture::toJson(Allocator &allocator) const
@@ -39,7 +36,6 @@ rapidjson::Value IesTexture::toJson(Allocator &allocator) const
     if (_path)
         v.AddMember("file", _path->asString().c_str(), allocator);
     v.AddMember("resolution", _resolution, allocator);
-    v.AddMember("scale", _scale, allocator);
     return std::move(v);
 }
 
@@ -209,7 +205,7 @@ void IesTexture::loadResources()
     }
     if (maxValue != 0.0f)
         for (int i = 0; i < _resolution*_resolution*2; ++i)
-            texels[i] *= _scale/maxValue;
+            texels[i] /= maxValue;
 
     init(texels.release(), _resolution*2, _resolution, getTexelType(false, true));
 }

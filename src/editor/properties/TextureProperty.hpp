@@ -71,7 +71,6 @@ class TextureProperty : public Property
     bool _clamp;
 
     int _resolution;
-    float _scale;
 
     TextureDisplay *_bitmapDisplay;
 
