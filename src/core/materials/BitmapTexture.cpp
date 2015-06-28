@@ -43,14 +43,16 @@ BitmapTexture::BitmapTexture(PathPtr path, TexelConversion conversion,
   _min(0.0f), _max(0.0f), _avg(0.0f),
   _texels(nullptr),
   _w(0), _h(0),
-  _texelType(TexelType::SCALAR_LDR)
+  _texelType(TexelType::SCALAR_LDR),
+  _scale(1.0f)
 {
 }
 
 BitmapTexture::BitmapTexture(void *texels, int w, int h, TexelType texelType, bool linear, bool clamp)
 : _linear(linear),
   _clamp(clamp),
-  _valid(true)
+  _valid(true),
+  _scale(1.0f)
 {
     init(texels, w, h, texelType);
 }
@@ -170,11 +172,12 @@ void BitmapTexture::fromJson(const rapidjson::Value &v, const Scene &scene)
     JsonUtils::fromJson(v, "gamma_correct", _gammaCorrect);
     JsonUtils::fromJson(v, "interpolate", _linear);
     JsonUtils::fromJson(v, "clamp", _clamp);
+    JsonUtils::fromJson(v, "scale", _scale);
 }
 
 rapidjson::Value BitmapTexture::toJson(Allocator &allocator) const
 {
-    bool writeFullStruct = !_gammaCorrect || !_linear || _clamp;
+    bool writeFullStruct = !_gammaCorrect || !_linear || _clamp || _scale != 1.0f;
     if (writeFullStruct) {
         rapidjson::Value v = Texture::toJson(allocator);
         v.AddMember("type", "bitmap", allocator);
@@ -183,6 +186,7 @@ rapidjson::Value BitmapTexture::toJson(Allocator &allocator) const
         v.AddMember("gamma_correct", _gammaCorrect, allocator);
         v.AddMember("interpolate", _linear, allocator);
         v.AddMember("clamp", _clamp, allocator);
+        v.AddMember("scale", _scale, allocator);
         return std::move(v);
     } else {
         return std::move(rapidjson::Value(_path->asString().c_str(), allocator));
@@ -234,17 +238,17 @@ bool BitmapTexture::isConstant() const
 
 Vec3f BitmapTexture::average() const
 {
-    return Vec3f(_avg);
+    return _scale*_avg;
 }
 
 Vec3f BitmapTexture::minimum() const
 {
-    return Vec3f(_min);
+    return _scale*_min;
 }
 
 Vec3f BitmapTexture::maximum() const
 {
-    return Vec3f(_max);
+    return _scale*_max;
 }
 
 Vec3f BitmapTexture::operator[](const Vec2f &uv) const
@@ -283,7 +287,7 @@ Vec3f BitmapTexture::operator[](const Vec2f &uv) const
 
 
     if (isRgb()) {
-        return lerp(
+        return _scale*lerp(
             getRgb(iu0, iv0),
             getRgb(iu1, iv0),
             getRgb(iu0, iv1),
@@ -292,7 +296,7 @@ Vec3f BitmapTexture::operator[](const Vec2f &uv) const
             v
         );
     } else {
-        return Vec3f(lerp(
+        return Vec3f(_scale*lerp(
             getScalar(iu0, iv0),
             getScalar(iu1, iv0),
             getScalar(iu0, iv1),
@@ -345,8 +349,8 @@ void BitmapTexture::derivatives(const Vec2f &uv, Vec2f &derivs) const
     float du11 = a12 - a10, du12 = a13 - a11, du21 = a22 - a20, du22 = a23 - a21;
     float dv11 = a21 - a01, dv21 = a31 - a11, dv12 = a22 - a02, dv22 = a32 - a12;
 
-    derivs.x() = lerp(du11, du12, du21, du22, u, v)*float(_w);
-    derivs.y() = lerp(dv11, dv12, dv21, dv22, u, v)*float(_h);
+    derivs.x() = lerp(du11, du12, du21, du22, u, v)*_scale*float(_w);
+    derivs.y() = lerp(dv11, dv12, dv21, dv22, u, v)*_scale*float(_h);
 }
 
 void BitmapTexture::makeSamplable(TextureMapJacobian jacobian)

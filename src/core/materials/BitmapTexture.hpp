@@ -34,6 +34,7 @@ private:
     int _w;
     int _h;
     TexelType _texelType;
+    float _scale;
 
     std::unique_ptr<Distribution2D> _distribution[MAP_JACOBIAN_COUNT];
 
@@ -60,6 +61,8 @@ public:
     BitmapTexture(const Path &path, TexelConversion conversion, bool gammaCorrect, bool linear, bool clamp);
     BitmapTexture(PathPtr path, TexelConversion conversion, bool gammaCorrect, bool linear, bool clamp);
     BitmapTexture(void *texels, int w, int h, TexelType texelType, bool linear, bool clamp);
+
+    BitmapTexture(const BitmapTexture &o);
 
     ~BitmapTexture();
 
