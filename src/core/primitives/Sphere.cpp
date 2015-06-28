@@ -133,7 +133,7 @@ bool Sphere::isSamplable() const
     return true;
 }
 
-void Sphere::makeSamplable(uint32 /*threadIndex*/)
+void Sphere::makeSamplable(const TraceableScene &/*scene*/, uint32 /*threadIndex*/)
 {
 }
 

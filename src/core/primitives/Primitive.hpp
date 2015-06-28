@@ -57,7 +57,7 @@ public:
             Vec3f &T, Vec3f &B) const = 0;
 
     virtual bool isSamplable() const = 0;
-    virtual void makeSamplable(uint32 threadIndex) = 0;
+    virtual void makeSamplable(const TraceableScene &scene, uint32 threadIndex) = 0;
 
 
     virtual bool samplePosition(PathSampleGenerator &sampler, PositionSample &sample) const;

@@ -369,7 +369,7 @@ bool TriangleMesh::isSamplable() const
     return true;
 }
 
-void TriangleMesh::makeSamplable(uint32 /*threadIndex*/)
+void TriangleMesh::makeSamplable(const TraceableScene &/*scene*/, uint32 /*threadIndex*/)
 {
     if (_triSampler)
         return;

@@ -695,7 +695,7 @@ bool TraceableMinecraftMap::isSamplable() const
     return false;
 }
 
-void TraceableMinecraftMap::makeSamplable(uint32 /*threadIndex*/)
+void TraceableMinecraftMap::makeSamplable(const TraceableScene &/*scene*/, uint32 /*threadIndex*/)
 {
 }
 

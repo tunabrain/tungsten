@@ -146,7 +146,7 @@ bool Cube::isSamplable() const
     return false;
 }
 
-void Cube::makeSamplable(uint32 /*threadIndex*/)
+void Cube::makeSamplable(const TraceableScene &/*scene*/, uint32 /*threadIndex*/)
 {
 }
 

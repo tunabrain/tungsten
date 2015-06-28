@@ -529,7 +529,7 @@ bool Curves::isSamplable() const
     return false;
 }
 
-void Curves::makeSamplable(uint32 /*threadIndex*/)
+void Curves::makeSamplable(const TraceableScene &/*scene*/, uint32 /*threadIndex*/)
 {
 }
 

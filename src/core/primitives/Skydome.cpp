@@ -127,7 +127,7 @@ bool Skydome::isSamplable() const
     return _doSample;
 }
 
-void Skydome::makeSamplable(uint32 /*threadIndex*/)
+void Skydome::makeSamplable(const TraceableScene &scene, uint32 /*threadIndex*/)
 {
     _sky->makeSamplable(MAP_SPHERICAL);
 }

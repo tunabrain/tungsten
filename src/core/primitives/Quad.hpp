@@ -35,7 +35,7 @@ public:
             Vec3f &T, Vec3f &B) const override;
 
     virtual bool isSamplable() const override;
-    virtual void makeSamplable(uint32 threadIndex) override;
+    virtual void makeSamplable(const TraceableScene &scene, uint32 threadIndex) override;
 
     virtual bool samplePosition(PathSampleGenerator &sampler, PositionSample &sample) const override;
     virtual bool sampleDirection(PathSampleGenerator &sampler, const PositionSample &point, DirectionSample &sample) const override;

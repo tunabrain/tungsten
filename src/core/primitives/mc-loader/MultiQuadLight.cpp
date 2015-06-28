@@ -186,7 +186,7 @@ bool MultiQuadLight::isSamplable() const
     return true;
 }
 
-void MultiQuadLight::makeSamplable(uint32 threadIndex)
+void MultiQuadLight::makeSamplable(const TraceableScene &/*scene*/, uint32 threadIndex)
 {
     _samplers.resize(threadIndex + 1);
     _samplers[threadIndex].reset(new ThreadlocalSampleInfo);

@@ -130,7 +130,7 @@ bool Quad::isSamplable() const
     return true;
 }
 
-void Quad::makeSamplable(uint32 /*threadIndex*/)
+void Quad::makeSamplable(const TraceableScene &/*scene*/, uint32 /*threadIndex*/)
 {
 }
 

@@ -12,13 +12,13 @@ TraceBase::TraceBase(TraceableScene *scene, const TraceSettings &settings, uint3
 
     std::vector<float> lightWeights(scene->lights().size());
     for (size_t i = 0; i < scene->lights().size(); ++i) {
-        scene->lights()[i]->makeSamplable(_threadId);
+        scene->lights()[i]->makeSamplable(*_scene, _threadId);
         lightWeights[i] = 1.0f; // TODO: Use light power here
     }
     _lightSampler.reset(new Distribution1D(std::move(lightWeights)));
 
     for (const auto &prim : scene->lights())
-        prim->makeSamplable(_threadId);
+        prim->makeSamplable(*_scene, _threadId);
 }
 
 SurfaceScatterEvent TraceBase::makeLocalScatterEvent(IntersectionTemporary &data, IntersectionInfo &info,

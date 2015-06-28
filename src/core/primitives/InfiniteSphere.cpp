@@ -108,7 +108,7 @@ bool InfiniteSphere::isSamplable() const
     return _doSample;
 }
 
-void InfiniteSphere::makeSamplable(uint32 /*threadIndex*/)
+void InfiniteSphere::makeSamplable(const TraceableScene &scene, uint32 /*threadIndex*/)
 {
     _emission->makeSamplable(MAP_SPHERICAL);
 }

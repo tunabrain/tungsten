@@ -36,7 +36,7 @@ public:
             Vec3f &T, Vec3f &B) const override;
 
     virtual bool isSamplable() const override;
-    virtual void makeSamplable(uint32 threadIndex) override;
+    virtual void makeSamplable(const TraceableScene &scene, uint32 threadIndex) override;
     virtual float inboundPdf(uint32 threadIndex, const IntersectionTemporary &data,
             const IntersectionInfo &info, const Vec3f &p, const Vec3f &d) const override;
     virtual bool sampleInboundDirection(uint32 threadIndex, LightSample &sample) const override;

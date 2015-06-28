@@ -61,7 +61,7 @@ bool Point::isSamplable() const
     return true;
 }
 
-void Point::makeSamplable(uint32 /*threadIndex*/)
+void Point::makeSamplable(const TraceableScene &/*scene*/, uint32 /*threadIndex*/)
 {
 }
 

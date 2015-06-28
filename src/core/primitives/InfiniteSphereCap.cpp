@@ -92,7 +92,7 @@ bool InfiniteSphereCap::isSamplable() const
     return _doSample;
 }
 
-void InfiniteSphereCap::makeSamplable(uint32 /*threadIndex*/)
+void InfiniteSphereCap::makeSamplable(const TraceableScene &scene, uint32 /*threadIndex*/)
 {
 }
 

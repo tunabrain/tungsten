@@ -127,7 +127,7 @@ bool Disk::isSamplable() const
     return true;
 }
 
-void Disk::makeSamplable(uint32 /*threadIndex*/)
+void Disk::makeSamplable(const TraceableScene &/*scene*/, uint32 /*threadIndex*/)
 {
 }
 
