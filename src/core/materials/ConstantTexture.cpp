@@ -76,6 +76,11 @@ float ConstantTexture::pdf(TextureMapJacobian /*jacobian*/, const Vec2f &/*uv*/)
     return 1.0f;
 }
 
+void ConstantTexture::scaleValues(float factor)
+{
+    _value *= factor;
+}
+
 Texture *ConstantTexture::clone() const
 {
     return new ConstantTexture(*this);

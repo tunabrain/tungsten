@@ -137,6 +137,11 @@ float BladeTexture::pdf(TextureMapJacobian /*jacobian*/, const Vec2f &uv) const
     return 1.0f/_area;
 }
 
+void BladeTexture::scaleValues(float factor)
+{
+    _value *= factor;
+}
+
 Texture *BladeTexture::clone() const
 {
     return new BladeTexture(*this);

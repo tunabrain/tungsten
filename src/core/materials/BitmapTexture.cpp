@@ -440,6 +440,11 @@ float BitmapTexture::pdf(TextureMapJacobian jacobian, const Vec2f &uv) const
     return _distribution[jacobian]->pdf(int((1.0f - uv.y())*_h), int(uv.x()*_w))*_w*_h;
 }
 
+void BitmapTexture::scaleValues(float factor)
+{
+    _scale *= factor;
+}
+
 Texture *BitmapTexture::clone() const
 {
     return new BitmapTexture(*this);
