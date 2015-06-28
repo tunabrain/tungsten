@@ -16,7 +16,6 @@ struct LightSample
     Vec3f d;
     float dist;
     float pdf;
-    Vec3f weight;
     const Medium *medium;
 
     LightSample(PathSampleGenerator *sampler_)
