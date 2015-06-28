@@ -118,7 +118,7 @@ public:
             }
         }
         if (lightCount == 0) {
-            std::shared_ptr<InfiniteSphere> defaultLight = std::make_shared<InfiniteSphere>();;
+            std::shared_ptr<InfiniteSphere> defaultLight = std::make_shared<InfiniteSphere>();
             defaultLight->setEmission(std::make_shared<ConstantTexture>(1.0f));
             _lights.push_back(defaultLight);
             _infinites.push_back(defaultLight);
