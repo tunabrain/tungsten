@@ -131,7 +131,7 @@ static inline Vec3f uniformTriangle(const Vec2f &xi, const Vec3f& a, const Vec3f
     return a*uv.x() + b*uv.y() + c*(1.0f - uv.x() - uv.y());
 }
 
-static inline float uniformTrianglePdf(const Vec3f& a, const Vec3f& b, const Vec3f& c)
+static inline float uniformTrianglePdf(const Vec3f &a, const Vec3f &b, const Vec3f &c)
 {
     return 2.0f/((b - a).cross(c - a).length());
 }
