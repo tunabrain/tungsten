@@ -13,7 +13,8 @@ namespace Tungsten {
 
 BladeTexture::BladeTexture()
 : _numBlades(6),
-  _angle(0.5f*PI/_numBlades)
+  _angle(0.5f*PI/_numBlades),
+  _value(1.0f)
 {
     init();
 }
@@ -34,6 +35,7 @@ void BladeTexture::fromJson(const rapidjson::Value &v, const Scene &scene)
     Texture::fromJson(v, scene);
     JsonUtils::fromJson(v, "blades", _numBlades);
     JsonUtils::fromJson(v, "angle", _angle);
+    scalarOrVecFromJson(v, "value", _value);
 
     init();
 }
@@ -44,6 +46,7 @@ rapidjson::Value BladeTexture::toJson(Allocator &allocator) const
     v.AddMember("type", "blade", allocator);
     v.AddMember("blades", _numBlades, allocator);
     v.AddMember("angle", _angle, allocator);
+    v.AddMember("value",  scalarOrVecToJson( _value, allocator), allocator);
     return std::move(v);
 }
 
@@ -54,7 +57,7 @@ bool BladeTexture::isConstant() const
 
 Vec3f BladeTexture::average() const
 {
-    return Vec3f(_area);
+    return _area*_value;
 }
 
 Vec3f BladeTexture::minimum() const
@@ -64,13 +67,13 @@ Vec3f BladeTexture::minimum() const
 
 Vec3f BladeTexture::maximum() const
 {
-    return Vec3f(1.0f);
+    return _value;
 }
 
 Vec3f BladeTexture::operator[](const Vec2f &uv) const
 {
     if (uv.sum() == 0.0f)
-        return Vec3f(1.0f);
+        return _value;
 
     Vec2f globalUv = uv*2.0f - 1.0f;
     float phi = std::atan2(globalUv.y(), globalUv.x()) - _angle;
@@ -80,7 +83,7 @@ Vec3f BladeTexture::operator[](const Vec2f &uv) const
     Vec2f localUv(globalUv.x()*cosPhi - globalUv.y()*sinPhi, globalUv.y()*cosPhi + globalUv.x()*sinPhi);
     if (_baseNormal.dot(localUv - Vec2f(1.0f, 0.0f)) > 0.0f)
         return Vec3f(0.0f);
-    return Vec3f(1.0f);
+    return _value;
 }
 
 Vec3f BladeTexture::operator[](const IntersectionInfo &info) const

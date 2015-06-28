@@ -11,6 +11,7 @@ class BladeTexture : public Texture
 
     int _numBlades;
     float _angle;
+    Vec3f _value;
 
     float _area;
     float _bladeAngle;
