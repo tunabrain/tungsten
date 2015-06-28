@@ -24,7 +24,7 @@ void LightTracer::traceSample(PathSampleGenerator &sampler)
     Vec3f throughput(point.weight/lightPdf);
 
     LensSample splat;
-    if (_scene->cam().sampleDirect(point.p, sampler, splat)) {
+    if (!light->isInfinite() && _scene->cam().sampleDirect(point.p, sampler, splat)) {
         Ray shadowRay(point.p, splat.d);
         shadowRay.setFarT(splat.dist);
 
