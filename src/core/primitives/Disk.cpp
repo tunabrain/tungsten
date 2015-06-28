@@ -15,7 +15,7 @@ struct DiskIntersection
 };
 
 Disk::Disk()
-: _coneAngle(45.0f)
+: _coneAngle(90.0f)
 {
 }
 
