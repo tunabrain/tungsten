@@ -10,7 +10,6 @@ struct LensSample
     Vec2f pixel;
     Vec3f d;
     float dist;
-    float pdf;
     Vec3f weight;
 };
 

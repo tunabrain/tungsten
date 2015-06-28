@@ -93,7 +93,6 @@ bool PinholeCamera::sampleDirect(const Vec3f &p, PathSampleGenerator &sampler, L
     sample.dist = std::sqrt(rSq);
     sample.d /= sample.dist;
     sample.weight /= rSq;
-    sample.pdf = 1.0f;
     return true;
 }
 
