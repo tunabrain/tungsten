@@ -44,6 +44,9 @@ class TriangleMesh : public Primitive
     Vec3f normalAt(int triangle, float u, float v) const;
     Vec2f uvAt(int triangle, float u, float v) const;
 
+protected:
+    virtual float powerToRadianceFactor() const override;
+
 public:
     TriangleMesh();
     TriangleMesh(const TriangleMesh &o);
