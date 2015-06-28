@@ -699,22 +699,6 @@ void TraceableMinecraftMap::makeSamplable(const TraceableScene &/*scene*/, uint3
 {
 }
 
-float TraceableMinecraftMap::inboundPdf(uint32 /*threadIndex*/, const IntersectionTemporary &/*data*/,
-        const IntersectionInfo &/*info*/, const Vec3f &/*p*/, const Vec3f &/*d*/) const
-{
-    return 0.0f;
-}
-
-bool TraceableMinecraftMap::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &/*sample*/) const
-{
-    return false;
-}
-
-bool TraceableMinecraftMap::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &/*sample*/) const
-{
-    return false;
-}
-
 bool TraceableMinecraftMap::invertParametrization(Vec2f /*uv*/, Vec3f &/*pos*/) const
 {
     return false;

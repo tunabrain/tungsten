@@ -89,7 +89,11 @@ Vec3f LightPath::bdptWeightedPathEmission(int minLength, int maxLength) const
 
     Vec3f result(0.0f);
     for (int t = max(minLength, 2); t <= min(_length, maxLength); ++t) {
-        Vec3f emission = _vertices[t - 1].surfaceRecord().info.primitive->emission(
+        const SurfaceRecord &record = _vertices[t - 1].surfaceRecord();
+        if (!record.info.primitive->isEmissive())
+            continue;
+
+        Vec3f emission = record.info.primitive->evalDirect(
                 _vertices[t - 1].surfaceRecord().data,
                 _vertices[t - 1].surfaceRecord().info);
         if (emission == 0.0f)
@@ -102,10 +106,10 @@ Vec3f LightPath::bdptWeightedPathEmission(int minLength, int maxLength) const
         }
         connectable[0] = true;
 
-        PositionSample point(_vertices[t - 1].surfaceRecord().info);
+        PositionSample point(record.info);
         DirectionSample direction(-_edges[t - 2].d);
-        pdfForward[0] = _vertices[t - 1].surfaceRecord().info.primitive->positionalPdf(point);
-        pdfForward[1] = _vertices[t - 1].surfaceRecord().info.primitive->directionalPdf(point, direction)*
+        pdfForward[0] = record.info.primitive->positionalPdf(point);
+        pdfForward[1] = record.info.primitive->directionalPdf(point, direction)*
                 _vertices[t - 2].cosineFactor(_edges[t - 2].d)/_edges[t - 2].rSq;
 
         float weight = 1.0f;

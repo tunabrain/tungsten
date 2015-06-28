@@ -223,49 +223,6 @@ Vec3f Sphere::evalDirect(const IntersectionTemporary &data, const IntersectionIn
     return data.as<SphereIntersection>()->backSide ? Vec3f(0.0f) : (*_emission)[info.uv];
 }
 
-float Sphere::inboundPdf(uint32 /*threadIndex*/, const IntersectionTemporary &/*data*/,
-        const IntersectionInfo &/*info*/, const Vec3f &p, const Vec3f &/*d*/) const
-{
-    float dist = (_pos - p).length();
-    float cosTheta = std::sqrt(max(dist*dist - _radius*_radius, 0.0f))/dist;
-    return SampleWarp::uniformSphericalCapPdf(cosTheta);
-}
-
-bool Sphere::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
-{
-    Vec3f L = _pos - sample.p;
-    float d = L.length();
-    float C = d*d - _radius*_radius;
-    if (C <= 0.0f)
-        return false;
-
-    L.normalize();
-    float cosTheta = std::sqrt(C)/d;
-    sample.d = SampleWarp::uniformSphericalCap(sample.sampler->next2D(EmitterSample), cosTheta);
-
-    float B = d*sample.d.z();
-    float det = std::sqrt(max(B*B - C, 0.0f));
-    sample.dist = B - det;
-
-    TangentFrame frame(L);
-    sample.d = frame.toGlobal(sample.d);
-    sample.pdf = SampleWarp::uniformSphericalCapPdf(cosTheta);
-
-    return true;
-}
-
-bool Sphere::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
-{
-    sample.p = SampleWarp::uniformSphere(sample.sampler->next2D(EmitterSample));
-    sample.d = SampleWarp::cosineHemisphere(sample.sampler->next2D(EmitterSample));
-    sample.pdf = SampleWarp::cosineHemispherePdf(sample.d)/(FOUR_PI*_radius*_radius);
-    TangentFrame frame(sample.p);
-    sample.d = frame.toGlobal(sample.d);
-    sample.p = sample.p*_radius + _pos;
-
-    return true;
-}
-
 bool Sphere::invertParametrization(Vec2f uv, Vec3f &pos) const
 {
     float phi = uv.x()*TWO_PI - PI;

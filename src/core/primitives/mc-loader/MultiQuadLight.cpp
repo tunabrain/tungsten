@@ -195,39 +195,25 @@ void MultiQuadLight::makeSamplable(const TraceableScene &/*scene*/, uint32 threa
     _samplers[threadIndex]->lastQuery = Vec3f(0.0f);
 }
 
-float MultiQuadLight::inboundPdf(uint32 /*threadIndex*/, const IntersectionTemporary &data,
-        const IntersectionInfo &info, const Vec3f &p, const Vec3f &d) const
+bool MultiQuadLight::sampleDirect(uint32 threadIndex, const Vec3f &p, PathSampleGenerator &pathSampler, LightSample &sample) const
 {
-    const QuadLightIntersection *isect = data.as<QuadLightIntersection>();
-
-    uint32 quadId = isect->isect.id/2;
-
-    float pdf = _sampleBvh->lightPdf(p, quadId, [&](uint32 id) {
-        return approximateQuadContribution(p, id);
-    });
-
-    return pdf*0.5f*(p - info.p).lengthSq()/(-d.dot(info.Ng)*_triangleAreas[isect->isect.id]);
-}
-
-bool MultiQuadLight::sampleInboundDirection(uint32 threadIndex, LightSample &sample) const
-{
-    float xi = sample.sampler->next1D(EmitterSample);
+    float xi = pathSampler.next1D(EmitterSample);
 
     ThreadlocalSampleInfo &sampler = *_samplers[threadIndex];
 
-    std::pair<int, float> result = _sampleBvh->sampleLight(sample.p, &sampler.sampleWeights[0],
+    std::pair<int, float> result = _sampleBvh->sampleLight(p, &sampler.sampleWeights[0],
             &sampler.insideIds[0], xi, [&](uint32 id) {
-        return approximateQuadContribution(sample.p, id);
+        return approximateQuadContribution(p, id);
     });
     if (result.first == -1)
         return false;
 
-    int idx = sample.sampler->next1D(EmitterSample) < 0.5f ? result.first*2 : result.first*2 + 1;
+    int idx = pathSampler.next1D(EmitterSample) < 0.5f ? result.first*2 : result.first*2 + 1;
 
     const QuadGeometry::TriangleInfo &t = _geometry.triangle(idx);
 
-    Vec3f p = SampleWarp::uniformTriangle(sample.sampler->next2D(EmitterSample), t.p0, t.p1, t.p2);
-    Vec3f L = p - sample.p;
+    Vec3f q = SampleWarp::uniformTriangle(pathSampler.next2D(EmitterSample), t.p0, t.p1, t.p2);
+    Vec3f L = q - p;
 
     float rSq = L.lengthSq();
     sample.dist = std::sqrt(rSq);
@@ -240,9 +226,27 @@ bool MultiQuadLight::sampleInboundDirection(uint32 threadIndex, LightSample &sam
     return true;
 }
 
-bool MultiQuadLight::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &/*sample*/) const
+float MultiQuadLight::directPdf(uint32 threadIndex, const IntersectionTemporary &data,
+        const IntersectionInfo &info, const Vec3f &p) const
 {
-    return false;
+    const QuadLightIntersection *isect = data.as<QuadLightIntersection>();
+
+    uint32 quadId = isect->isect.id/2;
+
+    float pdf = _sampleBvh->lightPdf(p, quadId, [&](uint32 id) {
+        return approximateQuadContribution(p, id);
+    });
+
+    return pdf*0.5f*(p - info.p).lengthSq()/(-info.w.dot(info.Ng)*_triangleAreas[isect->isect.id]);
+}
+
+Vec3f MultiQuadLight::evalDirect(const IntersectionTemporary &data, const IntersectionInfo &info) const
+{
+    const QuadLightIntersection *isect = data.as<QuadLightIntersection>();
+    const QuadMaterial &material = _materials[_geometry.material(isect->isect)];
+    const BitmapTexture *emitter = material.emission.get();
+
+    return (*emitter)[info.uv]*(isect->wasPrimary ? material.primaryScale : material.secondaryScale);
 }
 
 bool MultiQuadLight::invertParametrization(Vec2f /*uv*/, Vec3f &/*pos*/) const
@@ -349,15 +353,6 @@ Primitive *MultiQuadLight::clone()
 bool MultiQuadLight::isEmissive() const
 {
     return true;
-}
-
-Vec3f MultiQuadLight::emission(const IntersectionTemporary &data, const IntersectionInfo &info) const
-{
-    const QuadLightIntersection *isect = data.as<QuadLightIntersection>();
-    const QuadMaterial &material = _materials[_geometry.material(isect->isect)];
-    const BitmapTexture *emitter = material.emission.get();
-
-    return (*emitter)[info.uv]*(isect->wasPrimary ? material.primaryScale : material.secondaryScale);
 }
 
 }

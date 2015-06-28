@@ -66,10 +66,10 @@ public:
     virtual bool isSamplable() const override;
     virtual void makeSamplable(const TraceableScene &scene, uint32 threadIndex) override;
 
-    virtual float inboundPdf(uint32 threadIndex, const IntersectionTemporary &data,
-            const IntersectionInfo &info, const Vec3f &p, const Vec3f &d) const override;
-    virtual bool sampleInboundDirection(uint32 threadIndex, LightSample &sample) const override;
-    virtual bool sampleOutboundDirection(uint32 threadIndex, LightSample &sample) const override;
+    virtual bool sampleDirect(uint32 threadIndex, const Vec3f &p, PathSampleGenerator &sampler, LightSample &sample) const override;
+    virtual float directPdf(uint32 threadIndex, const IntersectionTemporary &data,
+            const IntersectionInfo &info, const Vec3f &p) const override;
+    virtual Vec3f evalDirect(const IntersectionTemporary &data, const IntersectionInfo &info) const override;
 
     virtual bool invertParametrization(Vec2f uv, Vec3f &pos) const override;
 
@@ -92,7 +92,6 @@ public:
     virtual Primitive *clone() override;
 
     virtual bool isEmissive() const override;
-    virtual Vec3f emission(const IntersectionTemporary &data, const IntersectionInfo &info) const override;
 };
 
 }

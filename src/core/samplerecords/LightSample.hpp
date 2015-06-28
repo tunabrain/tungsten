@@ -5,27 +5,14 @@
 
 namespace Tungsten {
 
-class PathSampleGenerator;
 class Medium;
 
 struct LightSample
 {
-    PathSampleGenerator *sampler;
-    Vec3f p;
-
     Vec3f d;
     float dist;
     float pdf;
     const Medium *medium;
-
-    LightSample(PathSampleGenerator *sampler_)
-    : sampler(sampler_)
-    {
-    }
-    LightSample(PathSampleGenerator *sampler_, const Vec3f &p_)
-    : sampler(sampler_), p(p_)
-    {
-    }
 };
 
 }

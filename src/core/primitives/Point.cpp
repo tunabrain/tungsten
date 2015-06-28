@@ -133,32 +133,6 @@ Vec3f Point::evalDirect(const IntersectionTemporary &/*data*/, const Intersectio
     return (*_emission)[Vec2f(0.0f)];
 }
 
-float Point::inboundPdf(uint32 /*threadIndex*/, const IntersectionTemporary &/*data*/,
-        const IntersectionInfo &/*info*/, const Vec3f &/*p*/, const Vec3f &/*d*/) const
-{
-    return 0.0f;
-}
-
-bool Point::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
-{
-    sample.d = _pos - sample.p;
-    float rSq = sample.d.lengthSq();
-    sample.dist = std::sqrt(rSq);
-    sample.d /= sample.dist;
-    sample.pdf = rSq;
-    return true;
-}
-
-bool Point::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
-{
-    Vec2f xi = sample.sampler->next2D(EmitterSample);
-    sample.p = _pos;
-    sample.d = SampleWarp::uniformSphere(xi);
-    sample.pdf = SampleWarp::uniformSpherePdf();
-    sample.medium = nullptr;
-    return true;
-}
-
 bool Point::invertParametrization(Vec2f /*uv*/, Vec3f &/*pos*/) const
 {
     return false;

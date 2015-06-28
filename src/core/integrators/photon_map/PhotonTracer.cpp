@@ -183,10 +183,11 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
 
     if (!didHit) {
         if (!medium && _scene->intersectInfinites(ray, data, info))
-            result += throughput*info.primitive->emission(data, info);
+            result += throughput*info.primitive->evalDirect(data, info);
         return result;
     }
-    result += throughput*info.primitive->emission(data, info);
+    if (info.primitive->isEmissive())
+        result += throughput*info.primitive->evalDirect(data, info);
 
     int count = surfaceTree.nearestNeighbours(ray.hitpoint(), _photonQuery.get(), _distanceQuery.get(),
             _settings.gatherCount, gatherRadius);

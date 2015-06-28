@@ -211,30 +211,6 @@ Vec3f Skydome::evalDirect(const IntersectionTemporary &/*data*/, const Intersect
     return (*_sky)[info.uv];
 }
 
-float Skydome::inboundPdf(uint32 /*threadIndex*/, const IntersectionTemporary &data,
-        const IntersectionInfo &/*info*/, const Vec3f &/*p*/, const Vec3f &/*d*/) const
-{
-    const SkydomeIntersection *isect = data.as<SkydomeIntersection>();
-    float sinTheta;
-    Vec2f uv = directionToUV(isect->w, sinTheta);
-    return INV_PI*INV_TWO_PI*_sky->pdf(MAP_SPHERICAL, uv)/sinTheta;
-}
-
-bool Skydome::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
-{
-    Vec2f uv = _sky->sample(MAP_SPHERICAL, sample.sampler->next2D(EmitterSample));
-    float sinTheta;
-    sample.d = uvToDirection(uv, sinTheta);
-    sample.pdf = INV_PI*INV_TWO_PI*_sky->pdf(MAP_SPHERICAL, uv)/sinTheta;
-    sample.dist = 1e30f;
-    return true;
-}
-
-bool Skydome::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &/*sample*/) const
-{
-    return false;
-}
-
 bool Skydome::invertParametrization(Vec2f /*uv*/, Vec3f &/*pos*/) const
 {
     return false;

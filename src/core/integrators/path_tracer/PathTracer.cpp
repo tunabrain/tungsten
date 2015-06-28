@@ -74,12 +74,8 @@ Vec3f PathTracer::traceSample(Vec2u pixel, PathSampleGenerator &sampler)
     }
     if (!didHit && !medium && bounce >= _settings.minBounces) {
         if (_scene->intersectInfinites(ray, data, info)) {
-            if (_settings.enableLightSampling) {
-                if (bounce == 0 || wasSpecular || !info.primitive->isSamplable())
-                    emission += throughput*info.primitive->emission(data, info);
-            } else {
-                emission += throughput*info.primitive->emission(data, info);
-            }
+            if (!_settings.enableLightSampling || bounce == 0 || wasSpecular || !info.primitive->isSamplable())
+                emission += throughput*info.primitive->evalDirect(data, info);
         }
     }
     if (std::isnan(throughput.sum() + emission.sum()))

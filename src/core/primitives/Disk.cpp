@@ -125,6 +125,15 @@ bool Disk::tangentSpace(const IntersectionTemporary &data, const IntersectionInf
     return true;
 }
 
+bool Disk::isSamplable() const
+{
+    return true;
+}
+
+void Disk::makeSamplable(const TraceableScene &/*scene*/, uint32 /*threadIndex*/)
+{
+}
+
 bool Disk::samplePosition(PathSampleGenerator &sampler, PositionSample &sample) const
 {
     Vec2f xi = sampler.next2D(EmitterSample);
@@ -153,7 +162,7 @@ bool Disk::sampleDirection(PathSampleGenerator &sampler, const PositionSample &/
 
 bool Disk::sampleDirect(uint32 /*threadIndex*/, const Vec3f &p, PathSampleGenerator &sampler, LightSample &sample) const
 {
-    if (_n.dot(sample.p - _center) < 0.0f)
+    if (_n.dot(p - _center) < 0.0f)
         return false;
 
     Vec2f lQ = SampleWarp::uniformDisk(sampler.next2D(EmitterSample)).xy()*_r;
@@ -203,55 +212,6 @@ Vec3f Disk::evalDirectionalEmission(const PositionSample &/*point*/, const Direc
 Vec3f Disk::evalDirect(const IntersectionTemporary &data, const IntersectionInfo &info) const
 {
     return data.as<DiskIntersection>()->backSide ? Vec3f(0.0f) : (*_emission)[info.uv];
-}
-
-bool Disk::isSamplable() const
-{
-    return true;
-}
-
-void Disk::makeSamplable(const TraceableScene &/*scene*/, uint32 /*threadIndex*/)
-{
-}
-
-float Disk::inboundPdf(uint32 /*threadIndex*/, const IntersectionTemporary &/*data*/,
-        const IntersectionInfo &/*info*/, const Vec3f &p, const Vec3f &d) const
-{
-    float cosTheta = std::abs(_n.dot(d));
-    float t = _n.dot(_center - p)/_n.dot(d);
-
-    return t*t/(cosTheta*_r*_r*PI);
-}
-
-bool Disk::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
-{
-    if (_n.dot(sample.p - _center) < 0.0f)
-        return false;
-
-    Vec2f lQ = SampleWarp::uniformDisk(sample.sampler->next2D(EmitterSample)).xy()*_r;
-    Vec3f q = _center + lQ.x()*_frame.bitangent + lQ.y()*_frame.tangent;
-    sample.d = q - sample.p;
-    float rSq = sample.d.lengthSq();
-    sample.dist = std::sqrt(rSq);
-    sample.d /= sample.dist;
-    if (-sample.d.dot(_n) < _cosApex)
-        return false;
-    float cosTheta = -_n.dot(sample.d);
-    sample.pdf = rSq/(cosTheta*_r*_r*PI);
-    return true;
-}
-
-bool Disk::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
-{
-    Vec2f xi = sample.sampler->next2D(EmitterSample);
-    Vec2f lQ = SampleWarp::uniformDisk(xi).xy();
-    sample.p = _center + lQ.x()*_frame.bitangent + lQ.y()*_frame.tangent;
-    sample.d = SampleWarp::cosineHemisphere(sample.sampler->next2D(EmitterSample));
-    sample.pdf = SampleWarp::cosineHemispherePdf(sample.d)/(_r*_r*PI);
-    TangentFrame frame(_n);
-    sample.d = frame.toGlobal(sample.d);
-    sample.medium = _bsdf->overridesMedia() ? _bsdf->extMedium().get() : nullptr;
-    return true;
 }
 
 bool Disk::invertParametrization(Vec2f uv, Vec3f &pos) const

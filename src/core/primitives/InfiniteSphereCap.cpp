@@ -169,26 +169,6 @@ Vec3f InfiniteSphereCap::evalDirect(const IntersectionTemporary &/*data*/, const
     return (*_emission)[Vec2f(0.0f)];
 }
 
-float InfiniteSphereCap::inboundPdf(uint32 /*threadIndex*/, const IntersectionTemporary &/*data*/,
-        const IntersectionInfo &/*info*/, const Vec3f &/*p*/, const Vec3f &/*d*/) const
-{
-    return SampleWarp::uniformSphericalCapPdf(_cosCapAngle);
-}
-
-bool InfiniteSphereCap::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
-{
-    Vec3f dir = SampleWarp::uniformSphericalCap(sample.sampler->next2D(EmitterSample), _cosCapAngle);
-    sample.d = _capFrame.toGlobal(dir);
-    sample.dist = Ray::infinity();
-    sample.pdf = SampleWarp::uniformSphericalCapPdf(_cosCapAngle);
-    return true;
-}
-
-bool InfiniteSphereCap::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &/*sample*/) const
-{
-    return false;
-}
-
 bool InfiniteSphereCap::invertParametrization(Vec2f /*uv*/, Vec3f &/*pos*/) const
 {
     return false;

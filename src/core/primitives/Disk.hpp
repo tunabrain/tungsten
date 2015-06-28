@@ -40,6 +40,9 @@ public:
     virtual bool tangentSpace(const IntersectionTemporary &data, const IntersectionInfo &info,
             Vec3f &T, Vec3f &B) const override;
 
+    virtual bool isSamplable() const override;
+    virtual void makeSamplable(const TraceableScene &scene, uint32 threadIndex) override;
+
     virtual bool samplePosition(PathSampleGenerator &sampler, PositionSample &sample) const override;
     virtual bool sampleDirection(PathSampleGenerator &sampler, const PositionSample &point, DirectionSample &sample) const override;
     virtual bool sampleDirect(uint32 threadIndex, const Vec3f &p, PathSampleGenerator &sampler, LightSample &sample) const override;
@@ -51,12 +54,6 @@ public:
     virtual Vec3f evalDirectionalEmission(const PositionSample &point, const DirectionSample &sample) const override;
     virtual Vec3f evalDirect(const IntersectionTemporary &data, const IntersectionInfo &info) const override;
 
-    virtual bool isSamplable() const override;
-    virtual void makeSamplable(const TraceableScene &scene, uint32 threadIndex) override;
-    virtual float inboundPdf(uint32 threadIndex, const IntersectionTemporary &data,
-            const IntersectionInfo &info, const Vec3f &p, const Vec3f &d) const override;
-    virtual bool sampleInboundDirection(uint32 threadIndex, LightSample &sample) const override;
-    virtual bool sampleOutboundDirection(uint32 threadIndex, LightSample &sample) const override;
     virtual bool invertParametrization(Vec2f uv, Vec3f &pos) const override;
 
     virtual bool isDirac() const override;

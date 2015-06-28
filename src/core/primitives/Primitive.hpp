@@ -64,7 +64,6 @@ public:
     virtual bool isSamplable() const = 0;
     virtual void makeSamplable(const TraceableScene &scene, uint32 threadIndex) = 0;
 
-
     virtual bool samplePosition(PathSampleGenerator &sampler, PositionSample &sample) const;
     virtual bool sampleDirection(PathSampleGenerator &sampler, const PositionSample &point, DirectionSample &sample) const;
     virtual bool sampleDirect(uint32 threadIndex, const Vec3f &p, PathSampleGenerator &sampler, LightSample &sample) const;
@@ -75,12 +74,6 @@ public:
     virtual Vec3f evalPositionalEmission(const PositionSample &sample) const;
     virtual Vec3f evalDirectionalEmission(const PositionSample &point, const DirectionSample &sample) const;
     virtual Vec3f evalDirect(const IntersectionTemporary &data, const IntersectionInfo &info) const;
-
-
-    virtual float inboundPdf(uint32 threadIndex, const IntersectionTemporary &data,
-            const IntersectionInfo &info, const Vec3f &p, const Vec3f &d) const = 0;
-    virtual bool sampleInboundDirection(uint32 threadIndex, LightSample &sample) const = 0;
-    virtual bool sampleOutboundDirection(uint32 threadIndex, LightSample &sample) const = 0;
 
     virtual bool invertParametrization(Vec2f uv, Vec3f &pos) const = 0;
 
@@ -114,15 +107,6 @@ public:
     {
         return (_emission.operator bool() && _emission->maximum().max() > 0.0f) ||
                (   _power.operator bool() &&    _power->maximum().max() > 0.0f);
-    }
-
-    virtual Vec3f emission(const IntersectionTemporary &data, const IntersectionInfo &info) const
-    {
-        if (!_emission)
-            return Vec3f(0.0f);
-        if (hitBackside(data))
-            return Vec3f(0.0f);
-        return (*_emission)[info];
     }
 
     void setEmission(const std::shared_ptr<Texture> &emission)

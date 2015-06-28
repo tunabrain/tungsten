@@ -161,6 +161,15 @@ bool Cube::tangentSpace(const IntersectionTemporary &/*data*/, const Intersectio
     return true;
 }
 
+bool Cube::isSamplable() const
+{
+    return true;
+}
+
+void Cube::makeSamplable(const TraceableScene &/*scene*/, uint32 /*threadIndex*/)
+{
+}
+
 bool Cube::samplePosition(PathSampleGenerator &sampler, PositionSample &sample) const
 {
     float u = sampler.next1D(EmitterSample);
@@ -244,44 +253,6 @@ Vec3f Cube::evalDirectionalEmission(const PositionSample &point, const Direction
 Vec3f Cube::evalDirect(const IntersectionTemporary &data, const IntersectionInfo &info) const
 {
     return data.as<CubeIntersection>()->backSide ? Vec3f(0.0f) : (*_emission)[info.uv];
-}
-
-bool Cube::isSamplable() const
-{
-    return true;
-}
-
-void Cube::makeSamplable(const TraceableScene &/*scene*/, uint32 /*threadIndex*/)
-{
-}
-
-float Cube::inboundPdf(uint32 /*threadIndex*/, const IntersectionTemporary &/*data*/,
-        const IntersectionInfo &info, const Vec3f &p, const Vec3f &/*d*/) const
-{
-    return (p - info.p).lengthSq()/(-info.w.dot(info.Ng)*_area);
-}
-
-bool Cube::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
-{
-    PositionSample point;
-    samplePosition(*sample.sampler, point);
-
-    Vec3f L = point.p - sample.p;
-
-    float rSq = L.lengthSq();
-    sample.dist = std::sqrt(rSq);
-    sample.d = L/sample.dist;
-    float cosTheta = -(point.Ng.dot(sample.d));
-    if (cosTheta <= 0.0f)
-        return false;
-    sample.pdf = rSq/(cosTheta*_area);
-
-    return true;
-}
-
-bool Cube::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &/*sample*/) const
-{
-    return false;
 }
 
 bool Cube::invertParametrization(Vec2f /*uv*/, Vec3f &/*pos*/) const

@@ -216,41 +216,6 @@ Vec3f InfiniteSphere::evalDirect(const IntersectionTemporary &/*data*/, const In
     return (*_emission)[info.uv];
 }
 
-float InfiniteSphere::inboundPdf(uint32 /*threadIndex*/, const IntersectionTemporary &data, const IntersectionInfo &/*info*/,
-        const Vec3f &/*p*/, const Vec3f &/*d*/) const
-{
-    if (_emission->isConstant()) {
-        return INV_FOUR_PI;
-    } else {
-        const InfiniteSphereIntersection *isect = data.as<InfiniteSphereIntersection>();
-        float sinTheta;
-        Vec2f uv = directionToUV(isect->w, sinTheta);
-        return INV_PI*INV_TWO_PI*_emission->pdf(MAP_SPHERICAL, uv)/sinTheta;
-    }
-}
-
-bool InfiniteSphere::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
-{
-    if (_emission->isConstant()) {
-        sample.d = SampleWarp::uniformSphere(sample.sampler->next2D(EmitterSample));
-        sample.dist = Ray::infinity();
-        sample.pdf = INV_FOUR_PI;
-        return true;
-    } else {
-        Vec2f uv = _emission->sample(MAP_SPHERICAL, sample.sampler->next2D(EmitterSample));
-        float sinTheta;
-        sample.d = uvToDirection(uv, sinTheta);
-        sample.pdf = INV_PI*INV_TWO_PI*_emission->pdf(MAP_SPHERICAL, uv)/sinTheta;
-        sample.dist = Ray::infinity();
-        return true;
-    }
-}
-
-bool InfiniteSphere::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &/*sample*/) const
-{
-    return false;
-}
-
 bool InfiniteSphere::invertParametrization(Vec2f /*uv*/, Vec3f &/*pos*/) const
 {
     return false;

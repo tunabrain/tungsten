@@ -65,10 +65,6 @@ public:
     virtual Vec3f evalDirectionalEmission(const PositionSample &point, const DirectionSample &sample) const override;
     virtual Vec3f evalDirect(const IntersectionTemporary &data, const IntersectionInfo &info) const override;
 
-    virtual float inboundPdf(uint32 threadIndex, const IntersectionTemporary &data,
-            const IntersectionInfo &info, const Vec3f &p, const Vec3f &d) const override;
-    virtual bool sampleInboundDirection(uint32 threadIndex, LightSample &sample) const override;
-    virtual bool sampleOutboundDirection(uint32 threadIndex, LightSample &sample) const override;
     virtual bool invertParametrization(Vec2f uv, Vec3f &pos) const override;
 
     virtual bool isDirac() const override;

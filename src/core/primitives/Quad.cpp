@@ -212,41 +212,6 @@ Vec3f Quad::evalDirect(const IntersectionTemporary &data, const IntersectionInfo
     return data.as<QuadIntersection>()->backSide ? Vec3f(0.0f) : (*_emission)[info.uv];
 }
 
-float Quad::inboundPdf(uint32 /*threadIndex*/, const IntersectionTemporary &/*data*/,
-        const IntersectionInfo &/*info*/, const Vec3f &p, const Vec3f &d) const {
-    float cosTheta = std::abs(_frame.normal.dot(d));
-    float t = _frame.normal.dot(_base - p)/_frame.normal.dot(d);
-
-    return t*t/(cosTheta*_area);
-}
-
-bool Quad::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
-{
-    if (_frame.normal.dot(sample.p - _base) <= 0.0f)
-        return false;
-
-    Vec2f xi = sample.sampler->next2D(EmitterSample);
-    Vec3f q = _base + xi.x()*_edge0 + xi.y()*_edge1;
-    sample.d = q - sample.p;
-    float rSq = sample.d.lengthSq();
-    sample.dist = std::sqrt(rSq);
-    sample.d /= sample.dist;
-    float cosTheta = -_frame.normal.dot(sample.d);
-    sample.pdf = rSq/(cosTheta*_area);
-    return true;
-}
-
-bool Quad::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
-{
-    Vec2f xi = sample.sampler->next2D(EmitterSample);
-    sample.p = _base + xi.x()*_edge0 + (1.0f - xi.y())*_edge1;
-    sample.d = SampleWarp::cosineHemisphere(sample.sampler->next2D(EmitterSample));
-    sample.pdf = SampleWarp::cosineHemispherePdf(sample.d)/_area;
-    sample.d = _frame.toGlobal(sample.d);
-    sample.medium = _bsdf->overridesMedia() ? _bsdf->extMedium().get() : nullptr;
-    return true;
-}
-
 bool Quad::invertParametrization(Vec2f uv, Vec3f &pos) const
 {
     pos = _base + uv.x()*_edge0 + uv.y()*_edge1;

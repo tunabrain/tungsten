@@ -533,22 +533,6 @@ void Curves::makeSamplable(const TraceableScene &/*scene*/, uint32 /*threadIndex
 {
 }
 
-float Curves::inboundPdf(uint32 /*threadIndex*/, const IntersectionTemporary &/*data*/, const IntersectionInfo &/*info*/,
-        const Vec3f &/*p*/, const Vec3f &/*d*/) const
-{
-    return 0.0f;
-}
-
-bool Curves::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &/*sample*/) const
-{
-    return false;
-}
-
-bool Curves::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &/*sample*/) const
-{
-    return false;
-}
-
 bool Curves::invertParametrization(Vec2f /*uv*/, Vec3f &/*pos*/) const
 {
     return false;

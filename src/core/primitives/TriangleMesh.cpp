@@ -477,57 +477,6 @@ Vec3f TriangleMesh::evalDirect(const IntersectionTemporary &data, const Intersec
     return data.as<MeshIntersection>()->backSide ? Vec3f(0.0f) : (*_emission)[info.uv];
 }
 
-float TriangleMesh::inboundPdf(uint32 /*threadIndex*/, const IntersectionTemporary &/*data*/,
-        const IntersectionInfo &info, const Vec3f &p, const Vec3f &d) const
-{
-    return (p - info.p).lengthSq()/(-d.dot(info.Ng)*_totalArea);
-}
-
-bool TriangleMesh::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
-{
-    float u = sample.sampler->next1D(EmitterSample);
-    int idx;
-    _triSampler->warp(u, idx);
-
-    Vec3f p0 = _tfVerts[_tris[idx].v0].pos();
-    Vec3f p1 = _tfVerts[_tris[idx].v1].pos();
-    Vec3f p2 = _tfVerts[_tris[idx].v2].pos();
-    Vec3f normal = (p1 - p0).cross(p2 - p0).normalized();
-
-    Vec3f p = SampleWarp::uniformTriangle(sample.sampler->next2D(EmitterSample), p0, p1, p2);
-    Vec3f L = p - sample.p;
-
-    float rSq = L.lengthSq();
-    sample.dist = std::sqrt(rSq);
-    sample.d = L/sample.dist;
-    float cosTheta = -(normal.dot(sample.d));
-    if (cosTheta <= 0.0f)
-        return false;
-    sample.pdf = rSq/(cosTheta*_totalArea);
-
-    return true;
-}
-
-bool TriangleMesh::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &sample) const
-{
-    float u = sample.sampler->next1D(EmitterSample);
-    int idx;
-    _triSampler->warp(u, idx);
-
-    Vec3f p0 = _tfVerts[_tris[idx].v0].pos();
-    Vec3f p1 = _tfVerts[_tris[idx].v1].pos();
-    Vec3f p2 = _tfVerts[_tris[idx].v2].pos();
-    Vec3f normal = (p1 - p0).cross(p2 - p0).normalized();
-    TangentFrame frame(normal);
-
-    sample.p = SampleWarp::uniformTriangle(sample.sampler->next2D(EmitterSample), p0, p1, p2);
-    sample.d = SampleWarp::cosineHemisphere(sample.sampler->next2D(EmitterSample));
-    sample.pdf = SampleWarp::cosineHemispherePdf(sample.d)/_totalArea;
-    sample.d = frame.toGlobal(sample.d);
-
-    return true;
-}
-
 bool TriangleMesh::invertParametrization(Vec2f /*uv*/, Vec3f &/*pos*/) const
 {
     return false;
