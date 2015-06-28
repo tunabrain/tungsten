@@ -110,8 +110,8 @@ bool ThinlensCamera::generateSample(Vec2u pixel, PathSampleGenerator &sampler, V
     Vec2f lensUv = sampler.next2D(CameraSample);
 
     Vec3f planePos = Vec3f(
-        -1.0f  + (float(pixel.x()) + pixelUv.x())*_pixelSize.x(),
-        _ratio - (float(pixel.y()) + pixelUv.y())*_pixelSize.y(),
+        -1.0f  + (float(pixel.x()) + pixelUv.x())*2.0f*_pixelSize.x(),
+        _ratio - (float(pixel.y()) + pixelUv.y())*2.0f*_pixelSize.x(),
         _planeDist
     );
     planePos *= _focusDist/planePos.z();

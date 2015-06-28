@@ -36,7 +36,7 @@ void Camera::precompute()
 {
     _tonemapOp = Tonemap::stringToType(_tonemapString);
     _ratio = _res.y()/float(_res.x());
-    _pixelSize = Vec2f(2.0f/_res.x(), 2.0f/_res.x());
+    _pixelSize = Vec2f(1.0f/_res.x(), 1.0f/_res.y());
     _invTransform = _transform.pseudoInvert();
 }
 

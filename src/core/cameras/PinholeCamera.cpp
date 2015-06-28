@@ -70,8 +70,8 @@ bool PinholeCamera::sampleDirection(PathSampleGenerator &sampler, const Position
     float pdf;
     Vec2f uv = _filter.sample(sampler.next2D(CameraSample), pdf);
     Vec3f localD = Vec3f(
-        -1.0f  + (float(pixel.x()) + 0.5f + uv.x())*_pixelSize.x(),
-        _ratio - (float(pixel.y()) + 0.5f + uv.y())*_pixelSize.y(),
+        -1.0f  + (float(pixel.x()) + 0.5f + uv.x())*2.0f*_pixelSize.x(),
+        _ratio - (float(pixel.y()) + 0.5f + uv.y())*2.0f*_pixelSize.x(),
         _planeDist
     ).normalized();
 
@@ -105,13 +105,13 @@ bool PinholeCamera::evalDirection(PathSampleGenerator &/*sampler*/, const Positi
         return false;
     localD *= _planeDist/localD.z();
 
-    pixel.x() = (localD.x() + 1.0f)/_pixelSize.x();
-    pixel.y() = (_ratio - localD.y())/_pixelSize.y();
+    pixel.x() = (localD.x() + 1.0f)/(2.0f*_pixelSize.x());
+    pixel.y() = (_ratio - localD.y())/(2.0f*_pixelSize.x());
     if (pixel.x() < -_filter.width() || pixel.y() < -_filter.width() ||
         pixel.x() >= _res.x() || pixel.y() >= _res.y())
         return false;
 
-    weight = Vec3f(sqr(_planeDist)/(_pixelSize.x()*_pixelSize.y()*cube(localD.z()/localD.length())));
+    weight = Vec3f(sqr(_planeDist)/(4.0f*_pixelSize.x()*_pixelSize.x()*cube(localD.z()/localD.length())));
     return true;
 }
 
@@ -140,8 +140,8 @@ bool PinholeCamera::generateSample(Vec2u pixel, PathSampleGenerator &sampler, Ve
     float pdf;
     Vec2f uv = _filter.sample(sampler.next2D(CameraSample), pdf);
     Vec3f dir = _transform.transformVector(Vec3f(
-        -1.0f  + (float(pixel.x()) + 0.5f + uv.x())*_pixelSize.x(),
-        _ratio - (float(pixel.y()) + 0.5f + uv.y())*_pixelSize.y(),
+        -1.0f  + (float(pixel.x()) + 0.5f + uv.x())*2.0f*_pixelSize.x(),
+        _ratio - (float(pixel.y()) + 0.5f + uv.y())*2.0f*_pixelSize.x(),
         _planeDist
     )).normalized();
 
