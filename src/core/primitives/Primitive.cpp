@@ -24,6 +24,7 @@ void Primitive::fromJson(const rapidjson::Value &v, const Scene &scene)
     JsonUtils::fromJson(v, "bump_strength", _bumpStrength);
 
     scene.textureFromJsonMember(v, "emission", TexelConversion::REQUEST_RGB, _emission);
+    scene.textureFromJsonMember(v, "power", TexelConversion::REQUEST_RGB, _power);
     scene.textureFromJsonMember(v, "bump", TexelConversion::REQUEST_AVERAGE, _bump);
 }
 
@@ -32,7 +33,9 @@ rapidjson::Value Primitive::toJson(Allocator &allocator) const
     rapidjson::Value v = JsonSerializable::toJson(allocator);
     v.AddMember("transform", JsonUtils::toJsonValue(_transform, allocator), allocator);
     v.AddMember("bump_strength", JsonUtils::toJsonValue(_bumpStrength, allocator), allocator);
-    if (_emission)
+    if (_power)
+        JsonUtils::addObjectMember(v, "power", *_power, allocator);
+    else if (_emission)
         JsonUtils::addObjectMember(v, "emission", *_emission, allocator);
     if (_bump)
         JsonUtils::addObjectMember(v, "bump", *_bump,  allocator);
@@ -87,6 +90,20 @@ Vec3f Primitive::evalDirect(const IntersectionTemporary &data, const Intersectio
     if (hitBackside(data))
         return Vec3f(0.0f);
     return (*_emission)[info];
+}
+
+void Primitive::prepareForRender()
+{
+    if (_power) {
+        _emission = std::shared_ptr<Texture>(_power->clone());
+        _emission->scaleValues(powerToRadianceFactor());
+    }
+}
+
+void Primitive::teardownAfterRender()
+{
+    if (_power)
+        _emission.reset();
 }
 
 void Primitive::setupTangentFrame(const IntersectionTemporary &data,

@@ -138,9 +138,9 @@ bool Quad::samplePosition(PathSampleGenerator &sampler, PositionSample &sample) 
 {
     Vec2f xi = sampler.next2D(EmitterSample);
     sample.p = _base + xi.x()*_edge0 + xi.y()*_edge1;
-    sample.weight = _powerFactor*(*_emission)[xi];
     sample.pdf = _invArea;
     sample.uv = xi;
+    sample.weight = PI*_area*(*_emission)[sample.uv];
     sample.Ng = _frame.normal;
 
     return true;
@@ -195,7 +195,7 @@ float Quad::directPdf(uint32 /*threadIndex*/, const IntersectionTemporary &/*dat
 
 Vec3f Quad::evalPositionalEmission(const PositionSample &sample) const
 {
-    return _invArea*_powerFactor*(*_emission)[sample.uv];
+    return PI*(*_emission)[sample.uv];
 }
 
 Vec3f Quad::evalDirectionalEmission(const PositionSample &/*point*/, const DirectionSample &sample) const
@@ -319,7 +319,6 @@ void Quad::prepareForRender()
 
     _invUvSq = 1.0f/Vec2f(_edge0.lengthSq(), _edge1.lengthSq());
 
-    _powerFactor = PI*_area;
 }
 
 void Quad::teardownAfterRender()

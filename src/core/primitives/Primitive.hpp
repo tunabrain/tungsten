@@ -25,20 +25,25 @@
 
 namespace Tungsten {
 
+class TraceableScene;
 class TriangleMesh;
 
 class Primitive : public JsonSerializable
 {
 protected:
     std::shared_ptr<Texture> _emission;
+    std::shared_ptr<Texture> _power;
     std::shared_ptr<Texture> _bump;
     float _bumpStrength;
-
-    float _powerFactor;
 
     Mat4f _transform;
 
     bool _needsRayTransform = false;
+
+    virtual float powerToRadianceFactor() const
+    {
+        return 0.0f;
+    }
 
 public:
     virtual ~Primitive() {}
@@ -88,8 +93,8 @@ public:
 
     virtual const TriangleMesh &asTriangleMesh() = 0;
 
-    virtual void prepareForRender() = 0;
-    virtual void teardownAfterRender() = 0;
+    virtual void prepareForRender();
+    virtual void teardownAfterRender();
 
     virtual int numBsdfs() const = 0;
     virtual std::shared_ptr<Bsdf> &bsdf(int index) = 0;
@@ -107,7 +112,8 @@ public:
 
     virtual bool isEmissive() const
     {
-        return _emission.operator bool() && _emission->maximum().max() > 0.0f;
+        return (_emission.operator bool() && _emission->maximum().max() > 0.0f) ||
+               (   _power.operator bool() &&    _power->maximum().max() > 0.0f);
     }
 
     virtual Vec3f emission(const IntersectionTemporary &data, const IntersectionInfo &info) const
