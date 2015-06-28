@@ -19,6 +19,9 @@ class Quad : public Primitive
 
     void buildProxy();
 
+protected:
+    virtual float powerToRadianceFactor() const override;
+
 public:
     Quad() = default;
     Quad(const Vec3f &base, const Vec3f &edge0, const Vec3f &edge1,
@@ -63,7 +66,6 @@ public:
     virtual const TriangleMesh &asTriangleMesh() override;
 
     virtual void prepareForRender() override;
-    virtual void teardownAfterRender() override;
 
     virtual int numBsdfs() const override;
     virtual std::shared_ptr<Bsdf> &bsdf(int index) override;

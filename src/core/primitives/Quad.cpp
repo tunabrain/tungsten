@@ -40,6 +40,11 @@ void Quad::buildProxy()
     _proxy.reset(new TriangleMesh(std::move(verts), std::move(tris), nullptr, "QuadLight", false, false));
 }
 
+float Quad::powerToRadianceFactor() const
+{
+    return INV_PI*_invArea;
+}
+
 void Quad::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     Primitive::fromJson(v, scene);
@@ -169,7 +174,6 @@ bool Quad::sampleDirect(uint32 /*threadIndex*/, const Vec3f &p, PathSampleGenera
     sample.d /= sample.dist;
     float cosTheta = -_frame.normal.dot(sample.d);
     sample.pdf = rSq/(cosTheta*_area);
-    sample.weight = (*_emission)[xi]/sample.pdf;
 
     return true;
 }
@@ -238,7 +242,6 @@ bool Quad::sampleOutboundDirection(uint32 /*threadIndex*/, LightSample &sample) 
     sample.p = _base + xi.x()*_edge0 + (1.0f - xi.y())*_edge1;
     sample.d = SampleWarp::cosineHemisphere(sample.sampler->next2D(EmitterSample));
     sample.pdf = SampleWarp::cosineHemispherePdf(sample.d)/_area;
-    sample.weight = PI*(*_emission)[xi]*_area;
     sample.d = _frame.toGlobal(sample.d);
     sample.medium = _bsdf->overridesMedia() ? _bsdf->extMedium().get() : nullptr;
     return true;
@@ -319,10 +322,7 @@ void Quad::prepareForRender()
 
     _invUvSq = 1.0f/Vec2f(_edge0.lengthSq(), _edge1.lengthSq());
 
-}
-
-void Quad::teardownAfterRender()
-{
+    Primitive::prepareForRender();
 }
 
 int Quad::numBsdfs() const
