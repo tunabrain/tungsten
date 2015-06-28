@@ -149,12 +149,19 @@ bool Sphere::sampleInboundDirection(uint32 /*threadIndex*/, LightSample &sample)
 {
     Vec3f L = _pos - sample.p;
     float d = L.length();
+    float C = d*d - _radius*_radius;
+    if (C <= 0.0f)
+        return false;
+
     L.normalize();
-    float cosTheta = std::sqrt(max(d*d - _radius*_radius, 0.0f))/d;
+    float cosTheta = std::sqrt(C)/d;
     sample.d = SampleWarp::uniformSphericalCap(sample.sampler->next2D(EmitterSample), cosTheta);
 
+    float B = d*sample.d.z();
+    float det = std::sqrt(max(B*B - C, 0.0f));
+    sample.dist = B - det;
+
     TangentFrame frame(L);
-    sample.dist = d;
     sample.d = frame.toGlobal(sample.d);
     sample.pdf = SampleWarp::uniformSphericalCapPdf(cosTheta);
 
