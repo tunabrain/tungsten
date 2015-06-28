@@ -27,6 +27,11 @@ void InfiniteSphereCap::buildProxy()
     _proxy->makeCone(0.05f, 1.0f);
 }
 
+float InfiniteSphereCap::powerToRadianceFactor() const
+{
+    return INV_TWO_PI/(1.0f - _cosCapAngle);
+}
+
 void InfiniteSphereCap::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     _scene = &scene;
@@ -94,6 +99,74 @@ bool InfiniteSphereCap::isSamplable() const
 
 void InfiniteSphereCap::makeSamplable(const TraceableScene &scene, uint32 /*threadIndex*/)
 {
+    _sceneBounds = scene.bounds();
+    _sceneBounds.grow(1e-2f);
+}
+
+bool InfiniteSphereCap::samplePosition(PathSampleGenerator &sampler, PositionSample &sample) const
+{
+    float faceXi = sampler.next1D(EmitterSample);
+    Vec2f xi = sampler.next2D(EmitterSample);
+
+    sample.uv = Vec2f(0.0f);
+    sample.Ng = -_capFrame.toGlobal(SampleWarp::uniformSphericalCap(sampler.next2D(EmitterSample), _cosCapAngle));
+    sample.p = SampleWarp::projectedBox(_sceneBounds, sample.Ng, faceXi, xi);
+    sample.pdf = SampleWarp::uniformSphericalCapPdf(_cosCapAngle)*
+                 SampleWarp::projectedBoxPdf(_sceneBounds, sample.Ng);
+    sample.weight = (*_emission)[sample.uv]/sample.pdf;
+
+    return true;
+}
+
+bool InfiniteSphereCap::sampleDirection(PathSampleGenerator &/*sampler*/, const PositionSample &point, DirectionSample &sample) const
+{
+    sample.d = point.Ng;
+    sample.pdf = 1.0f;
+    sample.weight = Vec3f(1.0f);
+
+    return true;
+}
+
+bool InfiniteSphereCap::sampleDirect(uint32 /*threadIndex*/, const Vec3f &/*p*/, PathSampleGenerator &sampler, LightSample &sample) const
+{
+    Vec3f dir = SampleWarp::uniformSphericalCap(sampler.next2D(EmitterSample), _cosCapAngle);
+    sample.d = _capFrame.toGlobal(dir);
+    sample.dist = Ray::infinity();
+    sample.pdf = SampleWarp::uniformSphericalCapPdf(_cosCapAngle);
+
+    return true;
+}
+
+float InfiniteSphereCap::positionalPdf(const PositionSample &point) const
+{
+    return SampleWarp::uniformSphericalCapPdf(_cosCapAngle)*
+           SampleWarp::projectedBoxPdf(_sceneBounds, point.Ng);
+}
+
+float InfiniteSphereCap::directionalPdf(const PositionSample &/*point*/, const DirectionSample &/*sample*/) const
+{
+    return 1.0f;
+}
+
+float InfiniteSphereCap::directPdf(uint32 /*threadIndex*/, const IntersectionTemporary &/*data*/,
+        const IntersectionInfo &/*info*/, const Vec3f &/*p*/) const
+{
+    return SampleWarp::uniformSphericalCapPdf(_cosCapAngle);
+}
+
+Vec3f InfiniteSphereCap::evalPositionalEmission(const PositionSample &/*sample*/) const
+{
+    return (*_emission)[Vec2f(0.0f)];
+}
+
+Vec3f InfiniteSphereCap::evalDirectionalEmission(const PositionSample &/*point*/, const DirectionSample &/*sample*/) const
+{
+    return Vec3f(1.0f);
+}
+
+Vec3f InfiniteSphereCap::evalDirect(const IntersectionTemporary &/*data*/, const IntersectionInfo &/*info*/) const
+{
+    return (*_emission)[Vec2f(0.0f)];
 }
 
 float InfiniteSphereCap::inboundPdf(uint32 /*threadIndex*/, const IntersectionTemporary &/*data*/,
@@ -165,10 +238,8 @@ void InfiniteSphereCap::prepareForRender()
     _capAngleRad = Angle::degToRad(_capAngleDeg);
     _cosCapAngle = std::cos(_capAngleRad);
     _capFrame = TangentFrame(_capDir);
-}
 
-void InfiniteSphereCap::teardownAfterRender()
-{
+    Primitive::prepareForRender();
 }
 
 int InfiniteSphereCap::numBsdfs() const
