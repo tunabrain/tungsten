@@ -13,6 +13,8 @@ class Disk : public Primitive
     Vec3f _center;
     float _r;
     Vec3f _n;
+    float _area;
+    float _invArea;
     TangentFrame _frame;
     float _cosApex;
     Vec3f _coneBase;
@@ -21,6 +23,9 @@ class Disk : public Primitive
     std::shared_ptr<TriangleMesh> _proxy;
 
     void buildProxy();
+
+protected:
+    virtual float powerToRadianceFactor() const override;
 
 public:
     Disk();
@@ -34,6 +39,17 @@ public:
     virtual void intersectionInfo(const IntersectionTemporary &data, IntersectionInfo &info) const override;
     virtual bool tangentSpace(const IntersectionTemporary &data, const IntersectionInfo &info,
             Vec3f &T, Vec3f &B) const override;
+
+    virtual bool samplePosition(PathSampleGenerator &sampler, PositionSample &sample) const override;
+    virtual bool sampleDirection(PathSampleGenerator &sampler, const PositionSample &point, DirectionSample &sample) const override;
+    virtual bool sampleDirect(uint32 threadIndex, const Vec3f &p, PathSampleGenerator &sampler, LightSample &sample) const override;
+    virtual float positionalPdf(const PositionSample &point) const;
+    virtual float directionalPdf(const PositionSample &point, const DirectionSample &sample) const override;
+    virtual float directPdf(uint32 threadIndex, const IntersectionTemporary &data,
+            const IntersectionInfo &info, const Vec3f &p) const override;
+    virtual Vec3f evalPositionalEmission(const PositionSample &sample) const override;
+    virtual Vec3f evalDirectionalEmission(const PositionSample &point, const DirectionSample &sample) const override;
+    virtual Vec3f evalDirect(const IntersectionTemporary &data, const IntersectionInfo &info) const override;
 
     virtual bool isSamplable() const override;
     virtual void makeSamplable(const TraceableScene &scene, uint32 threadIndex) override;
@@ -52,7 +68,6 @@ public:
     virtual const TriangleMesh &asTriangleMesh() override;
 
     virtual void prepareForRender() override;
-    virtual void teardownAfterRender() override;
 
     virtual int numBsdfs() const override;
     virtual std::shared_ptr<Bsdf> &bsdf(int index) override;
