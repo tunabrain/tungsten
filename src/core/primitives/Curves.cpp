@@ -619,6 +619,8 @@ void Curves::prepareForRender()
     //_needsRayTransform = true;
 
     computeBounds();
+
+    Primitive::prepareForRender();
 }
 
 void Curves::teardownAfterRender()
@@ -626,6 +628,8 @@ void Curves::teardownAfterRender()
     _bvh.reset();
     // TODO
     loadCurves();
+
+    Primitive::teardownAfterRender();
 }
 
 
