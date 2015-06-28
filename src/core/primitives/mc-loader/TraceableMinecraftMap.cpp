@@ -692,7 +692,7 @@ bool TraceableMinecraftMap::tangentSpace(const IntersectionTemporary &/*data*/, 
 
 bool TraceableMinecraftMap::isSamplable() const
 {
-    return true;
+    return false;
 }
 
 void TraceableMinecraftMap::makeSamplable(uint32 /*threadIndex*/)
