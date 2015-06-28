@@ -122,4 +122,9 @@ float CheckerTexture::pdf(TextureMapJacobian /*jacobian*/, const Vec2f &uv) cons
     return (on ? onWeight : offWeight)/(onWeight + offWeight);
 }
 
+Texture *CheckerTexture::clone() const
+{
+    return new CheckerTexture(*this);
+}
+
 }

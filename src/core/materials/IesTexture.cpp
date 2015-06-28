@@ -210,4 +210,9 @@ void IesTexture::loadResources()
     init(texels.release(), _resolution*2, _resolution, getTexelType(false, true));
 }
 
+Texture *IesTexture::clone() const
+{
+    return new IesTexture(*this);
+}
+
 }

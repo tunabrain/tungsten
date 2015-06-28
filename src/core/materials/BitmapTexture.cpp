@@ -57,6 +57,47 @@ BitmapTexture::BitmapTexture(void *texels, int w, int h, TexelType texelType, bo
     init(texels, w, h, texelType);
 }
 
+BitmapTexture::BitmapTexture(const BitmapTexture &o)
+{
+    _path            = o._path;
+    _texelConversion = o._texelConversion;
+    _gammaCorrect    = o._gammaCorrect;
+    _linear          = o._linear;
+    _clamp           = o._clamp;
+    _valid           = o._valid;
+    _min             = o._min;
+    _max             = o._max;
+    _avg             = o._avg;
+    _w               = o._w;
+    _h               = o._h;
+    _texelType       = o._texelType;
+    _scale           = o._scale;
+
+    if (o._texels) {
+        size_t size = 0;
+        switch (_texelType) {
+        case TexelType::SCALAR_LDR:
+            _texels = new uint8[_w*_h];
+            size = _w*_h*sizeof(uint8);
+            break;
+        case TexelType::SCALAR_HDR:
+            _texels = new float[_w*_h];
+            size = _w*_h*sizeof(float);
+            break;
+        case TexelType::RGB_LDR:
+            _texels = new uint8[_w*_h*4];
+            size = _w*_h*4*sizeof(uint8);
+            break;
+        case TexelType::RGB_HDR:
+            _texels = new Vec3f[_w*_h];
+            size = _w*_h*sizeof(Vec3f);
+            break;
+        }
+
+        std::memcpy(_texels, o._texels, size);
+    }
+}
+
 BitmapTexture::~BitmapTexture()
 {
     switch (_texelType) {
@@ -397,6 +438,11 @@ Vec2f BitmapTexture::sample(TextureMapJacobian jacobian, const Vec2f &uv) const
 float BitmapTexture::pdf(TextureMapJacobian jacobian, const Vec2f &uv) const
 {
     return _distribution[jacobian]->pdf(int((1.0f - uv.y())*_h), int(uv.x()*_w))*_w*_h;
+}
+
+Texture *BitmapTexture::clone() const
+{
+    return new BitmapTexture(*this);
 }
 
 }

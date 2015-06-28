@@ -137,6 +137,11 @@ float BladeTexture::pdf(TextureMapJacobian /*jacobian*/, const Vec2f &uv) const
     return 1.0f/_area;
 }
 
+Texture *BladeTexture::clone() const
+{
+    return new BladeTexture(*this);
+}
+
 void BladeTexture::setAngle(float angle)
 {
     _angle = angle;

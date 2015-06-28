@@ -21,6 +21,8 @@ public:
 
     virtual void loadResources() override;
 
+    virtual Texture *clone() const override;
+
     const PathPtr &path() const
     {
         return _path;

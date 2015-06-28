@@ -92,5 +92,10 @@ float BiomeTexture::pdf(TextureMapJacobian jacobian, const Vec2f &uv) const
     return _substrate->pdf(jacobian, uv);
 }
 
+Texture *BiomeTexture::clone() const
+{
+    return new BiomeTexture(*this);
+}
+
 }
 }

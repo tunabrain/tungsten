@@ -75,4 +75,9 @@ float DiskTexture::pdf(TextureMapJacobian /*jacobian*/, const Vec2f &uv) const
     return (uv - Vec2f(0.5f)).lengthSq() < 0.25f ? SampleWarp::uniformDiskPdf()*4.0f : 0.0f;
 }
 
+
+Texture *DiskTexture::clone() const
+{
+    return new DiskTexture(*this);
+}
 }
