@@ -45,8 +45,6 @@ rapidjson::Value Disk::toJson(Allocator &allocator) const
 bool Disk::intersect(Ray &ray, IntersectionTemporary &data) const
 {
     float nDotW = ray.dir().dot(_n);
-    if (nDotW >= 0.0f)
-        return false;
 
     float t = _n.dot(_center - ray.pos())/nDotW;
     if (t < ray.nearT() || t > ray.farT())
