@@ -52,6 +52,11 @@ void InfiniteSphere::buildProxy()
     _proxy->makeSphere(0.05f);
 }
 
+float InfiniteSphere::powerToRadianceFactor() const
+{
+    return INV_FOUR_PI;
+}
+
 void InfiniteSphere::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     Primitive::fromJson(v, scene);
@@ -111,6 +116,104 @@ bool InfiniteSphere::isSamplable() const
 void InfiniteSphere::makeSamplable(const TraceableScene &scene, uint32 /*threadIndex*/)
 {
     _emission->makeSamplable(MAP_SPHERICAL);
+    _sceneBounds = scene.bounds();
+    _sceneBounds.grow(1e-2f);
+}
+
+bool InfiniteSphere::samplePosition(PathSampleGenerator &sampler, PositionSample &sample) const
+{
+    float faceXi = sampler.next1D(EmitterSample);
+    Vec2f xi = sampler.next2D(EmitterSample);
+
+    if (_emission->isConstant()) {
+        sample.Ng = -SampleWarp::uniformSphere(sampler.next2D(EmitterSample));
+        sample.uv = directionToUV(-sample.Ng);
+        sample.pdf = INV_FOUR_PI;
+    } else {
+        sample.uv = _emission->sample(MAP_SPHERICAL, sampler.next2D(EmitterSample));
+        float sinTheta;
+        sample.Ng = -uvToDirection(sample.uv, sinTheta);
+        sample.pdf = INV_PI*INV_TWO_PI*_emission->pdf(MAP_SPHERICAL, sample.uv)/sinTheta;
+    }
+
+    sample.p = SampleWarp::projectedBox(_sceneBounds, sample.Ng, faceXi, xi);
+    sample.pdf *= SampleWarp::projectedBoxPdf(_sceneBounds, sample.Ng);
+    sample.weight = (*_emission)[sample.uv]/sample.pdf;
+
+    return true;
+}
+
+bool InfiniteSphere::sampleDirection(PathSampleGenerator &/*sampler*/, const PositionSample &point, DirectionSample &sample) const
+{
+    sample.d = point.Ng;
+    sample.pdf = 1.0f;
+    sample.weight = Vec3f(1.0f);
+
+    return true;
+}
+
+bool InfiniteSphere::sampleDirect(uint32 /*threadIndex*/, const Vec3f &/*p*/, PathSampleGenerator &sampler, LightSample &sample) const
+{
+    if (_emission->isConstant()) {
+        sample.d = SampleWarp::uniformSphere(sampler.next2D(EmitterSample));
+        sample.dist = Ray::infinity();
+        sample.pdf = INV_FOUR_PI;
+        return true;
+    } else {
+        Vec2f uv = _emission->sample(MAP_SPHERICAL, sampler.next2D(EmitterSample));
+        float sinTheta;
+        sample.d = uvToDirection(uv, sinTheta);
+        sample.pdf = INV_PI*INV_TWO_PI*_emission->pdf(MAP_SPHERICAL, uv)/sinTheta;
+        sample.dist = Ray::infinity();
+        return true;
+    }
+}
+
+float InfiniteSphere::positionalPdf(const PositionSample &point) const
+{
+    float pdf;
+    if (_emission->isConstant()) {
+        pdf = INV_FOUR_PI;
+    } else {
+        float sinTheta;
+        Vec2f uv = directionToUV(point.Ng, sinTheta);
+        pdf = INV_PI*INV_TWO_PI*_emission->pdf(MAP_SPHERICAL, uv)/sinTheta;
+    }
+
+    return pdf*SampleWarp::projectedBoxPdf(_sceneBounds, point.Ng);
+}
+
+float InfiniteSphere::directionalPdf(const PositionSample &/*point*/, const DirectionSample &/*sample*/) const
+{
+    return 1.0f;
+}
+
+float InfiniteSphere::directPdf(uint32 /*threadIndex*/, const IntersectionTemporary &data,
+        const IntersectionInfo &/*info*/, const Vec3f &/*p*/) const
+{
+    if (_emission->isConstant()) {
+        return INV_FOUR_PI;
+    } else {
+        const InfiniteSphereIntersection *isect = data.as<InfiniteSphereIntersection>();
+        float sinTheta;
+        Vec2f uv = directionToUV(isect->w, sinTheta);
+        return INV_PI*INV_TWO_PI*_emission->pdf(MAP_SPHERICAL, uv)/sinTheta;
+    }
+}
+
+Vec3f InfiniteSphere::evalPositionalEmission(const PositionSample &sample) const
+{
+    return (*_emission)[directionToUV(sample.Ng)];
+}
+
+Vec3f InfiniteSphere::evalDirectionalEmission(const PositionSample &/*point*/, const DirectionSample &/*sample*/) const
+{
+    return Vec3f(1.0f);
+}
+
+Vec3f InfiniteSphere::evalDirect(const IntersectionTemporary &/*data*/, const IntersectionInfo &info) const
+{
+    return (*_emission)[info.uv];
 }
 
 float InfiniteSphere::inboundPdf(uint32 /*threadIndex*/, const IntersectionTemporary &data, const IntersectionInfo &/*info*/,
@@ -186,10 +289,8 @@ void InfiniteSphere::prepareForRender()
 {
     _rotTransform = _transform.extractRotation();
     _invRotTransform = _rotTransform.transpose();
-}
 
-void InfiniteSphere::teardownAfterRender()
-{
+    Primitive::prepareForRender();
 }
 
 int InfiniteSphere::numBsdfs() const
