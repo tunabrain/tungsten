@@ -18,7 +18,6 @@ ThinlensCamera::ThinlensCamera()
   _fovDeg(60.0f),
   _focusDist(1.0f),
   _apertureSize(0.001f),
-  _chromaticAberration(0.0f),
   _catEye(0.0f),
   _aperture(std::make_shared<DiskTexture>())
 {
@@ -47,32 +46,6 @@ float ThinlensCamera::evalApertureThroughput(Vec3f planePos, Vec2f aperturePos) 
     return aperture/_aperture->maximum().x();
 }
 
-Vec3f ThinlensCamera::aberration(const Vec3f &planePos, Vec2u pixel, Vec2f &aperturePos, PathSampleGenerator &sampler) const
-{
-    Vec2f shift = (Vec2f(Vec2i(pixel) - Vec2i(_res/2))/Vec2f(_res))*2.0f;
-    shift.y() = -shift.y();
-
-    float dist = shift.length();
-    shift.normalize();
-    float shiftAmount = dist*_chromaticAberration;
-    Vec3f shiftAmounts = Vec3f(shiftAmount, 0.0f, -shiftAmount);
-    int sampleKernel = sampler.nextDiscrete(DiscreteCameraSample, 3);
-    float amount = shiftAmounts[sampleKernel];
-    shiftAmounts -= amount;
-
-    Vec2f blueShift  = aperturePos + shift*shiftAmounts.x();
-    Vec2f greenShift = aperturePos + shift*shiftAmounts.y();
-    Vec2f redShift   = aperturePos + shift*shiftAmounts.z();
-
-    aperturePos -= amount*shift;
-
-    return Vec3f(
-        evalApertureThroughput(planePos, redShift),
-        evalApertureThroughput(planePos, greenShift),
-        evalApertureThroughput(planePos, blueShift)
-    );
-}
-
 void ThinlensCamera::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     _scene = &scene;
@@ -80,7 +53,6 @@ void ThinlensCamera::fromJson(const rapidjson::Value &v, const Scene &scene)
     JsonUtils::fromJson(v, "fov", _fovDeg);
     JsonUtils::fromJson(v, "focus_distance", _focusDist);
     JsonUtils::fromJson(v, "aperture_size", _apertureSize);
-    JsonUtils::fromJson(v, "aberration", _chromaticAberration);
     JsonUtils::fromJson(v, "cateye", _catEye);
     JsonUtils::fromJson(v, "focus_pivot", _focusPivot);
     scene.textureFromJsonMember(v, "aperture", TexelConversion::REQUEST_AVERAGE, _aperture);
@@ -95,7 +67,6 @@ rapidjson::Value ThinlensCamera::toJson(Allocator &allocator) const
     v.AddMember("fov", _fovDeg, allocator);
     v.AddMember("focus_distance", _focusDist, allocator);
     v.AddMember("aperture_size", _apertureSize, allocator);
-    v.AddMember("aberration", _chromaticAberration, allocator);
     v.AddMember("cateye", _catEye, allocator);
     if (!_focusPivot.empty())
         v.AddMember("focus_pivot", _focusPivot.c_str(), allocator);
@@ -117,17 +88,14 @@ bool ThinlensCamera::generateSample(Vec2u pixel, PathSampleGenerator &sampler, V
     planePos *= _focusDist/planePos.z();
 
     Vec2f aperturePos = _aperture->sample(MAP_UNIFORM, lensUv);
-    if (_chromaticAberration > 0.0f)
-        throughput = aberration(planePos, pixel, aperturePos, sampler);
-    else
-        throughput = Vec3f(1.0f);
+    throughput = Vec3f(1.0f);
     aperturePos = (aperturePos*2.0f - 1.0f)*_apertureSize;
 
     Vec3f lensPos = Vec3f(aperturePos.x(), aperturePos.y(), 0.0f);
     Vec3f localDir = (planePos - lensPos).normalized();
     Vec3f dir = _transform.transformVector(localDir);
 
-    if (_catEye > 0.0f && _chromaticAberration <= 0.0f) {
+    if (_catEye > 0.0f) {
         Vec2f diaphragmPos = lensPos.xy() - _catEye*_planeDist*localDir.xy()/localDir.z();
         if (diaphragmPos.lengthSq() > sqr(_apertureSize))
             return false;

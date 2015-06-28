@@ -18,7 +18,6 @@ class ThinlensCamera : public Camera
     float _planeDist;
     float _focusDist;
     float _apertureSize;
-    float _chromaticAberration;
     float _catEye;
     std::string _focusPivot;
 
@@ -27,7 +26,6 @@ class ThinlensCamera : public Camera
     void precompute();
 
     float evalApertureThroughput(Vec3f planePos, Vec2f aperturePos) const;
-    Vec3f aberration(const Vec3f &planePos, Vec2u pixel, Vec2f &aperturePos, PathSampleGenerator &sampler) const;
 
 public:
     ThinlensCamera();
