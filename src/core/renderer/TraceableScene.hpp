@@ -73,6 +73,8 @@ class TraceableScene
     embree::Intersector1 *_intersector = nullptr;
     embree::Intersector1 _virtualIntersector;
 
+    Box3f _sceneBounds;
+
 public:
     TraceableScene(Camera &cam, Integrator &integrator,
             std::vector<std::shared_ptr<Primitive>> &primitives,
@@ -131,14 +133,18 @@ public:
                 if (m->isInfinite() || m->isDirac())
                     continue;
 
+                Box3f primBounds = m->bounds();
+                _sceneBounds.grow(primBounds);
+
                 if (m->needsRayTransform()) {
+                    // TODO: Bounds to sceneBounds are generally broken here
                     objects->hasTransform = true;
-                    objects->localBounds = EmbreeUtil::convert(m->bounds());
+                    objects->localBounds = EmbreeUtil::convert(primBounds);
                     objects->local2world = EmbreeUtil::convert(m->transform());
                     objects->calculateWorldData();
                 } else {
                     objects->hasTransform = false;
-                    objects->localBounds = objects->worldBounds = EmbreeUtil::convert(m->bounds());
+                    objects->localBounds = objects->worldBounds = EmbreeUtil::convert(primBounds);
                 }
 
                 /* TODO: Transforms */
@@ -240,6 +246,11 @@ public:
     {
         embree::Ray eRay(EmbreeUtil::convert(ray));
         return _intersector->occluded(eRay);
+    }
+
+    const Box3f &bounds() const
+    {
+        return _sceneBounds;
     }
 
     Camera &cam() const
