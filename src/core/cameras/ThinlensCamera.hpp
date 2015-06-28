@@ -41,8 +41,6 @@ public:
 
     virtual void prepareForRender() override;
 
-    virtual Mat4f approximateProjectionMatrix(int width, int height) const override;
-
     virtual float approximateFov() const override
     {
         return _fovRad;

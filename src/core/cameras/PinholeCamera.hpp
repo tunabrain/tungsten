@@ -36,8 +36,6 @@ public:
 
     virtual bool generateSample(Vec2u pixel, PathSampleGenerator &sampler, Vec3f &throughput, Ray &ray) const override;
 
-    virtual Mat4f approximateProjectionMatrix(int width, int height) const override;
-
     virtual float approximateFov() const override
     {
         return _fovRad;

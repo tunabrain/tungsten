@@ -78,7 +78,6 @@ public:
     virtual bool isDirac() const = 0;
 
     virtual bool generateSample(Vec2u pixel, PathSampleGenerator &sampler, Vec3f &throughput, Ray &ray) const = 0;
-    virtual Mat4f approximateProjectionMatrix(int width, int height) const = 0;
     virtual float approximateFov() const = 0;
 
     virtual void prepareForRender();

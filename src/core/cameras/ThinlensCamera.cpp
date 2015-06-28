@@ -157,9 +157,4 @@ void ThinlensCamera::prepareForRender()
     }
 }
 
-Mat4f ThinlensCamera::approximateProjectionMatrix(int width, int height) const
-{
-    return Mat4f::perspective(_fovDeg, float(width)/float(height), 1e-2f, 100.0f);
-}
-
 }
