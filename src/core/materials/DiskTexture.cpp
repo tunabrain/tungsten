@@ -8,10 +8,21 @@
 
 namespace Tungsten {
 
+DiskTexture::DiskTexture()
+: _value(1.0f)
+{
+}
+
+void DiskTexture::fromJson(const rapidjson::Value &v, const Scene &/*scene*/)
+{
+    scalarOrVecFromJson(v, "value", _value);
+}
+
 rapidjson::Value DiskTexture::toJson(Allocator &allocator) const
 {
     rapidjson::Value v = Texture::toJson(allocator);
     v.AddMember("type", "disk", allocator);
+    v.AddMember("value",  scalarOrVecToJson( _value, allocator), allocator);
     return std::move(v);
 }
 
@@ -22,7 +33,7 @@ bool DiskTexture::isConstant() const
 
 Vec3f DiskTexture::average() const
 {
-    return Vec3f(PI*0.25f);
+    return PI*0.25f*_value;
 }
 
 Vec3f DiskTexture::minimum() const
@@ -32,12 +43,12 @@ Vec3f DiskTexture::minimum() const
 
 Vec3f DiskTexture::maximum() const
 {
-    return Vec3f(1.0f);
+    return _value;
 }
 
 Vec3f DiskTexture::operator[](const Vec<float, 2> &uv) const
 {
-    return (uv - Vec2f(0.5f)).lengthSq() < 0.25f ? Vec3f(1.0f) : Vec3f(0.0f);
+    return (uv - Vec2f(0.5f)).lengthSq() < 0.25f ? _value : Vec3f(0.0f);
 }
 
 Vec3f DiskTexture::operator[](const IntersectionInfo &info) const

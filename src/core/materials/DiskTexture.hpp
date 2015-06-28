@@ -9,9 +9,12 @@ class DiskTexture : public Texture
 {
     typedef JsonSerializable::Allocator Allocator;
 
-public:
-    DiskTexture() = default;
+    Vec3f _value;
 
+public:
+    DiskTexture();
+
+    virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
     virtual bool isConstant() const override;
