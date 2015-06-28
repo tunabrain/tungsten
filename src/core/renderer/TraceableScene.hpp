@@ -65,7 +65,7 @@ class TraceableScene
     std::vector<std::shared_ptr<Bsdf>> &_bsdfs;
     std::vector<std::shared_ptr<Medium>> &_media;
     std::vector<std::shared_ptr<Primitive>> _lights;
-    std::vector<std::shared_ptr<Primitive>> _infinites;
+    std::vector<std::shared_ptr<Primitive>> _infiniteLights;
     std::vector<const Primitive *> _finites;
     RendererSettings _settings;
 
@@ -107,23 +107,22 @@ public:
                 if (m->bsdf(i)->unnamed())
                     m->bsdf(i)->prepareForRender();
 
-            if (m->isInfinite()) {
-                _infinites.push_back(m);
-            } else if (!m->isDirac()) {
+            if (!m->isDirac() && !m->isInfinite())
                 finiteCount++;
-            }
 
             if (m->isEmissive()) {
                 lightCount++;
                 if (m->isSamplable())
                     _lights.push_back(m);
+                if (m->isInfinite())
+                    _infiniteLights.push_back(m);
             }
         }
         if (lightCount == 0) {
             std::shared_ptr<InfiniteSphere> defaultLight = std::make_shared<InfiniteSphere>();
             defaultLight->setEmission(std::make_shared<ConstantTexture>(1.0f));
             _lights.push_back(defaultLight);
-            _infinites.push_back(defaultLight);
+            _infiniteLights.push_back(defaultLight);
         }
 
         if (_settings.useSceneBvh()) {
@@ -228,7 +227,7 @@ public:
         info.primitive = nullptr;
         data.primitive = nullptr;
 
-        for (const std::shared_ptr<Primitive> &p : _infinites)
+        for (const std::shared_ptr<Primitive> &p : _infiniteLights)
             p->intersect(ray, data);
 
         if (data.primitive) {
