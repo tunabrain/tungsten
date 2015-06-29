@@ -6,6 +6,7 @@
 #include "thread/ThreadUtils.hpp"
 
 #include "io/DirectoryChange.hpp"
+#include "io/StringUtils.hpp"
 #include "io/FileUtils.hpp"
 #include "io/JsonUtils.hpp"
 #include "io/CliParser.hpp"
@@ -23,25 +24,6 @@
 
 namespace Tungsten {
 
-static std::string formatTime(double elapsed)
-{
-    uint64 seconds = uint64(elapsed);
-    uint64 minutes = seconds/60;
-    uint64 hours = minutes/60;
-    uint64 days = hours/24;
-    double fraction = elapsed - seconds;
-
-    std::stringstream ss;
-
-    if (days)    ss << tfm::format("%dd ", days);
-    if (hours)   ss << tfm::format("%dh ", hours % 24);
-    if (minutes) ss << tfm::format("%dm ", minutes % 60);
-    if (seconds) ss << tfm::format("%ds %dms", seconds % 60, uint64(fraction*1000.0f) % 1000);
-    else ss << elapsed << "s";
-
-    return ss.str();
-}
-
 static const int OPT_CHECKPOINTS       = 0;
 static const int OPT_THREADS           = 1;
 static const int OPT_VERSION           = 2;
@@ -50,6 +32,7 @@ static const int OPT_RESTART           = 4;
 static const int OPT_OUTPUT_DIRECTORY  = 5;
 static const int OPT_SPP               = 6;
 static const int OPT_SEED              = 7;
+static const int OPT_TIMEOUT           = 8;
 
 enum RenderState
 {
@@ -107,7 +90,8 @@ class StandaloneRenderer
     CliParser &_parser;
     std::ostream &_logStream;
 
-    int _checkpointInterval;
+    double _checkpointInterval;
+    double _timeout;
     int _threadCount;
     Path _outputDirectory;
 
@@ -129,7 +113,8 @@ public:
     StandaloneRenderer(CliParser &parser, std::ostream &logStream)
     : _parser(parser),
       _logStream(logStream),
-      _checkpointInterval(0),
+      _checkpointInterval(0.0),
+      _timeout(0.0),
       _threadCount(max(ThreadUtils::idealThreadCount() - 1, 1u))
     {
         _status.state = STATE_LOADING;
@@ -139,9 +124,10 @@ public:
         parser.addOption('v', "version", "Prints version information", false, OPT_VERSION);
         parser.addOption('t', "threads", "Specifies number of threads to use (default: number of cores minus one)", true, OPT_THREADS);
         parser.addOption('r', "restart", "Ignores saved render checkpoints and starts fresh from 0 spp", false, OPT_RESTART);
-        parser.addOption('c', "checkpoint", "Specifies render time in minutes before saving a checkpoint. A value of 0 disables checkpoints. Overrides the setting in the scene file", true, OPT_CHECKPOINTS);
+        parser.addOption('c', "checkpoint", "Specifies render time before saving a checkpoint. A value of 0 (default) disables checkpoints. Overrides the setting in the scene file", true, OPT_CHECKPOINTS);
         parser.addOption('o', "output-directory", "Specifies the output directory. Overrides the setting in the scene file", true, OPT_OUTPUT_DIRECTORY);
         parser.addOption('\0', "spp", "Sets the number of samples per pixel to render at. Overrides the setting in the scene file", true, OPT_SPP);
+        parser.addOption('\0', "timeout", "Specifies the maximum render time. A value of 0 (default) means unlimited. Overrides the setting in the scene file", true, OPT_TIMEOUT);
         parser.addOption('s', "seed", "Specifies the random seed to use", true, OPT_SEED);
     }
 
@@ -158,7 +144,9 @@ public:
                 _threadCount = newThreadCount;
         }
         if (_parser.isPresent(OPT_CHECKPOINTS))
-            _checkpointInterval = std::atoi(_parser.param(OPT_CHECKPOINTS).c_str());
+            _checkpointInterval = StringUtils::parseDuration(_parser.param(OPT_CHECKPOINTS));
+        if (_parser.isPresent(OPT_TIMEOUT))
+            _timeout = StringUtils::parseDuration(_parser.param(OPT_TIMEOUT));
 
         embree::rtcInit();
         embree::rtcStartThreads(_threadCount);
@@ -233,7 +221,9 @@ public:
             Integrator &integrator = _flattenedScene->integrator();
 
             if (!_parser.isPresent(OPT_CHECKPOINTS))
-                _checkpointInterval = _scene->rendererSettings().checkpointInterval();
+                _checkpointInterval = StringUtils::parseDuration(_scene->rendererSettings().checkpointInterval());
+            if (!_parser.isPresent(OPT_TIMEOUT))
+                _timeout = StringUtils::parseDuration(_scene->rendererSettings().timeout());
 
             if (_scene->rendererSettings().enableResumeRender() && !_parser.isPresent(OPT_RESTART)) {
                 writeLogLine("Trying to resume render from saved state... ");
@@ -261,22 +251,28 @@ public:
                 integrator.startRender([](){});
                 integrator.waitForCompletion();
                 writeLogLine(tfm::format("Completed %d/%d spp", integrator.currentSpp(), maxSpp));
+                timer.stop();
+                if (_timeout > 0.0 && timer.elapsed() > _timeout)
+                    break;
                 checkpointTimer.stop();
-                if (_checkpointInterval > 0 && checkpointTimer.elapsed() > _checkpointInterval*60) {
+                if (_checkpointInterval > 0.0 && checkpointTimer.elapsed() > _checkpointInterval) {
                     totalElapsed += checkpointTimer.elapsed();
-                    writeLogLine(tfm::format("Saving checkpoint after %s", formatTime(totalElapsed).c_str()));
+                    writeLogLine(tfm::format("Saving checkpoint after %s",
+                            StringUtils::durationToString(totalElapsed)));
                     Timer ioTimer;
                     checkpointTimer.start();
                     integrator.saveCheckpoint();
                     if (_scene->rendererSettings().enableResumeRender())
                         integrator.saveRenderResumeData(*_scene);
                     ioTimer.stop();
-                    writeLogLine(tfm::format("Saving checkpoint took %s", formatTime(ioTimer.elapsed())));
+                    writeLogLine(tfm::format("Saving checkpoint took %s",
+                            StringUtils::durationToString(ioTimer.elapsed())));
                 }
             }
             timer.stop();
 
-            writeLogLine(tfm::format("Finished render. Render time %s", formatTime(timer.elapsed()).c_str()));
+            writeLogLine(tfm::format("Finished render. Render time %s",
+                    StringUtils::durationToString(timer.elapsed())));
 
             integrator.saveOutputs();
             if (_scene->rendererSettings().enableResumeRender())

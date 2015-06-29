@@ -24,7 +24,8 @@ class RendererSettings : public JsonSerializable
     bool _useSobol;
     uint32 _spp;
     uint32 _sppStep;
-    int _checkpointInterval;
+    std::string _checkpointInterval;
+    std::string _timeout;
 
 public:
     RendererSettings()
@@ -37,7 +38,8 @@ public:
       _useSobol(true),
       _spp(32),
       _sppStep(16),
-      _checkpointInterval(0)
+      _checkpointInterval("0"),
+      _timeout("0")
     {
     }
 
@@ -60,6 +62,7 @@ public:
         JsonUtils::fromJson(v, "spp", _spp);
         JsonUtils::fromJson(v, "spp_step", _sppStep);
         JsonUtils::fromJson(v, "checkpoint_interval", _checkpointInterval);
+        JsonUtils::fromJson(v, "timeout", _timeout);
     }
 
     virtual rapidjson::Value toJson(Allocator &allocator) const
@@ -80,7 +83,8 @@ public:
         v.AddMember("scene_bvh", _useSceneBvh, allocator);
         v.AddMember("spp", _spp, allocator);
         v.AddMember("spp_step", _sppStep, allocator);
-        v.AddMember("checkpoint_interval", _checkpointInterval, allocator);
+        v.AddMember("checkpoint_interval", _checkpointInterval.c_str(), allocator);
+        v.AddMember("timeout", _timeout.c_str(), allocator);
         return std::move(v);
     }
 
@@ -154,9 +158,14 @@ public:
         return _sppStep;
     }
 
-    int checkpointInterval() const
+    std::string checkpointInterval() const
     {
         return _checkpointInterval;
+    }
+
+    std::string timeout() const
+    {
+        return _timeout;
     }
 
     void setUseSceneBvh(bool value)
