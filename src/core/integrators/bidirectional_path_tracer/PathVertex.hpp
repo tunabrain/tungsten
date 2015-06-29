@@ -7,6 +7,8 @@
 
 #include "samplerecords/VolumeScatterEvent.hpp"
 
+#include "primitives/Primitive.hpp"
+
 #include "cameras/Camera.hpp"
 
 #include "bsdfs/Bsdf.hpp"
@@ -71,7 +73,7 @@ public:
     : _type(EmitterVertex),
       _record(EmitterRecord(emitterPdf)),
       _sampler(emitter),
-      _connectable(true)
+      _connectable(!emitter->isInfinite())
     {
     }
     PathVertex(const Camera *camera, Vec2u pixel)
