@@ -28,6 +28,7 @@
 #include "materials/DiskTexture.hpp"
 #include "materials/IesTexture.hpp"
 
+#include "cameras/EquirectangularCamera.hpp"
 #include "cameras/ThinlensCamera.hpp"
 #include "cameras/PinholeCamera.hpp"
 
@@ -197,6 +198,8 @@ std::shared_ptr<Camera> Scene::instantiateCamera(std::string type, const rapidjs
         result = std::make_shared<PinholeCamera>();
     else if (type == "thinlens")
         result = std::make_shared<ThinlensCamera>();
+    else if (type == "equirectangular")
+        result = std::make_shared<EquirectangularCamera>();
     else {
         DBG("Unknown camera type: '%s'", type.c_str());
         return nullptr;
