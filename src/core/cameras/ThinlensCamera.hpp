@@ -42,8 +42,6 @@ public:
             const DirectionSample &direction, Vec3f &weight, Vec2f &pixel) const override;
     virtual float directionPdf(const PositionSample &point, const DirectionSample &direction) const override;
 
-    virtual bool generateSample(Vec2u pixel, PathSampleGenerator &sampler, Vec3f &weight, Ray &ray) const override;
-
     virtual bool isDirac() const override;
 
     virtual void prepareForRender() override;

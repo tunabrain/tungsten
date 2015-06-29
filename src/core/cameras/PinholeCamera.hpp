@@ -34,8 +34,6 @@ public:
 
     virtual bool isDirac() const override;
 
-    virtual bool generateSample(Vec2u pixel, PathSampleGenerator &sampler, Vec3f &weight, Ray &ray) const override;
-
     virtual float approximateFov() const override
     {
         return _fovRad;

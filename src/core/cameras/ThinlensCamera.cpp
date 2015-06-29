@@ -191,38 +191,6 @@ float ThinlensCamera::directionPdf(const PositionSample &point, const DirectionS
     return  (_planeDist*2.0f)*(_planeDist*_ratio*2.0f)/cube(localDir.z()/localDir.length());
 }
 
-bool ThinlensCamera::generateSample(Vec2u pixel, PathSampleGenerator &sampler, Vec3f &weight, Ray &ray) const
-{
-    float filterPdf;
-    Vec2f pixelUv = 0.5f + _filter.sample(sampler.next2D(CameraSample), filterPdf);
-    Vec2f lensUv = sampler.next2D(CameraSample);
-
-    Vec3f planePos = Vec3f(
-        -1.0f  + (float(pixel.x()) + pixelUv.x())*2.0f*_pixelSize.x(),
-        _ratio - (float(pixel.y()) + pixelUv.y())*2.0f*_pixelSize.x(),
-        _planeDist
-    );
-    planePos *= _focusDist/planePos.z();
-
-    Vec2f aperturePos = _aperture->sample(MAP_UNIFORM, lensUv);
-    aperturePos = (aperturePos*2.0f - 1.0f)*_apertureSize;
-    weight = Vec3f(1.0f);
-
-    Vec3f lensPos = Vec3f(aperturePos.x(), aperturePos.y(), 0.0f);
-    Vec3f localDir = (planePos - lensPos).normalized();
-    Vec3f dir = _transform.transformVector(localDir);
-
-    if (_catEye > 0.0f) {
-        Vec2f diaphragmPos = lensPos.xy() - _catEye*_planeDist*localDir.xy()/localDir.z();
-        if (diaphragmPos.lengthSq() > sqr(_apertureSize))
-            return false;
-    }
-
-    ray = Ray(_transform*lensPos, dir);
-
-    return true;
-}
-
 bool ThinlensCamera::isDirac() const
 {
     return false;
