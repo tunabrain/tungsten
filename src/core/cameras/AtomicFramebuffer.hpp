@@ -39,6 +39,7 @@ public:
       _filter(filter),
       _buffer(new Vec3fa[w*h])
     {
+        unsafeReset();
     }
 
     inline void splatFiltered(Vec2f pixel, Vec3f w)
