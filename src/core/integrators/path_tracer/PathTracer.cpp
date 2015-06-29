@@ -17,11 +17,16 @@ Vec3f PathTracer::traceSample(Vec2u pixel, PathSampleGenerator &sampler)
 
     try {
 
-    Ray ray;
-    Vec3f throughput(1.0f);
-    if (!_scene->cam().generateSample(pixel, sampler, throughput, ray))
+    PositionSample point;
+    if (!_scene->cam().samplePosition(sampler, point))
+        return Vec3f(0.0f);
+    DirectionSample direction;
+    if (!_scene->cam().sampleDirection(sampler, point, pixel, direction))
         return Vec3f(0.0f);
     sampler.advancePath();
+
+    Vec3f throughput = point.weight*direction.weight;
+    Ray ray(point.p, direction.d);
     ray.setPrimaryRay(true);
 
     SurfaceScatterEvent event;

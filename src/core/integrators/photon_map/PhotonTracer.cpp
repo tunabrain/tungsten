@@ -108,12 +108,17 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
         const KdTree<VolumePhoton> *mediumTree, PathSampleGenerator &sampler,
         float gatherRadius)
 {
-    Ray ray;
-    Vec3f throughput(1.0f);
-    if (!_scene->cam().generateSample(pixel, sampler, throughput, ray))
+    PositionSample point;
+    if (!_scene->cam().samplePosition(sampler, point))
         return Vec3f(0.0f);
-    ray.setPrimaryRay(true);
+    DirectionSample direction;
+    if (!_scene->cam().sampleDirection(sampler, point, pixel, direction))
+        return Vec3f(0.0f);
     sampler.advancePath();
+
+    Vec3f throughput = point.weight*direction.weight;
+    Ray ray(point.p, direction.d);
+    ray.setPrimaryRay(true);
 
     IntersectionTemporary data;
     IntersectionInfo info;
