@@ -226,7 +226,7 @@ bool MultiQuadLight::sampleDirect(uint32 threadIndex, const Vec3f &p, PathSample
     return true;
 }
 
-float MultiQuadLight::directPdf(uint32 threadIndex, const IntersectionTemporary &data,
+float MultiQuadLight::directPdf(uint32 /*threadIndex*/, const IntersectionTemporary &data,
         const IntersectionInfo &info, const Vec3f &p) const
 {
     const QuadLightIntersection *isect = data.as<QuadLightIntersection>();
