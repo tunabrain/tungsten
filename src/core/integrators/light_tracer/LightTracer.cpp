@@ -24,7 +24,7 @@ void LightTracer::traceSample(PathSampleGenerator &sampler)
     Vec3f throughput(point.weight/lightPdf);
 
     LensSample splat;
-    if (!light->isInfinite() && _scene->cam().sampleDirect(point.p, sampler, splat)) {
+    if (_settings.minBounces == 0 && !light->isInfinite() && _scene->cam().sampleDirect(point.p, sampler, splat)) {
         Ray shadowRay(point.p, splat.d);
         shadowRay.setFarT(splat.dist);
 
@@ -84,7 +84,7 @@ void LightTracer::traceSample(PathSampleGenerator &sampler)
 
             Vec3f weight;
             Vec2f pixel;
-            if (lensSample(_scene->cam(), event, medium, bounce, ray, weight, pixel))
+            if (lensSample(_scene->cam(), event, medium, bounce + 1, ray, weight, pixel))
                 _splatBuffer->splatFiltered(pixel, weight*throughput);
 
             if (!handleSurface(event, data, info, sampler, medium, bounce,
