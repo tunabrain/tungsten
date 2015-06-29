@@ -134,7 +134,7 @@ bool PinholeCamera::isDirac() const
     return true;
 }
 
-bool PinholeCamera::generateSample(Vec2u pixel, PathSampleGenerator &sampler, Vec3f &throughput, Ray &ray) const
+bool PinholeCamera::generateSample(Vec2u pixel, PathSampleGenerator &sampler, Vec3f &weight, Ray &ray) const
 {
     float pdf;
     Vec2f uv = _filter.sample(sampler.next2D(CameraSample), pdf);
@@ -144,7 +144,7 @@ bool PinholeCamera::generateSample(Vec2u pixel, PathSampleGenerator &sampler, Ve
         _planeDist
     )).normalized();
 
-    throughput = Vec3f(1.0f);
+    weight = Vec3f(1.0f);
     ray = Ray(pos(), dir);
     return true;
 }

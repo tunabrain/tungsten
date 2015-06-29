@@ -70,7 +70,7 @@ bool DielectricBsdf::sample(SurfaceScatterEvent &event) const
         event.wo = Vec3f(-event.wi.x(), -event.wi.y(), event.wi.z());
         event.pdf = reflectionProbability;
         event.sampledLobe = BsdfLobes::SpecularReflectionLobe;
-        event.throughput = sampleT ? Vec3f(1.0f) : Vec3f(F);
+        event.weight = sampleT ? Vec3f(1.0f) : Vec3f(F);
     } else {
         if (F == 1.0f)
             return false;
@@ -78,9 +78,9 @@ bool DielectricBsdf::sample(SurfaceScatterEvent &event) const
         event.wo = Vec3f(-event.wi.x()*eta, -event.wi.y()*eta, -std::copysign(cosThetaT, event.wi.z()));
         event.pdf = 1.0f - reflectionProbability;
         event.sampledLobe = BsdfLobes::SpecularTransmissionLobe;
-        event.throughput = sampleR ? Vec3f(1.0f) : Vec3f(1.0f - F);
+        event.weight = sampleR ? Vec3f(1.0f) : Vec3f(1.0f - F);
     }
-    event.throughput *= albedo(event.info);
+    event.weight *= albedo(event.info);
 
     return true;
 }

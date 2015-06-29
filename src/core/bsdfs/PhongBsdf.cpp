@@ -73,7 +73,7 @@ bool PhongBsdf::sample(SurfaceScatterEvent &event) const
     }
 
     event.pdf = pdf(event);
-    event.throughput = eval(event)/event.pdf;
+    event.weight = eval(event)/event.pdf;
 
     return true;
 }

@@ -87,7 +87,7 @@ bool RoughConductorBsdf::sample(SurfaceScatterEvent &event) const
     Vec3f F = Fresnel::conductorReflectance(_eta, _k, wiDotM);
 
     event.pdf = pdf;
-    event.throughput = albedo(event.info)*(F*weight);
+    event.weight = albedo(event.info)*(F*weight);
     event.sampledLobe = BsdfLobes::GlossyReflectionLobe;
     return true;
 }

@@ -71,11 +71,11 @@ public:
             return false;
 
         if (adjoint)
-            event.throughput *= std::abs(
+            event.weight *= std::abs(
                 (event.frame.toGlobal(event.wo).dot(event.info->Ng)*event.wi.z())/
                 (event.frame.toGlobal(event.wi).dot(event.info->Ng)*event.wo.z())); // TODO: Optimize
         else
-            event.throughput *= sqr(eta(event));
+            event.weight *= sqr(eta(event));
 
         return true;
     }

@@ -67,8 +67,8 @@ bool AtmosphericMedium::insideClouds(const Vec3f &p) const
 void AtmosphericMedium::sampleColorChannel(VolumeScatterEvent &event, MediumState &state) const
 {
     state.component = event.sampler->nextDiscrete(DiscreteTransmittanceSample, 3);
-    event.throughput = Vec3f(0.0f);
-    event.throughput[state.component] = 1.0f/3.0f;
+    event.weight = Vec3f(0.0f);
+    event.weight[state.component] = 1.0f/3.0f;
 }
 
 Vec4f AtmosphericMedium::spectralOpticalDepthAndT(const Vec3f &p, const Vec3f &w, float maxT, float targetDepth, int targetChannel) const
@@ -253,15 +253,15 @@ bool AtmosphericMedium::sampleDistance(VolumeScatterEvent &event, MediumState &s
     Vec2f tSpan;
     if (!sphereMinTMaxT(event.p, event.wi, tSpan, _rT) || event.maxT < tSpan.x()) {
         event.t = event.maxT;
-        event.throughput = Vec3f(1.0f);
+        event.weight = Vec3f(1.0f);
         return true;
     }
 
     if (state.firstScatter) {
         sampleColorChannel(event, state);
     } else {
-        event.throughput = Vec3f(0.0f);
-        event.throughput[state.component] = 1.0f;
+        event.weight = Vec3f(0.0f);
+        event.weight[state.component] = 1.0f;
     }
     state.advance();
 
@@ -290,8 +290,8 @@ bool AtmosphericMedium::absorb(VolumeScatterEvent &event, MediumState &state) co
     if (insideClouds(event.p) && event.sampler->nextBoolean(DiscreteMediumSample, 1.0f - _cloudAlbedo))
         return true;
 
-    event.throughput = Vec3f(0.0f);
-    event.throughput[state.component] = 1.0f;
+    event.weight = Vec3f(0.0f);
+    event.weight[state.component] = 1.0f;
     return false;
 }
 

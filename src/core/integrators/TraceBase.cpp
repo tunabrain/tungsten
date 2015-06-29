@@ -216,7 +216,7 @@ Vec3f TraceBase::bsdfSample(const Primitive &light,
     event.requestedLobe = BsdfLobes::AllButSpecular;
     if (!event.info->bsdf->sample(event, false))
         return Vec3f(0.0f);
-    if (event.throughput == 0.0f)
+    if (event.weight == 0.0f)
         return Vec3f(0.0f);
 
     Vec3f wo = event.frame.toGlobal(event.wo);
@@ -236,7 +236,7 @@ Vec3f TraceBase::bsdfSample(const Primitive &light,
     if (e == Vec3f(0.0f))
         return Vec3f(0.0f);
 
-    Vec3f bsdfF = e*event.throughput;
+    Vec3f bsdfF = e*event.weight;
 
     bsdfF *= SampleWarp::powerHeuristic(event.pdf, light.directPdf(_threadId, data, info, event.info->p));
 
@@ -284,7 +284,7 @@ Vec3f TraceBase::volumePhaseSample(const Primitive &light,
 {
     if (!medium->scatter(event))
         return Vec3f(0.0f);
-    if (event.throughput == 0.0f)
+    if (event.weight == 0.0f)
         return Vec3f(0.0f);
 
     Ray ray = parentRay.scatter(event.p, event.wo, 0.0f);
@@ -297,7 +297,7 @@ Vec3f TraceBase::volumePhaseSample(const Primitive &light,
     if (e == Vec3f(0.0f))
         return Vec3f(0.0f);
 
-    Vec3f phaseF = e*event.throughput;
+    Vec3f phaseF = e*event.weight;
 
     phaseF *= SampleWarp::powerHeuristic(event.pdf, light.directPdf(_threadId, data, info, event.p));
 
@@ -430,8 +430,8 @@ bool TraceBase::handleVolume(PathSampleGenerator &sampler, const Medium *&medium
     VolumeScatterEvent event(&sampler, throughput, ray.pos(), ray.dir(), ray.farT());
     if (!medium->sampleDistance(event, state))
         return false;
-    throughput *= event.throughput;
-    event.throughput = Vec3f(1.0f);
+    throughput *= event.weight;
+    event.weight = Vec3f(1.0f);
 
     if (!adjoint && bounce >= _settings.minBounces)
         emission += throughput*medium->emission(event);
@@ -453,7 +453,7 @@ bool TraceBase::handleVolume(PathSampleGenerator &sampler, const Medium *&medium
             return false;
         ray = ray.scatter(event.p, event.wo, 0.0f);
         ray.setPrimaryRay(false);
-        throughput *= event.throughput;
+        throughput *= event.weight;
         hitSurface = false;
     } else {
         hitSurface = true;
@@ -498,7 +498,7 @@ bool TraceBase::handleSurface(SurfaceScatterEvent &event, IntersectionTemporary 
         if (!isConsistent(event, wo))
             return false;
 
-        throughput *= event.throughput;
+        throughput *= event.weight;
         wasSpecular = event.sampledLobe.hasSpecular();
         if (!wasSpecular)
             ray.setPrimaryRay(false);

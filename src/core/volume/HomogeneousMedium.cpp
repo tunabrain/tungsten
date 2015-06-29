@@ -66,18 +66,18 @@ bool HomogeneousMedium::sampleDistance(VolumeScatterEvent &event, MediumState &s
         if (event.maxT == Ray::infinity())
             return false;
         event.t = event.maxT;
-        event.throughput = std::exp(-_sigmaT*event.t);
+        event.weight = std::exp(-_sigmaT*event.t);
     } else {
         int component = event.sampler->nextDiscrete(DiscreteTransmittanceSample, 3);
         float sigmaTc = _sigmaT[component];
 
         float t = -std::log(1.0f - event.sampler->next1D(TransmittanceSample))/sigmaTc;
         event.t = min(t, event.maxT);
-        event.throughput = std::exp(-event.t*_sigmaT);
+        event.weight = std::exp(-event.t*_sigmaT);
         if (t < event.maxT)
-            event.throughput /= (_sigmaT*event.throughput).avg();
+            event.weight /= (_sigmaT*event.weight).avg();
         else
-            event.throughput /= event.throughput.avg();
+            event.weight /= event.weight.avg();
 
         state.advance();
     }
@@ -89,7 +89,7 @@ bool HomogeneousMedium::absorb(VolumeScatterEvent &event, MediumState &/*state*/
 {
     if (event.sampler->nextBoolean(DiscreteMediumSample, 1.0f - _maxAlbedo))
         return true;
-    event.throughput = Vec3f(_absorptionWeight);
+    event.weight = Vec3f(_absorptionWeight);
     return false;
 }
 
@@ -97,7 +97,7 @@ bool HomogeneousMedium::scatter(VolumeScatterEvent &event) const
 {
     event.wo = PhaseFunction::sample(_phaseFunction, _phaseG, event.sampler->next2D(MediumSample));
     event.pdf = PhaseFunction::eval(_phaseFunction, event.wo.z(), _phaseG);
-    event.throughput *= _sigmaS;
+    event.weight *= _sigmaS;
     TangentFrame frame(event.wi);
     event.wo = frame.toGlobal(event.wo);
     return true;

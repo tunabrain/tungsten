@@ -84,7 +84,7 @@ bool PathVertex::sampleNextVertex(const TraceableScene &scene, TraceBase &tracer
             prev->_pdfBackward *= prev->cosineFactor(prevEdge->d)/prevEdge->rSq;
         //else
         //    prev->_pdfBackward /= cosineFactor(prevEdge->d);
-        weight = record.event.throughput;
+        weight = record.event.weight;
         pdf = record.event.pdf;
 
         break;
@@ -95,7 +95,7 @@ bool PathVertex::sampleNextVertex(const TraceableScene &scene, TraceBase &tracer
 
         prev->_pdfBackward = _sampler.medium->phasePdf(_record.volume.makeFlippedQuery())
                 *prev->cosineFactor(prevEdge->d)/prevEdge->rSq;
-        weight = record.throughput;
+        weight = record.weight;
         pdf = record.pdf;
         return false;
     } default:

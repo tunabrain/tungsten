@@ -17,7 +17,7 @@ struct VolumeScatterEvent
 
     Vec3f wo;
     float t;
-    Vec3f throughput;
+    Vec3f weight;
     float pdf;
 
     VolumeScatterEvent() = default;
@@ -34,7 +34,7 @@ struct VolumeScatterEvent
       maxT(maxT_),
       wo(0.0f),
       t(maxT_),
-      throughput(1.0f)
+      weight(1.0f)
     {
     }
 

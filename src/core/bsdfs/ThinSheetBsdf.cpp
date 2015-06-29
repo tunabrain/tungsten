@@ -59,7 +59,7 @@ bool ThinSheetBsdf::sample(SurfaceScatterEvent &event) const
 
     if (_sigmaA == 0.0f && !_enableInterference) {
         // Fast path / early out
-        event.throughput = Vec3f(1.0f);
+        event.weight = Vec3f(1.0f);
         return true;
     }
 
@@ -67,18 +67,18 @@ bool ThinSheetBsdf::sample(SurfaceScatterEvent &event) const
 
     float cosThetaT;
     if (_enableInterference) {
-        event.throughput = Fresnel::thinFilmReflectanceInterference(1.0f/_ior,
+        event.weight = Fresnel::thinFilmReflectanceInterference(1.0f/_ior,
                 std::abs(event.wi.z()), thickness*500.0f, cosThetaT);
     } else {
-        event.throughput = Vec3f(Fresnel::thinFilmReflectance(1.0f/_ior,
+        event.weight = Vec3f(Fresnel::thinFilmReflectance(1.0f/_ior,
                 std::abs(event.wi.z()), cosThetaT));
     }
 
-    Vec3f transmittance = 1.0f - event.throughput;
+    Vec3f transmittance = 1.0f - event.weight;
     if (_sigmaA != 0.0f && cosThetaT > 0.0f)
         transmittance *= std::exp(-_sigmaA*(thickness*2.0f/cosThetaT));
 
-    event.throughput /= 1.0f - transmittance.avg();
+    event.weight /= 1.0f - transmittance.avg();
 
     return true;
 }

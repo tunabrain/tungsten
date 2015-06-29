@@ -54,7 +54,7 @@ bool OrenNayarBsdf::sample(SurfaceScatterEvent &event) const
         event.wo  = SampleWarp::cosineHemisphere(event.sampler->next2D(BsdfSample));
 
     event.pdf = SampleWarp::uniformHemispherePdf(event.wo)*ratio + SampleWarp::cosineHemispherePdf(event.wo)*(1.0f - ratio);
-    event.throughput = eval(event)/event.pdf;
+    event.weight = eval(event)/event.pdf;
     event.sampledLobe = BsdfLobes::DiffuseReflectionLobe;
     return event.wo.z() > 0.0f;
 }

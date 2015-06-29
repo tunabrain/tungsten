@@ -83,21 +83,21 @@ bool MixedBsdf::sample(SurfaceScatterEvent &event) const
 
         float pdf0 = event.pdf*ratio;
         float pdf1 = _bsdf1->pdf(event)*(1.0f - ratio);
-        Vec3f f = event.throughput*event.pdf*ratio + _bsdf1->eval(event)*(1.0f - ratio);
+        Vec3f f = event.weight*event.pdf*ratio + _bsdf1->eval(event)*(1.0f - ratio);
         event.pdf = pdf0 + pdf1;
-        event.throughput = f/event.pdf;
+        event.weight = f/event.pdf;
     } else {
         if (!_bsdf1->sample(event))
             return false;
 
         float pdf0 = _bsdf0->pdf(event)*ratio;
         float pdf1 = event.pdf*(1.0f - ratio);
-        Vec3f f = _bsdf0->eval(event)*ratio + event.throughput*event.pdf*(1.0f - ratio);
+        Vec3f f = _bsdf0->eval(event)*ratio + event.weight*event.pdf*(1.0f - ratio);
         event.pdf = pdf0 + pdf1;
-        event.throughput = f/event.pdf;
+        event.weight = f/event.pdf;
     }
 
-    event.throughput *= albedo(event.info);
+    event.weight *= albedo(event.info);
     return true;
 }
 

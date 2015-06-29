@@ -107,7 +107,7 @@ bool RoughDielectricBsdf::sampleBase(SurfaceScatterEvent &event, bool sampleR, b
     float woDotM = event.wo.dot(m);
     float G = Microfacet::G(distribution, alpha, event.wi, event.wo, m);
     float D = Microfacet::D(distribution, alpha, m);
-    event.throughput = Vec3f(std::abs(wiDotM)*G*D/(std::abs(wiDotN)*pm));
+    event.weight = Vec3f(std::abs(wiDotM)*G*D/(std::abs(wiDotN)*pm));
 
     if (reflect) {
         event.pdf = pm*0.25f/std::abs(wiDotM);
@@ -124,9 +124,9 @@ bool RoughDielectricBsdf::sampleBase(SurfaceScatterEvent &event, bool sampleR, b
             event.pdf *= 1.0f - F;
     } else {
         if (reflect)
-            event.throughput *= F;
+            event.weight *= F;
         else
-            event.throughput *= 1.0f - F;
+            event.weight *= 1.0f - F;
     }
 
     return true;
@@ -210,7 +210,7 @@ bool RoughDielectricBsdf::sample(SurfaceScatterEvent &event) const
     float roughness = (*_roughness)[*event.info].x();
 
     bool result = sampleBase(event, sampleR, sampleT, roughness, _ior, _distribution);
-    event.throughput *= albedo(event.info);
+    event.weight *= albedo(event.info);
     return result;
 }
 

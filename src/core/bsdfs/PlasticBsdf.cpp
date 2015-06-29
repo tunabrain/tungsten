@@ -68,7 +68,7 @@ bool PlasticBsdf::sample(SurfaceScatterEvent &event) const
     if (sampleR && event.sampler->nextBoolean(DiscreteBsdfSample, specularProbability)) {
         event.wo = Vec3f(-wi.x(), -wi.y(), wi.z());
         event.pdf = specularProbability;
-        event.throughput = Vec3f(Fi/specularProbability);
+        event.weight = Vec3f(Fi/specularProbability);
         event.sampledLobe = BsdfLobes::SpecularReflectionLobe;
     } else {
         Vec3f wo(SampleWarp::cosineHemisphere(event.sampler->next2D(BsdfSample)));
@@ -76,12 +76,12 @@ bool PlasticBsdf::sample(SurfaceScatterEvent &event) const
         Vec3f diffuseAlbedo = albedo(event.info);
 
         event.wo = wo;
-        event.throughput = ((1.0f - Fi)*(1.0f - Fo)*eta*eta)*(diffuseAlbedo/(1.0f - diffuseAlbedo*_diffuseFresnel));
+        event.weight = ((1.0f - Fi)*(1.0f - Fo)*eta*eta)*(diffuseAlbedo/(1.0f - diffuseAlbedo*_diffuseFresnel));
         if (_scaledSigmaA.max() > 0.0f)
-            event.throughput *= std::exp(_scaledSigmaA*(-1.0f/event.wo.z() - 1.0f/event.wi.z()));
+            event.weight *= std::exp(_scaledSigmaA*(-1.0f/event.wo.z() - 1.0f/event.wi.z()));
 
         event.pdf = SampleWarp::cosineHemispherePdf(event.wo)*(1.0f - specularProbability);
-        event.throughput /= 1.0f - specularProbability;
+        event.weight /= 1.0f - specularProbability;
         event.sampledLobe = BsdfLobes::DiffuseReflectionLobe;
     }
     return true;

@@ -58,8 +58,8 @@ void LightTracer::traceSample(PathSampleGenerator &sampler)
             VolumeScatterEvent event(&sampler, throughput, ray.pos(), ray.dir(), ray.farT());
             if (!medium->sampleDistance(event, state))
                 break;
-            throughput *= event.throughput;
-            event.throughput = Vec3f(1.0f);
+            throughput *= event.weight;
+            event.weight = Vec3f(1.0f);
 
             if (event.t < event.maxT) {
                 event.p += event.t*event.wi;
@@ -72,7 +72,7 @@ void LightTracer::traceSample(PathSampleGenerator &sampler)
                     break;
                 ray = ray.scatter(event.p, event.wo, 0.0f);
                 ray.setPrimaryRay(false);
-                throughput *= event.throughput;
+                throughput *= event.weight;
                 hitSurface = false;
             } else {
                 hitSurface = true;

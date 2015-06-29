@@ -17,7 +17,7 @@ struct SurfaceScatterEvent
     PathSampleGenerator *sampler;
     TangentFrame frame;
     Vec3f wi, wo;
-    Vec3f throughput;
+    Vec3f weight;
     float pdf;
     BsdfLobes requestedLobe;
     BsdfLobes sampledLobe;
@@ -36,7 +36,7 @@ struct SurfaceScatterEvent
       frame(frame_),
       wi(wi_),
       wo(0.0f),
-      throughput(1.0f),
+      weight(1.0f),
       pdf(1.0f),
       requestedLobe(requestedLobe_),
       flippedFrame(flippedFrame_)

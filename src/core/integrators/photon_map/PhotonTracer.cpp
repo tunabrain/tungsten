@@ -44,8 +44,8 @@ void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRan
             VolumeScatterEvent event(&sampler, throughput, ray.pos(), ray.dir(), ray.farT());
             if (!medium->sampleDistance(event, state))
                 break;
-            throughput *= event.throughput;
-            event.throughput = Vec3f(1.0f);
+            throughput *= event.weight;
+            event.weight = Vec3f(1.0f);
 
             if (event.t < event.maxT) {
                 event.p += event.t*event.wi;
@@ -63,7 +63,7 @@ void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRan
                     break;
                 ray = ray.scatter(event.p, event.wo, 0.0f);
                 ray.setPrimaryRay(false);
-                throughput *= event.throughput;
+                throughput *= event.weight;
                 hitSurface = false;
             } else {
                 hitSurface = true;
@@ -162,7 +162,7 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
 
             wo = event.frame.toGlobal(event.wo);
 
-            throughput *= event.throughput;
+            throughput *= event.weight;
         }
 
         bool geometricBackside = (wo.dot(info.Ng) < 0.0f);

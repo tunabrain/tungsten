@@ -65,7 +65,7 @@ bool SmoothCoatBsdf::sample(SurfaceScatterEvent &event) const
     if (sampleR && event.sampler->nextBoolean(DiscreteBsdfSample, specularProbability)) {
         event.wo = Vec3f(-wi.x(), -wi.y(), wi.z());
         event.pdf = specularProbability;
-        event.throughput = Vec3f(Fi/specularProbability);
+        event.weight = Vec3f(Fi/specularProbability);
         event.sampledLobe = BsdfLobes::SpecularReflectionLobe;
     } else {
         Vec3f originalWi(wi);
@@ -82,14 +82,14 @@ bool SmoothCoatBsdf::sample(SurfaceScatterEvent &event) const
             return false;
         float cosThetaSubstrate = event.wo.z();
         event.wo = Vec3f(event.wo.x()*_ior, event.wo.y()*_ior, cosThetaTo);
-        event.throughput *= (1.0f - Fi)*(1.0f - Fo);
+        event.weight *= (1.0f - Fi)*(1.0f - Fo);
         if (_scaledSigmaA.max() > 0.0f)
-            event.throughput *= std::exp(_scaledSigmaA*(-1.0f/cosThetaSubstrate - 1.0f/cosThetaTi));
+            event.weight *= std::exp(_scaledSigmaA*(-1.0f/cosThetaSubstrate - 1.0f/cosThetaTi));
 
-        event.throughput /= 1.0f - specularProbability;
+        event.weight /= 1.0f - specularProbability;
         event.pdf *= 1.0f - specularProbability;
 
-        event.throughput *= originalWi.z()/wiSubstrate.z();
+        event.weight *= originalWi.z()/wiSubstrate.z();
         event.pdf *= eta*eta*cosThetaTo/cosThetaSubstrate;
     }
 
