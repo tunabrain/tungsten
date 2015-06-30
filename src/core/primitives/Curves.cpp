@@ -519,8 +519,8 @@ bool Curves::tangentSpace(const IntersectionTemporary &data, const IntersectionI
     float t = isect.uv.x();
     Vec3f tangent = BSpline::quadraticDeriv(_nodeData[p0].xyz(), _nodeData[p0 + 1].xyz(), _nodeData[p0 + 2].xyz(), t);
 
-    T = tangent.normalized();
-    B = T.cross(info.Ng);
+    B = tangent.normalized();
+    T = B.cross(info.Ng);
     return true;
 }
 
