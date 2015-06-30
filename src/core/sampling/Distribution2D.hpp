@@ -41,9 +41,16 @@ public:
             int idxTail = idxC + w;
 
             float rowWeight = _cdf[idxTail];
-            for (int x = 0; x < w; ++x, ++idxP, ++idxC) {
-                _pdf[idxP] /= rowWeight;
-                _cdf[idxC] /= rowWeight;
+            if (rowWeight < 1e-4f) {
+                for (int x = 0; x < w; ++x, ++idxP, ++idxC) {
+                    _pdf[idxP] = 1.0f/w;
+                    _cdf[idxC] = x/float(w);
+                }
+            } else {
+                for (int x = 0; x < w; ++x, ++idxP, ++idxC) {
+                    _pdf[idxP] /= rowWeight;
+                    _cdf[idxC] /= rowWeight;
+                }
             }
             _cdf[idxTail] = 1.0f;
         }
