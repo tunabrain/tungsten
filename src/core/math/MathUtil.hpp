@@ -97,6 +97,21 @@ template <typename T> int sgn(T val) {
     return (T(0) < val) - (val < T(0));
 }
 
+static inline float trigInverse(float x)
+{
+    return std::sqrt(max(1.0f - x*x, 0.0f));
+}
+
+static inline float trigDoubleAngle(float x)
+{
+    return 2.0f*x*x - 1.0f;
+}
+
+static inline float trigHalfAngle(float x)
+{
+    return std::sqrt(x*0.5f + 0.5f);
+}
+
 // TODO: Review which of these are still in use
 class MathUtil
 {
