@@ -87,8 +87,18 @@ Vec3f LightPath::bdptWeightedPathEmission(int minLength, int maxLength) const
     float *pdfBackward = reinterpret_cast<float *>(alloca(_length*sizeof(float)));
     bool  *connectable = reinterpret_cast<bool  *>(alloca(_length*sizeof(bool)));
 
+    maxLength = min(_length, maxLength);
+
+    // Early out for camera paths directly hitting the environment map
+    // These can only be sampled with one technique
+    if (maxLength == 2 && minLength <= 2 && _vertices[1].surfaceRecord().data.primitive->isInfinite())
+        return _vertices[1].surfaceRecord().data.primitive->evalDirect(
+                _vertices[1].surfaceRecord().data,
+                _vertices[1].surfaceRecord().info);
+
+
     Vec3f result(0.0f);
-    for (int t = max(minLength, 2); t <= min(_length, maxLength); ++t) {
+    for (int t = max(minLength, 2); t <= maxLength; ++t) {
         const SurfaceRecord &record = _vertices[t - 1].surfaceRecord();
         if (!record.info.primitive->isEmissive())
             continue;
@@ -108,9 +118,17 @@ Vec3f LightPath::bdptWeightedPathEmission(int minLength, int maxLength) const
 
         PositionSample point(record.info);
         DirectionSample direction(-_edges[t - 2].d);
-        pdfForward[0] = record.info.primitive->positionalPdf(point);
-        pdfForward[1] = record.info.primitive->directionalPdf(point, direction)*
-                _vertices[t - 2].cosineFactor(_edges[t - 2].d)/_edges[t - 2].rSq;
+        if (record.info.primitive->isInfinite()) {
+            // Infinite primitives sample direction first before sampling a position
+            // The PDF of the first vertex is also given in solid angle measure,
+            // not area measure
+            pdfForward[0] = record.info.primitive->directionalPdf(point, direction);
+            pdfForward[1] = record.info.primitive->positionalPdf(point);
+        } else {
+            pdfForward[0] = record.info.primitive->positionalPdf(point);
+            pdfForward[1] = record.info.primitive->directionalPdf(point, direction)*
+                    _vertices[t - 2].cosineFactor(_edges[t - 2].d)/_edges[t - 2].rSq;
+        }
 
         float weight = 1.0f;
         float pi = 1.0f;
@@ -132,16 +150,33 @@ Vec3f LightPath::bdptConnect(const TraceableScene &scene, const LightPath &camer
     const PathVertex &a = emitter[s - 1];
     const PathVertex &b = camera[t - 1];
 
-    PathEdge edge(a, b);
-    // Catch the case where both vertices land on the same surface
-    if (a.cosineFactor(edge.d) < 1e-5f || b.cosineFactor(edge.d) < 1e-5f)
-        return Vec3f(0.0f);
-    if (scene.occluded(Ray(a.pos(), edge.d, 1e-4f, edge.r*(1.0f - 1e-4f))))
+    if (b.isInfiniteSurface())
         return Vec3f(0.0f);
 
-    Vec3f unweightedContrib = a.throughput()*a.eval(edge.d, true)*b.eval(-edge.d, false)*b.throughput()/edge.rSq;
+    if (s == 1 && a.emitter()->isInfinite()) {
+        // We do account for s=1, t>1 paths for infinite area lights
+        // This essentially amounts to direct light sampling, which
+        // we don't want to lose. This requires some fiddling with densities
+        // and shadow rays here
+        Vec3f d = a.emitterRecord().point.Ng;
+        if (scene.occluded(Ray(b.pos(), -d, 1e-4f)))
+            return Vec3f(0.0f);
 
-    return unweightedContrib*misWeight(camera, emitter, edge, s, t);
+        Vec3f unweightedContrib = a.throughput()*a.eval(d, true)*b.eval(-d, false)*b.throughput();
+
+        return unweightedContrib*misWeight(camera, emitter, PathEdge(d, 1.0f, 1.0f), s, t);
+    } else {
+        PathEdge edge(a, b);
+        // Catch the case where both vertices land on the same surface
+        if (a.cosineFactor(edge.d) < 1e-5f || b.cosineFactor(edge.d) < 1e-5f)
+            return Vec3f(0.0f);
+        if (scene.occluded(Ray(a.pos(), edge.d, 1e-4f, edge.r*(1.0f - 1e-4f))))
+            return Vec3f(0.0f);
+
+        Vec3f unweightedContrib = a.throughput()*a.eval(edge.d, true)*b.eval(-edge.d, false)*b.throughput()/edge.rSq;
+
+        return unweightedContrib*misWeight(camera, emitter, edge, s, t);
+    }
 }
 
 bool LightPath::bdptCameraConnect(const TraceableScene &scene, const LightPath &camera,
@@ -150,6 +185,10 @@ bool LightPath::bdptCameraConnect(const TraceableScene &scene, const LightPath &
 {
     const PathVertex &a = emitter[s - 1];
     const PathVertex &b = camera[0];
+
+    // s=1,t=1 paths are generally useless for infinite area lights, so we ignore them completely
+    if (s == 1 && a.emitter()->isInfinite())
+        return false;
 
     PathEdge edge(a, b);
     if (scene.occluded(Ray(a.pos(), edge.d, 1e-4f, edge.r*(1.0f - 1e-4f))))

@@ -99,7 +99,7 @@ void InfiniteSphere::intersectionInfo(const IntersectionTemporary &data, Interse
     info.p = isect->p;
     info.uv = directionToUV(isect->w);
     info.primitive = this;
-    info.bsdf = _bsdf.get();
+    info.bsdf = nullptr;
 }
 
 bool InfiniteSphere::tangentSpace(const IntersectionTemporary &/*data*/, const IntersectionInfo &/*info*/,
@@ -128,17 +128,15 @@ bool InfiniteSphere::samplePosition(PathSampleGenerator &sampler, PositionSample
     if (_emission->isConstant()) {
         sample.Ng = -SampleWarp::uniformSphere(sampler.next2D(EmitterSample));
         sample.uv = directionToUV(-sample.Ng);
-        sample.pdf = INV_FOUR_PI;
     } else {
         sample.uv = _emission->sample(MAP_SPHERICAL, sampler.next2D(EmitterSample));
         float sinTheta;
         sample.Ng = -uvToDirection(sample.uv, sinTheta);
-        sample.pdf = INV_PI*INV_TWO_PI*_emission->pdf(MAP_SPHERICAL, sample.uv)/sinTheta;
     }
 
     sample.p = SampleWarp::projectedBox(_sceneBounds, sample.Ng, faceXi, xi);
-    sample.pdf *= SampleWarp::projectedBoxPdf(_sceneBounds, sample.Ng);
-    sample.weight = (*_emission)[sample.uv]/sample.pdf;
+    sample.pdf = SampleWarp::projectedBoxPdf(_sceneBounds, sample.Ng);
+    sample.weight = Vec3f(1.0f/sample.pdf);
 
     return true;
 }
@@ -146,8 +144,16 @@ bool InfiniteSphere::samplePosition(PathSampleGenerator &sampler, PositionSample
 bool InfiniteSphere::sampleDirection(PathSampleGenerator &/*sampler*/, const PositionSample &point, DirectionSample &sample) const
 {
     sample.d = point.Ng;
-    sample.pdf = 1.0f;
-    sample.weight = Vec3f(1.0f);
+    if (_emission->isConstant()) {
+        sample.pdf = INV_FOUR_PI;
+    } else {
+        float sinTheta;
+        directionToUV(-point.Ng, sinTheta);
+        sample.pdf = INV_PI*INV_TWO_PI*_emission->pdf(MAP_SPHERICAL, point.uv)/sinTheta;
+        if (sample.pdf == 0.0f)
+            return false;
+    }
+    sample.weight = (*_emission)[point.uv]/sample.pdf;
 
     return true;
 }
@@ -165,27 +171,24 @@ bool InfiniteSphere::sampleDirect(uint32 /*threadIndex*/, const Vec3f &/*p*/, Pa
         sample.d = uvToDirection(uv, sinTheta);
         sample.pdf = INV_PI*INV_TWO_PI*_emission->pdf(MAP_SPHERICAL, uv)/sinTheta;
         sample.dist = Ray::infinity();
-        return true;
+        return sample.pdf != 0.0f;
     }
 }
 
 float InfiniteSphere::positionalPdf(const PositionSample &point) const
 {
-    float pdf;
-    if (_emission->isConstant()) {
-        pdf = INV_FOUR_PI;
-    } else {
-        float sinTheta;
-        Vec2f uv = directionToUV(point.Ng, sinTheta);
-        pdf = INV_PI*INV_TWO_PI*_emission->pdf(MAP_SPHERICAL, uv)/sinTheta;
-    }
-
-    return pdf*SampleWarp::projectedBoxPdf(_sceneBounds, point.Ng);
+    return SampleWarp::projectedBoxPdf(_sceneBounds, point.Ng);
 }
 
-float InfiniteSphere::directionalPdf(const PositionSample &/*point*/, const DirectionSample &/*sample*/) const
+float InfiniteSphere::directionalPdf(const PositionSample &point, const DirectionSample &/*sample*/) const
 {
-    return 1.0f;
+    if (_emission->isConstant()) {
+        return INV_FOUR_PI;
+    } else {
+        float sinTheta;
+        directionToUV(-point.Ng, sinTheta);
+        return INV_PI*INV_TWO_PI*_emission->pdf(MAP_SPHERICAL, point.uv)/sinTheta;
+    }
 }
 
 float InfiniteSphere::directPdf(uint32 /*threadIndex*/, const IntersectionTemporary &data,
@@ -201,14 +204,14 @@ float InfiniteSphere::directPdf(uint32 /*threadIndex*/, const IntersectionTempor
     }
 }
 
-Vec3f InfiniteSphere::evalPositionalEmission(const PositionSample &sample) const
-{
-    return (*_emission)[directionToUV(sample.Ng)];
-}
-
-Vec3f InfiniteSphere::evalDirectionalEmission(const PositionSample &/*point*/, const DirectionSample &/*sample*/) const
+Vec3f InfiniteSphere::evalPositionalEmission(const PositionSample &/*sample*/) const
 {
     return Vec3f(1.0f);
+}
+
+Vec3f InfiniteSphere::evalDirectionalEmission(const PositionSample &point, const DirectionSample &/*sample*/) const
+{
+    return (*_emission)[point.uv];
 }
 
 Vec3f InfiniteSphere::evalDirect(const IntersectionTemporary &/*data*/, const IntersectionInfo &info) const

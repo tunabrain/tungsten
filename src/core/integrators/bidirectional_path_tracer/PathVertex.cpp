@@ -24,8 +24,24 @@ bool PathVertex::sampleRootVertex(TraceState &state)
         if (!_sampler.emitter->samplePosition(state.sampler, record.point))
             return false;
 
-        _throughput = record.point.weight/record.emitterPdf;
-        _pdfForward = record.point.pdf*record.emitterPdf;
+        // Infinite light sources are slightly awkward, because they sample
+        // a direction before sampling a position. The sampling interfaces
+        // don't directly allow for this, so the samplePosition samples
+        // both direction and position, and we use sampleDirection to retrieve
+        // the sampled direction. The pdfs/weights are then set appropriately
+        // (direction pdf for the first vertex, position pdf for the next vertex)
+        // Note that directional pdfs for infinite area lights are always in
+        // solid angle measure.
+        if (_sampler.emitter->isInfinite()) {
+            if (!_sampler.emitter->sampleDirection(state.sampler, record.point, record.direction))
+                return false;
+
+            _throughput = record.direction.weight/record.emitterPdf;
+            _pdfForward = record.direction.pdf*record.emitterPdf;
+        } else {
+            _throughput = record.point.weight/record.emitterPdf;
+            _pdfForward = record.point.pdf*record.emitterPdf;
+        }
         return true;
     } case CameraVertex: {
         CameraRecord &record = _record.camera;
@@ -49,11 +65,17 @@ bool PathVertex::sampleNextVertex(const TraceableScene &scene, TraceBase &tracer
     switch (_type) {
     case EmitterVertex: {
         EmitterRecord &record = _record.emitter;
-        if (!_sampler.emitter->sampleDirection(state.sampler, record.point, record.direction))
-            return false;
 
-        weight = record.direction.weight;
-        pdf = record.direction.pdf;
+        if (_sampler.emitter->isInfinite()) {
+            weight = record.point.weight;
+            pdf = record.point.pdf;
+        } else {
+            if (!_sampler.emitter->sampleDirection(state.sampler, record.point, record.direction))
+                return false;
+
+            weight = record.direction.weight;
+            pdf = record.direction.pdf;
+        }
 
         state.ray = Ray(record.point.p, record.direction.d);
         break;
@@ -71,6 +93,9 @@ bool PathVertex::sampleNextVertex(const TraceableScene &scene, TraceBase &tracer
     } case SurfaceVertex: {
         SurfaceRecord &record = _record.surface;
 
+        if (record.info.primitive->isInfinite())
+            return false;
+
         Vec3f scatterWeight(1.0f);
         Vec3f emission(0.0f);
         bool scattered = tracer.handleSurface(record.event, record.data, record.info, state.sampler,
@@ -80,7 +105,7 @@ bool PathVertex::sampleNextVertex(const TraceableScene &scene, TraceBase &tracer
             return false;
 
         prev->_pdfBackward = _sampler.bsdf->pdf(record.event.makeFlippedQuery());
-        if (prev->connectable())
+        if (prev->connectable() && !prev->isInfiniteEmitter())
             prev->_pdfBackward *= prev->cosineFactor(prevEdge->d)/prevEdge->rSq;
         //else
         //    prev->_pdfBackward /= cosineFactor(prevEdge->d);
@@ -103,30 +128,40 @@ bool PathVertex::sampleNextVertex(const TraceableScene &scene, TraceBase &tracer
     }
 
     SurfaceRecord record;
-    bool didHit = scene.intersect(state.ray, record.data, record.info);
-    if (!didHit)
+    if (scene.intersect(state.ray, record.data, record.info)) {
+        record.event = tracer.makeLocalScatterEvent(record.data, record.info, state.ray, &state.sampler);
+
+        next = PathVertex(record.info.bsdf, record, _throughput*weight);
+        next._record.surface.event.info = &next._record.surface.info;
+        state.bounce++;
+        nextEdge = PathEdge(*this, next);
+        next._pdfForward = pdf;
+        if (next.connectable() && !isInfiniteEmitter())
+            next._pdfForward *= next.cosineFactor(nextEdge.d)/nextEdge.rSq;
+        //else
+        //    next._pdfForward /= cosineFactor(nextEdge.d);
+
+        return true;
+    } else if (!adjoint && scene.intersectInfinites(state.ray, record.data, record.info)) {
+        next = PathVertex(record.info.bsdf, record, _throughput*weight);
+        state.bounce++;
+        nextEdge = PathEdge(state.ray.dir(), 1.0f, 1.0f);
+        next._pdfForward = pdf;
+
+        return true;
+    } else {
         return false;
-
-    record.event = tracer.makeLocalScatterEvent(record.data, record.info, state.ray, &state.sampler);
-
-    next = PathVertex(record.info.bsdf, record, _throughput*weight);
-    next._record.surface.event.info = &next._record.surface.info;
-    state.bounce++;
-    nextEdge = PathEdge(*this, next);
-    next._pdfForward = pdf;
-    if (next.connectable())
-        next._pdfForward *= next.cosineFactor(nextEdge.d)/nextEdge.rSq;
-    //else
-    //    next._pdfForward /= cosineFactor(nextEdge.d);
-
-    return true;
+    }
 }
 
 Vec3f PathVertex::eval(const Vec3f &d, bool adjoint) const
 {
     switch (_type) {
     case EmitterVertex:
-        return _sampler.emitter->evalDirectionalEmission(_record.emitter.point, DirectionSample(d));
+        if (_sampler.emitter->isInfinite())
+            return _sampler.emitter->evalPositionalEmission(_record.emitter.point);
+        else
+            return _sampler.emitter->evalDirectionalEmission(_record.emitter.point, DirectionSample(d));
     case CameraVertex:
         return Vec3f(0.0f);
     case SurfaceVertex:
@@ -146,8 +181,13 @@ void PathVertex::evalPdfs(const PathVertex *prev, const PathEdge *prevEdge, cons
 {
     switch (_type) {
     case EmitterVertex:
-        *forward = next.cosineFactor(nextEdge.d)/nextEdge.rSq*
-                _sampler.emitter->directionalPdf(_record.emitter.point, DirectionSample(nextEdge.d));
+        if (_sampler.emitter->isInfinite())
+            // Positional pdf is constant for a fixed direction, which is the case
+            // for connections to a point on an infinite emitter
+            *forward = _record.emitter.point.pdf;
+        else
+            *forward = next.cosineFactor(nextEdge.d)/nextEdge.rSq*
+                    _sampler.emitter->directionalPdf(_record.emitter.point, DirectionSample(nextEdge.d));
         break;
     case CameraVertex:
         *forward = next.cosineFactor(nextEdge.d)/nextEdge.rSq*
@@ -157,10 +197,10 @@ void PathVertex::evalPdfs(const PathVertex *prev, const PathEdge *prevEdge, cons
         const SurfaceScatterEvent &event = _record.surface.event;
         Vec3f dPrev = event.frame.toLocal(-prevEdge->d);
         Vec3f dNext = event.frame.toLocal(nextEdge.d);
-        *forward  = next .cosineFactor(nextEdge .d)/nextEdge .rSq*
-                _sampler.bsdf->pdf(event.makeWarpedQuery(dPrev, dNext));
-        *backward = prev->cosineFactor(prevEdge->d)/prevEdge->rSq*
-                _sampler.bsdf->pdf(event.makeWarpedQuery(dNext, dPrev));
+        *forward  = _sampler.bsdf->pdf(event.makeWarpedQuery(dPrev, dNext));
+        *backward = _sampler.bsdf->pdf(event.makeWarpedQuery(dNext, dPrev));
+        if (!next .isInfiniteEmitter()) *forward  *= next .cosineFactor(nextEdge .d)/nextEdge .rSq;
+        if (!prev->isInfiniteEmitter()) *backward *= prev->cosineFactor(prevEdge->d)/prevEdge->rSq;
         break;
     } case VolumeVertex: {
         const VolumeScatterEvent &event = _record.volume;

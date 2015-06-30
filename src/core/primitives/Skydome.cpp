@@ -119,6 +119,7 @@ void Skydome::intersectionInfo(const IntersectionTemporary &data, IntersectionIn
     info.p = isect->p;
     info.uv = directionToUV(isect->w);
     info.primitive = this;
+    info.bsdf = nullptr;
 }
 
 bool Skydome::tangentSpace(const IntersectionTemporary &/*data*/, const IntersectionInfo &/*info*/,
@@ -147,10 +148,10 @@ bool Skydome::samplePosition(PathSampleGenerator &sampler, PositionSample &sampl
     sample.uv = _sky->sample(MAP_SPHERICAL, sampler.next2D(EmitterSample));
     float sinTheta;
     sample.Ng = -uvToDirection(sample.uv, sinTheta);
+
     sample.p = SampleWarp::projectedBox(_sceneBounds, sample.Ng, faceXi, xi);
-    sample.pdf = INV_PI*INV_TWO_PI*_sky->pdf(MAP_SPHERICAL, sample.uv)/sinTheta
-                 *SampleWarp::projectedBoxPdf(_sceneBounds, sample.Ng);
-    sample.weight = (*_sky)[sample.uv]/sample.pdf;
+    sample.pdf = SampleWarp::projectedBoxPdf(_sceneBounds, sample.Ng);
+    sample.weight = Vec3f(1.0f/sample.pdf);
 
     return true;
 }
@@ -158,8 +159,12 @@ bool Skydome::samplePosition(PathSampleGenerator &sampler, PositionSample &sampl
 bool Skydome::sampleDirection(PathSampleGenerator &/*sampler*/, const PositionSample &point, DirectionSample &sample) const
 {
     sample.d = point.Ng;
-    sample.pdf = 1.0f;
-    sample.weight = Vec3f(1.0f);
+    float sinTheta;
+    directionToUV(-point.Ng, sinTheta);
+    sample.pdf = INV_PI*INV_TWO_PI*_sky->pdf(MAP_SPHERICAL, point.uv)/sinTheta;
+    if (sample.pdf == 0.0f)
+        return false;
+    sample.weight = (*_sky)[point.uv]/sample.pdf;
 
     return true;
 }
@@ -171,20 +176,19 @@ bool Skydome::sampleDirect(uint32 /*threadIndex*/, const Vec3f &/*p*/, PathSampl
     sample.d = uvToDirection(uv, sinTheta);
     sample.pdf = INV_PI*INV_TWO_PI*_sky->pdf(MAP_SPHERICAL, uv)/sinTheta;
     sample.dist = Ray::infinity();
-    return true;
+    return sample.pdf != 0.0f;
 }
 
 float Skydome::positionalPdf(const PositionSample &point) const
 {
-    float sinTheta;
-    Vec2f uv = directionToUV(point.Ng, sinTheta);
-    return INV_PI*INV_TWO_PI*_sky->pdf(MAP_SPHERICAL, uv)/sinTheta
-           *SampleWarp::projectedBoxPdf(_sceneBounds, point.Ng);
+    return SampleWarp::projectedBoxPdf(_sceneBounds, point.Ng);
 }
 
-float Skydome::directionalPdf(const PositionSample &/*point*/, const DirectionSample &/*sample*/) const
+float Skydome::directionalPdf(const PositionSample &point, const DirectionSample &/*sample*/) const
 {
-    return 1.0f;
+    float sinTheta;
+    directionToUV(-point.Ng, sinTheta);
+    return INV_PI*INV_TWO_PI*_sky->pdf(MAP_SPHERICAL, point.uv)/sinTheta;
 }
 
 float Skydome::directPdf(uint32 /*threadIndex*/, const IntersectionTemporary &data,
@@ -196,14 +200,14 @@ float Skydome::directPdf(uint32 /*threadIndex*/, const IntersectionTemporary &da
     return INV_PI*INV_TWO_PI*_sky->pdf(MAP_SPHERICAL, uv)/sinTheta;
 }
 
-Vec3f Skydome::evalPositionalEmission(const PositionSample &sample) const
-{
-    return (*_sky)[directionToUV(sample.Ng)];
-}
-
-Vec3f Skydome::evalDirectionalEmission(const PositionSample &/*point*/, const DirectionSample &/*sample*/) const
+Vec3f Skydome::evalPositionalEmission(const PositionSample &/*sample*/) const
 {
     return Vec3f(1.0f);
+}
+
+Vec3f Skydome::evalDirectionalEmission(const PositionSample &point, const DirectionSample &/*sample*/) const
+{
+    return (*_sky)[point.uv];
 }
 
 Vec3f Skydome::evalDirect(const IntersectionTemporary &/*data*/, const IntersectionInfo &info) const

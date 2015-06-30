@@ -73,7 +73,7 @@ public:
     : _type(EmitterVertex),
       _record(EmitterRecord(emitterPdf)),
       _sampler(emitter),
-      _connectable(!emitter->isInfinite())
+      _connectable(true)
     {
     }
     PathVertex(const Camera *camera, Vec2u pixel)
@@ -88,7 +88,7 @@ public:
       _record(surface),
       _sampler(bsdf),
       _throughput(throughput_),
-      _connectable(!bsdf->lobes().isPureSpecular())
+      _connectable(bsdf == nullptr || !bsdf->lobes().isPureSpecular())
     {
     }
     PathVertex(const Medium *medium, const VolumeScatterEvent &event, const Vec3f &throughput_)
@@ -170,6 +170,16 @@ public:
     bool connectable() const
     {
         return _connectable;
+    }
+
+    bool isInfiniteEmitter() const
+    {
+        return _type == EmitterVertex && _sampler.emitter->isInfinite();
+    }
+
+    bool isInfiniteSurface() const
+    {
+        return _type == SurfaceVertex && _record.surface.info.primitive->isInfinite();
     }
 };
 

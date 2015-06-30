@@ -84,7 +84,7 @@ void InfiniteSphereCap::intersectionInfo(const IntersectionTemporary &data, Inte
     info.p = isect->p;
     info.uv = Vec2f(0.0f, 0.0f);
     info.primitive = this;
-    info.bsdf = _bsdf.get();
+    info.bsdf = nullptr;
 }
 
 bool InfiniteSphereCap::tangentSpace(const IntersectionTemporary &/*data*/, const IntersectionInfo &/*info*/, Vec3f &/*T*/, Vec3f &/*B*/) const
@@ -111,9 +111,8 @@ bool InfiniteSphereCap::samplePosition(PathSampleGenerator &sampler, PositionSam
     sample.uv = Vec2f(0.0f);
     sample.Ng = -_capFrame.toGlobal(SampleWarp::uniformSphericalCap(sampler.next2D(EmitterSample), _cosCapAngle));
     sample.p = SampleWarp::projectedBox(_sceneBounds, sample.Ng, faceXi, xi);
-    sample.pdf = SampleWarp::uniformSphericalCapPdf(_cosCapAngle)*
-                 SampleWarp::projectedBoxPdf(_sceneBounds, sample.Ng);
-    sample.weight = (*_emission)[sample.uv]/sample.pdf;
+    sample.pdf = SampleWarp::projectedBoxPdf(_sceneBounds, sample.Ng);
+    sample.weight = Vec3f(1.0f/sample.pdf);
 
     return true;
 }
@@ -121,8 +120,8 @@ bool InfiniteSphereCap::samplePosition(PathSampleGenerator &sampler, PositionSam
 bool InfiniteSphereCap::sampleDirection(PathSampleGenerator &/*sampler*/, const PositionSample &point, DirectionSample &sample) const
 {
     sample.d = point.Ng;
-    sample.pdf = 1.0f;
-    sample.weight = Vec3f(1.0f);
+    sample.pdf = SampleWarp::uniformSphericalCapPdf(_cosCapAngle);
+    sample.weight = (*_emission)[point.uv]/sample.pdf;
 
     return true;
 }
@@ -139,13 +138,12 @@ bool InfiniteSphereCap::sampleDirect(uint32 /*threadIndex*/, const Vec3f &/*p*/,
 
 float InfiniteSphereCap::positionalPdf(const PositionSample &point) const
 {
-    return SampleWarp::uniformSphericalCapPdf(_cosCapAngle)*
-           SampleWarp::projectedBoxPdf(_sceneBounds, point.Ng);
+    return SampleWarp::projectedBoxPdf(_sceneBounds, point.Ng);
 }
 
 float InfiniteSphereCap::directionalPdf(const PositionSample &/*point*/, const DirectionSample &/*sample*/) const
 {
-    return 1.0f;
+    return SampleWarp::uniformSphericalCapPdf(_cosCapAngle);
 }
 
 float InfiniteSphereCap::directPdf(uint32 /*threadIndex*/, const IntersectionTemporary &/*data*/,
@@ -156,12 +154,12 @@ float InfiniteSphereCap::directPdf(uint32 /*threadIndex*/, const IntersectionTem
 
 Vec3f InfiniteSphereCap::evalPositionalEmission(const PositionSample &/*sample*/) const
 {
-    return (*_emission)[Vec2f(0.0f)];
+    return Vec3f(1.0f);
 }
 
 Vec3f InfiniteSphereCap::evalDirectionalEmission(const PositionSample &/*point*/, const DirectionSample &/*sample*/) const
 {
-    return Vec3f(1.0f);
+    return (*_emission)[Vec2f(0.0f)];
 }
 
 Vec3f InfiniteSphereCap::evalDirect(const IntersectionTemporary &/*data*/, const IntersectionInfo &/*info*/) const
