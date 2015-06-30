@@ -521,7 +521,7 @@ bool Curves::tangentSpace(const IntersectionTemporary &data, const IntersectionI
 
     T = tangent.normalized();
     B = T.cross(info.Ng);
-    return false;
+    return true;
 }
 
 bool Curves::isSamplable() const
