@@ -35,20 +35,8 @@ class TraceableScene
     {
         const Primitive *primitive = reinterpret_cast<const Primitive *>(userData);
         PerRayData *data = reinterpret_cast<PerRayData *>(eRay.userData);
-//      if (primitive->needsRayTransform()) {
-//          Ray ray(fromERay(eRay));
-//          float length = ray.dir().length();
-//          ray.setDir(ray.dir()*(1.0f/length));
-//          ray.setNearT(ray.nearT()/length);
-//          ray.setFarT(ray.farT()/length);
-//          if (primitive->intersect(ray, data->data)) {
-//              data->ray.setFarT(ray.farT()*length);
-//              eRay.tfar = data->ray.farT();
-//          }
-//      } else {
-            if (primitive->intersect(data->ray, data->data))
-                eRay.tfar = data->ray.farT();
-//      }
+        if (primitive->intersect(data->ray, data->data))
+            eRay.tfar = data->ray.farT();
     }
 
     static bool occluded(const void *userData, embree::Ray &eRay)
@@ -135,18 +123,8 @@ public:
                 Box3f primBounds = m->bounds();
                 _sceneBounds.grow(primBounds);
 
-                if (m->needsRayTransform()) {
-                    // TODO: Bounds to sceneBounds are generally broken here
-                    objects->hasTransform = true;
-                    objects->localBounds = EmbreeUtil::convert(primBounds);
-                    objects->local2world = EmbreeUtil::convert(m->transform());
-                    objects->calculateWorldData();
-                } else {
-                    objects->hasTransform = false;
-                    objects->localBounds = objects->worldBounds = EmbreeUtil::convert(primBounds);
-                }
-
-                /* TODO: Transforms */
+                objects->hasTransform = false;
+                objects->localBounds = objects->worldBounds = EmbreeUtil::convert(primBounds);
                 objects->userData = m.get();
                 objects->intersector1 = &_virtualIntersector;
                 objects++;
@@ -155,9 +133,12 @@ public:
             embree::rtcBuildAccel(_scene, "objectsplit");
             _intersector = embree::rtcQueryIntersector1(_scene, "fast");
         } else {
-            for (std::shared_ptr<Primitive> &m : _primitives)
-                if (!m->isInfinite() && !m->isDirac())
+            for (std::shared_ptr<Primitive> &m : _primitives) {
+                if (!m->isInfinite() && !m->isDirac()) {
+                    _sceneBounds.grow(m->bounds());
                     _finites.push_back(m.get());
+                }
+            }
         }
 
         _integrator.prepareForRender(*this, seed);
@@ -205,17 +186,8 @@ public:
         if (data.primitive) {
             info.p = ray.pos() + ray.dir()*ray.farT();
             info.w = ray.dir();
-//          if (data.primitive->needsRayTransform()) {
-//              Vec3f scale = data.primitive->transform().extractScaleVec();
-//              float diagScale = scale.avg();
-//              info.epsilon = DefaultEpsilon/diagScale;
-//              data.primitive->intersectionInfo(data, info);
-//              info.epsilon *= diagScale;
-//              info.Ng = data.primitive->transform()
-//          } else {
-                info.epsilon = DefaultEpsilon;
-                data.primitive->intersectionInfo(data, info);
-//          }
+            info.epsilon = DefaultEpsilon;
+            data.primitive->intersectionInfo(data, info);
             return true;
         } else {
             return false;
@@ -231,9 +203,7 @@ public:
             p->intersect(ray, data);
 
         if (data.primitive) {
-            info.p = ray.pos() + ray.dir()*ray.farT();
             info.w = ray.dir();
-            info.epsilon = DefaultEpsilon;
             data.primitive->intersectionInfo(data, info);
             return true;
         } else {
