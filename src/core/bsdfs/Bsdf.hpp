@@ -23,10 +23,11 @@ namespace Tungsten {
 
 class Medium;
 
+static CONSTEXPR float DiracAcceptanceThreshold = 1e-3f;
+
 class Bsdf : public JsonSerializable
 {
 protected:
-    static CONSTEXPR float DiracAcceptanceThreshold = 1e-3f;
 
     BsdfLobes _lobes;
 

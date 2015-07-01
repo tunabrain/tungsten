@@ -8,8 +8,6 @@
 
 namespace Tungsten {
 
-CONSTEXPR float Bsdf::DiracAcceptanceThreshold;
-
 Bsdf::Bsdf()
 : _albedo(std::make_shared<ConstantTexture>(1.0f))
 {
