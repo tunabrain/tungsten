@@ -105,9 +105,9 @@ public:
     inline Vec3f getLinear(int x, int y) const
     {
         int idx = x + y*_res.x();
-        Vec3d result = _pixels[idx]/double(max(_weights[idx], 1u));
+        Vec3d result = _pixels[idx]/double(max(_weights[idx], uint32(1)));
         if (!_splats.empty())
-            result += _splats[idx]/double(max(_splatWeight, 1ull));
+            result += _splats[idx]/double(max(_splatWeight, uint64(1)));
         return Vec3f(result);
     }
 
