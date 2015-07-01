@@ -36,6 +36,7 @@
 #include "volume/AtmosphericMedium.hpp"
 
 #include "bcsdfs/LambertianFiberBcsdf.hpp"
+#include "bcsdfs/RoughWireBcsdf.hpp"
 
 #include "bsdfs/RoughDielectricBsdf.hpp"
 #include "bsdfs/RoughConductorBsdf.hpp"
@@ -153,6 +154,8 @@ std::shared_ptr<Bsdf> Scene::instantiateBsdf(std::string type, const rapidjson::
         result = std::make_shared<TransparencyBsdf>();
     else if (type == "lambertian_fiber")
         result = std::make_shared<LambertianFiberBcsdf>();
+    else if (type == "rough_wire")
+        result = std::make_shared<RoughWireBcsdf>();
     else {
         DBG("Unkown bsdf type: '%s'", type.c_str());
         return nullptr;
