@@ -215,6 +215,7 @@ int TraceableMinecraftMap::fetchBsdf(ResourcePackLoader &pack, const TexturedQua
 
     _materials.emplace_back();
     QuadMaterial &material = _materials.back();
+    material.bsdf = _missingBsdf;
 
     bool isEmissive = pack.isEmissive(quad.texture);
 
