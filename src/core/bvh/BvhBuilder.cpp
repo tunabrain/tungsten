@@ -179,7 +179,7 @@ void BvhBuilder::build(PrimVector prims)
     }
 
     BuildResult result;
-    recursiveBuild(result, *_root, 0, prims.size() - 1, prims, narrow(geomBounds), narrow(centroidBounds), _branchFactor);
+    recursiveBuild(result, *_root, 0, uint32(prims.size() - 1), prims, narrow(geomBounds), narrow(centroidBounds), _branchFactor);
     _numNodes = result.nodeCount;
     _depth = result.depth;
 

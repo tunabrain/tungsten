@@ -266,9 +266,9 @@ void Scene::loadObjectList(const rapidjson::Value &container, Instantiator insta
 {
     for (unsigned i = 0; i < container.Size(); ++i) {
         if (container[i].IsObject()) {
-        	auto element = instantiator(JsonUtils::as<std::string>(container[i], "type"), container[i]);
-        	if (element)
-        		result.push_back(std::move(element));
+            auto element = instantiator(JsonUtils::as<std::string>(container[i], "type"), container[i]);
+            if (element)
+                result.push_back(std::move(element));
         } else {
             DBG("Don't know what to do with non-object in object list");
         }
@@ -309,7 +309,7 @@ std::shared_ptr<Bsdf> Scene::fetchBsdf(const rapidjson::Value &v) const
     using namespace std::placeholders;
     auto result = fetchObject(_bsdfs, v, std::bind(&Scene::instantiateBsdf, this, _1, _2));
     if (!result)
-    	return _errorBsdf;
+        return _errorBsdf;
     return std::move(result);
 }
 
@@ -328,7 +328,7 @@ std::shared_ptr<Texture> Scene::fetchTexture(const rapidjson::Value &v, TexelCon
     else if (v.IsObject())
         return instantiateTexture(JsonUtils::as<std::string>(v, "type"), v, conversion);
     else
-    	DBG("Cannot instantiate texture from unknown value type");
+        DBG("Cannot instantiate texture from unknown value type");
     return nullptr;
 }
 
@@ -465,15 +465,15 @@ void Scene::fromJson(const rapidjson::Value &v, const Scene &scene)
         loadObjectList(primitives->value, std::bind(&Scene::instantiatePrimitive, this, _1, _2), _primitives);
 
     if (camera && camera->value.IsObject()) {
-    	auto result = instantiateCamera(JsonUtils::as<std::string>(camera->value, "type"), camera->value);
-    	if (result)
-    		_camera = std::move(result);
+        auto result = instantiateCamera(JsonUtils::as<std::string>(camera->value, "type"), camera->value);
+        if (result)
+            _camera = std::move(result);
     }
 
     if (integrator && integrator->value.IsObject()) {
-    	auto result = instantiateIntegrator(JsonUtils::as<std::string>(integrator->value, "type"), integrator->value);
-    	if (result)
-    		_integrator = std::move(result);
+        auto result = instantiateIntegrator(JsonUtils::as<std::string>(integrator->value, "type"), integrator->value);
+        if (result)
+            _integrator = std::move(result);
     }
 
     if (renderer && renderer->value.IsObject())

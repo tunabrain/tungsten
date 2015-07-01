@@ -507,10 +507,10 @@ static const ModelRef *selectModel(const std::vector<ModelRef> &models, int idx,
     int model = 0;
     if (models.size() > 1) {
         float f = randSource[idx % RandSourceSize];
-        model = models.size() - 1;
+        model = int(models.size()) - 1;
         for (size_t i = 0; i < models.size(); ++i) {
             if (f < models[i].weight()) {
-                model = i;
+                model = int(i);
                 break;
             }
         }

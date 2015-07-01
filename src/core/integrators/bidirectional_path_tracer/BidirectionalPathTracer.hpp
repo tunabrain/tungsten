@@ -8,7 +8,7 @@
 
 namespace Tungsten {
 
-struct PathVertex;
+class PathVertex;
 
 class BidirectionalPathTracer : public TraceBase
 {

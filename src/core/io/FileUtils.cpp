@@ -461,7 +461,7 @@ std::string FileUtils::loadText(const Path &path)
     else
         offset = 3;
 
-    std::string text(size, '\0');
+    std::string text(size_t(size), '\0');
     for (int i = 0; i < offset; ++i)
         text[i] = head[sizeof(head) - offset + i];
     in->read(&text[offset], size);

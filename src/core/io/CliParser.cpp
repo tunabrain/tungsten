@@ -100,11 +100,11 @@ void CliParser::addOption(char shortOpt, const std::string &longOpt,
     if (!longOpt.empty() && _longOpts.find(longOpt) != _longOpts.end())
         FAIL("Duplicate long option %s", longOpt);
 
-    _tokenToOption.insert(std::make_pair(token, _options.size()));
+    _tokenToOption.insert(std::make_pair(token, int(_options.size())));
     if (shortOpt != '\0')
-        _shortOpts.insert(std::make_pair(shortOpt, _options.size()));
+        _shortOpts.insert(std::make_pair(shortOpt, int(_options.size())));
     if (!longOpt.empty())
-        _longOpts.insert(std::make_pair(longOpt, _options.size()));
+        _longOpts.insert(std::make_pair(longOpt, int(_options.size())));
 
     _options.push_back(CliOption{
         shortOpt, longOpt, description, hasParam, token, "", false
@@ -114,7 +114,7 @@ void CliParser::addOption(char shortOpt, const std::string &longOpt,
 void CliParser::parse(int nativeArgc, const char *nativeArgv[])
 {
     std::vector<std::string> argv = retrieveUtf8Args(nativeArgc, nativeArgv);
-    int argc = argv.size();
+    int argc = int(argv.size());
 
     bool operandsOnly = false;
     for (int i = 1; i < argc; ++i) {

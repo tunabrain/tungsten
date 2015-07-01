@@ -65,11 +65,11 @@ public:
 
     void warp(Vec2f &uv, int &row, int &column) const
     {
-        row = std::distance(_marginalCdf.begin(), std::upper_bound(_marginalCdf.begin(), _marginalCdf.end(), uv.y())) - 1;
+        row = int(std::distance(_marginalCdf.begin(), std::upper_bound(_marginalCdf.begin(), _marginalCdf.end(), uv.y())) - 1);
         uv.y() = clamp((uv.y() - _marginalCdf[row])/_marginalPdf[row], 0.0f, 1.0f);
         auto rowStart = _cdf.begin() + row*(_w + 1);
         auto rowEnd = rowStart + (_w + 1);
-        column = std::distance(rowStart, std::upper_bound(rowStart, rowEnd, uv.x())) - 1;
+        column = int(std::distance(rowStart, std::upper_bound(rowStart, rowEnd, uv.x())) - 1);
         int idxC = row*(_w + 1) + column;
         int idxP = row*_w + column;
         uv.x() = clamp((uv.x() - _cdf[idxC])/_pdf[idxP], 0.0f, 1.0f);

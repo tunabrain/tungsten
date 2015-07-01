@@ -78,7 +78,7 @@ public:
                     filteredQuads[iter->second].overlay = quads[i].texture;
                     filteredQuads[iter->second].tintIndex = quads[i].tintIndex;
                 } else {
-                    existingQuads.insert(std::make_pair(key, filteredQuads.size()));
+                    existingQuads.insert(std::make_pair(key, int(filteredQuads.size())));
                     filteredQuads.push_back(quads[i]);
                 }
             }

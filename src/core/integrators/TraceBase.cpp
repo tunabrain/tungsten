@@ -155,8 +155,6 @@ bool TraceBase::lensSample(const Camera &camera,
     ray.setPrimaryRay(false);
     ray.setFarT(sample.dist);
 
-    IntersectionTemporary data;
-    IntersectionInfo info;
     Vec3f transmittance = generalizedShadowRay(ray, medium, nullptr, bounce);
     if (transmittance == 0.0f)
         return false;

@@ -33,7 +33,7 @@ class Model
 
     void loadElements(const rapidjson::Value &elements)
     {
-        for (size_t i = 0; i < elements.Size(); ++i)
+        for (rapidjson::SizeType i = 0; i < elements.Size(); ++i)
             if (elements[i].IsObject())
                 _elements.emplace_back(elements[i]);
     }

@@ -422,13 +422,13 @@ std::shared_ptr<Primitive> ObjLoader::tryInstantiateCube(const std::string &name
     float maxDistSq = 0.0f;
     Vec3f outOfPlane(base);
     for (int i = 1; i < 3; ++i) {
-    	for (int t = 0; t < 3; ++t) {
-    		float distSq = (_verts[_tris[i].vs[t]].pos() - base).lengthSq();
-    		if (distSq > maxDistSq) {
-    			maxDistSq = distSq;
-    			outOfPlane = _verts[_tris[i].vs[t]].pos();
-    		}
-    	}
+        for (int t = 0; t < 3; ++t) {
+            float distSq = (_verts[_tris[i].vs[t]].pos() - base).lengthSq();
+            if (distSq > maxDistSq) {
+                maxDistSq = distSq;
+                outOfPlane = _verts[_tris[i].vs[t]].pos();
+            }
+        }
     }
     Vec3f edge2 = outOfPlane - base;
 

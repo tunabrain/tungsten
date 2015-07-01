@@ -52,7 +52,7 @@ ZipInputStreambuf::int_type ZipInputStreambuf::underflow()
                 if (_inputAvail == 0 && _in->good()) {
                     _in->read(reinterpret_cast<char *>(_inputBuffer.get()),
                             std::min(InputBufferSize, _compressedSize - _inputStreamOffset));
-                    _inputAvail = _in->gcount();
+                    _inputAvail = size_t(_in->gcount());
                     _inputStreamOffset += _inputAvail;
                     _inputBufOffset = 0;
                 }
@@ -93,7 +93,7 @@ ZipInputStreambuf::int_type ZipInputStreambuf::underflow()
         _in->read(reinterpret_cast<char *>(_outputBuffer.get()),
                 std::min(OutputBufferSize, _uncompressedSize - _inputStreamOffset));
 
-        size_t readCount = _in->gcount();
+        size_t readCount = size_t(_in->gcount());
         if (readCount == 0)
             return traits_type::eof();
 

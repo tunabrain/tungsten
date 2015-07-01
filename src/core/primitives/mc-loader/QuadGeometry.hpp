@@ -65,8 +65,8 @@ public:
 
     void beginModel()
     {
-        _simdSpan.emplace_back(_geometry.size(), _geometry.size());
-        _modelSpan.emplace_back(_triInfo.size(), _triInfo.size());
+        _simdSpan.emplace_back(int(_geometry.size()), int(_geometry.size()));
+        _modelSpan.emplace_back(int(_triInfo.size()), int(_triInfo.size()));
         _triangleOffset = 0;
     }
 
@@ -106,16 +106,16 @@ public:
         if (_triangleOffset == 0)
             _geometry.emplace_back();
 
-        _geometry.back().set(_triangleOffset++, p0, p2, p1, _triInfo.size() - 2);
-        _geometry.back().set(_triangleOffset++, p3, p2, p0, _triInfo.size() - 1);
+        _geometry.back().set(_triangleOffset++, p0, p2, p1, int(_triInfo.size()) - 2);
+        _geometry.back().set(_triangleOffset++, p3, p2, p0, int(_triInfo.size()) - 1);
 
         _triangleOffset %= 4;
     }
 
     void endModel()
     {
-        _simdSpan.back().second = _geometry.size();
-        _modelSpan.back().second = _triInfo.size();
+        _simdSpan.back().second = int(_geometry.size());
+        _modelSpan.back().second = int(_triInfo.size());
 
         if (_triangleOffset > 0)
             for (int i = 3; i >= _triangleOffset; --i)
@@ -129,10 +129,10 @@ public:
         int modelStart = o._modelSpan[idx].first;
         int modelEnd   = o._modelSpan[idx].second;
 
-        _simdSpan.emplace_back(_geometry.size(), _geometry.size() + simdEnd - simdStart);
-        _modelSpan.emplace_back(_triInfo.size(), _triInfo.size() + modelEnd - modelStart);
+        _simdSpan.emplace_back(int(_geometry.size()), int(_geometry.size()) + simdEnd - simdStart);
+        _modelSpan.emplace_back(int(_triInfo.size()), int(_triInfo.size()) + modelEnd - modelStart);
 
-        int infoBase = _triInfo.size();
+        int infoBase = int(_triInfo.size());
         for (int i = simdStart; i < simdEnd; ++i) {
             _geometry.emplace_back(o._geometry[i]);
 
@@ -204,12 +204,12 @@ public:
 
     inline int size() const
     {
-        return _modelSpan.size();
+        return int(_modelSpan.size());
     }
 
     inline int triangleCount() const
     {
-        return _triInfo.size();
+        return int(_triInfo.size());
     }
 
     inline bool nonEmpty(int idx) const

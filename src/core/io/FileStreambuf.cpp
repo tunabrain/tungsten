@@ -99,7 +99,7 @@ std::streambuf::int_type FileOutputStreambuf::overflow(int_type ch)
 int FileOutputStreambuf::sync()
 {
     std::ptrdiff_t n = pptr() - pbase();
-    pbump(-n);
+    pbump(int(-n));
 
     return std::fwrite(_buffer.get(), 1, n, _file.get()) != size_t(n) ? -1 : 0;
 }

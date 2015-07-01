@@ -176,9 +176,9 @@ public:
     }
 
     std::shared_ptr<Bsdf> errorBsdf() const
-	{
-    	return _errorBsdf;
-	}
+    {
+        return _errorBsdf;
+    }
 
     static Scene *load(const Path &path, std::shared_ptr<TextureCache> cache = nullptr);
     static void save(const Path &path, const Scene &scene);

@@ -112,7 +112,7 @@ public:
                 _nodes[i].radiusSq = radiusScale*radiusScale;
         } else {
             int m = min(30, int(_treeEnd));
-            float scale = radiusScale*(std::sqrt(_treeEnd)*0.05f)/float(m);
+            float scale = radiusScale*(std::sqrt(float(_treeEnd))*0.05f)/float(m);
             ThreadUtils::pool->yield(*ThreadUtils::pool->enqueue([&](uint32 idx, uint32 num, uint32 /*threadId*/) {
                 uint32 span = (_treeEnd + num - 1)/num;
                 uint32 start = span*idx;

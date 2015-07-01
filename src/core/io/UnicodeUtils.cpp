@@ -11,17 +11,17 @@ namespace UnicodeUtils {
 #if _WIN32
 std::wstring utf8ToWchar(const char *s, size_t size)
 {
-    int wsize = MultiByteToWideChar(CP_UTF8, 0, s, size, nullptr, 0);
+    int wsize = MultiByteToWideChar(CP_UTF8, 0, s, int(size), nullptr, 0);
     std::wstring result(wsize, '\0');
-    MultiByteToWideChar(CP_UTF8, 0, s, size, &result[0], wsize);
+    MultiByteToWideChar(CP_UTF8, 0, s, int(size), &result[0], wsize);
     return std::move(result);
 }
 
 std::string wcharToUtf8(const wchar_t *s, size_t wsize)
 {
-    int size = WideCharToMultiByte(CP_UTF8, 0, s, wsize, nullptr, 0, nullptr, nullptr);
+    int size = WideCharToMultiByte(CP_UTF8, 0, s, int(wsize), nullptr, 0, nullptr, nullptr);
     std::string result(size, '\0');
-    WideCharToMultiByte(CP_UTF8, 0, s, wsize, &result[0], size, nullptr, nullptr);
+    WideCharToMultiByte(CP_UTF8, 0, s, int(wsize), &result[0], size, nullptr, nullptr);
     return std::move(result);
 }
 

@@ -23,18 +23,18 @@ class BiomeTexture : public Texture
     int _tintType;
 
 public:
-	BiomeTexture(std::shared_ptr<BitmapTexture> substrate,
-			std::shared_ptr<BitmapTexture> overlay,
-			std::shared_ptr<BitmapTexture> overlayOpacity,
-			const std::unordered_map<Vec2i, const BiomeTileTexture *> &biomes,
-			int tintType)
-	: _substrate(substrate),
-	  _overlay(overlay),
-	  _overlayOpacity(overlayOpacity),
-	  _biomes(biomes),
-	  _tintType(tintType)
-	{
-	}
+    BiomeTexture(std::shared_ptr<BitmapTexture> substrate,
+            std::shared_ptr<BitmapTexture> overlay,
+            std::shared_ptr<BitmapTexture> overlayOpacity,
+            const std::unordered_map<Vec2i, const BiomeTileTexture *> &biomes,
+            int tintType)
+    : _substrate(substrate),
+      _overlay(overlay),
+      _overlayOpacity(overlayOpacity),
+      _biomes(biomes),
+      _tintType(tintType)
+    {
+    }
 
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;

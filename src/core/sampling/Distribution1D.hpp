@@ -30,7 +30,7 @@ public:
 
     void warp(float &u, int &idx) const
     {
-        idx = std::distance(_cdf.begin(), std::upper_bound(_cdf.begin(), _cdf.end(), u)) - 1;
+        idx = int(std::distance(_cdf.begin(), std::upper_bound(_cdf.begin(), _cdf.end(), u)) - 1);
         u = clamp((u - _cdf[idx])/_pdf[idx], 0.0f, 1.0f);
     }
 

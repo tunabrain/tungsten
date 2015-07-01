@@ -9,7 +9,7 @@ namespace Tungsten {
 static size_t zipStreamWriteFunc(void *userPtr, mz_uint64 file_ofs, const void *pBuf, size_t n)
 {
     std::ostream &out = *static_cast<std::ostream *>(userPtr);
-    size_t pos = out.tellp();
+    size_t pos = size_t(out.tellp());
     if (file_ofs != pos)
         out.seekp(file_ofs);
     if (!out.good())
@@ -43,17 +43,17 @@ ZipWriter::~ZipWriter()
 bool ZipWriter::addFile(const Path &src, const Path &dst, int compressionLevel)
 {
     return mz_zip_writer_add_file(&_archive, dst.asString().c_str(), src.absolute().asString().c_str(),
-            0, 0, compressionLevel);
+            0, 0, compressionLevel) != 0;
 }
 
 bool ZipWriter::addFile(const void *src, size_t len, const Path &dst, int compressionLevel)
 {
-    return mz_zip_writer_add_mem(&_archive, dst.asString().c_str(), src, len, compressionLevel);
+    return mz_zip_writer_add_mem(&_archive, dst.asString().c_str(), src, len, compressionLevel) != 0;
 }
 
 bool ZipWriter::addDirectory(const Path &dst)
 {
-    return mz_zip_writer_add_mem(&_archive, dst.ensureSeparator().asString().c_str(), nullptr, 0, 0);
+    return mz_zip_writer_add_mem(&_archive, dst.ensureSeparator().asString().c_str(), nullptr, 0, 0) != 0;
 }
 
 void ZipWriter::close()

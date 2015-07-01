@@ -133,7 +133,7 @@ static int stbiReadCallback(void *user, char *data, int size)
 {
     std::istream &in = *static_cast<std::istream *>(user);
     in.read(data, size);
-    return in.gcount();
+    return int(in.gcount());
 }
 static void stbiSkipCallback(void *user, int n)
 {
@@ -161,7 +161,7 @@ bool isHdr(const Path &path)
     InputStreamHandle in = FileUtils::openInputStream(path);
     if (!in)
         return false;
-    return stbi_is_hdr_from_callbacks(&istreamCallback, in.get());
+    return stbi_is_hdr_from_callbacks(&istreamCallback, in.get()) != 0;
 }
 
 template<typename T>
@@ -382,12 +382,12 @@ DeletablePixels loadPng(const Path &path, int &w, int &h, int &channels)
     if (size == 0 || !in)
         return makeVoidPixels();
 
-    std::unique_ptr<uint8[]> file(new uint8[size]);
-    FileUtils::streamRead(in, file.get(), size);
+    std::unique_ptr<uint8[]> file(new uint8[size_t(size)]);
+    FileUtils::streamRead(in, file.get(), size_t(size));
 
     uint8 *dst = nullptr;
     uint32 uw, uh;
-    lodepng_decode_memory(&dst, &uw, &uh, file.get(), size, LCT_RGBA, 8);
+    lodepng_decode_memory(&dst, &uw, &uh, file.get(), size_t(size), LCT_RGBA, 8);
     if (!dst)
         return makeVoidPixels();
 

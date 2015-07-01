@@ -613,7 +613,7 @@ void TraceableMinecraftMap::loadResources()
 
                 _bounds.grow(bounds);
 
-                prims.emplace_back(bounds, centroid, _grids.size());
+                prims.emplace_back(bounds, centroid, int(_grids.size()));
 
                 buildBiomeColors(pack, x, z, biomes);
 

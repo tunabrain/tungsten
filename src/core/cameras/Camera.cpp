@@ -51,17 +51,17 @@ void Camera::fromJson(const rapidjson::Value &v, const Scene &scene)
             _filter = ReconstructionFilter(filter->value.GetString());
 
     if (const rapidjson::Value::Member *transform = v.FindMember("transform")) {
-    	JsonUtils::fromJson(transform->value, _transform);
-    	_pos    = _transform.extractTranslationVec();
-		_lookAt = _transform.fwd() + _pos;
-		_up     = _transform.up();
+        JsonUtils::fromJson(transform->value, _transform);
+        _pos    = _transform.extractTranslationVec();
+        _lookAt = _transform.fwd() + _pos;
+        _up     = _transform.up();
 
-    	if (transform->value.IsObject()) {
-			JsonUtils::fromJson(transform->value, "up", _up);
-			JsonUtils::fromJson(transform->value, "look_at", _lookAt);
-    	}
+        if (transform->value.IsObject()) {
+            JsonUtils::fromJson(transform->value, "up", _up);
+            JsonUtils::fromJson(transform->value, "look_at", _lookAt);
+        }
 
-    	_transform.setRight(-_transform.right());
+        _transform.setRight(-_transform.right());
     }
 
     precompute();

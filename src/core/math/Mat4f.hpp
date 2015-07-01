@@ -89,23 +89,23 @@ public:
 
     void setRight(const Vec3f &x)
     {
-    	a11 = x.x();
-    	a21 = x.y();
-    	a31 = x.z();
+        a11 = x.x();
+        a21 = x.y();
+        a31 = x.z();
     }
 
     void setUp(const Vec3f &y)
     {
-    	a12 = y.x();
-    	a22 = y.y();
-    	a32 = y.z();
+        a12 = y.x();
+        a22 = y.y();
+        a32 = y.z();
     }
 
     void setFwd(const Vec3f &z)
     {
-    	a13 = z.x();
-    	a23 = z.y();
-    	a33 = z.z();
+        a13 = z.x();
+        a23 = z.y();
+        a33 = z.z();
     }
 
     float operator()(int i, int j) const
@@ -139,92 +139,92 @@ public:
 
     Mat4f operator-(const Mat4f &o) const
     {
-    	Mat4f tmp(*this);
-    	for (int i = 0; i < 16; ++i)
-    		tmp[i] -= o[i];
-    	return tmp;
+        Mat4f tmp(*this);
+        for (int i = 0; i < 16; ++i)
+            tmp[i] -= o[i];
+        return tmp;
     }
 
     Mat4f operator+(const Mat4f &o) const
     {
-    	Mat4f tmp(*this);
-    	for (int i = 0; i < 16; ++i)
-    		tmp[i] += o[i];
-    	return tmp;
+        Mat4f tmp(*this);
+        for (int i = 0; i < 16; ++i)
+            tmp[i] += o[i];
+        return tmp;
     }
 
     Mat4f operator-(float o) const
     {
-    	Mat4f tmp(*this);
-    	for (int i = 0; i < 16; ++i)
-    		tmp[i] -= o;
-    	return tmp;
+        Mat4f tmp(*this);
+        for (int i = 0; i < 16; ++i)
+            tmp[i] -= o;
+        return tmp;
     }
 
     Mat4f operator+(float o) const
     {
-    	Mat4f tmp(*this);
-    	for (int i = 0; i < 16; ++i)
-    		tmp[i] += o;
-    	return tmp;
+        Mat4f tmp(*this);
+        for (int i = 0; i < 16; ++i)
+            tmp[i] += o;
+        return tmp;
     }
 
     Mat4f &operator-=(const Mat4f &o)
-	{
-    	for (int i = 0; i < 16; ++i)
-    		a[i] -= o[i];
-    	return *this;
-	}
+    {
+        for (int i = 0; i < 16; ++i)
+            a[i] -= o[i];
+        return *this;
+    }
 
     Mat4f &operator+=(const Mat4f &o)
-	{
-    	for (int i = 0; i < 16; ++i)
-    		a[i] += o[i];
-    	return *this;
-	}
+    {
+        for (int i = 0; i < 16; ++i)
+            a[i] += o[i];
+        return *this;
+    }
 
     Mat4f &operator-=(float o)
-	{
-    	for (int i = 0; i < 16; ++i)
-    		a[i] -= o;
-    	return *this;
-	}
+    {
+        for (int i = 0; i < 16; ++i)
+            a[i] -= o;
+        return *this;
+    }
 
     Mat4f &operator+=(float o)
-	{
-    	for (int i = 0; i < 16; ++i)
-    		a[i] += o;
-    	return *this;
-	}
+    {
+        for (int i = 0; i < 16; ++i)
+            a[i] += o;
+        return *this;
+    }
 
     Mat4f operator*(float o) const
     {
-    	Mat4f tmp(*this);
-    	for (int i = 0; i < 16; ++i)
-    		tmp[i] *= o;
-    	return tmp;
+        Mat4f tmp(*this);
+        for (int i = 0; i < 16; ++i)
+            tmp[i] *= o;
+        return tmp;
     }
 
     Mat4f operator/(float o) const
     {
-    	Mat4f tmp(*this);
-    	for (int i = 0; i < 16; ++i)
-    		tmp[i] /= o;
-    	return tmp;
+        Mat4f tmp(*this);
+        for (int i = 0; i < 16; ++i)
+            tmp[i] /= o;
+        return tmp;
     }
 
     Mat4f &operator*=(float o)
     {
-    	for (int i = 0; i < 16; ++i)
-    		a[i] *= o;
-    	return *this;
+        for (int i = 0; i < 16; ++i)
+            a[i] *= o;
+        return *this;
     }
 
     Mat4f &operator/=(float o)
     {
-    	for (int i = 0; i < 16; ++i)
-    		a[i] /= o;
-    	return *this;
+        for (int i = 0; i < 16; ++i)
+            a[i] /= o;
+        return *this;
     }
 
     Mat4f toNormalMatrix() const;
@@ -254,13 +254,13 @@ public:
     friend Vec3f operator*(const Mat4f &a, const Vec3f &b);
 
     friend std::ostream &operator<< (std::ostream &stream, const Mat4f &m) {
-    	for (int i = 0; i < 4; ++i) {
-			stream << '[';
-			for (uint32 j = 0; j < 4; ++j)
-				stream << m[i*4 + j] << (j == 3 ? ']' : ',');
-			if (i < 3)
-				stream << std::endl;
-    	}
+        for (int i = 0; i < 4; ++i) {
+            stream << '[';
+            for (uint32 j = 0; j < 4; ++j)
+                stream << m[i*4 + j] << (j == 3 ? ']' : ',');
+            if (i < 3)
+                stream << std::endl;
+        }
         return stream;
     }
 };

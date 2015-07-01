@@ -16,7 +16,7 @@
 namespace Tungsten {
 
 class TraceableScene;
-class TraceState;
+struct TraceState;
 class TraceBase;
 struct PathEdge;
 class Medium;

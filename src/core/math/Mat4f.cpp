@@ -16,15 +16,15 @@ Vec3f Mat4f::extractRotationVec() const
     Vec3f y = up().normalized();
     Vec3f z = fwd().normalized();
 
-	float pitch = std::atan2(-z.y(), std::sqrt(z.x()*z.x() + z.z()*z.z()));
-	float yaw   = std::atan2(-z.x(), z.z());
-	float roll  = std::atan2(x.y(), y.y());
+    float pitch = std::atan2(-z.y(), std::sqrt(z.x()*z.x() + z.z()*z.z()));
+    float yaw   = std::atan2(-z.x(), z.z());
+    float roll  = std::atan2(x.y(), y.y());
 
-	return Vec3f(
-		Angle::radToDeg(pitch),
-		Angle::radToDeg(yaw),
-		Angle::radToDeg(roll)
-	);
+    return Vec3f(
+        Angle::radToDeg(pitch),
+        Angle::radToDeg(yaw),
+        Angle::radToDeg(roll)
+    );
 }
 
 Mat4f Mat4f::extractRotation() const
@@ -48,7 +48,7 @@ Mat4f Mat4f::extractScale() const
 
 Vec3f Mat4f::extractTranslationVec() const
 {
-	return Vec3f(a14, a24, a34);
+    return Vec3f(a14, a24, a34);
 }
 
 Mat4f Mat4f::extractTranslation() const
@@ -112,10 +112,10 @@ Mat4f Mat4f::rotYXZ(const Vec3f &rot)
     float s[] = {std::sin(r.x()), std::sin(r.y()), std::sin(r.z())};
 
     return Mat4f(
-		c[1]*c[2] - s[1]*s[0]*s[2],   -c[1]*s[2] - s[1]*s[0]*c[2], -s[1]*c[0], 0.0f,
-						 c[0]*s[2],                     c[0]*c[2],      -s[0], 0.0f,
-		s[1]*c[2] + c[1]*s[0]*s[2],   -s[1]*s[2] + c[1]*s[0]*c[2],  c[1]*c[0], 0.0f,
-							  0.0f,                          0.0f,       0.0f, 1.0f
+        c[1]*c[2] - s[1]*s[0]*s[2],   -c[1]*s[2] - s[1]*s[0]*c[2], -s[1]*c[0], 0.0f,
+                         c[0]*s[2],                     c[0]*c[2],      -s[0], 0.0f,
+        s[1]*c[2] + c[1]*s[0]*s[2],   -s[1]*s[2] + c[1]*s[0]*c[2],  c[1]*c[0], 0.0f,
+                              0.0f,                          0.0f,       0.0f, 1.0f
     );
 }
 

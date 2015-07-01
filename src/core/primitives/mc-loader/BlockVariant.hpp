@@ -21,7 +21,7 @@ public:
     : _variant(variant)
     {
         if (v.IsArray()) {
-            for (size_t i = 0; i < v.Size(); ++i)
+            for (rapidjson::SizeType i = 0; i < v.Size(); ++i)
                 if (v[i].IsObject())
                     _models.emplace_back(v[i], resolver);
         } else if (v.IsObject())

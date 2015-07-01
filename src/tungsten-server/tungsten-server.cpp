@@ -65,7 +65,7 @@ void closeConnection()
     }
 }
 
-int serveLogFile(struct mg_connection *conn, void */*cbdata*/)
+int serveLogFile(struct mg_connection *conn, void * /*cbdata*/)
 {
     std::string log;
     if (renderer) {
@@ -77,7 +77,7 @@ int serveLogFile(struct mg_connection *conn, void */*cbdata*/)
     return 1;
 }
 
-int serveStatusJson(struct mg_connection *conn, void */*cbdata*/)
+int serveStatusJson(struct mg_connection *conn, void * /*cbdata*/)
 {
     std::string statusString;
     if (renderer) {
@@ -97,7 +97,7 @@ int serveStatusJson(struct mg_connection *conn, void */*cbdata*/)
     return 1;
 }
 
-int serveFrameBuffer(struct mg_connection *conn, void */*cbdata*/)
+int serveFrameBuffer(struct mg_connection *conn, void * /*cbdata*/)
 {
     if (!renderer)
         return 0;
@@ -107,13 +107,13 @@ int serveFrameBuffer(struct mg_connection *conn, void */*cbdata*/)
     if (!ldr)
         return 0;
 
-    uint8 *encoded = nullptr;
+    Tungsten::uint8 *encoded = nullptr;
     size_t encodedSize;
     if (lodepng_encode_memory(&encoded, &encodedSize, &ldr[0].x(), res.x(), res.y(), LCT_RGB, 8) != 0)
         return 0;
     ldr.reset();
 
-    std::unique_ptr<uint8, void (*)(void *)> data(encoded, free);
+    std::unique_ptr<Tungsten::uint8, void (*)(void *)> data(encoded, free);
     serveData(conn, reinterpret_cast<const void *>(data.get()), encodedSize, MIME_IMAGE);
 
     return 1;

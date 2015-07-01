@@ -363,7 +363,7 @@ Path Path::normalize() const
         std::string component(base.substr(offset, next - offset));
         components.emplace_back(std::move(component));
 
-        offset = next + 1;
+        offset = int(next + 1);
     } while (offset < int(base.size()));
 
     std::vector<std::string> resultComponents;

@@ -59,8 +59,8 @@ void extrudeMinimumTorsionNormals(CurveData &data)
     };
 
     // Break work up into roughly ~10ms chunks
-    uint32 numTasks = (nodes.size() - 1)/30000 + 1;
-    ThreadUtils::parallelFor(0, curveEnds.size(), numTasks, [&](uint32 i) {
+    uint32 numTasks = (int(nodes.size()) - 1)/30000 + 1;
+    ThreadUtils::parallelFor(0, uint32(curveEnds.size()), numTasks, [&](uint32 i) {
         uint32 t = i ? curveEnds[i - 1] : 0;
         Vec3f lastNormal = normals[t];
         do {
@@ -158,10 +158,10 @@ bool loadHair(const Path &path, CurveData &data)
         if (hasSegments) {
             std::vector<uint16> segmentLength(curveCount);
             FileUtils::streamRead(in, segmentLength);
-            for (size_t i = 0; i < curveCount; ++i)
+            for (uint32 i = 0; i < curveCount; ++i)
                 curveEnds[i] = uint32(segmentLength[i]) + 1 + (i > 0 ? curveEnds[i - 1] : 0);
         } else {
-            for (size_t i = 0; i < curveCount; ++i)
+            for (uint32 i = 0; i < curveCount; ++i)
                 curveEnds[i] = (i + 1)*(defaultSegments + 1);
         }
         curveEnds.shrink_to_fit();

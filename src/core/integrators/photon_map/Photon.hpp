@@ -20,12 +20,12 @@ struct Photon
 
     bool hasLeftChild() const
     {
-        return splitData & (1u << 28u);
+        return (splitData & (1u << 28u)) != 0;
     }
 
     bool hasRightChild() const
     {
-        return splitData & (1u << 29u);
+        return (splitData & (1u << 29u)) != 0;
     }
 
     uint32 splitDim() const

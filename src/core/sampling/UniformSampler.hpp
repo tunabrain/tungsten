@@ -41,9 +41,9 @@ public:
     {
         uint64 oldState = _state;
         _state = oldState*6364136223846793005ULL + (_sequence | 1);
-        uint32 xorShifted = ((oldState >> 18u) ^ oldState) >> 27u;
+        uint32 xorShifted = uint32(((oldState >> 18u) ^ oldState) >> 27u);
         uint32 rot = oldState >> 59u;
-        return (xorShifted >> rot) | (xorShifted << ((-rot) & 31));
+        return (xorShifted >> rot) | (xorShifted << (uint32(-int32(rot)) & 31));
     }
 
     inline float next1D()
