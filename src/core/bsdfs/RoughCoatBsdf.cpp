@@ -158,6 +158,8 @@ Vec3f RoughCoatBsdf::eval(const SurfaceScatterEvent &event) const
 
     if (!sampleT && !sampleR)
         return Vec3f(0.0f);
+    if (event.wi.z() <= 0.0f || event.wo.z() <= 0.0f)
+        return Vec3f(0.0f);
 
     Vec3f glossyR(0.0f);
     if (sampleR)
@@ -199,6 +201,8 @@ float RoughCoatBsdf::pdf(const SurfaceScatterEvent &event) const
     bool sampleT = event.requestedLobe.test(_substrate->lobes());
 
     if (!sampleT && !sampleR)
+        return 0.0f;
+    if (event.wi.z() <= 0.0f || event.wo.z() <= 0.0f)
         return 0.0f;
 
     const Vec3f &wi = event.wi;

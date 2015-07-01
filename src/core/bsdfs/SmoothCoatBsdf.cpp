@@ -38,6 +38,9 @@ rapidjson::Value SmoothCoatBsdf::toJson(Allocator &allocator) const
 
 bool SmoothCoatBsdf::sample(SurfaceScatterEvent &event) const
 {
+    if (event.wi.z() <= 0.0f)
+        return false;
+
     bool sampleR = event.requestedLobe.test(BsdfLobes::SpecularReflectionLobe);
     bool sampleT = event.requestedLobe.test(_substrate->lobes());
 
@@ -98,6 +101,9 @@ bool SmoothCoatBsdf::sample(SurfaceScatterEvent &event) const
 
 Vec3f SmoothCoatBsdf::eval(const SurfaceScatterEvent &event) const
 {
+    if (event.wi.z() <= 0.0f || event.wo.z() <= 0.0f)
+        return Vec3f(0.0f);
+
     bool evalR = event.requestedLobe.test(BsdfLobes::SpecularReflectionLobe);
     bool evalT = event.requestedLobe.test(_substrate->lobes());
 
@@ -131,6 +137,9 @@ Vec3f SmoothCoatBsdf::eval(const SurfaceScatterEvent &event) const
 
 float SmoothCoatBsdf::pdf(const SurfaceScatterEvent &event) const
 {
+    if (event.wi.z() <= 0.0f || event.wo.z() <= 0.0f)
+        return 0.0f;
+
     bool sampleR = event.requestedLobe.test(BsdfLobes::SpecularReflectionLobe);
     bool sampleT = event.requestedLobe.test(_substrate->lobes());
 
