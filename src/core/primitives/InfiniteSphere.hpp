@@ -11,7 +11,6 @@ class InfiniteSphere : public Primitive
     Mat4f _invRotTransform;
     bool _doSample;
 
-    std::shared_ptr<Bsdf> _bsdf;
     std::shared_ptr<TriangleMesh> _proxy;
 
     Box3f _sceneBounds;

@@ -20,7 +20,6 @@ class Skydome : public Primitive
     float _intensity;
     bool _doSample;
 
-    std::shared_ptr<Bsdf> _bsdf;
     std::shared_ptr<TriangleMesh> _proxy;
 
     Box3f _sceneBounds;

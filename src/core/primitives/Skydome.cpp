@@ -4,6 +4,8 @@
 #include "sampling/PathSampleGenerator.hpp"
 #include "sampling/SampleWarp.hpp"
 
+#include "bsdfs/NullBsdf.hpp"
+
 #include "math/Spectral.hpp"
 #include "math/Angle.hpp"
 
@@ -56,7 +58,8 @@ Vec3f Skydome::uvToDirection(Vec2f uv, float &sinTheta) const
 
 void Skydome::buildProxy()
 {
-    _proxy = std::make_shared<TriangleMesh>(std::vector<Vertex>(), std::vector<TriangleI>(), _bsdf, "Sphere", false, false);
+    _proxy = std::make_shared<TriangleMesh>(std::vector<Vertex>(), std::vector<TriangleI>(),
+            std::make_shared<NullBsdf>(), "Sphere", false, false);
     _proxy->makeCone(0.05f, 1.0f);
 }
 
@@ -75,8 +78,6 @@ void Skydome::fromJson(const rapidjson::Value &v, const Scene &scene)
     JsonUtils::fromJson(v, "turbidity", _turbidity);
     JsonUtils::fromJson(v, "intensity", _intensity);
     JsonUtils::fromJson(v, "sample", _doSample);
-
-    _bsdf = scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf"));
 }
 rapidjson::Value Skydome::toJson(Allocator &allocator) const
 {
@@ -87,8 +88,6 @@ rapidjson::Value Skydome::toJson(Allocator &allocator) const
     v.AddMember("turbidity", _turbidity, allocator);
     v.AddMember("intensity", _intensity, allocator);
     v.AddMember("sample", _doSample, allocator);
-
-    JsonUtils::addObjectMember(v, "bsdf", *_bsdf, allocator);
 
     return std::move(v);
 }
@@ -306,17 +305,16 @@ void Skydome::teardownAfterRender()
 
 int Skydome::numBsdfs() const
 {
-    return 1;
+    return 0;
 }
 
 std::shared_ptr<Bsdf> &Skydome::bsdf(int /*index*/)
 {
-    return _bsdf;
+    FAIL("Skydome::bsdf should not be called");
 }
 
-void Skydome::setBsdf(int /*index*/, std::shared_ptr<Bsdf> &bsdf)
+void Skydome::setBsdf(int /*index*/, std::shared_ptr<Bsdf> &/*bsdf*/)
 {
-    _bsdf = bsdf;
 }
 
 Primitive *Skydome::clone()

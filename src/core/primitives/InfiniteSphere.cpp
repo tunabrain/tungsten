@@ -4,6 +4,8 @@
 #include "sampling/PathSampleGenerator.hpp"
 #include "sampling/SampleWarp.hpp"
 
+#include "bsdfs/NullBsdf.hpp"
+
 #include "math/Angle.hpp"
 
 #include "io/Scene.hpp"
@@ -48,7 +50,8 @@ Vec3f InfiniteSphere::uvToDirection(Vec2f uv, float &sinTheta) const
 
 void InfiniteSphere::buildProxy()
 {
-    _proxy = std::make_shared<TriangleMesh>(std::vector<Vertex>(), std::vector<TriangleI>(), _bsdf, "Sphere", false, false);
+    _proxy = std::make_shared<TriangleMesh>(std::vector<Vertex>(), std::vector<TriangleI>(),
+            std::make_shared<NullBsdf>(), "Sphere", false, false);
     _proxy->makeSphere(0.05f);
 }
 
@@ -61,15 +64,12 @@ void InfiniteSphere::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     Primitive::fromJson(v, scene);
     JsonUtils::fromJson(v, "sample", _doSample);
-
-    _bsdf = scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf"));
 }
 rapidjson::Value InfiniteSphere::toJson(Allocator &allocator) const
 {
     rapidjson::Value v = Primitive::toJson(allocator);
     v.AddMember("type", "infinite_sphere", allocator);
     v.AddMember("sample", _doSample, allocator);
-    JsonUtils::addObjectMember(v, "bsdf", *_bsdf, allocator);
     return std::move(v);
 }
 
@@ -263,17 +263,16 @@ void InfiniteSphere::prepareForRender()
 
 int InfiniteSphere::numBsdfs() const
 {
-    return 1;
+    return 0;
 }
 
 std::shared_ptr<Bsdf> &InfiniteSphere::bsdf(int /*index*/)
 {
-    return _bsdf;
+    FAIL("InfiniteSphere::bsdf should not be called");
 }
 
-void InfiniteSphere::setBsdf(int /*index*/, std::shared_ptr<Bsdf> &bsdf)
+void InfiniteSphere::setBsdf(int /*index*/, std::shared_ptr<Bsdf> &/*bsdf*/)
 {
-    _bsdf = bsdf;
 }
 
 Primitive *InfiniteSphere::clone()

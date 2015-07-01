@@ -18,7 +18,6 @@ class InfiniteSphereCap : public Primitive
     float _capAngleRad;
     float _cosCapAngle;
 
-    std::shared_ptr<Bsdf> _bsdf;
     std::shared_ptr<TriangleMesh> _proxy;
 
     Box3f _sceneBounds;

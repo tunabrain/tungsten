@@ -4,6 +4,8 @@
 #include "sampling/PathSampleGenerator.hpp"
 #include "sampling/SampleWarp.hpp"
 
+#include "bsdfs/NullBsdf.hpp"
+
 #include "io/Scene.hpp"
 
 namespace Tungsten {
@@ -23,7 +25,8 @@ InfiniteSphereCap::InfiniteSphereCap()
 
 void InfiniteSphereCap::buildProxy()
 {
-    _proxy = std::make_shared<TriangleMesh>(std::vector<Vertex>(), std::vector<TriangleI>(), _bsdf, "Sphere", false, false);
+    _proxy = std::make_shared<TriangleMesh>(std::vector<Vertex>(), std::vector<TriangleI>(),
+            std::make_shared<NullBsdf>(), "Sphere", false, false);
     _proxy->makeCone(0.05f, 1.0f);
 }
 
@@ -40,8 +43,6 @@ void InfiniteSphereCap::fromJson(const rapidjson::Value &v, const Scene &scene)
     JsonUtils::fromJson(v, "sample", _doSample);
     JsonUtils::fromJson(v, "skydome", _domeName);
     JsonUtils::fromJson(v, "cap_angle", _capAngleDeg);
-
-    _bsdf = scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf"));
 }
 rapidjson::Value InfiniteSphereCap::toJson(Allocator &allocator) const
 {
@@ -51,7 +52,6 @@ rapidjson::Value InfiniteSphereCap::toJson(Allocator &allocator) const
     if (!_domeName.empty())
         v.AddMember("skydome", _domeName.c_str(), allocator);
     v.AddMember("cap_angle", _capAngleDeg, allocator);
-    JsonUtils::addObjectMember(v, "bsdf", *_bsdf, allocator);
     return std::move(v);
 }
 
@@ -222,17 +222,16 @@ void InfiniteSphereCap::prepareForRender()
 
 int InfiniteSphereCap::numBsdfs() const
 {
-    return 1;
+    return 0;
 }
 
 std::shared_ptr<Bsdf> &InfiniteSphereCap::bsdf(int /*index*/)
 {
-    return _bsdf;
+    FAIL("InfiniteSphereCap::bsdf should not be called");
 }
 
-void InfiniteSphereCap::setBsdf(int /*index*/, std::shared_ptr<Bsdf> &bsdf)
+void InfiniteSphereCap::setBsdf(int /*index*/, std::shared_ptr<Bsdf> &/*bsdf*/)
 {
-    _bsdf = bsdf;
 }
 
 Primitive *InfiniteSphereCap::clone()
