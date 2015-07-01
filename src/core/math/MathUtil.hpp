@@ -99,17 +99,17 @@ template <typename T> int sgn(T val) {
 
 static inline float trigInverse(float x)
 {
-    return std::sqrt(max(1.0f - x*x, 0.0f));
+    return min(std::sqrt(max(1.0f - x*x, 0.0f)), 1.0f);
 }
 
 static inline float trigDoubleAngle(float x)
 {
-    return 2.0f*x*x - 1.0f;
+    return clamp(2.0f*x*x - 1.0f, -1.0f, 1.0f);
 }
 
 static inline float trigHalfAngle(float x)
 {
-    return std::sqrt(x*0.5f + 0.5f);
+    return min(std::sqrt(max(x*0.5f + 0.5f, 0.0f)), 1.0f);
 }
 
 // TODO: Review which of these are still in use
