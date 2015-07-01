@@ -28,7 +28,6 @@ class ProgressivePhotonMapIntegrator : public Integrator
 
     struct SubTaskData
     {
-        std::unique_ptr<PathSampleGenerator> sampler;
         SurfacePhotonRange surfaceRange;
         VolumePhotonRange volumeRange;
     };
@@ -55,6 +54,7 @@ class ProgressivePhotonMapIntegrator : public Integrator
 
     std::vector<std::unique_ptr<PhotonTracer>> _tracers;
     std::vector<SubTaskData> _taskData;
+    std::vector<std::unique_ptr<PathSampleGenerator>> _samplers;
 
     void diceTiles();
 

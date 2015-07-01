@@ -52,6 +52,14 @@ class FileUtils
         Path srcPath, targetPath;
 
         StreamMetadata() = default;
+        StreamMetadata(const StreamMetadata &) = delete;
+        StreamMetadata(StreamMetadata &&o)
+        : streambuf(std::move(o.streambuf)),
+          archive(std::move(o.archive)),
+          srcPath(std::move(o.srcPath)),
+          targetPath(std::move(o.targetPath))
+        {
+        }
         StreamMetadata(std::unique_ptr<std::basic_streambuf<char>> streambuf_,
                 std::shared_ptr<ZipReader> archive_ = nullptr)
         : streambuf(std::move(streambuf_)),

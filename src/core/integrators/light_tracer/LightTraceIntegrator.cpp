@@ -20,15 +20,15 @@ LightTraceIntegrator::LightTraceIntegrator()
 
 void LightTraceIntegrator::traceRays(uint32 taskId, uint32 numSubTasks, uint32 threadId)
 {
-    SubTaskData &data = _taskData[taskId];
+    PathSampleGenerator &sampler = *_taskData[taskId];
     uint32 rayCount = _w*_h*(_nextSpp - _currentSpp);
 
     uint32 rayBase    = intLerp(0, rayCount, taskId + 0, numSubTasks);
     uint32 raysToCast = intLerp(0, rayCount, taskId + 1, numSubTasks) - rayBase;
 
     for (uint32 i = 0; i < raysToCast; ++i) {
-        data.sampler->startPath(taskId, _currentSpp*_w*_h + rayBase + i);
-        _tracers[threadId]->traceSample(*data.sampler);
+        sampler.startPath(taskId, _currentSpp*_w*_h + rayBase + i);
+        _tracers[threadId]->traceSample(sampler);
     }
 }
 
@@ -64,11 +64,10 @@ void LightTraceIntegrator::prepareForRender(TraceableScene &scene, uint32 seed)
     scene.cam().requestSplatBuffer();
 
     for (uint32 i = 0; i < ThreadUtils::pool->threadCount(); ++i) {
-        _taskData.emplace_back(SubTaskData{
-            _scene->rendererSettings().useSobol() ?
-                std::unique_ptr<PathSampleGenerator>(new SobolPathSampler(MathUtil::hash32(_sampler.nextI()))) :
-                std::unique_ptr<PathSampleGenerator>(new UniformPathSampler(MathUtil::hash32(_sampler.nextI())))
-        });
+        _taskData.emplace_back(_scene->rendererSettings().useSobol() ?
+            std::unique_ptr<PathSampleGenerator>(new SobolPathSampler(MathUtil::hash32(_sampler.nextI()))) :
+            std::unique_ptr<PathSampleGenerator>(new UniformPathSampler(MathUtil::hash32(_sampler.nextI())))
+        );
 
         _tracers.emplace_back(new LightTracer(&scene, _settings, i));
     }

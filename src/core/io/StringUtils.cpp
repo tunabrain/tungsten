@@ -5,6 +5,7 @@
 #include <tinyformat/tinyformat.hpp>
 #include <cstdlib>
 #include <sstream>
+#include <cctype>
 
 namespace Tungsten {
 

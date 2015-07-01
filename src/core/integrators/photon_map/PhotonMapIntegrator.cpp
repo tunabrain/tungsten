@@ -48,6 +48,7 @@ void PhotonMapIntegrator::loadState(InputStreamHandle &/*in*/)
 void PhotonMapIntegrator::tracePhotons(uint32 taskId, uint32 numSubTasks, uint32 threadId)
 {
     SubTaskData &data = _taskData[taskId];
+    PathSampleGenerator &sampler = *_samplers[taskId];
 
     uint32 photonBase    = intLerp(0, _settings.photonCount, taskId + 0, numSubTasks);
     uint32 photonsToCast = intLerp(0, _settings.photonCount, taskId + 1, numSubTasks) - photonBase;
@@ -55,11 +56,11 @@ void PhotonMapIntegrator::tracePhotons(uint32 taskId, uint32 numSubTasks, uint32
     uint32 totalSurfaceCast = 0;
     uint32 totalVolumeCast = 0;
     for (uint32 i = 0; i < photonsToCast; ++i) {
-        data.sampler->startPath(taskId, photonBase + i);
+        sampler.startPath(taskId, photonBase + i);
         _tracers[threadId]->tracePhoton(
             data.surfaceRange,
             data.volumeRange,
-            *data.sampler
+            sampler
         );
         if (!data.surfaceRange.full())
             totalSurfaceCast++;
@@ -117,8 +118,8 @@ std::unique_ptr<KdTree<PhotonType>> streamCompactAndBuild(std::vector<PhotonRang
                     copyCount*sizeof(PhotonType)
                 );
             }
-            ranges[i].bumpNext( copyCount);
-            ranges[t].bumpNext(-copyCount);
+            ranges[i].bumpNext( int(copyCount));
+            ranges[t].bumpNext(-int(copyCount));
             gap -= copyCount;
         }
 
@@ -180,12 +181,13 @@ void PhotonMapIntegrator::prepareForRender(TraceableScene &scene, uint32 seed)
         uint32  volumeRangeStart = intLerp(0, uint32( _volumePhotons.size()), i + 0, numThreads);
         uint32  volumeRangeEnd   = intLerp(0, uint32( _volumePhotons.size()), i + 1, numThreads);
         _taskData.emplace_back(SubTaskData{
-            _scene->rendererSettings().useSobol() ?
-                std::unique_ptr<PathSampleGenerator>(new SobolPathSampler(MathUtil::hash32(_sampler.nextI()))) :
-                std::unique_ptr<PathSampleGenerator>(new UniformPathSampler(MathUtil::hash32(_sampler.nextI()))),
             SurfacePhotonRange(&_surfacePhotons[0], surfaceRangeStart, surfaceRangeEnd),
             VolumePhotonRange(_volumePhotons.empty() ? nullptr : &_volumePhotons[0], volumeRangeStart, volumeRangeEnd)
         });
+        _samplers.emplace_back(_scene->rendererSettings().useSobol() ?
+            std::unique_ptr<PathSampleGenerator>(new SobolPathSampler(MathUtil::hash32(_sampler.nextI()))) :
+            std::unique_ptr<PathSampleGenerator>(new UniformPathSampler(MathUtil::hash32(_sampler.nextI())))
+        );
 
         _tracers.emplace_back(new PhotonTracer(&scene, _settings, i));
     }

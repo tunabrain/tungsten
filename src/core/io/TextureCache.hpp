@@ -4,6 +4,7 @@
 #include "ImageIO.hpp"
 
 #include <rapidjson/document.h>
+#include <functional>
 #include <utility>
 #include <memory>
 #include <string>

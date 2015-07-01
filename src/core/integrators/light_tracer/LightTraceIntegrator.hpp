@@ -23,11 +23,6 @@ namespace Tungsten {
 
 class LightTraceIntegrator : public Integrator
 {
-    struct SubTaskData
-    {
-        std::unique_ptr<PathSampleGenerator> sampler;
-    };
-
     LightTracerSettings _settings;
 
     std::shared_ptr<TaskGroup> _group;
@@ -37,7 +32,7 @@ class LightTraceIntegrator : public Integrator
 
     UniformSampler _sampler;
     std::vector<std::unique_ptr<LightTracer>> _tracers;
-    std::vector<SubTaskData> _taskData;
+    std::vector<std::unique_ptr<PathSampleGenerator>> _taskData;
 
     virtual void saveState(OutputStreamHandle &out) override;
     virtual void loadState(InputStreamHandle &in) override;

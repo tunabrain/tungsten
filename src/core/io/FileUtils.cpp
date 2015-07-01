@@ -271,7 +271,7 @@ OutputStreamHandle FileUtils::openFileOutputStream(const Path &p)
     std::unique_ptr<FileOutputStreambuf> streambuf(new FileOutputStreambuf(std::move(file)));
     std::shared_ptr<std::ostream> out(new std::ostream(streambuf.get()),
             [](std::ostream *stream){ finalizeStream(stream); });
-    _metaData.insert(std::make_pair(out.get(), StreamMetadata(std::move(streambuf))));
+    _metaData.insert(std::make_pair(out.get(), std::move(StreamMetadata(std::move(streambuf)))));
 #else
     std::shared_ptr<std::ostream> out(new std::ofstream(p.absolute().asString(),
             std::ios_base::out | std::ios_base::binary),
