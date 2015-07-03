@@ -105,10 +105,9 @@ bool PathVertex::sampleNextVertex(const TraceableScene &scene, TraceBase &tracer
             return false;
 
         prev->_pdfBackward = _sampler.bsdf->pdf(record.event.makeFlippedQuery());
-        if (prev->connectable() && !prev->isInfiniteEmitter())
+        _dirac = record.event.sampledLobe.isPureSpecular();
+        if (!_dirac && !prev->isInfiniteEmitter())
             prev->_pdfBackward *= prev->cosineFactor(prevEdge->d)/prevEdge->rSq;
-        //else
-        //    prev->_pdfBackward /= cosineFactor(prevEdge->d);
         weight = record.event.weight;
         pdf = record.event.pdf;
 
@@ -136,10 +135,8 @@ bool PathVertex::sampleNextVertex(const TraceableScene &scene, TraceBase &tracer
         state.bounce++;
         nextEdge = PathEdge(*this, next);
         next._pdfForward = pdf;
-        if (next.connectable() && !isInfiniteEmitter())
+        if (!_dirac && !isInfiniteEmitter())
             next._pdfForward *= next.cosineFactor(nextEdge.d)/nextEdge.rSq;
-        //else
-        //    next._pdfForward /= cosineFactor(nextEdge.d);
 
         return true;
     } else if (!adjoint && scene.intersectInfinites(state.ray, record.data, record.info)) {

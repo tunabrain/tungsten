@@ -16,6 +16,9 @@ class LightPath
     std::unique_ptr<PathVertex[]> _vertices;
     std::unique_ptr<PathEdge[]> _edges;
 
+    float geometryFactor(int startVertex) const;
+    float invGeometryFactor(int startVertex) const;
+
     static float misWeight(const LightPath &camera, const LightPath &emitter,
             const PathEdge &edge, int s, int t);
 

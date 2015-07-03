@@ -12,6 +12,22 @@
 
 namespace Tungsten {
 
+float LightPath::geometryFactor(int startVertex) const
+{
+    const PathEdge &edge = _edges[startVertex];
+    const PathVertex &v0 = _vertices[startVertex + 0];
+    const PathVertex &v1 = _vertices[startVertex + 1];
+    return v0.cosineFactor(edge.d)*v1.cosineFactor(edge.d)/edge.rSq;
+}
+
+float LightPath::invGeometryFactor(int startVertex) const
+{
+    const PathEdge &edge = _edges[startVertex];
+    const PathVertex &v0 = _vertices[startVertex + 0];
+    const PathVertex &v1 = _vertices[startVertex + 1];
+    return edge.rSq/(v0.cosineFactor(edge.d)*v1.cosineFactor(edge.d));
+}
+
 float LightPath::misWeight(const LightPath &camera, const LightPath &emitter,
             const PathEdge &edge, int s, int t)
 {
@@ -22,13 +38,14 @@ float LightPath::misWeight(const LightPath &camera, const LightPath &emitter,
     for (int i = 0; i < s; ++i) {
         pdfForward [i] = emitter[i].pdfForward();
         pdfBackward[i] = emitter[i].pdfBackward();
-        connectable[i] = emitter[i].connectable();
+        connectable[i] = !emitter[i].isDirac();
     }
     for (int i = 0; i < t; ++i) {
         pdfForward [s + t - (i + 1)] = camera[i].pdfBackward();
         pdfBackward[s + t - (i + 1)] = camera[i].pdfForward();
-        connectable[s + t - (i + 1)] = camera[i].connectable();
+        connectable[s + t - (i + 1)] = !camera[i].isDirac();
     }
+    connectable[s - 1] = connectable[s] = true;
 
     emitter[s - 1].evalPdfs(s == 1 ? nullptr : &emitter[s - 2],
                             s == 1 ? nullptr : &emitter.edge(s - 2),
@@ -38,6 +55,16 @@ float LightPath::misWeight(const LightPath &camera, const LightPath &emitter,
                            t == 1 ? nullptr : &camera.edge(t - 2),
                            emitter[s - 1], edge.reverse(), &pdfBackward[s - 1],
                            t == 1 ? nullptr : &pdfForward[s + 1]);
+
+    // Convert densities of dirac vertices sampled from non-dirac vertices to projected solid angle measure
+    if (connectable[0] && !connectable[1] && !emitter[0].isInfiniteEmitter())
+        pdfForward[1] *= emitter.invGeometryFactor(0);
+    for (int i = 1; i < s + t - 1; ++i)
+        if (connectable[i] && !connectable[i + 1])
+            pdfForward[i + 1] *= (i < s) ? emitter.invGeometryFactor(i) : camera.invGeometryFactor(s + t - 2 - i);
+    for (int i = s + t - 1; i >= 1; --i)
+        if (connectable[i] && !connectable[i - 1])
+            pdfBackward[i - 1] *= (i < s) ? emitter.invGeometryFactor(i - 1) : camera.invGeometryFactor(s + t - 1 - i);
 
     float weight = 1.0f;
     float pi = 1.0f;
@@ -112,9 +139,19 @@ Vec3f LightPath::bdptWeightedPathEmission(int minLength, int maxLength) const
         for (int i = 0; i < t; ++i) {
             pdfForward [t - (i + 1)] = _vertices[i].pdfBackward();
             pdfBackward[t - (i + 1)] = _vertices[i].pdfForward();
-            connectable[t - (i + 1)] = _vertices[i].connectable();
+            connectable[t - (i + 1)] = !_vertices[i].isDirac();
         }
         connectable[0] = true;
+
+        // Convert densities of dirac vertices sampled from non-dirac vertices to projected solid angle measure
+        if (connectable[0] && !connectable[1] && !_vertices[t - 1].isInfiniteSurface())
+            pdfForward[1] *= invGeometryFactor(t - 2);
+        for (int i = 1; i < t - 1; ++i)
+            if (connectable[i] && !connectable[i + 1])
+                pdfForward[i + 1] *= invGeometryFactor(t - 2 - i);
+        for (int i = t - 1; i >= 1; --i)
+            if (connectable[i] && !connectable[i - 1])
+                pdfBackward[i - 1] *= invGeometryFactor(t - 1 - i);
 
         PositionSample point(record.info);
         DirectionSample direction(-_edges[t - 2].d);

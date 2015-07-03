@@ -65,6 +65,7 @@ class PathVertex
     Vec3f _throughput;
     float _pdfForward;
     float _pdfBackward;
+    bool _dirac;
     bool _connectable;
 
 public:
@@ -73,14 +74,16 @@ public:
     : _type(EmitterVertex),
       _record(EmitterRecord(emitterPdf)),
       _sampler(emitter),
-      _connectable(true)
+      _dirac(false),
+      _connectable(!_dirac)
     {
     }
     PathVertex(const Camera *camera, Vec2u pixel)
     : _type(CameraVertex),
       _record(CameraRecord(pixel)),
       _sampler(camera),
-      _connectable(!camera->isFilterDirac())
+      _dirac(camera->isFilterDirac()),
+      _connectable(!_dirac)
     {
     }
     PathVertex(const Bsdf *bsdf, const SurfaceRecord &surface, const Vec3f &throughput_)
@@ -88,7 +91,8 @@ public:
       _record(surface),
       _sampler(bsdf),
       _throughput(throughput_),
-      _connectable(bsdf == nullptr || !bsdf->lobes().isPureSpecular())
+      _dirac(bsdf != nullptr && bsdf->lobes().isPureSpecular()),
+      _connectable(!_dirac)
     {
     }
     PathVertex(const Medium *medium, const VolumeScatterEvent &event, const Vec3f &throughput_)
@@ -96,7 +100,8 @@ public:
       _record(event),
       _sampler(medium),
       _throughput(throughput_),
-      _connectable(true)
+      _dirac(false),
+      _connectable(!_dirac)
     {
     }
 
@@ -170,6 +175,11 @@ public:
     bool connectable() const
     {
         return _connectable;
+    }
+
+    bool isDirac() const
+    {
+        return _dirac;
     }
 
     bool isInfiniteEmitter() const
