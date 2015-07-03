@@ -162,7 +162,7 @@ float SmoothCoatBsdf::pdf(const SurfaceScatterEvent &event) const
             pdf += specularProbability;
         return pdf;
     } else if (sampleT) {
-        return _substrate->pdf(event.makeWarpedQuery(wiSubstrate, woSubstrate));
+        return _substrate->pdf(event.makeWarpedQuery(wiSubstrate, woSubstrate))*eta*eta*std::abs(wo.z()/cosThetaTo);
     } else if (sampleR) {
         return checkReflectionConstraint(event.wi, event.wo) ? 1.0f : 0.0f;
     } else {
