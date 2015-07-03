@@ -69,7 +69,7 @@ void RoughCoatBsdf::substrateEvalAndPdf(const SurfaceScatterEvent &event, float 
     pdf = _substrate->pdf(event.makeWarpedQuery(wiSubstrate, woSubstrate));
     pdf *= eta*eta*std::abs(wo.z()/cosThetaTo);
 
-    float compressionProjection = eta*eta*wi.z()*wo.z()/(cosThetaTi*cosThetaTo);
+    float compressionProjection = eta*eta*wo.z()/cosThetaTo;
 
     Vec3f substrateF = _substrate->eval(event.makeWarpedQuery(wiSubstrate, woSubstrate));
 
@@ -182,7 +182,7 @@ Vec3f RoughCoatBsdf::eval(const SurfaceScatterEvent &event) const
         Vec3f wiSubstrate(wi.x()*eta, wi.y()*eta, std::copysign(cosThetaTi, wi.z()));
         Vec3f woSubstrate(wo.x()*eta, wo.y()*eta, std::copysign(cosThetaTo, wo.z()));
 
-        float compressionProjection = eta*eta*wi.z()*wo.z()/(cosThetaTi*cosThetaTo);
+        float compressionProjection = eta*eta*wo.z()/cosThetaTo;
 
         Vec3f substrateF = _substrate->eval(event.makeWarpedQuery(wiSubstrate, woSubstrate));
 

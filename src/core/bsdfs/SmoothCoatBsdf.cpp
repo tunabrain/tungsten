@@ -91,8 +91,6 @@ bool SmoothCoatBsdf::sample(SurfaceScatterEvent &event) const
 
         event.weight /= 1.0f - specularProbability;
         event.pdf *= 1.0f - specularProbability;
-
-        event.weight *= originalWi.z()/wiSubstrate.z();
         event.pdf *= eta*eta*cosThetaTo/cosThetaSubstrate;
     }
 
@@ -120,7 +118,7 @@ Vec3f SmoothCoatBsdf::eval(const SurfaceScatterEvent &event) const
         Vec3f wiSubstrate(wi.x()*eta, wi.y()*eta, std::copysign(cosThetaTi, wi.z()));
         Vec3f woSubstrate(wo.x()*eta, wo.y()*eta, std::copysign(cosThetaTo, wo.z()));
 
-        float laplacian = eta*eta*wi.z()*wo.z()/(cosThetaTi*cosThetaTo);
+        float laplacian = eta*eta*wo.z()/cosThetaTo;
 
         Vec3f substrateF = _substrate->eval(event.makeWarpedQuery(wiSubstrate, woSubstrate));
 
