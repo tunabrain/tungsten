@@ -113,8 +113,9 @@ Vec3f SmoothCoatBsdf::eval(const SurfaceScatterEvent &event) const
     float Fi = Fresnel::dielectricReflectance(eta, wi.z(), cosThetaTi);
     float Fo = Fresnel::dielectricReflectance(eta, wo.z(), cosThetaTo);
 
-    Vec3f result(0.0f);
-    if (evalT) {
+    if (evalR && checkReflectionConstraint(event.wi, event.wo)) {
+        return Vec3f(Fi);
+    } else if (evalT) {
         Vec3f wiSubstrate(wi.x()*eta, wi.y()*eta, std::copysign(cosThetaTi, wi.z()));
         Vec3f woSubstrate(wo.x()*eta, wo.y()*eta, std::copysign(cosThetaTo, wo.z()));
 
@@ -125,12 +126,10 @@ Vec3f SmoothCoatBsdf::eval(const SurfaceScatterEvent &event) const
         if (_scaledSigmaA.max() > 0.0f)
             substrateF *= std::exp(_scaledSigmaA*(-1.0f/cosThetaTo - 1.0f/cosThetaTi));
 
-        result += laplacian*(1.0f - Fi)*(1.0f - Fo)*substrateF;
+        return laplacian*(1.0f - Fi)*(1.0f - Fo)*substrateF;
+    } else {
+        return Vec3f(0.0f);
     }
-    if (evalR && checkReflectionConstraint(event.wi, event.wo))
-        result += Fi;
-
-    return result;
 }
 
 float SmoothCoatBsdf::pdf(const SurfaceScatterEvent &event) const
@@ -153,14 +152,14 @@ float SmoothCoatBsdf::pdf(const SurfaceScatterEvent &event) const
     Vec3f woSubstrate(wo.x()*eta, wo.y()*eta, std::copysign(cosThetaTo, wo.z()));
 
     if (sampleR && sampleT) {
-        float pdf = _substrate->pdf(event.makeWarpedQuery(wiSubstrate, woSubstrate));
         float substrateWeight = _avgTransmittance*(1.0f - Fi);
         float specularWeight = Fi;
         float specularProbability = specularWeight/(specularWeight + substrateWeight);
-        pdf *= (1.0f - specularProbability)*eta*eta*std::abs(wo.z()/cosThetaTo);
         if (checkReflectionConstraint(event.wi, event.wo))
-            pdf += specularProbability;
-        return pdf;
+            return specularProbability;
+        else
+            return _substrate->pdf(event.makeWarpedQuery(wiSubstrate, woSubstrate))
+                    *(1.0f - specularProbability)*eta*eta*std::abs(wo.z()/cosThetaTo);
     } else if (sampleT) {
         return _substrate->pdf(event.makeWarpedQuery(wiSubstrate, woSubstrate))*eta*eta*std::abs(wo.z()/cosThetaTo);
     } else if (sampleR) {
