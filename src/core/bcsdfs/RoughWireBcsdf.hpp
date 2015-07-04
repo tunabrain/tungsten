@@ -10,20 +10,20 @@ class RoughWireBcsdf : public Bsdf
     std::string _materialName;
     Vec3f _eta;
     Vec3f _k;
-    float _beta;
+    float _roughness;
 
     float _v;
 
     void lookupMaterial();
+
+    static float I0(float x);
+    static float logI0(float x);
 
     float N(float cosPhi) const;
     float M(float v, float sinThetaI, float sinThetaO, float cosThetaI, float cosThetaO) const;
 
     float sampleN(float xi) const;
     float sampleM(float v, float sinThetaI, float cosThetaI, float xi1, float xi2) const;
-
-    static float I0(float x);
-    static float logI0(float x);
 
 public:
     RoughWireBcsdf();

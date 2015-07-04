@@ -14,7 +14,7 @@ RoughWireBcsdf::RoughWireBcsdf()
 : _materialName("Cu"),
   _eta(0.200438f, 0.924033f, 1.10221f),
   _k(3.91295f, 2.45285f, 2.14219f),
-  _beta(0.1f)
+  _roughness(0.1f)
 {
     _lobes = BsdfLobes(BsdfLobes::GlossyLobe | BsdfLobes::AnisotropicLobe);
 }
@@ -25,6 +25,31 @@ void RoughWireBcsdf::lookupMaterial()
         DBG("Warning: Unable to find material with name '%s'. Using default", _materialName.c_str());
         ComplexIorList::lookup("Cu", _eta, _k);
     }
+}
+
+// Modified Bessel function of the first kind
+float RoughWireBcsdf::I0(float x)
+{
+    float result = 1.0f;
+    float xSq = x*x;
+    float xi = xSq;
+    float denom = 4.0f;
+    for (int i = 1; i <= 10; ++i) {
+        result += xi/denom;
+        xi *= xSq;
+        denom *= 4.0f*float((i + 1)*(i + 1));
+    }
+    return result;
+}
+
+float RoughWireBcsdf::logI0(float x)
+{
+    if (x > 12.0f)
+        // More stable evaluation of log(I0(x))
+        // See also https://publons.com/discussion/12/
+        return x + 0.5f*(std::log(1.0f/(TWO_PI*x)) + 1.0f/(8.0f*x));
+    else
+        return std::log(I0(x));
 }
 
 // Azimuthal scattering function. Assumes perfectly smooth reflection in
@@ -68,36 +93,10 @@ float RoughWireBcsdf::sampleM(float v, float sinThetaI, float cosThetaI, float x
     return -cosTheta*sinThetaI + sinTheta*cosPhi*cosThetaI;
 }
 
-// Modified Bessel function of the first kind
-float RoughWireBcsdf::I0(float x)
-{
-    float result = 1.0f;
-    float xSq = x*x;
-    float xi = xSq;
-    float denom = 4.0f;
-    for (int i = 1; i <= 10; ++i) {
-        result += xi/denom;
-        xi *= xSq;
-        denom *= 4.0f*float((i + 1)*(i + 1));
-    }
-    return result;
-}
-
-float RoughWireBcsdf::logI0(float x)
-{
-    if (x > 12.0f)
-        // More stable evaluation of log(I0(x))
-        // See also https://publons.com/discussion/12/
-        return x + 0.5f*(std::log(1.0f/(TWO_PI*x)) + 1.0f/(8.0f*x));
-    else
-        return std::log(I0(x));
-}
-
-
 void RoughWireBcsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     Bsdf::fromJson(v, scene);
-    JsonUtils::fromJson(v, "roughness", _beta);
+    JsonUtils::fromJson(v, "roughness", _roughness);
     if (JsonUtils::fromJson(v, "eta", _eta) && JsonUtils::fromJson(v, "k", _k))
         _materialName.clear();
     if (JsonUtils::fromJson(v, "material", _materialName))
@@ -108,7 +107,7 @@ rapidjson::Value RoughWireBcsdf::toJson(Allocator &allocator) const
 {
     rapidjson::Value v = Bsdf::toJson(allocator);
     v.AddMember("type", "rough_wire", allocator);
-    v.AddMember("roughness", _beta, allocator);
+    v.AddMember("roughness", _roughness, allocator);
     if (_materialName.empty()) {
         v.AddMember("eta", JsonUtils::toJsonValue(_eta, allocator), allocator);
         v.AddMember("k", JsonUtils::toJsonValue(_k, allocator), allocator);
@@ -175,7 +174,7 @@ float RoughWireBcsdf::pdf(const SurfaceScatterEvent &event) const
 
 void RoughWireBcsdf::prepareForRender()
 {
-    _v = sqr(_beta*PI_HALF);
+    _v = sqr(_roughness*PI_HALF);
 }
 
 }
