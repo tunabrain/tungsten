@@ -77,6 +77,21 @@ public:
             result += f(_points[i])*_weights[i];
         return result;
     }
+
+    int numSamples() const
+    {
+        return N;
+    }
+
+    const std::array<float, N> &points() const
+    {
+        return _points;
+    }
+
+    const std::array<float, N> &weights() const
+    {
+        return _weights;
+    }
 };
 
 }
