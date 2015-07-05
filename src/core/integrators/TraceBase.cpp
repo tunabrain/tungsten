@@ -461,7 +461,7 @@ bool TraceBase::handleVolume(PathSampleGenerator &sampler, const Medium *&medium
 }
 
 bool TraceBase::handleSurface(SurfaceScatterEvent &event, IntersectionTemporary &data,
-                              IntersectionInfo &info, PathSampleGenerator &sampler, const Medium *&medium,
+                              IntersectionInfo &info, const Medium *&medium,
                               int bounce, bool adjoint, bool enableLightSampling, Ray &ray,
                               Vec3f &throughput, Vec3f &emission, bool &wasSpecular,
                               Medium::MediumState &state)
@@ -473,7 +473,7 @@ bool TraceBase::handleSurface(SurfaceScatterEvent &event, IntersectionTemporary 
     float transparencyScalar = transparency.avg();
 
     Vec3f wo;
-    if (sampler.nextBoolean(DiscreteTransparencySample, transparencyScalar) ){
+    if (event.sampler->nextBoolean(DiscreteTransparencySample, transparencyScalar) ){
         wo = ray.dir();
         throughput *= transparency/transparencyScalar;
     } else {

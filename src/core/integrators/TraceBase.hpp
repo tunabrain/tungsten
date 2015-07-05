@@ -127,10 +127,10 @@ public:
                Medium::MediumState &state);
 
     bool handleSurface(SurfaceScatterEvent &event, IntersectionTemporary &data,
-                       IntersectionInfo &info, PathSampleGenerator &sampler, const Medium *&medium,
-                       int bounce, bool adjoint, bool enableLightSampling, Ray &ray,
-                       Vec3f &throughput, Vec3f &emission, bool &wasSpecular,
-                       Medium::MediumState &state);
+               IntersectionInfo &info, const Medium *&medium,
+               int bounce, bool adjoint, bool enableLightSampling, Ray &ray,
+               Vec3f &throughput, Vec3f &emission, bool &wasSpecular,
+               Medium::MediumState &state);
 };
 
 }

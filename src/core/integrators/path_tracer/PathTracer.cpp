@@ -51,7 +51,7 @@ Vec3f PathTracer::traceSample(Vec2u pixel, PathSampleGenerator &sampler)
 
         if (hitSurface) {
             event = makeLocalScatterEvent(data, info, ray, &sampler);
-            if (!handleSurface(event, data, info, sampler, medium, bounce,
+            if (!handleSurface(event, data, info, medium, bounce,
                     false, _settings.enableLightSampling, ray, throughput, emission, wasSpecular, state))
                 break;
         }

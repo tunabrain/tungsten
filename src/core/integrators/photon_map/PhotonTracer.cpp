@@ -84,7 +84,7 @@ void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRan
 
         if (hitSurface) {
             event = makeLocalScatterEvent(data, info, ray, &sampler);
-            if (!handleSurface(event, data, info, sampler, medium, bounce,
+            if (!handleSurface(event, data, info, medium, bounce,
                     true, false, ray, throughput, emission, wasSpecular, state))
                 break;
         }

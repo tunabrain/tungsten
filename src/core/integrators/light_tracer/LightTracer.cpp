@@ -87,7 +87,7 @@ void LightTracer::traceSample(PathSampleGenerator &sampler)
             if (lensSample(_scene->cam(), event, medium, bounce + 1, ray, weight, pixel))
                 _splatBuffer->splatFiltered(pixel, weight*throughput);
 
-            if (!handleSurface(event, data, info, sampler, medium, bounce,
+            if (!handleSurface(event, data, info, medium, bounce,
                     true, false, ray, throughput, emission, wasSpecular, state))
                     break;
         }
