@@ -29,7 +29,8 @@ Vec3f PathTracer::traceSample(Vec2u pixel, PathSampleGenerator &sampler)
     Ray ray(point.p, direction.d);
     ray.setPrimaryRay(true);
 
-    SurfaceScatterEvent event;
+    VolumeScatterEvent volumeEvent;
+    SurfaceScatterEvent surfaceEvent;
     IntersectionTemporary data;
     Medium::MediumState state;
     state.reset();
@@ -40,19 +41,28 @@ Vec3f PathTracer::traceSample(Vec2u pixel, PathSampleGenerator &sampler)
     int bounce = 0;
     bool didHit = _scene->intersect(ray, data, info);
     bool wasSpecular = true;
-    bool hitSurface = true;
     while ((didHit || medium) && bounce < _settings.maxBounces) {
-        if (medium && !handleVolume(sampler, medium, bounce,
-                false, _settings.enableVolumeLightSampling, ray, throughput, emission, wasSpecular, hitSurface, state))
-            break;
-
-        if (hitSurface && !didHit)
-            break;
+        bool hitSurface = true;
+        if (medium) {
+            volumeEvent = VolumeScatterEvent(&sampler, throughput, ray.pos(), ray.dir(), ray.farT());
+            if (!medium->sampleDistance(volumeEvent, state))
+                break;
+            throughput *= volumeEvent.weight;
+            volumeEvent.weight = Vec3f(1.0f);
+            hitSurface = volumeEvent.t == volumeEvent.maxT;
+            if (hitSurface && !didHit)
+                break;
+        }
 
         if (hitSurface) {
-            event = makeLocalScatterEvent(data, info, ray, &sampler);
-            if (!handleSurface(event, data, info, medium, bounce,
-                    false, _settings.enableLightSampling, ray, throughput, emission, wasSpecular, state))
+            surfaceEvent = makeLocalScatterEvent(data, info, ray, &sampler);
+            if (!handleSurface(surfaceEvent, data, info, medium, bounce, false,
+                    _settings.enableLightSampling, ray, throughput, emission, wasSpecular, state))
+                break;
+        } else {
+            volumeEvent.p += volumeEvent.t*volumeEvent.wi;
+            if (!handleVolume(volumeEvent, medium, bounce, false,
+                    _settings.enableVolumeLightSampling, ray, throughput, emission, wasSpecular, state))
                 break;
         }
 

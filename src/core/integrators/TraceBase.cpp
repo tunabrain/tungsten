@@ -420,42 +420,26 @@ Vec3f TraceBase::estimateDirect(SurfaceScatterEvent &event,
     return sampleDirect(*light, event, medium, bounce, parentRay)*weight;
 }
 
-bool TraceBase::handleVolume(PathSampleGenerator &sampler, const Medium *&medium, int bounce,
-           bool adjoint, bool enableLightSampling, Ray &ray,
-           Vec3f &throughput, Vec3f &emission, bool &wasSpecular, bool &hitSurface,
+bool TraceBase::handleVolume(VolumeScatterEvent &event, const Medium *&medium,
+           int bounce, bool adjoint, bool enableLightSampling, Ray &ray,
+           Vec3f &throughput, Vec3f &emission, bool &wasSpecular,
            Medium::MediumState &state)
 {
-    VolumeScatterEvent event(&sampler, throughput, ray.pos(), ray.dir(), ray.farT());
-    if (!medium->sampleDistance(event, state))
-        return false;
-    throughput *= event.weight;
-    event.weight = Vec3f(1.0f);
+    wasSpecular = !enableLightSampling;
 
     if (!adjoint && bounce >= _settings.minBounces)
         emission += throughput*medium->emission(event);
+    if (!adjoint && enableLightSampling && bounce < _settings.maxBounces - 1)
+        emission += throughput*volumeEstimateDirect(event, medium, bounce + 1, ray);
 
-    if (!enableLightSampling)
-        wasSpecular = !hitSurface;
+    if (medium->absorb(event, state))
+        return false;
+    if (!medium->scatter(event))
+        return false;
 
-    if (event.t < event.maxT) {
-        event.p += event.t*event.wi;
-
-        if (!adjoint && enableLightSampling && bounce < _settings.maxBounces - 1) {
-            wasSpecular = false;
-            emission += throughput*volumeEstimateDirect(event, medium, bounce + 1, ray);
-        }
-
-        if (medium->absorb(event, state))
-            return false;
-        if (!medium->scatter(event))
-            return false;
-        ray = ray.scatter(event.p, event.wo, 0.0f);
-        ray.setPrimaryRay(false);
-        throughput *= event.weight;
-        hitSurface = false;
-    } else {
-        hitSurface = true;
-    }
+    ray = ray.scatter(event.p, event.wo, 0.0f);
+    ray.setPrimaryRay(false);
+    throughput *= event.weight;
 
     return true;
 }

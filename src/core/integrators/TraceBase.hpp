@@ -121,9 +121,9 @@ public:
     SurfaceScatterEvent makeLocalScatterEvent(IntersectionTemporary &data, IntersectionInfo &info,
             Ray &ray, PathSampleGenerator *sampler) const;
 
-    bool handleVolume(PathSampleGenerator &sampler, const Medium *&medium, int bounce,
-               bool adjoint, bool enableLightSampling, Ray &ray,
-               Vec3f &throughput, Vec3f &emission, bool &wasSpecular, bool &hitSurface,
+    bool handleVolume(VolumeScatterEvent &event, const Medium *&medium,
+               int bounce, bool adjoint, bool enableLightSampling, Ray &ray,
+               Vec3f &throughput, Vec3f &emission, bool &wasSpecular,
                Medium::MediumState &state);
 
     bool handleSurface(SurfaceScatterEvent &event, IntersectionTemporary &data,
