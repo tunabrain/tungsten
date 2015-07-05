@@ -126,13 +126,45 @@ Vec3f TraceBase::attenuatedEmission(const Primitive &light,
     return transmittance*light.evalDirect(data, info);
 }
 
-bool TraceBase::lensSample(const Camera &camera,
-                           SurfaceScatterEvent &event,
-                           const Medium *medium,
-                           int bounce,
-                           const Ray &parentRay,
-                           Vec3f &weight,
-                           Vec2f &pixel)
+bool TraceBase::volumeLensSample(const Camera &camera,
+                                 VolumeScatterEvent &event,
+                                 const Medium *medium,
+                                 int bounce,
+                                 const Ray &parentRay,
+                                 Vec3f &weight,
+                                 Vec2f &pixel)
+{
+    LensSample sample;
+    if (!camera.sampleDirect(event.p, *event.sampler, sample))
+        return false;
+
+    event.wo = sample.d;
+
+    Vec3f f = medium->phaseEval(event);
+    if (f == 0.0f)
+        return false;
+
+    Ray ray = parentRay.scatter(event.p, sample.d, 0.0f);
+    ray.setPrimaryRay(false);
+    ray.setFarT(sample.dist);
+
+    Vec3f transmittance = generalizedShadowRay(ray, medium, nullptr, bounce);
+    if (transmittance == 0.0f)
+        return false;
+
+    weight = f*transmittance*sample.weight;
+    pixel = sample.pixel;
+
+    return true;
+}
+
+bool TraceBase::surfaceLensSample(const Camera &camera,
+                                  SurfaceScatterEvent &event,
+                                  const Medium *medium,
+                                  int bounce,
+                                  const Ray &parentRay,
+                                  Vec3f &weight,
+                                  Vec2f &pixel)
 {
     LensSample sample;
     if (!camera.sampleDirect(event.info->p, *event.sampler, sample))

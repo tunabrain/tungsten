@@ -12,6 +12,7 @@ void LightTracer::traceSample(PathSampleGenerator &sampler)
 {
     float lightPdf;
     const Primitive *light = chooseLightAdjoint(sampler, lightPdf);
+    const Medium *medium = light->extMedium().get();
 
     PositionSample point;
     if (!light->samplePosition(sampler, point))
@@ -28,8 +29,7 @@ void LightTracer::traceSample(PathSampleGenerator &sampler)
         Ray shadowRay(point.p, splat.d);
         shadowRay.setFarT(splat.dist);
 
-        // TODO: Volume handling
-        Vec3f transmission = generalizedShadowRay(shadowRay, nullptr, nullptr, 0);
+        Vec3f transmission = generalizedShadowRay(shadowRay, medium, nullptr, 0);
         if (transmission != 0.0f) {
             Vec3f value = throughput*transmission*splat.weight
                     *light->evalDirectionalEmission(point, DirectionSample(splat.d));
@@ -41,55 +41,52 @@ void LightTracer::traceSample(PathSampleGenerator &sampler)
     Ray ray(point.p, direction.d);
     throughput *= direction.weight;
 
-    SurfaceScatterEvent event;
+    VolumeScatterEvent volumeEvent;
+    SurfaceScatterEvent surfaceEvent;
     IntersectionTemporary data;
     IntersectionInfo info;
     Medium::MediumState state;
     state.reset();
     Vec3f emission(0.0f);
-    const Medium *medium = nullptr; // TODO: Volume handling
 
     int bounce = 0;
     bool wasSpecular = true;
-    bool hitSurface = true;
     bool didHit = _scene->intersect(ray, data, info);
     while ((didHit || medium) && bounce < _settings.maxBounces - 1) {
+        bool hitSurface = true;
         if (medium) {
-            VolumeScatterEvent event(&sampler, throughput, ray.pos(), ray.dir(), ray.farT());
-            if (!medium->sampleDistance(event, state))
+            volumeEvent = VolumeScatterEvent(&sampler, throughput, ray.pos(), ray.dir(), ray.farT());
+            if (!medium->sampleDistance(volumeEvent, state))
                 break;
-            throughput *= event.weight;
-            event.weight = Vec3f(1.0f);
-
-            if (event.t < event.maxT) {
-                event.p += event.t*event.wi;
-
-                // TODO Camera splat
-
-                if (medium->absorb(event, state))
-                    break;
-                if (!medium->scatter(event))
-                    break;
-                ray = ray.scatter(event.p, event.wo, 0.0f);
-                ray.setPrimaryRay(false);
-                throughput *= event.weight;
-                hitSurface = false;
-            } else {
-                hitSurface = true;
-            }
+            throughput *= volumeEvent.weight;
+            volumeEvent.weight = Vec3f(1.0f);
+            hitSurface = volumeEvent.t == volumeEvent.maxT;
+            if (hitSurface && !didHit)
+                break;
         }
 
         if (hitSurface) {
-            event = makeLocalScatterEvent(data, info, ray, &sampler);
+            surfaceEvent = makeLocalScatterEvent(data, info, ray, &sampler);
 
             Vec3f weight;
             Vec2f pixel;
-            if (lensSample(_scene->cam(), event, medium, bounce + 1, ray, weight, pixel))
+            if (surfaceLensSample(_scene->cam(), surfaceEvent, medium, bounce + 1, ray, weight, pixel))
                 _splatBuffer->splatFiltered(pixel, weight*throughput);
 
-            if (!handleSurface(event, data, info, medium, bounce,
+            if (!handleSurface(surfaceEvent, data, info, medium, bounce,
                     true, false, ray, throughput, emission, wasSpecular, state))
-                    break;
+                break;
+        } else {
+            volumeEvent.p += volumeEvent.t*volumeEvent.wi;
+
+            Vec3f weight;
+            Vec2f pixel;
+            if (volumeLensSample(_scene->cam(), volumeEvent, medium, bounce + 1, ray, weight, pixel))
+                _splatBuffer->splatFiltered(pixel, weight*throughput);
+
+            if (!handleVolume(volumeEvent, medium, bounce,
+                    true, false, ray, throughput, emission, wasSpecular, state))
+                break;
         }
 
         if (throughput.max() == 0.0f)

@@ -59,7 +59,15 @@ protected:
                              int bounce,
                              Ray &ray);
 
-    bool lensSample(const Camera &camera,
+    bool volumeLensSample(const Camera &camera,
+                    VolumeScatterEvent &event,
+                    const Medium *medium,
+                    int bounce,
+                    const Ray &parentRay,
+                    Vec3f &weight,
+                    Vec2f &pixel);
+
+    bool surfaceLensSample(const Camera &camera,
                     SurfaceScatterEvent &event,
                     const Medium *medium,
                     int bounce,
