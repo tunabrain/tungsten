@@ -390,8 +390,8 @@ void BitmapTexture::derivatives(const Vec2f &uv, Vec2f &derivs) const
     float du11 = a12 - a10, du12 = a13 - a11, du21 = a22 - a20, du22 = a23 - a21;
     float dv11 = a21 - a01, dv21 = a31 - a11, dv12 = a22 - a02, dv22 = a32 - a12;
 
-    derivs.x() = lerp(du11, du12, du21, du22, u, v)*_scale*float(_w);
-    derivs.y() = lerp(dv11, dv12, dv21, dv22, u, v)*_scale*float(_h);
+    derivs.x() = lerp(du11, du12, du21, du22, u, v)*_scale;
+    derivs.y() = lerp(dv11, dv12, dv21, dv22, u, v)*_scale;
 }
 
 void BitmapTexture::makeSamplable(TextureMapJacobian jacobian)
