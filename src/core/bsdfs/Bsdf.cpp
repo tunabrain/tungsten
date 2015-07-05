@@ -26,6 +26,7 @@ void Bsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
         _intMedium = scene.fetchMedium(intMedium->value);
     if (extMedium)
         _extMedium = scene.fetchMedium(extMedium->value);
+    scene.textureFromJsonMember(v, "bump", TexelConversion::REQUEST_AVERAGE, _bump);
 }
 
 rapidjson::Value Bsdf::toJson(Allocator &allocator) const
@@ -37,6 +38,8 @@ rapidjson::Value Bsdf::toJson(Allocator &allocator) const
     if (_extMedium)
         JsonUtils::addObjectMember(v, "ext_medium", *_extMedium, allocator);
     JsonUtils::addObjectMember(v, "albedo", *_albedo,  allocator);
+    if (_bump)
+        JsonUtils::addObjectMember(v, "bump", *_bump,  allocator);
 
     return std::move(v);
 }

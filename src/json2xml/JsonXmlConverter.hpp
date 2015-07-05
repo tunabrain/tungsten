@@ -442,6 +442,14 @@ class SceneXmlWriter
 
     void convert(Bsdf *bsdf)
     {
+        bool hasBump = bsdf->bump() && !bsdf->bump()->isConstant();
+        if (hasBump) {
+            begin("bsdf");
+            assign("type", "bumpmap");
+            beginPost();
+            convert("map", bsdf->bump().get());
+        }
+
         if (LambertBsdf *bsdf2 = dynamic_cast<LambertBsdf *>(bsdf))
             convert(bsdf2);
         else if (PhongBsdf *bsdf2 = dynamic_cast<PhongBsdf *>(bsdf))
@@ -473,6 +481,9 @@ class SceneXmlWriter
         else if (dynamic_cast<ForwardBsdf *>(bsdf)) {
         } else
             DBG("Unknown bsdf type with name '%s'!", bsdf->name());
+
+        if (hasBump)
+            end();
     }
 
     void convert(PinholeCamera *cam)
@@ -609,18 +620,8 @@ class SceneXmlWriter
         } else
             DBG("Unknown primitive type!");
 
-        if (!dynamic_cast<ForwardBsdf *>(prim->bsdf(0).get())) {
-            bool hasBump = prim->bump() && !prim->bump()->isConstant();
-            if (hasBump) {
-                begin("bsdf");
-                assign("type", "bumpmap");
-                beginPost();
-                convert("map", prim->bump().get());
-            }
+        if (!dynamic_cast<ForwardBsdf *>(prim->bsdf(0).get()))
             convertOrRef(prim->bsdf(0).get());
-            if (hasBump)
-                end();
-        }
         if (prim->bsdf(0)->intMedium()) {
             prim->bsdf(0)->intMedium()->setName("interior");
             convert(prim->bsdf(0)->intMedium().get());

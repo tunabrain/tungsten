@@ -35,6 +35,7 @@ protected:
     std::shared_ptr<Medium> _extMedium;
 
     std::shared_ptr<Texture> _albedo;
+    std::shared_ptr<Texture> _bump;
 
     Vec3f albedo(const IntersectionInfo *info) const
     {
@@ -164,6 +165,21 @@ public:
             return geometricBackside ? _intMedium.get() : _extMedium.get();
         else
             return currentMedium;
+    }
+
+    void setBump(const std::shared_ptr<Texture> &b)
+    {
+        _bump = b;
+    }
+
+    std::shared_ptr<Texture> &bump()
+    {
+        return _bump;
+    }
+
+    const std::shared_ptr<Texture> &bump() const
+    {
+        return _bump;
     }
 };
 

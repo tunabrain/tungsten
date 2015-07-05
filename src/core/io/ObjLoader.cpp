@@ -299,6 +299,14 @@ std::shared_ptr<Bsdf> ObjLoader::convertObjMaterial(const ObjMaterial &mat)
         if (texture)
             result = std::make_shared<TransparencyBsdf>(texture, result);
     }
+    if (mat.hasBumpMap()) {
+        PathPtr path = std::make_shared<Path>(mat.alphaMap);
+        path->freezeWorkingDirectory();
+
+        auto texture = _textureCache->fetchTexture(path, TexelConversion::REQUEST_AVERAGE);
+        if (texture)
+            result->setBump(texture);
+    }
 
     result->setName(mat.name);
 
@@ -446,7 +454,7 @@ std::shared_ptr<Primitive> ObjLoader::tryInstantiateCube(const std::string &name
 
 std::shared_ptr<Primitive> ObjLoader::finalizeMesh()
 {
-    std::shared_ptr<Texture> emission, bump;
+    std::shared_ptr<Texture> emission;
     std::shared_ptr<Bsdf> bsdf;
     if (_currentMaterial == -1) {
         bsdf = _errorMaterial;
@@ -456,12 +464,6 @@ std::shared_ptr<Primitive> ObjLoader::finalizeMesh()
         ObjMaterial &mat = _materials[_currentMaterial];
         if (mat.isEmissive())
             emission = std::make_shared<ConstantTexture>(mat.emission);
-        if (mat.hasBumpMap()) {
-            PathPtr path = std::make_shared<Path>(mat.bumpMap);
-            path->freezeWorkingDirectory();
-
-            bump = _textureCache->fetchTexture(path, TexelConversion::REQUEST_AVERAGE);
-        }
     }
 
     std::string name = _meshName.empty() ? generateDummyName() : _meshName;
@@ -484,7 +486,6 @@ std::shared_ptr<Primitive> ObjLoader::finalizeMesh()
     }
 
     prim->setEmission(emission);
-    prim->setBump(bump);
 
     return std::move(prim);
 }

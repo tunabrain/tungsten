@@ -278,6 +278,12 @@ void BsdfProperty::buildBsdfPage()
                 return true;
         });
     }
+    sheet->addTextureProperty(_value->bump(), "Bump map", true, _scene, TexelConversion::REQUEST_AVERAGE,
+        [this](std::shared_ptr<Texture> &bump) {
+            _value->setBump(bump);
+            updateBsdfDisplay();
+            return true;
+    });
 
     buildBsdfPage(sheet);
 

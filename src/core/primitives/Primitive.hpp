@@ -33,8 +33,6 @@ class Primitive : public JsonSerializable
 protected:
     std::shared_ptr<Texture> _emission;
     std::shared_ptr<Texture> _power;
-    std::shared_ptr<Texture> _bump;
-    float _bumpStrength;
 
     Mat4f _transform;
 
@@ -132,31 +130,6 @@ public:
     const Mat4f &transform() const
     {
         return _transform;
-    }
-
-    void setBump(const std::shared_ptr<Texture> &b)
-    {
-        _bump = b;
-    }
-
-    std::shared_ptr<Texture> &bump()
-    {
-        return _bump;
-    }
-
-    const std::shared_ptr<Texture> &bump() const
-    {
-        return _bump;
-    }
-
-    float bumpStrength() const
-    {
-        return _bumpStrength;
-    }
-
-    void setBumpStrength(float strength)
-    {
-        _bumpStrength = strength;
     }
 };
 
