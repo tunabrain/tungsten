@@ -1,6 +1,8 @@
 #include "Curves.hpp"
 #include "TriangleMesh.hpp"
 
+#include "sampling/UniformSampler.hpp"
+
 #include "math/TangentFrame.hpp"
 #include "math/MathUtil.hpp"
 #include "math/BSpline.hpp"
@@ -226,6 +228,7 @@ static Box3f curveBox(const Vec4f &q0, const Vec4f &q1, const Vec4f &q2)
 Curves::Curves()
 : _modeString("half_cylinder"),
   _curveThickness(0.01f),
+  _subsample(0.0f),
   _overrideThickness(false),
   _taperThickness(false)
 {
@@ -380,6 +383,7 @@ void Curves::fromJson(const rapidjson::Value &v, const Scene &scene)
     _bsdf = scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf"));
     JsonUtils::fromJson(v, "mode", _modeString);
     JsonUtils::fromJson(v, "curve_taper", _taperThickness);
+    JsonUtils::fromJson(v, "subsample", _subsample);
     _overrideThickness = JsonUtils::fromJson(v, "curve_thickness", _curveThickness);
 
     init();
@@ -394,6 +398,7 @@ rapidjson::Value Curves::toJson(Allocator &allocator) const
     if (_overrideThickness)
         v.AddMember("curve_thickness", _curveThickness, allocator);
     v.AddMember("curve_taper", _taperThickness, allocator);
+    v.AddMember("subsample", _subsample, allocator);
     v.AddMember("mode", _modeString.c_str(), allocator);
     JsonUtils::addObjectMember(v, "bsdf", *_bsdf, allocator);
     return std::move(v);
@@ -580,10 +585,14 @@ void Curves::prepareForRender()
         data.w() *= widthScale;
     }
 
+    UniformSampler rand;
     for (uint32 i = 0; i < _curveCount; ++i) {
         uint32 start = 0;
         if (i > 0)
             start = _curveEnds[i - 1];
+
+        if (_subsample > 0.0f && rand.next1D() < _subsample)
+            continue;
 
         for (uint32 t = start + 2; t < _curveEnds[i]; ++t) {
             const Vec4f &p0 = _nodeData[t - 2];
