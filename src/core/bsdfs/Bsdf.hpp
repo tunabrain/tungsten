@@ -31,9 +31,6 @@ protected:
 
     BsdfLobes _lobes;
 
-    std::shared_ptr<Medium> _intMedium;
-    std::shared_ptr<Medium> _extMedium;
-
     std::shared_ptr<Texture> _albedo;
     std::shared_ptr<Texture> _bump;
 
@@ -122,49 +119,6 @@ public:
     const std::shared_ptr<Texture> &albedo() const
     {
         return _albedo;
-    }
-
-    const std::shared_ptr<Medium> &extMedium() const
-    {
-        return _extMedium;
-    }
-
-    const std::shared_ptr<Medium> &intMedium() const
-    {
-        return _intMedium;
-    }
-
-    std::shared_ptr<Medium> &extMedium()
-    {
-        return _extMedium;
-    }
-
-    std::shared_ptr<Medium> &intMedium()
-    {
-        return _intMedium;
-    }
-
-    void setIntMedium(std::shared_ptr<Medium> &intMedium)
-    {
-        _intMedium = intMedium;
-    }
-
-    void setExtMedium(std::shared_ptr<Medium> &extMedium)
-    {
-        _extMedium = extMedium;
-    }
-
-    bool overridesMedia() const
-    {
-        return _extMedium || _intMedium;
-    }
-
-    const Medium *selectMedium(const Medium *currentMedium, bool geometricBackside) const
-    {
-        if (overridesMedia())
-            return geometricBackside ? _intMedium.get() : _extMedium.get();
-        else
-            return currentMedium;
     }
 
     void setBump(const std::shared_ptr<Texture> &b)

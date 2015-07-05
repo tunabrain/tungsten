@@ -622,13 +622,13 @@ class SceneXmlWriter
 
         if (!dynamic_cast<ForwardBsdf *>(prim->bsdf(0).get()))
             convertOrRef(prim->bsdf(0).get());
-        if (prim->bsdf(0)->intMedium()) {
-            prim->bsdf(0)->intMedium()->setName("interior");
-            convert(prim->bsdf(0)->intMedium().get());
+        if (prim->intMedium()) {
+            prim->intMedium()->setName("interior");
+            convert(prim->intMedium().get());
         }
-        if (prim->bsdf(0)->extMedium()) {
-            prim->bsdf(0)->extMedium()->setName("exterior");
-            convert(prim->bsdf(0)->extMedium().get());
+        if (prim->extMedium()) {
+            prim->extMedium()->setName("exterior");
+            convert(prim->extMedium().get());
         }
         if (prim->isEmissive()) {
             begin("emitter");

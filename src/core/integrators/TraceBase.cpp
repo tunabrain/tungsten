@@ -89,7 +89,7 @@ Vec3f TraceBase::generalizedShadowRay(Ray &ray,
             throughput *= medium->transmittance(VolumeScatterEvent(ray.pos(), ray.dir(), ray.farT()));
         if (info.primitive == nullptr || info.primitive == endCap)
             return bounce >= _settings.minBounces ? throughput : Vec3f(0.0f);
-        medium = info.bsdf->selectMedium(medium, !info.primitive->hitBackside(data));
+        medium = info.primitive->selectMedium(medium, !info.primitive->hitBackside(data));
 
         ray.setPos(ray.hitpoint());
         initialFarT -= ray.farT();
@@ -143,7 +143,7 @@ bool TraceBase::lensSample(const Camera &camera,
         return false;
 
     bool geometricBackside = (sample.d.dot(event.info->Ng) < 0.0f);
-    medium = event.info->bsdf->selectMedium(medium, geometricBackside);
+    medium = event.info->primitive->selectMedium(medium, geometricBackside);
 
     event.requestedLobe = BsdfLobes::AllButSpecular;
 
@@ -180,7 +180,7 @@ Vec3f TraceBase::lightSample(const Primitive &light,
         return Vec3f(0.0f);
 
     bool geometricBackside = (sample.d.dot(event.info->Ng) < 0.0f);
-    medium = event.info->bsdf->selectMedium(medium, geometricBackside);
+    medium = event.info->primitive->selectMedium(medium, geometricBackside);
 
     event.requestedLobe = BsdfLobes::AllButSpecular;
 
@@ -222,7 +222,7 @@ Vec3f TraceBase::bsdfSample(const Primitive &light,
         return Vec3f(0.0f);
 
     bool geometricBackside = (wo.dot(event.info->Ng) < 0.0f);
-    medium = event.info->bsdf->selectMedium(medium, geometricBackside);
+    medium = event.info->primitive->selectMedium(medium, geometricBackside);
 
     Ray ray = parentRay.scatter(event.info->p, wo, event.info->epsilon);
     ray.setPrimaryRay(false);
@@ -503,7 +503,7 @@ bool TraceBase::handleSurface(SurfaceScatterEvent &event, IntersectionTemporary 
     }
 
     bool geometricBackside = (wo.dot(info.Ng) < 0.0f);
-    medium = bsdf.selectMedium(medium, geometricBackside);
+    medium = info.primitive->selectMedium(medium, geometricBackside);
     state.reset();
 
     ray = ray.scatter(ray.hitpoint(), wo, info.epsilon);

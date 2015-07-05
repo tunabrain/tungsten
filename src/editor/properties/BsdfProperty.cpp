@@ -227,8 +227,6 @@ void BsdfProperty::buildBsdfPage()
         bsdf->setName(_value->name());
         if (hasAlbedo(_type) && hasAlbedo(type))
             bsdf->setAlbedo(_value->albedo());
-        bsdf->setIntMedium(_value->intMedium());
-        bsdf->setExtMedium(_value->extMedium());
         if (_setter(bsdf)) {
             for (auto &p : _scene->primitives())
                 for (int i = 0; i < p->numBsdfs(); ++i)
@@ -258,18 +256,6 @@ void BsdfProperty::buildBsdfPage()
         buildBsdfList();
         return true;
     });
-    if (!_nested) {
-        sheet->addMediumProperty(_value->intMedium(), "Interior medium", _scene, [this](std::shared_ptr<Medium> &m) {
-            _value->setIntMedium(m);
-            updateBsdfDisplay();
-            return true;
-        });
-        sheet->addMediumProperty(_value->extMedium(), "Exterior medium", _scene, [this](std::shared_ptr<Medium> &m) {
-            _value->setIntMedium(m);
-            updateBsdfDisplay();
-            return true;
-        });
-    }
     if (hasAlbedo(_type)) {
         sheet->addTextureProperty(_value->albedo(), "Albedo", false, _scene, TexelConversion::REQUEST_RGB,
             [this](std::shared_ptr<Texture> &t) {

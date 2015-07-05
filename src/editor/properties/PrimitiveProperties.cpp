@@ -19,6 +19,14 @@ void PrimitiveProperties::fillPropertySheet(PropertySheet *sheet, Primitive *p)
             emit triggerRedraw();
             return true;
     });
+    sheet->addMediumProperty(p->intMedium(), "Interior medium", _scene, [this, p](std::shared_ptr<Medium> &m) {
+        p->setIntMedium(m);
+        return true;
+    });
+    sheet->addMediumProperty(p->extMedium(), "Exterior medium", _scene, [this, p](std::shared_ptr<Medium> &m) {
+        p->setIntMedium(m);
+        return true;
+    });
 
     sheet->setRowStretch(sheet->rowCount(), 1);
 }
