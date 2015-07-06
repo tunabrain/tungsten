@@ -29,6 +29,9 @@ void PinholeCamera::precompute()
 {
     _fovRad = Angle::degToRad(_fovDeg);
     _planeDist = 1.0f/std::tan(_fovRad*0.5f);
+
+    float planeArea = (2.0f/_planeDist)*(2.0f*_ratio/_planeDist);
+    _invPlaneArea = 1.0f/planeArea;
 }
 
 void PinholeCamera::fromJson(const rapidjson::Value &v, const Scene &scene)
@@ -77,7 +80,7 @@ bool PinholeCamera::sampleDirection(PathSampleGenerator &sampler, const Position
 
     sample.d =  _transform.transformVector(localD);
     sample.weight = Vec3f(1.0f);
-    sample.pdf = (_planeDist*2.0f)*(_planeDist*_ratio*2.0f)/cube(localD.z());
+    sample.pdf = _invPlaneArea/cube(localD.z());
 
     return true;
 }
@@ -126,7 +129,7 @@ float PinholeCamera::directionPdf(const PositionSample &/*point*/, const Directi
     if (u < 0.0f || v < 0.0f || u > 1.0f || v > 1.0f)
         return 0.0f;
 
-    return  (_planeDist*2.0f)*(_planeDist*_ratio*2.0f)/cube(localD.z()/localD.length());
+    return  _invPlaneArea/cube(localD.z()/localD.length());
 }
 
 bool PinholeCamera::isDirac() const

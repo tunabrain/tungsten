@@ -12,6 +12,7 @@ class PinholeCamera : public Camera
     float _fovDeg;
     float _fovRad;
     float _planeDist;
+    float _invPlaneArea;
 
     void precompute();
 
