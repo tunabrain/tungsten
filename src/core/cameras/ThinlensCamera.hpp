@@ -16,6 +16,7 @@ class ThinlensCamera : public Camera
     float _fovDeg;
     float _fovRad;
     float _planeDist;
+    float _invPlaneArea;
     float _focusDist;
     float _apertureSize;
     float _catEye;

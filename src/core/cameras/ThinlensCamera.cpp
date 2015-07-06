@@ -29,6 +29,9 @@ void ThinlensCamera::precompute()
     _fovRad = Angle::degToRad(_fovDeg);
     _planeDist = 1.0f/std::tan(_fovRad*0.5f);
     _aperture->makeSamplable(MAP_UNIFORM);
+
+    float planeArea = (2.0f/_planeDist)*(2.0f*_ratio/_planeDist);
+    _invPlaneArea = 1.0f/planeArea;
 }
 
 float ThinlensCamera::evalApertureThroughput(Vec3f planePos, Vec2f aperturePos) const
@@ -118,7 +121,7 @@ bool ThinlensCamera::sampleDirection(PathSampleGenerator &sampler, const Positio
 
     sample.d =  _transform.transformVector(localD);
     sample.weight = Vec3f(1.0f);
-    sample.pdf = (_planeDist*2.0f)*(_planeDist*_ratio*2.0f)/cube(localD.z());
+    sample.pdf = _invPlaneArea/cube(localD.z());
 
     return true;
 }
@@ -188,7 +191,7 @@ float ThinlensCamera::directionPdf(const PositionSample &point, const DirectionS
     if (u < 0.0f || v < 0.0f || u > 1.0f || v > 1.0f)
         return 0.0f;
 
-    return  (_planeDist*2.0f)*(_planeDist*_ratio*2.0f)/cube(localDir.z()/localDir.length());
+    return  _invPlaneArea/cube(localDir.z()/localDir.length());
 }
 
 bool ThinlensCamera::isDirac() const
