@@ -42,6 +42,7 @@ bool PathVertex::sampleRootVertex(TraceState &state)
             _throughput = record.point.weight/record.emitterPdf;
             _pdfForward = record.point.pdf*record.emitterPdf;
         }
+        state.medium = _sampler.emitter->extMedium().get();
         return true;
     } case CameraVertex: {
         CameraRecord &record = _record.camera;
@@ -50,6 +51,7 @@ bool PathVertex::sampleRootVertex(TraceState &state)
 
         _throughput = record.point.weight;
         _pdfForward = record.point.pdf;
+        state.medium = _sampler.camera->medium().get();
         return true;
     } default:
         return false;
