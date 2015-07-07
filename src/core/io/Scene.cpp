@@ -30,6 +30,7 @@
 
 #include "cameras/EquirectangularCamera.hpp"
 #include "cameras/ThinlensCamera.hpp"
+#include "cameras/CubemapCamera.hpp"
 #include "cameras/PinholeCamera.hpp"
 
 #include "volume/HomogeneousMedium.hpp"
@@ -210,6 +211,8 @@ std::shared_ptr<Camera> Scene::instantiateCamera(std::string type, const rapidjs
         result = std::make_shared<ThinlensCamera>();
     else if (type == "equirectangular")
         result = std::make_shared<EquirectangularCamera>();
+    else if (type == "cubemap")
+        result = std::make_shared<CubemapCamera>();
     else {
         DBG("Unknown camera type: '%s'", type.c_str());
         return nullptr;
