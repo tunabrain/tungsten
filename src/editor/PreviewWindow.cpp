@@ -459,7 +459,7 @@ void PreviewWindow::addModel()
         nullptr,
         "Open file...",
         QString::fromStdString(dir.absolute().asString()),
-        "Mesh files (*.obj;*.json)"
+        "Mesh files (*.obj *.json)"
     );
 
     if (!file.isEmpty()) {
