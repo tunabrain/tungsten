@@ -139,9 +139,9 @@ void TextureProperty::buildTexturePage(PropertySheet *sheet, BitmapTexture *tex)
 
     std::string path = (!tex->path() || tex->path()->empty()) ? "" : tex->path()->absolute().asString();
     sheet->addPathProperty(path, "File", _scene->path().absolute().asString(),
-            "Open bitmap...", "Image files (*.png;*.jpg;*.hdr;*.pfm;*.tga;*.bmp;*.psd;*.gif;*.pic;*.jpeg"
+            "Open bitmap...", "Image files (*.png *.jpg *.hdr *.pfm *.tga *.bmp *.psd *.gif *.pic *.jpeg"
 #if OPENEXR_AVAILABLE
-            ";*.exr"
+            " *.exr"
 #endif
             ")",
             [this, tex](const std::string &path) {
