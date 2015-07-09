@@ -137,7 +137,9 @@ bool PathVertex::sampleNextVertex(const TraceableScene &scene, TraceBase &tracer
         state.bounce++;
         nextEdge = PathEdge(*this, next);
         next._pdfForward = pdf;
-        if (!_dirac && !isInfiniteEmitter())
+        if (isInfiniteEmitter())
+            next._pdfForward *= next.cosineFactor(nextEdge.d);
+        else if (!_dirac)
             next._pdfForward *= next.cosineFactor(nextEdge.d)/nextEdge.rSq;
 
         return true;
@@ -183,7 +185,7 @@ void PathVertex::evalPdfs(const PathVertex *prev, const PathEdge *prevEdge, cons
         if (_sampler.emitter->isInfinite())
             // Positional pdf is constant for a fixed direction, which is the case
             // for connections to a point on an infinite emitter
-            *forward = _record.emitter.point.pdf;
+            *forward = _record.emitter.point.pdf*next.cosineFactor(nextEdge.d);
         else
             *forward = next.cosineFactor(nextEdge.d)/nextEdge.rSq*
                     _sampler.emitter->directionalPdf(_record.emitter.point, DirectionSample(nextEdge.d));

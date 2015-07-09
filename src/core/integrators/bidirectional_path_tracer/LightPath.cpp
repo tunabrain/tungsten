@@ -160,7 +160,8 @@ Vec3f LightPath::bdptWeightedPathEmission(int minLength, int maxLength) const
             // The PDF of the first vertex is also given in solid angle measure,
             // not area measure
             pdfForward[0] = record.info.primitive->directionalPdf(point, direction);
-            pdfForward[1] = record.info.primitive->positionalPdf(point);
+            pdfForward[1] = record.info.primitive->positionalPdf(point)*
+                    _vertices[t - 2].cosineFactor(_edges[t - 2].d);
         } else {
             pdfForward[0] = record.info.primitive->positionalPdf(point);
             pdfForward[1] = record.info.primitive->directionalPdf(point, direction)*
