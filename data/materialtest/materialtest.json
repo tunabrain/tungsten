@@ -151,10 +151,7 @@
             1000,
             563
         ],
-        "reconstruction_filter": {
-            "type": "airy",
-            "width": 6
-        },
+        "reconstruction_filter": "tent",
         "transform": {
             "position": [
                 3.04068,
@@ -186,14 +183,14 @@
     },
     "renderer": {
         "output_file": "TungstenRender.png",
-        "resume_render_prefix": "TungstenRenderState",
+        "resume_render_file": "RenderState.dat",
         "overwrite_output_files": false,
         "adaptive_sampling": true,
-        "enable_resume_render": true,
+        "enable_resume_render": false,
         "stratified_sampler": true,
         "scene_bvh": true,
         "spp": 32,
         "spp_step": 16,
-        "checkpoint_interval": 15
+        "checkpoint_interval": "15m"
     }
 }
