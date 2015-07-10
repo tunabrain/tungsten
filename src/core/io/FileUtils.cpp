@@ -508,16 +508,23 @@ bool FileUtils::copyFile(const Path &src, const Path &dst, bool createDstDir)
 bool FileUtils::moveFile(const Path &src, const Path &dst, bool deleteDst)
 {
     if (dst.exists()) {
-        if (!deleteDst)
+        if (!deleteDst) {
             return false;
-        else if (!FileUtils::deleteFile(dst))
-            return false;
-    }
+        } else {
 #if _WIN32
-    return MoveFileW(makeWideLongPath(src).c_str(), makeWideLongPath(dst).c_str()) != 0;
+        return ReplaceFileW(makeWideLongPath(dst).c_str(), makeWideLongPath(src).c_str(), NULL, 0, 0, 0) != 0;
 #else
-    return rename(src.absolute().asString().c_str(), dst.absolute().asString().c_str()) == 0;
+        return rename(src.absolute().asString().c_str(), dst.absolute().asString().c_str()) == 0;
 #endif
+
+        }
+    } else {
+#if _WIN32
+        return MoveFileW(makeWideLongPath(src).c_str(), makeWideLongPath(dst).c_str()) != 0;
+#else
+        return rename(src.absolute().asString().c_str(), dst.absolute().asString().c_str()) == 0;
+#endif
+    }
 }
 
 bool FileUtils::deleteFile(const Path &path)
