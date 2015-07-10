@@ -1,6 +1,9 @@
 #include "JsonUtils.hpp"
 #include "Path.hpp"
 
+#include <rapidjson/prettywriter.h>
+#include <sstream>
+
 namespace Tungsten {
 
 namespace JsonUtils {
@@ -247,6 +250,22 @@ void addObjectMember(rapidjson::Value &v, const char *name, const JsonSerializab
         v.AddMember(name, o.toJson(allocator), allocator);
     else
         v.AddMember(name, o.name().c_str(), allocator);
+}
+
+struct JsonStringWriter {
+    std::stringstream sstream;
+    typedef char Ch;
+    void Put(char c) { sstream.put(c); }
+    void PutN(char c, size_t n) { for (size_t i = 0; i < n; ++i) sstream.put(c); }
+    void Flush() { sstream.flush(); }
+};
+std::string jsonToString(const rapidjson::Document &document)
+{
+    JsonStringWriter out;
+    rapidjson::PrettyWriter<JsonStringWriter> writer(out);
+    document.Accept(writer);
+    // Yes, the string is copied here. stringstream does not allow moving the result out (boo!)
+    return out.sstream.str();
 }
 
 }

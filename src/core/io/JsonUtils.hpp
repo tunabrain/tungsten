@@ -98,6 +98,8 @@ rapidjson::Value toJsonValue(const Vec<ElementType, Size> &value, rapidjson::Doc
 void addObjectMember(rapidjson::Value &v, const char *name, const JsonSerializable &o,
         rapidjson::Document::AllocatorType &allocator);
 
+std::string jsonToString(const rapidjson::Document &document);
+
 }
 
 }
