@@ -60,14 +60,14 @@ void KelemenMltIntegrator::teardownAfterRender()
     _tracers.shrink_to_fit();
 }
 
-void KelemenMltIntegrator::traceRays(uint32 taskId, uint32 numSubTasks, uint32 threadId)
+void KelemenMltIntegrator::traceRays(uint32 taskId, uint32 numSubTasks, uint32 /*threadId*/)
 {
     uint32 rayCount = _w*_h*(_nextSpp - _currentSpp);
 
     uint32 rayBase    = intLerp(0, rayCount, taskId + 0, numSubTasks);
     uint32 raysToCast = intLerp(0, rayCount, taskId + 1, numSubTasks) - rayBase;
 
-    _tracers[threadId]->startSampleChain(raysToCast);
+    _tracers[taskId]->startSampleChain(raysToCast);
 }
 
 void KelemenMltIntegrator::startRender(std::function<void()> completionCallback)
