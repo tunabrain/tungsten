@@ -196,6 +196,12 @@ inline std::string FileUtils::streamRead<std::string>(InputStreamHandle &in)
     return std::move(s);
 }
 
+template<>
+inline void FileUtils::streamWrite<std::string>(OutputStreamHandle &out, const std::string &src)
+{
+    streamWrite(out, &src[0], src.size() + 1);
+}
+
 }
 
 #endif /* FILEUTILS_HPP_ */
