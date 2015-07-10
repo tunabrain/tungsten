@@ -162,6 +162,14 @@ public:
     }
 
     template<typename T>
+    static inline T streamRead(InputStreamHandle &in)
+    {
+        T t;
+        streamRead(in, t);
+        return t;
+    }
+
+    template<typename T>
     static inline void streamWrite(OutputStreamHandle &out, const T &src)
     {
         streamWrite(*out, src);
@@ -179,6 +187,14 @@ public:
         streamWrite(*out, src, numElements);
     }
 };
+
+template<>
+inline std::string FileUtils::streamRead<std::string>(InputStreamHandle &in)
+{
+    std::string s;
+    std::getline(*in, s, '\0');
+    return std::move(s);
+}
 
 }
 
