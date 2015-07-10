@@ -103,25 +103,22 @@ static uint64 sceneHash(Scene &scene)
 
 void Integrator::saveRenderResumeData(Scene &scene)
 {
+    Path path = _scene->rendererSettings().resumeRenderFile();
+    OutputStreamHandle out = FileUtils::openOutputStream(path);
+    if (!out) {
+        DBG("Failed to open render resume state at '%s'", path);
+        return;
+    }
+
     // TODO: Camera splat buffer not saved/reconstructed
     rapidjson::Document document;
     document.SetObject();
     document.AddMember("current_spp", _currentSpp, document.GetAllocator());
     document.AddMember("adaptive_sampling", _scene->rendererSettings().useAdaptiveSampling(), document.GetAllocator());
     document.AddMember("stratified_sampler", _scene->rendererSettings().useSobol(), document.GetAllocator());
-    if (!FileUtils::writeJson(document, _scene->rendererSettings().resumeRenderPrefix() + ".json")) {
-        DBG("Failed to write render resume state JSON");
-        return;
-    }
 
-    OutputStreamHandle out = FileUtils::openOutputStream(_scene->rendererSettings().resumeRenderPrefix() + ".dat");
-    if (!out) {
-        DBG("Failed to open render resume state data stream");
-        return;
-    }
-
+    FileUtils::streamWrite(out, JsonUtils::jsonToString(document));
     uint64 jsonHash = sceneHash(scene);
-    FileUtils::streamWrite(out, _currentSpp);
     FileUtils::streamWrite(out, jsonHash);
     FileUtils::streamWrite(out, _scene->cam().pixels());
     FileUtils::streamWrite(out, _scene->cam().weights());
@@ -130,11 +127,11 @@ void Integrator::saveRenderResumeData(Scene &scene)
 
 bool Integrator::resumeRender(Scene &scene)
 {
-    // TODO: Camera splat buffer not saved/reconstructed
-    std::string json = FileUtils::loadText(_scene->rendererSettings().resumeRenderPrefix() + ".json");
-    if (json.empty())
+    InputStreamHandle in = FileUtils::openInputStream(_scene->rendererSettings().resumeRenderFile());
+    if (!in)
         return false;
 
+    std::string json = FileUtils::streamRead<std::string>(in);
     rapidjson::Document document;
     document.Parse<0>(json.c_str());
     if (document.HasParseError() || !document.IsObject())
@@ -148,15 +145,8 @@ bool Integrator::resumeRender(Scene &scene)
             || stratifiedSampler != _scene->rendererSettings().useSobol())
         return false;
 
-    InputStreamHandle in = FileUtils::openInputStream(_scene->rendererSettings().resumeRenderPrefix() + ".dat");
-    if (!in)
-        return false;
-
-    uint32 dataSpp;
-    FileUtils::streamRead(in, dataSpp);
-
     uint32 jsonSpp;
-    if (!JsonUtils::fromJson(document, "current_spp", jsonSpp) || jsonSpp != dataSpp)
+    if (!JsonUtils::fromJson(document, "current_spp", jsonSpp))
         return false;
 
     uint64 jsonHash;
@@ -168,7 +158,7 @@ bool Integrator::resumeRender(Scene &scene)
     FileUtils::streamRead(in, _scene->cam().weights());
     loadState(in);
 
-    _currentSpp = dataSpp;
+    _currentSpp = jsonSpp;
     advanceSpp();
 
     return true;

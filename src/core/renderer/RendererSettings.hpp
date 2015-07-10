@@ -16,7 +16,7 @@ class RendererSettings : public JsonSerializable
     Path _outputFile;
     Path _hdrOutputFile;
     Path _varianceOutputFile;
-    Path _resumeRenderPrefix;
+    Path _resumeRenderFile;
     bool _overwriteOutputFiles;
     bool _useAdaptiveSampling;
     bool _enableResumeRender;
@@ -30,7 +30,7 @@ class RendererSettings : public JsonSerializable
 public:
     RendererSettings()
     : _outputFile("TungstenRender.png"),
-      _resumeRenderPrefix("TungstenRenderState"),
+      _resumeRenderFile("TungstenRenderState.dat"),
       _overwriteOutputFiles(true),
       _useAdaptiveSampling(true),
       _enableResumeRender(false),
@@ -53,7 +53,7 @@ public:
         JsonUtils::fromJson(v, "output_file", _outputFile);
         JsonUtils::fromJson(v, "hdr_output_file", _hdrOutputFile);
         JsonUtils::fromJson(v, "variance_output_file", _varianceOutputFile);
-        JsonUtils::fromJson(v, "resume_render_prefix", _resumeRenderPrefix);
+        JsonUtils::fromJson(v, "resume_render_file", _resumeRenderFile);
         JsonUtils::fromJson(v, "overwrite_output_files", _overwriteOutputFiles);
         JsonUtils::fromJson(v, "adaptive_sampling", _useAdaptiveSampling);
         JsonUtils::fromJson(v, "enable_resume_render", _enableResumeRender);
@@ -74,8 +74,8 @@ public:
             v.AddMember("hdr_output_file", _hdrOutputFile.asString().c_str(), allocator);
         if (!_varianceOutputFile.empty())
             v.AddMember("variance_output_file", _varianceOutputFile.asString().c_str(), allocator);
-        if (!_resumeRenderPrefix.empty())
-            v.AddMember("resume_render_prefix", _resumeRenderPrefix.asString().c_str(), allocator);
+        if (!_resumeRenderFile.empty())
+            v.AddMember("resume_render_file", _resumeRenderFile.asString().c_str(), allocator);
         v.AddMember("overwrite_output_files", _overwriteOutputFiles, allocator);
         v.AddMember("adaptive_sampling", _useAdaptiveSampling, allocator);
         v.AddMember("enable_resume_render", _enableResumeRender, allocator);
@@ -100,7 +100,7 @@ public:
         _outputFile        .setWorkingDirectory(_outputDirectory);
         _hdrOutputFile     .setWorkingDirectory(_outputDirectory);
         _varianceOutputFile.setWorkingDirectory(_outputDirectory);
-        _resumeRenderPrefix.setWorkingDirectory(_outputDirectory);
+        _resumeRenderFile.setWorkingDirectory(_outputDirectory);
     }
 
     const Path &outputFile() const
@@ -118,9 +118,9 @@ public:
         return _varianceOutputFile;
     }
 
-    const Path &resumeRenderPrefix() const
+    const Path &resumeRenderFile() const
     {
-        return _resumeRenderPrefix;
+        return _resumeRenderFile;
     }
 
     bool overwriteOutputFiles() const
