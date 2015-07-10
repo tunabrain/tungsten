@@ -13,6 +13,8 @@
 
 #include "io/FileUtils.hpp"
 
+#include "Platform.hpp"
+
 namespace Tungsten {
 
 namespace CurveIO {
@@ -248,10 +250,187 @@ bool saveHair(const Path &path, const CurveData &data)
     return true;
 }
 
+namespace Fiber {
+
+static const std::array<uint8, 8> FiberMagic{0x80, 0xBF, 0x80, 0x46, 0x49, 0x42, 0x45, 0x52};
+static const uint16 SupportedMajorVersion = 1;
+static const uint16 CurrentMinorVersion = 0;
+static const uint32 SupportedContentType = 0;
+
+static const size_t FiberValueSize[] = {1, 1, 2, 2, 4, 4, 8, 8, 4, 8};
+enum FiberValueType
+{
+    FIBER_INT8   = 0,
+    FIBER_UINT8  = 1,
+    FIBER_INT16  = 2,
+    FIBER_UINT16 = 3,
+    FIBER_INT32  = 4,
+    FIBER_UINT32 = 5,
+    FIBER_INT64  = 6,
+    FIBER_UINT64 = 7,
+    FIBER_FLOAT  = 8,
+    FIBER_DOUBLE = 9,
+    FIBER_TYPE_COUNT
+};
+
+struct FiberAttribute
+{
+    uint64 dataLength;
+    uint16 attributeFlags;
+    uint8 valueType;
+    uint8 valuesPerElement;
+    std::string attributeName;
+    uint64 elementsPresent;
+
+    FiberAttribute(InputStreamHandle in)
+    : dataLength(FileUtils::streamRead<uint64>(in)),
+      attributeFlags(FileUtils::streamRead<uint16>(in)),
+      valueType(FileUtils::streamRead<uint8>(in)),
+      valuesPerElement(FileUtils::streamRead<uint8>(in)),
+      attributeName(FileUtils::streamRead<std::string>(in)),
+      elementsPresent(0)
+    {
+        if (valueType < FIBER_TYPE_COUNT)
+            elementsPresent = dataLength/(FiberValueSize[valueType]*valuesPerElement);
+    }
+
+    bool matches(const std::string &name, bool perCurve, FiberValueType type, int numValuesPerElement)
+    {
+        return attributeName == name
+            && ((attributeFlags & 1) != 0) == perCurve
+            && FiberValueType(valueType) == type
+            && valuesPerElement == numValuesPerElement
+            && elementsPresent > 0;
+    }
+
+    template<typename T>
+    std::unique_ptr<T[]> load(InputStreamHandle in, uint64 elementsRequired)
+    {
+        std::unique_ptr<T[]> result(new T[elementsRequired]);
+        FileUtils::streamRead(in, result.get(), elementsPresent);
+        // Copy-extend
+        for (uint64 i = elementsPresent; i < elementsRequired; ++i)
+            result[i] = result[elementsPresent - 1];
+        return std::move(result);
+    }
+};
+static bool loadFiber(const Path &path, CurveData &data)
+{
+    InputStreamHandle in = FileUtils::openInputStream(path);
+    if (!in)
+        return false;
+
+    if (FileUtils::streamRead<std::array<uint8, 8>>(in) != FiberMagic)
+        return false;
+
+    uint16 versionMajor = FileUtils::streamRead<uint16>(in);
+    uint16 versionMinor = FileUtils::streamRead<uint16>(in);
+    MARK_UNUSED(versionMinor);
+    if (versionMajor != SupportedMajorVersion)
+        return false;
+
+    uint32 contentType = FileUtils::streamRead<uint32>(in);
+    if (contentType != SupportedContentType)
+        return false;
+
+    uint64 headerLength = FileUtils::streamRead<uint64>(in);
+    uint64 numVertices  = FileUtils::streamRead<uint64>(in);
+    uint64 numCurves    = FileUtils::streamRead<uint64>(in);
+
+    uint64 offset = headerLength;
+    while (true) {
+        in->seekg(size_t(offset), std::ios_base::beg);
+
+        uint64 descriptorLength = FileUtils::streamRead<uint64>(in);
+        if (descriptorLength == 0)
+            break;
+
+        FiberAttribute attribute(in);
+
+        offset += descriptorLength;
+        in->seekg(size_t(offset), std::ios_base::beg);
+
+        if (data.curveEnds && attribute.matches("num_vertices", true, FIBER_UINT16, 1)) {
+            data.curveEnds->resize(numCurves);
+            auto vertexCounts = attribute.load<uint16>(in, numCurves);
+            for (uint64 i = 0; i < numCurves; ++i)
+                (*data.curveEnds)[i] = uint32(vertexCounts[i]) + (i > 0 ? (*data.curveEnds)[i - 1] : 0);
+        } else if (data.nodeData && attribute.matches("position", false, FIBER_FLOAT, 3)) {
+            data.nodeData->resize(numVertices);
+            auto pos = attribute.load<Vec3f>(in, numVertices);
+            for (uint64 i = 0; i < numVertices; ++i)
+                (*data.nodeData)[i] = Vec4f(pos[i].x(), pos[i].y(), pos[i].z(), (*data.nodeData)[i].w());
+        } else if (data.nodeData && attribute.matches("width", false, FIBER_FLOAT, 1)) {
+            data.nodeData->resize(numVertices);
+            auto width = attribute.load<float>(in, numVertices);
+            for (uint64 i = 0; i < numVertices; ++i)
+                (*data.nodeData)[i].w() = width[i];
+        }
+
+        offset += attribute.dataLength;
+    }
+
+    if (data.curveEnds && data.nodeData && data.nodeNormal)
+        initializeRandomNormals(data);
+
+    return true;
+}
+
+static void writeFiberAttributeDescriptor(OutputStreamHandle out, const std::string &name,
+        uint64 dataLength, bool perCurve, FiberValueType type, int valuesPerElement)
+{
+    FileUtils::streamWrite(out, uint64(20 + (name.size() + 1)));
+    FileUtils::streamWrite(out, dataLength);
+    FileUtils::streamWrite(out, uint16(perCurve ? 1 : 0));
+    FileUtils::streamWrite(out, uint8(type));
+    FileUtils::streamWrite(out, uint8(valuesPerElement));
+    FileUtils::streamWrite(out, &name[0], name.size() + 1);
+}
+static bool saveFiber(const Path &path, const CurveData &data)
+{
+    if (!data.nodeData || !data.curveEnds)
+        return false;
+
+    OutputStreamHandle out = FileUtils::openOutputStream(path);
+    if (!out)
+        return false;
+
+    const uint64 HeaderLength = 40;
+    uint64 numCurves = data.curveEnds->size();
+    uint64 numVertices  = data.nodeData->size();
+
+    FileUtils::streamWrite(out, FiberMagic);
+    FileUtils::streamWrite(out, SupportedMajorVersion);
+    FileUtils::streamWrite(out, CurrentMinorVersion);
+    FileUtils::streamWrite(out, SupportedContentType);
+    FileUtils::streamWrite(out, HeaderLength);
+    FileUtils::streamWrite(out, numVertices);
+    FileUtils::streamWrite(out, numCurves);
+
+    writeFiberAttributeDescriptor(out, "num_vertices", numCurves*sizeof(uint16), true, FIBER_UINT16, 1);
+    const std::vector<uint32> &curveEnds = *data.curveEnds;
+    for (uint64 i = 0; i < numCurves; ++i)
+        FileUtils::streamWrite(out, uint16((*data.curveEnds)[i] - (i ? (*data.curveEnds)[i - 1] : 0)));
+    writeFiberAttributeDescriptor(out, "position", numVertices*sizeof(Vec3f), false, FIBER_FLOAT, 3);
+    for (const Vec4f &v : *data.nodeData)
+        FileUtils::streamWrite(out, v.xyz());
+    writeFiberAttributeDescriptor(out, "width", numVertices*sizeof(float), false, FIBER_FLOAT, 1);
+    for (const Vec4f &v : *data.nodeData)
+        FileUtils::streamWrite(out, v.w());
+
+    FileUtils::streamWrite(out, uint64(0));
+
+    return true;
+}
+
+}
+
 bool load(const Path &path, CurveData &data)
 {
     if (path.testExtension("hair"))
         return loadHair(path, data);
+    else if (path.testExtension("fiber"))
+        return Fiber::loadFiber(path, data);
     else if (path.testExtension("obj"))
         return loadObj(path, data);
     return false;
@@ -261,6 +440,8 @@ bool save(const Path &path, const CurveData &data)
 {
     if (path.testExtension("hair"))
         return saveHair(path, data);
+    else if (path.testExtension("fiber"))
+        return Fiber::saveFiber(path, data);
     return false;
 }
 
