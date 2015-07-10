@@ -257,7 +257,7 @@ Curves::Curves(const Curves &o)
 
 Curves::Curves(std::vector<uint32> curveEnds, std::vector<Vec4f> nodeData, std::shared_ptr<Bsdf> bsdf, std::string name)
 : Primitive(name),
-  _path(std::make_shared<Path>(name.append(".hair"))),
+  _path(std::make_shared<Path>(name.append(".fiber"))),
   _modeString("half_cylinder"),
   _curveThickness(0.01f),
   _overrideThickness(false),
