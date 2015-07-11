@@ -25,13 +25,6 @@ class AtmosphericMedium : public Medium
 
     Vec3f _pos;
     float _scale;
-    float _cloudMinR;
-    float _cloudMaxR;
-    float _cloudDensity;
-    float _cloudAlbedo;
-    float _cloudShift;
-    Vec3f _backgroundSigmaS;
-    std::shared_ptr<Texture> _cloudThickness;
 
     Vec3f _sigmaS;
     float _rG;
@@ -42,12 +35,8 @@ class AtmosphericMedium : public Medium
 
     inline Vec2f densityAndDerivative(float r, float mu, float t, float d) const;
 
-    bool useCloudDensity(const Vec3f &q, float d) const;
-    bool insideClouds(const Vec3f &p) const;
-
     void sampleColorChannel(VolumeScatterEvent &event, MediumState &state) const;
 
-    Vec4f spectralOpticalDepthAndT(const Vec3f &p, const Vec3f &w, float maxT, float targetDepth, int targetChannel) const;
     Vec2f opticalDepthAndT(const Vec3f &p, const Vec3f &w, float maxT, float targetDepth) const;
 
 public:
