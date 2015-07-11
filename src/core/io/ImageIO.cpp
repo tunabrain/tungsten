@@ -236,8 +236,7 @@ static std::unique_ptr<float[]> loadExr(const Path &path, TexelConversion reques
     } else if (!isScalar && yChannel) {
         // The user wants RGB and we have just luminance -> duplicate luminance across all three channels
         // This is not the best solution, but we don't want to deal with chroma subsampled images
-        for (int i = 0; i < 3; ++i)
-            frameBuffer.insert("Y", Imf::Slice(Imf::FLOAT, base + i*sizeof(float), texelSize, texelSize*w));
+        frameBuffer.insert("Y", Imf::Slice(Imf::FLOAT, base, texelSize, texelSize*w));
     } else if (isScalar) {
         // The user wants a scalar texture and we have (some) RGB channels
         // We can't read directly into the destination, but have to read to a temporary
@@ -276,6 +275,10 @@ static std::unique_ptr<float[]> loadExr(const Path &path, TexelConversion reques
             float b = bChannel ? img[i*sourceChannels + bLocation] : 0.0f;
             texels[i] = convertToScalar(request, r, g, b, 0.0f, false);
         }
+    } else if (!isScalar && yChannel) {
+        // Here we need to duplicate the Y channel stored in R across G and B
+        for (int i = 0; i < w*h; ++i)
+            texels[i*3 + 1] = texels[i*3 + 2] = texels[i*3];
     }
 
     return std::move(texels);
