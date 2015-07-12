@@ -86,7 +86,7 @@ Vec3f TraceBase::generalizedShadowRay(Ray &ray,
         }
 
         if (medium)
-            throughput *= medium->transmittance(VolumeScatterEvent(ray.pos(), ray.dir(), ray.farT()));
+            throughput *= medium->transmittance(ray);
         if (info.primitive == nullptr || info.primitive == endCap)
             return bounce >= _settings.minBounces ? throughput : Vec3f(0.0f);
         medium = info.primitive->selectMedium(medium, !info.primitive->hitBackside(data));
@@ -127,33 +127,32 @@ Vec3f TraceBase::attenuatedEmission(const Primitive &light,
 }
 
 bool TraceBase::volumeLensSample(const Camera &camera,
-                                 VolumeScatterEvent &event,
+                                 PathSampleGenerator &sampler,
+                                 MediumSample &mediumSample,
                                  const Medium *medium,
                                  int bounce,
                                  const Ray &parentRay,
                                  Vec3f &weight,
                                  Vec2f &pixel)
 {
-    LensSample sample;
-    if (!camera.sampleDirect(event.p, *event.sampler, sample))
+    LensSample lensSample;
+    if (!camera.sampleDirect(mediumSample.p, sampler, lensSample))
         return false;
 
-    event.wo = sample.d;
-
-    Vec3f f = medium->phaseEval(event);
+    Vec3f f = mediumSample.phase->eval(parentRay.dir(), lensSample.d);
     if (f == 0.0f)
         return false;
 
-    Ray ray = parentRay.scatter(event.p, sample.d, 0.0f);
+    Ray ray = parentRay.scatter(mediumSample.p, lensSample.d, 0.0f);
     ray.setPrimaryRay(false);
-    ray.setFarT(sample.dist);
+    ray.setFarT(lensSample.dist);
 
     Vec3f transmittance = generalizedShadowRay(ray, medium, nullptr, bounce);
     if (transmittance == 0.0f)
         return false;
 
-    weight = f*transmittance*sample.weight;
-    pixel = sample.pixel;
+    weight = f*transmittance*lensSample.weight;
+    pixel = lensSample.pixel;
 
     return true;
 }
@@ -273,51 +272,50 @@ Vec3f TraceBase::bsdfSample(const Primitive &light,
     return bsdfF;
 }
 
-Vec3f TraceBase::volumeLightSample(VolumeScatterEvent &event,
+Vec3f TraceBase::volumeLightSample(PathSampleGenerator &sampler,
+                    MediumSample &mediumSample,
                     const Primitive &light,
                     const Medium *medium,
-                    bool performMis,
                     int bounce,
                     const Ray &parentRay)
 {
-    LightSample sample;
-    if (!light.sampleDirect(_threadId, event.p, *event.sampler, sample))
+    LightSample lightSample;
+    if (!light.sampleDirect(_threadId, mediumSample.p, sampler, lightSample))
         return Vec3f(0.0f);
-    event.wo = sample.d;
 
-    Vec3f f = medium->phaseEval(event);
+    Vec3f f = mediumSample.phase->eval(parentRay.dir(), lightSample.d);
     if (f == 0.0f)
         return Vec3f(0.0f);
 
-    Ray ray = parentRay.scatter(event.p, sample.d, 0.0f);
+    Ray ray = parentRay.scatter(mediumSample.p, lightSample.d, 0.0f);
     ray.setPrimaryRay(false);
 
     IntersectionTemporary data;
     IntersectionInfo info;
-    Vec3f e = attenuatedEmission(light, medium, sample.dist, data, info, bounce, ray);
+    Vec3f e = attenuatedEmission(light, medium, lightSample.dist, data, info, bounce, ray);
     if (e == 0.0f)
         return Vec3f(0.0f);
 
-    Vec3f lightF = f*e/sample.pdf;
+    Vec3f lightF = f*e/lightSample.pdf;
 
-    if (!light.isDirac() && performMis)
-        lightF *= SampleWarp::powerHeuristic(sample.pdf, medium->phasePdf(event));
+    if (!light.isDirac())
+        lightF *= SampleWarp::powerHeuristic(lightSample.pdf, mediumSample.phase->pdf(parentRay.dir(), lightSample.d));
 
     return lightF;
 }
 
 Vec3f TraceBase::volumePhaseSample(const Primitive &light,
-                    VolumeScatterEvent &event,
+                    PathSampleGenerator &sampler,
+                    MediumSample &mediumSample,
                     const Medium *medium,
                     int bounce,
                     const Ray &parentRay)
 {
-    if (!medium->scatter(event))
-        return Vec3f(0.0f);
-    if (event.weight == 0.0f)
+    PhaseSample phaseSample;
+    if (!mediumSample.phase->sample(sampler, parentRay.dir(), phaseSample))
         return Vec3f(0.0f);
 
-    Ray ray = parentRay.scatter(event.p, event.wo, 0.0f);
+    Ray ray = parentRay.scatter(mediumSample.p, phaseSample.w, 0.0f);
     ray.setPrimaryRay(false);
 
     IntersectionTemporary data;
@@ -327,9 +325,9 @@ Vec3f TraceBase::volumePhaseSample(const Primitive &light,
     if (e == Vec3f(0.0f))
         return Vec3f(0.0f);
 
-    Vec3f phaseF = e*event.weight;
+    Vec3f phaseF = e*phaseSample.weight;
 
-    phaseF *= SampleWarp::powerHeuristic(event.pdf, light.directPdf(_threadId, data, info, event.p));
+    phaseF *= SampleWarp::powerHeuristic(phaseSample.pdf, light.directPdf(_threadId, data, info, mediumSample.p));
 
     return phaseF;
 }
@@ -356,19 +354,17 @@ Vec3f TraceBase::sampleDirect(const Primitive &light,
 }
 
 Vec3f TraceBase::volumeSampleDirect(const Primitive &light,
-                    VolumeScatterEvent &event,
+                    PathSampleGenerator &sampler,
+                    MediumSample &mediumSample,
                     const Medium *medium,
                     int bounce,
                     const Ray &parentRay)
 {
-    // TODO: Re-enable Mis suggestions? Might be faster, but can cause fireflies
-    bool mis = true;//medium->suggestMis();
-
-    Vec3f result = volumeLightSample(event, light, medium, mis, bounce, parentRay);
-    event.sampler->advancePath();
-    if (!light.isDirac() && mis) {
-        result += volumePhaseSample(light, event, medium, bounce, parentRay);
-        event.sampler->advancePath();
+    Vec3f result = volumeLightSample(sampler, mediumSample, light, medium, bounce, parentRay);
+    sampler.advancePath();
+    if (!light.isDirac()) {
+        result += volumePhaseSample(light, sampler, mediumSample, medium, bounce, parentRay);
+        sampler.advancePath();
     }
 
     return result;
@@ -428,16 +424,17 @@ const Primitive *TraceBase::chooseLightAdjoint(PathSampleGenerator &sampler, flo
     return _scene->lights()[lightIdx].get();
 }
 
-Vec3f TraceBase::volumeEstimateDirect(VolumeScatterEvent &event,
+Vec3f TraceBase::volumeEstimateDirect(PathSampleGenerator &sampler,
+                    MediumSample &mediumSample,
                     const Medium *medium,
                     int bounce,
                     const Ray &parentRay)
 {
     float weight;
-    const Primitive *light = chooseLight(*event.sampler, event.p, weight);
+    const Primitive *light = chooseLight(sampler, mediumSample.p, weight);
     if (light == nullptr)
         return Vec3f(0.0f);
-    return volumeSampleDirect(*light, event, medium, bounce, parentRay)*weight;
+    return volumeSampleDirect(*light, sampler, mediumSample, medium, bounce, parentRay)*weight;
 }
 
 Vec3f TraceBase::estimateDirect(SurfaceScatterEvent &event,
@@ -452,26 +449,22 @@ Vec3f TraceBase::estimateDirect(SurfaceScatterEvent &event,
     return sampleDirect(*light, event, medium, bounce, parentRay)*weight;
 }
 
-bool TraceBase::handleVolume(VolumeScatterEvent &event, const Medium *&medium,
-           int bounce, bool adjoint, bool enableLightSampling, Ray &ray,
-           Vec3f &throughput, Vec3f &emission, bool &wasSpecular,
-           Medium::MediumState &state)
+bool TraceBase::handleVolume(PathSampleGenerator &sampler, MediumSample &mediumSample,
+           const Medium *&medium, int bounce, bool adjoint, bool enableLightSampling,
+           Ray &ray, Vec3f &throughput, Vec3f &emission, bool &wasSpecular)
 {
     wasSpecular = !enableLightSampling;
 
-    if (!adjoint && bounce >= _settings.minBounces)
-        emission += throughput*medium->emission(event);
     if (!adjoint && enableLightSampling && bounce < _settings.maxBounces - 1)
-        emission += throughput*volumeEstimateDirect(event, medium, bounce + 1, ray);
+        emission += throughput*volumeEstimateDirect(sampler, mediumSample, medium, bounce + 1, ray);
 
-    if (medium->absorb(event, state))
-        return false;
-    if (!medium->scatter(event))
+    PhaseSample phaseSample;
+    if (!mediumSample.phase->sample(sampler, ray.dir(), phaseSample))
         return false;
 
-    ray = ray.scatter(event.p, event.wo, 0.0f);
+    ray = ray.scatter(mediumSample.p, phaseSample.w, 0.0f);
     ray.setPrimaryRay(false);
-    throughput *= event.weight;
+    throughput *= phaseSample.weight;
 
     return true;
 }

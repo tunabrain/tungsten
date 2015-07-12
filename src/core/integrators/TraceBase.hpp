@@ -4,7 +4,7 @@
 #include "TraceSettings.hpp"
 
 #include "samplerecords/SurfaceScatterEvent.hpp"
-#include "samplerecords/VolumeScatterEvent.hpp"
+#include "samplerecords/MediumSample.hpp"
 #include "samplerecords/LightSample.hpp"
 
 #include "sampling/PathSampleGenerator.hpp"
@@ -60,7 +60,8 @@ protected:
                              Ray &ray);
 
     bool volumeLensSample(const Camera &camera,
-                    VolumeScatterEvent &event,
+                    PathSampleGenerator &sampler,
+                    MediumSample &mediumSample,
                     const Medium *medium,
                     int bounce,
                     const Ray &parentRay,
@@ -87,15 +88,16 @@ protected:
                      int bounce,
                      const Ray &parentRay);
 
-    Vec3f volumeLightSample(VolumeScatterEvent &event,
+    Vec3f volumeLightSample(PathSampleGenerator &sampler,
+                        MediumSample &mediumSample,
                         const Primitive &light,
                         const Medium *medium,
-                        bool performMis,
                         int bounce,
                         const Ray &parentRay);
 
     Vec3f volumePhaseSample(const Primitive &light,
-                        VolumeScatterEvent &event,
+                        PathSampleGenerator &sampler,
+                        MediumSample &mediumSample,
                         const Medium *medium,
                         int bounce,
                         const Ray &parentRay);
@@ -107,7 +109,8 @@ protected:
                        const Ray &parentRay);
 
     Vec3f volumeSampleDirect(const Primitive &light,
-                        VolumeScatterEvent &event,
+                        PathSampleGenerator &sampler,
+                        MediumSample &mediumSample,
                         const Medium *medium,
                         int bounce,
                         const Ray &parentRay);
@@ -115,7 +118,8 @@ protected:
     const Primitive *chooseLight(PathSampleGenerator &sampler, const Vec3f &p, float &weight);
     const Primitive *chooseLightAdjoint(PathSampleGenerator &sampler, float &pdf);
 
-    Vec3f volumeEstimateDirect(VolumeScatterEvent &event,
+    Vec3f volumeEstimateDirect(PathSampleGenerator &sampler,
+                        MediumSample &mediumSample,
                         const Medium *medium,
                         int bounce,
                         const Ray &parentRay);
@@ -129,10 +133,9 @@ public:
     SurfaceScatterEvent makeLocalScatterEvent(IntersectionTemporary &data, IntersectionInfo &info,
             Ray &ray, PathSampleGenerator *sampler) const;
 
-    bool handleVolume(VolumeScatterEvent &event, const Medium *&medium,
-               int bounce, bool adjoint, bool enableLightSampling, Ray &ray,
-               Vec3f &throughput, Vec3f &emission, bool &wasSpecular,
-               Medium::MediumState &state);
+    bool handleVolume(PathSampleGenerator &sampler, MediumSample &mediumSample,
+               const Medium *&medium, int bounce, bool adjoint, bool enableLightSampling,
+               Ray &ray, Vec3f &throughput, Vec3f &emission, bool &wasSpecular);
 
     bool handleSurface(SurfaceScatterEvent &event, IntersectionTemporary &data,
                IntersectionInfo &info, const Medium *&medium,

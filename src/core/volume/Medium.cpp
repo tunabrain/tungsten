@@ -1,34 +1,41 @@
 #include "Medium.hpp"
 
+#include "phasefunctions/IsotropicPhaseFunction.hpp"
+
 #include "io/JsonUtils.hpp"
+#include "io/Scene.hpp"
 
 namespace Tungsten {
 
 Medium::Medium()
-: _phaseFunctionName("isotropic"),
-  _phaseG(0.0f),
+: _phaseFunction(std::make_shared<IsotropicPhaseFunction>()),
   _maxBounce(1024)
 {
-    init();
 }
 
 void Medium::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     JsonSerializable::fromJson(v, scene);
-    JsonUtils::fromJson(v, "phase_function", _phaseFunctionName);
-    JsonUtils::fromJson(v, "phase_g", _phaseG);
+
+    const rapidjson::Value::Member *phase = v.FindMember("phase_function");
+    if (phase)
+        _phaseFunction = scene.fetchPhase(phase->value);
+
     JsonUtils::fromJson(v, "max_bounces", _maxBounce);
-    init();
 }
 
 rapidjson::Value Medium::toJson(Allocator &allocator) const
 {
     rapidjson::Value v(JsonSerializable::toJson(allocator));
-    v.AddMember("phase_function", _phaseFunctionName.c_str(), allocator);
-    v.AddMember("phase_g", _phaseG, allocator);
+    JsonUtils::addObjectMember(v, "phase_function", *_phaseFunction, allocator);
     v.AddMember("max_bounces", _maxBounce, allocator);
 
     return std::move(v);
+}
+
+const PhaseFunction *Medium::phaseFunction(const Vec3f &/*p*/) const
+{
+    return _phaseFunction.get();
 }
 
 }

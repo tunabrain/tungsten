@@ -41,7 +41,7 @@ void LightTracer::traceSample(PathSampleGenerator &sampler)
     Ray ray(point.p, direction.d);
     throughput *= direction.weight;
 
-    VolumeScatterEvent volumeEvent;
+    MediumSample mediumSample;
     SurfaceScatterEvent surfaceEvent;
     IntersectionTemporary data;
     IntersectionInfo info;
@@ -55,12 +55,10 @@ void LightTracer::traceSample(PathSampleGenerator &sampler)
     while ((didHit || medium) && bounce < _settings.maxBounces - 1) {
         bool hitSurface = true;
         if (medium) {
-            volumeEvent = VolumeScatterEvent(&sampler, throughput, ray.pos(), ray.dir(), ray.farT());
-            if (!medium->sampleDistance(volumeEvent, state))
+            if (!medium->sampleDistance(sampler, ray, state, mediumSample))
                 break;
-            throughput *= volumeEvent.weight;
-            volumeEvent.weight = Vec3f(1.0f);
-            hitSurface = volumeEvent.t == volumeEvent.maxT;
+            throughput *= mediumSample.weight;
+            hitSurface = mediumSample.exited;
             if (hitSurface && !didHit)
                 break;
         }
@@ -77,15 +75,13 @@ void LightTracer::traceSample(PathSampleGenerator &sampler)
                     true, false, ray, throughput, emission, wasSpecular, state))
                 break;
         } else {
-            volumeEvent.p += volumeEvent.t*volumeEvent.wi;
-
             Vec3f weight;
             Vec2f pixel;
-            if (volumeLensSample(_scene->cam(), volumeEvent, medium, bounce + 1, ray, weight, pixel))
+            if (volumeLensSample(_scene->cam(), sampler, mediumSample, medium, bounce + 1, ray, weight, pixel))
                 _splatBuffer->splatFiltered(pixel, weight*throughput);
 
-            if (!handleVolume(volumeEvent, medium, bounce,
-                    true, false, ray, throughput, emission, wasSpecular, state))
+            if (!handleVolume(sampler, mediumSample, medium, bounce,
+                    true, false, ray, throughput, emission, wasSpecular))
                 break;
         }
 

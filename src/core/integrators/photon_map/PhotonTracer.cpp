@@ -41,32 +41,26 @@ void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRan
     bool didHit = _scene->intersect(ray, data, info);
     while ((didHit || medium) && bounce < _settings.maxBounces - 1) {
         if (medium) {
-            VolumeScatterEvent event(&sampler, throughput, ray.pos(), ray.dir(), ray.farT());
-            if (!medium->sampleDistance(event, state))
+            MediumSample mediumSample;
+            if (!medium->sampleDistance(sampler, ray, state, mediumSample))
                 break;
-            throughput *= event.weight;
-            event.weight = Vec3f(1.0f);
+            throughput *= mediumSample.weight;
+            hitSurface = mediumSample.exited;
 
-            if (event.t < event.maxT) {
-                event.p += event.t*event.wi;
-
+            if (!hitSurface) {
                 if (!volumeRange.full()) {
                     VolumePhoton &p = volumeRange.addPhoton();
-                    p.pos = event.p;
+                    p.pos = mediumSample.p;
                     p.dir = ray.dir();
                     p.power = throughput;
                 }
 
-                if (medium->absorb(event, state))
+                PhaseSample phaseSample;
+                if (!mediumSample.phase->sample(sampler, ray.dir(), phaseSample))
                     break;
-                if (!medium->scatter(event))
-                    break;
-                ray = ray.scatter(event.p, event.wo, 0.0f);
+                ray = ray.scatter(mediumSample.p, phaseSample.w, 0.0f);
                 ray.setPrimaryRay(false);
-                throughput *= event.weight;
-                hitSurface = false;
-            } else {
-                hitSurface = true;
+                throughput *= phaseSample.weight;
             }
         }
 
@@ -129,22 +123,18 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
     bool didHit = _scene->intersect(ray, data, info);
     while ((medium || didHit) && bounce < _settings.maxBounces - 1) {
         if (medium) {
-            VolumeScatterEvent event(ray.pos(), ray.dir(), ray.farT());
-
             if (mediumTree) {
                 Vec3f beamEstimate(0.0f);
                 mediumTree->beamQuery(ray.pos(), ray.dir(), ray.farT(), [&](const VolumePhoton &p, float t, float distSq) {
-                    event.t = t;
-                    event.wo = -p.dir;
-                    float kernel = (3.0f*INV_PI*sqr(1.0f - distSq/p.radiusSq))/p.radiusSq;
-                    //float kernel = INV_PI/p.radiusSq;
-                    beamEstimate += kernel*medium->phaseEval(event)*medium->transmittance(event)*p.power;
+                    Ray mediumQuery(ray);
+                    mediumQuery.setFarT(t);
+                    beamEstimate += (3.0f*INV_PI*sqr(1.0f - distSq/p.radiusSq))/p.radiusSq
+                            *medium->phaseFunction(p.pos)->eval(ray.dir(), -p.dir)
+                            *medium->transmittance(mediumQuery)*p.power;
                 });
                 result += throughput*beamEstimate;
             }
-
-            event.t = ray.farT();
-            throughput *= medium->transmittance(event);
+            throughput *= medium->transmittance(ray);
         }
         if (!didHit)
             break;

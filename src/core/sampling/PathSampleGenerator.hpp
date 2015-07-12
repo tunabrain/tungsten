@@ -23,11 +23,11 @@ enum SampleBlockStructure
 
 enum SampleBlock : int
 {
-    EmitterSample = ContinuousBlockOffset,
-    CameraSample  = ContinuousBlockOffset,
-    BsdfSample    = ContinuousBlockOffset,
-    MediumSample  = ContinuousBlockOffset,
-    TransmittanceSample = TransmittanceBlockOffset,
+    EmitterSample               = ContinuousBlockOffset,
+    CameraSample                = ContinuousBlockOffset,
+    BsdfSample                  = ContinuousBlockOffset,
+    MediumPhaseSample           = ContinuousBlockOffset,
+    MediumTransmittanceSample   = TransmittanceBlockOffset,
     DiscreteEmitterSample       = DiscreteBlockOffset,
     DiscreteCameraSample        = DiscreteBlockOffset,
     DiscreteBsdfSample          = DiscreteBlockOffset,

@@ -4,8 +4,7 @@
 #include "SurfaceRecord.hpp"
 #include "EmitterRecord.hpp"
 #include "CameraRecord.hpp"
-
-#include "samplerecords/VolumeScatterEvent.hpp"
+#include "MediumRecord.hpp"
 
 #include "primitives/Primitive.hpp"
 
@@ -36,26 +35,26 @@ class PathVertex
         CameraRecord camera;
         EmitterRecord emitter;
         SurfaceRecord surface;
-        VolumeScatterEvent volume;
+        MediumRecord medium;
 
         VertexRecord() = default;
-        VertexRecord(const        CameraRecord &     camera_) :      camera(     camera_) {}
-        VertexRecord(const       EmitterRecord &    emitter_) :     emitter(    emitter_) {}
-        VertexRecord(const  VolumeScatterEvent &     volume_) :      volume(     volume_) {}
-        VertexRecord(const       SurfaceRecord &    surface_) :     surface(    surface_) {}
+        VertexRecord(const  CameraRecord &  camera_) :  camera( camera_) {}
+        VertexRecord(const EmitterRecord & emitter_) : emitter(emitter_) {}
+        VertexRecord(const  MediumRecord &  medium_) :  medium( medium_) {}
+        VertexRecord(const SurfaceRecord & surface_) : surface(surface_) {}
     };
     union VertexSampler
     {
         const Camera *camera;
         const Primitive *emitter;
         const Bsdf *bsdf;
-        const Medium *medium;
+        const PhaseFunction *phase;
 
         VertexSampler() = default;
-        VertexSampler(const    Camera * camera_) :  camera( camera_) {}
-        VertexSampler(const Primitive *emitter_) : emitter(emitter_) {}
-        VertexSampler(const      Bsdf *   bsdf_) :    bsdf(   bsdf_) {}
-        VertexSampler(const    Medium * medium_) :  medium( medium_) {}
+        VertexSampler(const       Camera * camera_) :  camera( camera_) {}
+        VertexSampler(const     Primitive *emitter_) : emitter(emitter_) {}
+        VertexSampler(const          Bsdf *   bsdf_) :    bsdf(   bsdf_) {}
+        VertexSampler(const PhaseFunction *  phase_) :   phase(  phase_) {}
     };
 
     VertexType _type;
@@ -95,10 +94,10 @@ public:
       _connectable(!_dirac)
     {
     }
-    PathVertex(const Medium *medium, const VolumeScatterEvent &event, const Vec3f &throughput_)
+    PathVertex(const PhaseFunction *phase, const MediumRecord &medium, const Vec3f &throughput_)
     : _type(VolumeVertex),
-      _record(event),
-      _sampler(medium),
+      _record(medium),
+      _sampler(phase),
       _throughput(throughput_),
       _dirac(false),
       _connectable(!_dirac)
@@ -132,9 +131,9 @@ public:
         return _record.surface;
     }
 
-    const VolumeScatterEvent &volumeRecord() const
+    const MediumRecord &mediumRecord() const
     {
-        return _record.volume;
+        return _record.medium;
     }
 
     const Camera *camera() const
@@ -152,9 +151,9 @@ public:
         return _sampler.bsdf;
     }
 
-    const Medium *medium() const
+    const PhaseFunction *phase() const
     {
-        return _sampler.medium;
+        return _sampler.phase;
     }
 
     const Vec3f &throughput() const

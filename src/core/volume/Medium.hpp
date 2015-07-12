@@ -1,11 +1,15 @@
 #ifndef MEDIUM_HPP_
 #define MEDIUM_HPP_
 
-#include "samplerecords/VolumeScatterEvent.hpp"
+#include "samplerecords/MediumSample.hpp"
+
+#include "phasefunctions/PhaseFunction.hpp"
+
+#include "math/Ray.hpp"
 
 #include "io/JsonSerializable.hpp"
 
-#include "PhaseFunction.hpp"
+#include <memory>
 
 namespace Tungsten {
 
@@ -14,16 +18,8 @@ class Scene;
 class Medium : public JsonSerializable
 {
 protected:
-    std::string _phaseFunctionName;
-    float _phaseG;
+    std::shared_ptr<PhaseFunction> _phaseFunction;
     int _maxBounce;
-
-    PhaseFunction::Type _phaseFunction;
-
-    void init()
-    {
-        _phaseFunction = PhaseFunction::stringToType(_phaseFunctionName);
-    }
 
 public:
     struct MediumState
@@ -52,39 +48,13 @@ public:
 
     virtual bool isHomogeneous() const = 0;
 
-    virtual void prepareForRender() = 0;
-    virtual void teardownAfterRender() = 0;
+    virtual void prepareForRender() {}
+    virtual void teardownAfterRender() {}
 
-    virtual bool sampleDistance(VolumeScatterEvent &event, MediumState &state) const = 0;
-    virtual bool absorb(VolumeScatterEvent &event, MediumState &state) const = 0;
-    virtual bool scatter(VolumeScatterEvent &event) const = 0;
-    virtual Vec3f transmittance(const VolumeScatterEvent &event) const = 0;
-    virtual Vec3f emission(const VolumeScatterEvent &event) const = 0;
-
-    virtual Vec3f phaseEval(const VolumeScatterEvent &event) const = 0;
-    float phasePdf(const VolumeScatterEvent &event) const
-    {
-        return PhaseFunction::eval(_phaseFunction, event.wi.dot(event.wo), _phaseG);
-    }
-
-    bool suggestMis() const
-    {
-        if (_phaseFunction == PhaseFunction::Isotropic)
-            return false;
-        if (_phaseFunction == PhaseFunction::HenyeyGreenstein && std::abs(_phaseG) < 0.1f)
-            return false;
-        return true;
-    }
-
-    PhaseFunction::Type phaseFunctionType() const
-    {
-        return _phaseFunction;
-    }
-
-    float phaseG() const
-    {
-        return _phaseG;
-    }
+    virtual bool sampleDistance(PathSampleGenerator &sampler, const Ray &ray,
+            MediumState &state, MediumSample &sample) const = 0;
+    virtual Vec3f transmittance(const Ray &ray) const = 0;
+    virtual const PhaseFunction *phaseFunction(const Vec3f &p) const;
 };
 
 }

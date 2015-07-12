@@ -38,11 +38,12 @@ Vec2f AtmosphericMedium::densityAndDerivative(float r, float mu, float t, float 
     return Vec2f(density, dDdT);
 }
 
-void AtmosphericMedium::sampleColorChannel(VolumeScatterEvent &event, MediumState &state) const
+void AtmosphericMedium::sampleColorChannel(PathSampleGenerator &sampler, MediumState &state, MediumSample &sample) const
 {
-    state.component = event.sampler->nextDiscrete(DiscreteTransmittanceSample, 3);
-    event.weight = Vec3f(0.0f);
-    event.weight[state.component] = 1.0f/3.0f;
+    state.component = sampler.nextDiscrete(DiscreteTransmittanceSample, 3);
+    sample.pdf = 1.0f/3.0f;
+    sample.weight = Vec3f(0.0f);
+    sample.weight[state.component] = 3.0f;
 }
 
 Vec2f AtmosphericMedium::opticalDepthAndT(const Vec3f &p, const Vec3f &w, float maxT, float targetDepth) const
@@ -94,8 +95,6 @@ void AtmosphericMedium::fromJson(const rapidjson::Value &v, const Scene &scene)
     JsonUtils::fromJson(v, "pos", _pos);
     JsonUtils::fromJson(v, "scale", _scale);
     JsonUtils::fromJson(v, "pivot", _primName);
-
-    init();
 }
 
 rapidjson::Value AtmosphericMedium::toJson(Allocator &allocator) const
@@ -138,82 +137,69 @@ void AtmosphericMedium::prepareForRender()
     _hR = float(FalloffScale*double(Hr)/double(_scale));
 }
 
-void AtmosphericMedium::teardownAfterRender()
-{
-}
-
-bool AtmosphericMedium::sampleDistance(VolumeScatterEvent &event, MediumState &state) const
+bool AtmosphericMedium::sampleDistance(PathSampleGenerator &sampler, const Ray &ray,
+        MediumState &state, MediumSample &sample) const
 {
     if (state.bounce > _maxBounce)
         return false;
 
+    sample.phase = _phaseFunction.get();
+
     Vec2f tSpan;
-    if (!sphereMinTMaxT(event.p, event.wi, tSpan, _rT) || event.maxT < tSpan.x()) {
-        event.t = event.maxT;
-        event.weight = Vec3f(1.0f);
+    if (!sphereMinTMaxT(ray.pos(), ray.dir(), tSpan, _rT) || ray.farT() < tSpan.x()) {
+        sample.t = ray.farT();
+        sample.weight = Vec3f(1.0f);
+        sample.pdf = 1.0f;
+        sample.p = ray.pos() + sample.t*ray.dir();
+        sample.exited = true;
         return true;
     }
 
     if (state.firstScatter) {
-        sampleColorChannel(event, state);
+        sampleColorChannel(sampler, state, sample);
     } else {
-        event.weight = Vec3f(0.0f);
-        event.weight[state.component] = 1.0f;
+        sample.pdf = 1.0f;
+        sample.weight = Vec3f(0.0f);
+        sample.weight[state.component] = 1.0f;
     }
     state.advance();
 
-    float targetDepth = -std::log(1.0f - event.sampler->next1D(TransmittanceSample))/_sigmaS[state.component];
+    float sigmaSc = _sigmaS[state.component];
+    float targetDepth = -std::log(1.0f - sampler.next1D(MediumTransmittanceSample))/sigmaSc;
     float minT = max(0.0f, tSpan.x());
-    Vec3f p = event.p + minT*event.wi;
-    float maxT = min(event.maxT - minT, tSpan.y());
+    Vec3f p = ray.pos() + minT*ray.dir();
+    float maxT = min(ray.farT(), tSpan.y()) - minT;
 
-    Vec2f depthAndT = opticalDepthAndT(p, event.wi, maxT, targetDepth);
+    Vec2f depthAndT = opticalDepthAndT(p, ray.dir(), maxT, targetDepth);
     float sampledT = depthAndT.y();
+    sample.exited = sampledT == maxT;
 
-    event.t = sampledT == maxT ? event.maxT : (sampledT + minT);
+    float extinction = std::exp(-sigmaSc*depthAndT.x());
+    if (sample.exited) {
+        sample.t = ray.farT();
+        sample.pdf *= sigmaSc*extinction;
+    } else {
+        sample.t = (sampledT + minT);
+        sample.pdf *= extinction;
+    }
+    sample.p = ray.pos() + sample.t*ray.dir();
 
     return true;
 }
 
-bool AtmosphericMedium::absorb(VolumeScatterEvent &event, MediumState &state) const
-{
-    event.weight = Vec3f(0.0f);
-    event.weight[state.component] = 1.0f;
-    return false;
-}
-
-bool AtmosphericMedium::scatter(VolumeScatterEvent &event) const
-{
-    event.wo = PhaseFunction::sample(PhaseFunction::Rayleigh, 0.0f, event.sampler->next2D(MediumSample));
-    event.pdf = PhaseFunction::eval(PhaseFunction::Rayleigh, event.wo.z(), 0.0f);
-    TangentFrame frame(event.wi);
-    event.wo = frame.toGlobal(event.wo);
-    return true;
-}
-
-Vec3f AtmosphericMedium::transmittance(const VolumeScatterEvent &event) const
+Vec3f AtmosphericMedium::transmittance(const Ray &ray) const
 {
     Vec2f tSpan;
-    if (!sphereMinTMaxT(event.p, event.wi, tSpan, _rT) || event.maxT < tSpan.x())
+    if (!sphereMinTMaxT(ray.pos(), ray.dir(), tSpan, _rT) || ray.farT() < tSpan.x())
         return Vec3f(1.0f);
 
     float minT = max(0.0f, tSpan.x());
-    Vec3f p = event.p + minT*event.wi;
-    float maxT = min(event.maxT - minT, tSpan.y());
+    Vec3f p = ray.pos() + minT*ray.dir();
+    float maxT = min(ray.farT() - minT, tSpan.y());
 
-    Vec2f depthAndT = opticalDepthAndT(p, event.wi, maxT, 1.0f);
+    Vec2f depthAndT = opticalDepthAndT(p, ray.dir(), maxT, 1.0f);
 
     return std::exp(-_sigmaS*depthAndT.x());
-}
-
-Vec3f AtmosphericMedium::emission(const VolumeScatterEvent &/*event*/) const
-{
-    return Vec3f(0.0f);
-}
-
-Vec3f AtmosphericMedium::phaseEval(const VolumeScatterEvent &event) const
-{
-    return Vec3f(PhaseFunction::eval(PhaseFunction::Rayleigh, event.wi.dot(event.wo), 0.0f));
 }
 
 }

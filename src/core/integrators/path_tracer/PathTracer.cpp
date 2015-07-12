@@ -29,7 +29,7 @@ Vec3f PathTracer::traceSample(Vec2u pixel, PathSampleGenerator &sampler)
     Ray ray(point.p, direction.d);
     ray.setPrimaryRay(true);
 
-    VolumeScatterEvent volumeEvent;
+    MediumSample mediumSample;
     SurfaceScatterEvent surfaceEvent;
     IntersectionTemporary data;
     Medium::MediumState state;
@@ -44,12 +44,10 @@ Vec3f PathTracer::traceSample(Vec2u pixel, PathSampleGenerator &sampler)
     while ((didHit || medium) && bounce < _settings.maxBounces) {
         bool hitSurface = true;
         if (medium) {
-            volumeEvent = VolumeScatterEvent(&sampler, throughput, ray.pos(), ray.dir(), ray.farT());
-            if (!medium->sampleDistance(volumeEvent, state))
+            if (!medium->sampleDistance(sampler, ray, state, mediumSample))
                 break;
-            throughput *= volumeEvent.weight;
-            volumeEvent.weight = Vec3f(1.0f);
-            hitSurface = volumeEvent.t == volumeEvent.maxT;
+            throughput *= mediumSample.weight;
+            hitSurface = mediumSample.exited;
             if (hitSurface && !didHit)
                 break;
         }
@@ -60,9 +58,8 @@ Vec3f PathTracer::traceSample(Vec2u pixel, PathSampleGenerator &sampler)
                     _settings.enableLightSampling, ray, throughput, emission, wasSpecular, state))
                 break;
         } else {
-            volumeEvent.p += volumeEvent.t*volumeEvent.wi;
-            if (!handleVolume(volumeEvent, medium, bounce, false,
-                    _settings.enableVolumeLightSampling, ray, throughput, emission, wasSpecular, state))
+            if (!handleVolume(sampler, mediumSample, medium, bounce, false,
+                    _settings.enableVolumeLightSampling, ray, throughput, emission, wasSpecular))
                 break;
         }
 

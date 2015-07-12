@@ -115,14 +115,14 @@ bool PathVertex::sampleNextVertex(const TraceableScene &scene, TraceBase &tracer
 
         break;
     } case VolumeVertex: {
-        VolumeScatterEvent &record = _record.volume;
+        //MediumRecord &record = _record.medium;
 
         // TODO: Participating media
 
-        prev->_pdfBackward = _sampler.medium->phasePdf(_record.volume.makeFlippedQuery())
-                *prev->cosineFactor(prevEdge->d)/prevEdge->rSq;
-        weight = record.weight;
-        pdf = record.pdf;
+        //prev->_pdfBackward = _sampler.medium->phasePdf(_record.volume.makeFlippedQuery())
+        //        *prev->cosineFactor(prevEdge->d)/prevEdge->rSq;
+        //weight = record.weight;
+        //pdf = record.pdf;
         return false;
     } default:
         return false;
@@ -171,7 +171,9 @@ Vec3f PathVertex::eval(const Vec3f &d, bool adjoint) const
                 _record.surface.event.frame.toLocal(d)),
                 adjoint);
     case VolumeVertex:
-        return _sampler.medium->phaseEval(_record.volume.makeWarpedQuery(_record.volume.wi, d));
+        // TODO: Media
+        //return _sampler.medium->phaseEval(_record.volume.makeWarpedQuery(_record.volume.wi, d));
+        return Vec3f(0.0f);
     default:
         return Vec3f(0.0f);
     }
@@ -204,13 +206,15 @@ void PathVertex::evalPdfs(const PathVertex *prev, const PathEdge *prevEdge, cons
         if (!prev->isInfiniteEmitter()) *backward *= prev->cosineFactor(prevEdge->d)/prevEdge->rSq;
         break;
     } case VolumeVertex: {
-        const VolumeScatterEvent &event = _record.volume;
-        Vec3f dPrev = -prevEdge->d;
-        Vec3f dNext = nextEdge.d;
-        *forward  = next .cosineFactor(nextEdge .d)/nextEdge .rSq*
-                _sampler.medium->phasePdf(event.makeWarpedQuery(dPrev, dNext));
-        *backward = prev->cosineFactor(prevEdge->d)/prevEdge->rSq*
-                _sampler.medium->phasePdf(event.makeWarpedQuery(dNext, dPrev));
+        //const MediumRecord &record = _record.medium;
+        //Vec3f dPrev = -prevEdge->d;
+        //Vec3f dNext = nextEdge.d;
+        // TODO: Media
+        *forward = *backward = 0.0f;
+        //*forward  = next .cosineFactor(nextEdge .d)/nextEdge .rSq*
+        //        _sampler.medium->phasePdf(event.makeWarpedQuery(dPrev, dNext));
+        //*backward = prev->cosineFactor(prevEdge->d)/prevEdge->rSq*
+        //        _sampler.medium->phasePdf(event.makeWarpedQuery(dNext, dPrev));
         break;
     }}
 }
@@ -225,7 +229,7 @@ Vec3f PathVertex::pos() const
     case SurfaceVertex:
         return _record.surface.info.p;
     case VolumeVertex:
-        return _record.volume.p;
+        return _record.medium.mediumSample.p;
     default:
         return Vec3f(0.0f);
     }

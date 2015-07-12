@@ -49,76 +49,51 @@ bool HomogeneousMedium::isHomogeneous() const
     return true;
 }
 
-void HomogeneousMedium::prepareForRender()
-{
-}
-
-void HomogeneousMedium::teardownAfterRender()
-{
-}
-
-bool HomogeneousMedium::sampleDistance(VolumeScatterEvent &event, MediumState &state) const
+bool HomogeneousMedium::sampleDistance(PathSampleGenerator &sampler, const Ray &ray,
+        MediumState &state, MediumSample &sample) const
 {
     if (state.bounce > _maxBounce)
         return false;
 
+    float maxT = ray.farT();
     if (_absorptionOnly) {
-        if (event.maxT == Ray::infinity())
+        if (maxT == Ray::infinity())
             return false;
-        event.t = event.maxT;
-        event.weight = std::exp(-_sigmaT*event.t);
+        sample.t = maxT;
+        sample.weight = std::exp(-_sigmaT*maxT);
+        sample.pdf = 1.0f;
+        sample.exited = true;
     } else {
-        int component = event.sampler->nextDiscrete(DiscreteTransmittanceSample, 3);
+        int component = sampler.nextDiscrete(DiscreteTransmittanceSample, 3);
         float sigmaTc = _sigmaT[component];
 
-        float t = -std::log(1.0f - event.sampler->next1D(TransmittanceSample))/sigmaTc;
-        event.t = min(t, event.maxT);
-        event.weight = std::exp(-event.t*_sigmaT);
-        if (t < event.maxT)
-            event.weight /= (_sigmaT*event.weight).avg();
-        else
-            event.weight /= event.weight.avg();
+        float t = -std::log(1.0f - sampler.next1D(MediumTransmittanceSample))/sigmaTc;
+        sample.exited = t >= maxT;
+        sample.weight = std::exp(-sample.t*_sigmaT);
+        if (sample.exited) {
+            sample.t = maxT;
+            sample.pdf = sample.weight.avg();
+        } else {
+            sample.t = t;
+            sample.pdf = (_sigmaT*sample.weight).avg();
+            sample.weight *= _sigmaS;
+        }
+        sample.weight /= sample.pdf;
 
         state.advance();
     }
+    sample.p = ray.pos() + sample.t*ray.dir();
+    sample.phase = _phaseFunction.get();
 
     return true;
 }
-
-bool HomogeneousMedium::absorb(VolumeScatterEvent &event, MediumState &/*state*/) const
+Vec3f HomogeneousMedium::transmittance(const Ray &ray) const
 {
-    if (event.sampler->nextBoolean(DiscreteMediumSample, 1.0f - _maxAlbedo))
-        return true;
-    event.weight = Vec3f(_absorptionWeight);
-    return false;
-}
-
-bool HomogeneousMedium::scatter(VolumeScatterEvent &event) const
-{
-    event.wo = PhaseFunction::sample(_phaseFunction, _phaseG, event.sampler->next2D(MediumSample));
-    event.pdf = PhaseFunction::eval(_phaseFunction, event.wo.z(), _phaseG);
-    event.weight *= _sigmaS;
-    TangentFrame frame(event.wi);
-    event.wo = frame.toGlobal(event.wo);
-    return true;
-}
-
-Vec3f HomogeneousMedium::transmittance(const VolumeScatterEvent &event) const
-{
-    if (event.t == Ray::infinity())
+    if (ray.farT() == Ray::infinity())
         return Vec3f(0.0f);
-    else
-        return std::exp(-_sigmaT*event.t);
-}
-
-Vec3f HomogeneousMedium::emission(const VolumeScatterEvent &/*event*/) const
-{
-    return Vec3f(0.0f);
-}
-
-Vec3f HomogeneousMedium::phaseEval(const VolumeScatterEvent &event) const
-{
-    return _sigmaS*PhaseFunction::eval(_phaseFunction, event.wi.dot(event.wo), _phaseG);
+    else {
+        return std::exp(-_sigmaT*ray.farT());
+    }
 }
 
 }

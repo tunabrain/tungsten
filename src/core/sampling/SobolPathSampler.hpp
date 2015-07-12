@@ -30,7 +30,7 @@ class SobolPathSampler : public PathSampleGenerator
         switch (block) {
         case EmitterSample:
             return 6;
-        case TransmittanceSample:
+        case MediumTransmittanceSample:
             return 1;
         case DiscreteEmitterSample:
             return 1;

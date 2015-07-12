@@ -3,6 +3,10 @@
 #include "JsonUtils.hpp"
 #include "FileUtils.hpp"
 
+#include "phasefunctions/HenyeyGreensteinPhaseFunction.hpp"
+#include "phasefunctions/IsotropicPhaseFunction.hpp"
+#include "phasefunctions/RayleighPhaseFunction.hpp"
+
 #include "integrators/bidirectional_path_tracer/BidirectionalPathTraceIntegrator.hpp"
 #include "integrators/progressive_photon_map/ProgressivePhotonMapIntegrator.hpp"
 #include "integrators/light_tracer/LightTraceIntegrator.hpp"
@@ -100,6 +104,23 @@ Scene::Scene(const Path &srcDir,
   _camera(std::move(camera)),
   _integrator(std::make_shared<PathTraceIntegrator>())
 {
+}
+
+std::shared_ptr<PhaseFunction> Scene::instantiatePhase(std::string type, const rapidjson::Value &value) const
+{
+    std::shared_ptr<PhaseFunction> result;
+    if (type == "isotropic")
+        result = std::make_shared<IsotropicPhaseFunction>();
+    else if (type == "henyey_greenstein")
+        result = std::make_shared<HenyeyGreensteinPhaseFunction>();
+    else if (type == "rayleigh")
+        result = std::make_shared<RayleighPhaseFunction>();
+    else {
+        DBG("Unkown phase function type: '%s'", type.c_str());
+        return nullptr;
+    }
+    result->fromJson(value, *this);
+    return result;
 }
 
 std::shared_ptr<Medium> Scene::instantiateMedium(std::string type, const rapidjson::Value &value) const
@@ -305,6 +326,11 @@ std::shared_ptr<T> Scene::fetchObject(const std::vector<std::shared_ptr<T>> &lis
         FAIL("Unkown value type");
         return nullptr;
     }
+}
+
+std::shared_ptr<PhaseFunction> Scene::fetchPhase(const rapidjson::Value &v) const
+{
+    return instantiatePhase(JsonUtils::as<std::string>(v, "type"), v);
 }
 
 std::shared_ptr<Medium> Scene::fetchMedium(const rapidjson::Value &v) const
