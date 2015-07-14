@@ -484,7 +484,10 @@ bool TraceBase::handleSurface(SurfaceScatterEvent &event, IntersectionTemporary 
     Vec3f wo;
     if (event.sampler->nextBoolean(DiscreteTransparencySample, transparencyScalar) ){
         wo = ray.dir();
-        throughput *= transparency/transparencyScalar;
+        event.pdf = transparencyScalar;
+        event.weight = transparency/transparencyScalar;
+        event.sampledLobe = BsdfLobes::ForwardLobe;
+        throughput *= event.weight;
     } else {
         if (!adjoint) {
             if (enableLightSampling && bounce < _settings.maxBounces - 1)
