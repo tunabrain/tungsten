@@ -59,10 +59,15 @@ bool TraceBase::isConsistent(const SurfaceScatterEvent &event, const Vec3f &w) c
     return geometricBackside == shadingBackside;
 }
 
-Vec3f TraceBase::generalizedShadowRay(Ray &ray,
+template<bool ComputePdfs>
+inline Vec3f TraceBase::generalizedShadowRayImpl(Ray &ray,
                            const Medium *medium,
                            const Primitive *endCap,
-                           int bounce)
+                           int bounce,
+                           bool startsOnSurface,
+                           bool endsOnSurface,
+                           float &pdfForward,
+                           float &pdfBackward) const
 {
     IntersectionTemporary data;
     IntersectionInfo info;
@@ -70,26 +75,45 @@ Vec3f TraceBase::generalizedShadowRay(Ray &ray,
     float initialFarT = ray.farT();
     Vec3f throughput(1.0f);
     do {
-        if (_scene->intersect(ray, data, info) && info.primitive != endCap) {
+        bool didHit = _scene->intersect(ray, data, info) && info.primitive != endCap;
+        if (didHit) {
+            if (!info.bsdf->lobes().hasForward())
+                return Vec3f(0.0f);
+
             SurfaceScatterEvent event = makeLocalScatterEvent(data, info, ray, nullptr);
 
             // For forward events, the transport direction does not matter (since wi = -wo)
-            Vec3f transmittance = info.bsdf->eval(event.makeForwardEvent(), false);
-            if (transmittance == 0.0f)
+            Vec3f transparency = info.bsdf->eval(event.makeForwardEvent(), false);
+            if (transparency == 0.0f)
                 return Vec3f(0.0f);
 
-            throughput *= transmittance;
+            if (ComputePdfs) {
+                float transparencyScalar = transparency.avg();
+                pdfForward  *= transparencyScalar;
+                pdfBackward *= transparencyScalar;
+            }
+
+            throughput *= transparency;
             bounce++;
 
             if (bounce >= _settings.maxBounces)
                 return Vec3f(0.0f);
         }
 
-        if (medium)
-            throughput *= medium->transmittance(ray);
+        if (medium) {
+            if (ComputePdfs) {
+                float forward, backward;
+                throughput *= medium->transmittanceAndPdfs(ray, startsOnSurface, didHit || endsOnSurface, forward, backward);
+                pdfForward *= forward;
+                pdfBackward *= backward;
+            } else {
+                throughput *= medium->transmittance(ray);
+            }
+        }
         if (info.primitive == nullptr || info.primitive == endCap)
             return bounce >= _settings.minBounces ? throughput : Vec3f(0.0f);
         medium = info.primitive->selectMedium(medium, !info.primitive->hitBackside(data));
+        startsOnSurface = true;
 
         ray.setPos(ray.hitpoint());
         initialFarT -= ray.farT();
@@ -97,6 +121,20 @@ Vec3f TraceBase::generalizedShadowRay(Ray &ray,
         ray.setFarT(initialFarT);
     } while(true);
     return Vec3f(0.0f);
+}
+
+Vec3f TraceBase::generalizedShadowRay(Ray &ray, const Medium *medium, const Primitive *endCap, int bounce) const
+{
+    float dummyA, dummyB;
+    return generalizedShadowRayImpl<false>(ray, medium, endCap, bounce, false, false, dummyA, dummyB);
+}
+
+Vec3f TraceBase::generalizedShadowRayAndPdfs(Ray &ray, const Medium *medium, const Primitive *endCap, int bounce,
+           bool startsOnSurface, bool endsOnSurface, float &pdfForward, float &pdfBackward) const
+{
+    pdfForward = pdfBackward = 1.0f;
+    return generalizedShadowRayImpl<true>(ray, medium, endCap, bounce,
+            startsOnSurface, endsOnSurface, pdfForward, pdfBackward);
 }
 
 Vec3f TraceBase::attenuatedEmission(const Primitive &light,
