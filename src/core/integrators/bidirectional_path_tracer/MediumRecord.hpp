@@ -8,6 +8,7 @@ namespace Tungsten {
 
 struct MediumRecord
 {
+    Vec3f wi;
     MediumSample mediumSample;
     PhaseSample phaseSample;
 };
