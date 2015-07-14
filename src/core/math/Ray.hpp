@@ -26,13 +26,13 @@ public:
     {
     }
 
-    Ray scatter(const Vec3f &newPos, const Vec3f &newDir, float newNearT) const
+    Ray scatter(const Vec3f &newPos, const Vec3f &newDir, float newNearT, float newFarT = infinity()) const
     {
         Ray ray(*this);
         ray._pos = newPos;
         ray._dir = newDir;
         ray._nearT = newNearT;
-        ray._farT = infinity();
+        ray._farT = newFarT;
         return ray;
     }
 
