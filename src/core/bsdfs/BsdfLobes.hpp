@@ -70,6 +70,11 @@ public:
         return (_lobes & SpecularLobe) != 0;
     }
 
+    bool hasForward() const
+    {
+        return (_lobes & ForwardLobe) != 0;
+    }
+
     bool isPureGlossy() const
     {
         return _lobes != 0 && (_lobes & ~GlossyLobe) == 0;
@@ -98,6 +103,11 @@ public:
     bool isForward() const
     {
         return _lobes == ForwardLobe;
+    }
+
+    bool isPureDirac() const
+    {
+        return _lobes != 0 && (_lobes & AllButSpecular) == 0;
     }
 };
 
