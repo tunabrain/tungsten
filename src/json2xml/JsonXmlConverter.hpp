@@ -1,6 +1,9 @@
 #ifndef JSONXMLCONVERTER_HPP_
 #define JSONXMLCONVERTER_HPP_
 
+#include "phasefunctions/HenyeyGreensteinPhaseFunction.hpp"
+#include "phasefunctions/RayleighPhaseFunction.hpp"
+
 #include "primitives/InfiniteSphere.hpp"
 #include "primitives/TriangleMesh.hpp"
 #include "primitives/Sphere.hpp"
@@ -241,17 +244,14 @@ class SceneXmlWriter
         else
             DBG("Unknown medium type!");
 
-        switch(med->phaseFunctionType()) {
-        case PhaseFunction::Isotropic:
-            break;
-        case PhaseFunction::HenyeyGreenstein:
+        const PhaseFunction *phase = med->phaseFunction(Vec3f(0.0f));
+        if (const HenyeyGreensteinPhaseFunction *hg = dynamic_cast<const HenyeyGreensteinPhaseFunction *>(phase)) {
             begin("phase");
             assign("type", "hg");
             beginPost();
-            convert("g", med->phaseG());
+            convert("g", hg->g());
             end();
-            break;
-        case PhaseFunction::Rayleigh:
+        } else if (dynamic_cast<const RayleighPhaseFunction *>(phase)) {
             begin("phase");
             assign("type", "rayleigh");
             endInline();
