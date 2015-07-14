@@ -13,11 +13,14 @@ class LightPath
     int _maxLength;
     int _length;
     bool _adjoint;
+    std::unique_ptr<int[]> _vertexIndex;
     std::unique_ptr<PathVertex[]> _vertices;
     std::unique_ptr<PathEdge[]> _edges;
 
     float geometryFactor(int startVertex) const;
     float invGeometryFactor(int startVertex) const;
+
+    void toAreaMeasure();
 
     static float misWeight(const LightPath &camera, const LightPath &emitter,
             const PathEdge &edge, int s, int t);
@@ -27,6 +30,7 @@ public:
     : _maxLength(maxLength),
       _length(0),
       _adjoint(false),
+      _vertexIndex(new int[maxLength + 4]),
       _vertices(new PathVertex[maxLength + 4]),
       _edges(new PathEdge[maxLength + 4])
     {
@@ -81,13 +85,17 @@ public:
         return _edges[i];
     }
 
+    int vertexIndex(int i) const
+    {
+        return _vertexIndex[i];
+    }
+
     Vec3f bdptWeightedPathEmission(int minLength, int maxLength) const;
 
-    static Vec3f bdptConnect(const TraceableScene &scene, const LightPath &camera,
-            const LightPath &emitter, int s, int t);
-    static bool bdptCameraConnect(const TraceableScene &scene, const LightPath &camera,
-            const LightPath &emitter, int s, PathSampleGenerator &sampler,
-            Vec3f &weight, Vec2f &pixel);
+    static Vec3f bdptConnect(const TraceBase &tracer, const LightPath &camera, const LightPath &emitter,
+            int s, int t, int maxBounce);
+    static bool bdptCameraConnect(const TraceBase &tracer, const LightPath &camera, const LightPath &emitter,
+            int s, int maxBounce, PathSampleGenerator &sampler, Vec3f &weight, Vec2f &pixel);
 };
 
 }

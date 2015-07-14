@@ -50,19 +50,18 @@ void KelemenMltTracer::tracePath(PathSampleGenerator &cameraSampler, PathSampleG
 
     Vec3f primarySplat = cameraPath.bdptWeightedPathEmission(_settings.minBounces + 2, _settings.maxBounces + 1);
     for (int s = 1; s <= lightLength; ++s) {
-        int lowerBound = max(_settings.minBounces - s + 2, 1);
         int upperBound = min(_settings.maxBounces - s + 1, cameraLength);
-        for (int t = lowerBound; t <= upperBound; ++t) {
+        for (int t = 1; t <= upperBound; ++t) {
             if (!cameraPath[t - 1].connectable() || !emitterPath[s - 1].connectable())
                 continue;
 
             if (t == 1) {
                 Vec2f pixel;
                 Vec3f splatWeight;
-                if (LightPath::bdptCameraConnect(*_scene, cameraPath, emitterPath, s, emitterSampler, splatWeight, pixel))
+                if (LightPath::bdptCameraConnect(*this, cameraPath, emitterPath, s, _settings.maxBounces, emitterSampler, splatWeight, pixel))
                     splatQueue.addFilteredSplat(pixel, splatWeight*lightSplatScale);
             } else {
-                primarySplat += LightPath::bdptConnect(*_scene, cameraPath, emitterPath, s, t);
+                primarySplat += LightPath::bdptConnect(*this, cameraPath, emitterPath, s, t, _settings.maxBounces);
             }
         }
     }

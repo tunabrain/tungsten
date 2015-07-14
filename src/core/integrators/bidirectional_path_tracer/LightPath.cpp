@@ -1,6 +1,7 @@
 #include "LightPath.hpp"
 
 #include "integrators/TraceState.hpp"
+#include "integrators/TraceBase.hpp"
 
 #include "primitives/Primitive.hpp"
 
@@ -26,6 +27,70 @@ float LightPath::invGeometryFactor(int startVertex) const
     const PathVertex &v0 = _vertices[startVertex + 0];
     const PathVertex &v1 = _vertices[startVertex + 1];
     return edge.rSq/(v0.cosineFactor(edge.d)*v1.cosineFactor(edge.d));
+}
+
+void LightPath::toAreaMeasure()
+{
+    // BDPT PDF wrangling starts here
+
+    // Step 1: Forward events (transparency events, thinsheet glass,
+    // index-matched dielectrics) are "punched through" by the generalized
+    // shadow ray, so we don't treat them as diracs. Instead, we remove
+    // them from the path entirely. Forward event chains are collapsed,
+    // and the corresponding forward PDFs as well as intermittent
+    // media PDFs are all folded into the forward- and backward
+    // PDFs of the remaining edge. The remaining edge is extended
+    // so that it has the combined length of all edges in the forward chain
+    _vertexIndex[0] = 0;
+    int insertionIdx = 1;
+    for (int i = 1; i < _length; ++i) {
+        if (_vertices[i].isForward()) {
+            int tail = insertionIdx - 1;
+            _edges[tail].r += _edges[i].r;
+            _edges[tail].pdfForward  *= _edges[i].pdfForward *_vertices[i + 1].pdfForward();
+            _edges[tail].pdfBackward *= _edges[i].pdfBackward*_vertices[tail ].pdfBackward();
+            _vertices[tail ].pdfBackward() = _vertices[i].pdfBackward();
+            _vertices[i + 1].pdfForward()  = _vertices[i].pdfForward();
+        } else {
+            _vertexIndex[insertionIdx] = i;
+            _vertices[insertionIdx] = _vertices[i];
+            _edges[insertionIdx] = _edges[i];
+            insertionIdx++;
+        }
+    }
+    _length = insertionIdx;
+
+    // Step 2: Now that only "true" scattering events remain, we recompute the
+    // squared distances (since the edge length may have changed) and multiply
+    // the transmission PDFs stored on the edge onto the vertices
+    // Since we moved some of the vertices, we also have to fix some pointers
+    for (int i = 1; i < _length; ++i) {
+        _edges[i - 1].rSq = _edges[i - 1].r*_edges[i - 1].r;
+        _vertices[i]    .pdfForward()  *= _edges[i - 1].pdfForward;
+        _vertices[i - 1].pdfBackward() *= _edges[i - 1].pdfBackward;
+        if (_vertices[i].onSurface())
+            _vertices[i].pointerFixup();
+    }
+
+    // Step 3: Now we have meaningful PDFs on the vertices, so we're ready to convert
+    // (some of) them to area measure. Dirac vertices are left in the discrete measure,
+    // and vertices associated with infinite area emitters are converted to solid angle measure
+    for (int i = 1; i < _length; ++i) {
+        if (_vertices[i - 1].isDirac() || _vertices[i].isInfiniteSurface())
+            continue;
+        if (_vertices[i].onSurface())
+            _vertices[i].pdfForward() *= _vertices[i].cosineFactor(_edges[i - 1].d);
+        if (!_vertices[i - 1].isInfiniteEmitter())
+            _vertices[i].pdfForward() /= _edges[i - 1].rSq;
+    }
+
+    for (int i = _length - 3; i >= 0; --i) {
+        if (_vertices[i + 1].isDirac() || _vertices[i].isInfiniteEmitter())
+            continue;
+        if (_vertices[i].onSurface())
+            _vertices[i].pdfBackward() *= _vertices[i].cosineFactor(_edges[i].d);
+        _vertices[i].pdfBackward() /= _edges[i].rSq;
+    }
 }
 
 float LightPath::misWeight(const LightPath &camera, const LightPath &emitter,
@@ -104,6 +169,12 @@ void LightPath::tracePath(const TraceableScene &scene, TraceBase &tracer, PathSa
         sampler.advancePath();
         _length++;
     }
+
+    // Trim non-connectable vertices off the end, since they're not useful for anything
+    while (_length > 0 && !_vertices[_length - 1].connectable())
+        _length--;
+
+    toAreaMeasure();
 }
 
 Vec3f LightPath::bdptWeightedPathEmission(int minLength, int maxLength) const
@@ -114,18 +185,14 @@ Vec3f LightPath::bdptWeightedPathEmission(int minLength, int maxLength) const
     float *pdfBackward = reinterpret_cast<float *>(alloca(_length*sizeof(float)));
     bool  *connectable = reinterpret_cast<bool  *>(alloca(_length*sizeof(bool)));
 
-    maxLength = min(_length, maxLength);
-
-    // Early out for camera paths directly hitting the environment map
-    // These can only be sampled with one technique
-    if (maxLength == 2 && minLength <= 2 && _vertices[1].surfaceRecord().data.primitive->isInfinite())
-        return _vertices[1].surfaceRecord().data.primitive->evalDirect(
-                _vertices[1].surfaceRecord().data,
-                _vertices[1].surfaceRecord().info);
-
-
     Vec3f result(0.0f);
-    for (int t = max(minLength, 2); t <= maxLength; ++t) {
+    for (int t = 2; t <= _length; ++t) {
+        int realT = _vertexIndex[t - 1] + 1;
+        if (realT > maxLength)
+            break;
+        if (realT < minLength || !_vertices[t - 1].onSurface())
+            continue;
+
         const SurfaceRecord &record = _vertices[t - 1].surfaceRecord();
         if (!record.info.primitive->isEmissive())
             continue;
@@ -135,6 +202,11 @@ Vec3f LightPath::bdptWeightedPathEmission(int minLength, int maxLength) const
                 _vertices[t - 1].surfaceRecord().info);
         if (emission == 0.0f)
             continue;
+
+        // Early out for camera paths directly hitting the environment map
+        // These can only be sampled with one technique
+        if (realT == 2 && _vertices[t - 1].isInfiniteSurface())
+            return emission*_vertices[t - 1].throughput();
 
         for (int i = 0; i < t; ++i) {
             pdfForward [t - (i + 1)] = _vertices[i].pdfBackward();
@@ -161,11 +233,11 @@ Vec3f LightPath::bdptWeightedPathEmission(int minLength, int maxLength) const
             // not area measure
             pdfForward[0] = record.info.primitive->directionalPdf(point, direction);
             pdfForward[1] = record.info.primitive->positionalPdf(point)*
-                    _vertices[t - 2].cosineFactor(_edges[t - 2].d);
+                    _edges[t - 2].pdfBackward*_vertices[t - 2].cosineFactor(_edges[t - 2].d);
         } else {
             pdfForward[0] = record.info.primitive->positionalPdf(point);
             pdfForward[1] = record.info.primitive->directionalPdf(point, direction)*
-                    _vertices[t - 2].cosineFactor(_edges[t - 2].d)/_edges[t - 2].rSq;
+                    _edges[t - 2].pdfBackward*_vertices[t - 2].cosineFactor(_edges[t - 2].d)/_edges[t - 2].rSq;
         }
 
         float weight = 1.0f;
@@ -182,11 +254,15 @@ Vec3f LightPath::bdptWeightedPathEmission(int minLength, int maxLength) const
     return result;
 }
 
-Vec3f LightPath::bdptConnect(const TraceableScene &scene, const LightPath &camera,
-        const LightPath &emitter, int s, int t)
+Vec3f LightPath::bdptConnect(const TraceBase &tracer, const LightPath &camera, const LightPath &emitter,
+        int s, int t, int maxBounce)
 {
     const PathVertex &a = emitter[s - 1];
     const PathVertex &b = camera[t - 1];
+
+    int bounce = emitter.vertexIndex(s - 1) + camera.vertexIndex(t - 1);
+    if (bounce >= maxBounce)
+        return Vec3f(0.0f);
 
     if (b.isInfiniteSurface())
         return Vec3f(0.0f);
@@ -197,46 +273,59 @@ Vec3f LightPath::bdptConnect(const TraceableScene &scene, const LightPath &camer
         // we don't want to lose. This requires some fiddling with densities
         // and shadow rays here
         Vec3f d = a.emitterRecord().point.Ng;
-        if (scene.occluded(Ray(b.pos(), -d, 1e-4f)))
+        PathEdge edge(d, 1.0f, 1.0f);
+        Ray ray(b.pos(), -d, 1e-4f);
+        Vec3f transmittance = tracer.generalizedShadowRayAndPdfs(ray, b.selectMedium(-d), nullptr,
+                bounce, b.onSurface(), true, edge.pdfBackward, edge.pdfForward);
+        if (transmittance == 0.0f)
             return Vec3f(0.0f);
 
-        Vec3f unweightedContrib = a.throughput()*a.eval(d, true)*b.eval(-d, false)*b.throughput();
+        Vec3f unweightedContrib = transmittance*a.throughput()*a.eval(d, true)*b.eval(-d, false)*b.throughput();
 
-        return unweightedContrib*misWeight(camera, emitter, PathEdge(d, 1.0f, 1.0f), s, t);
+        return unweightedContrib*misWeight(camera, emitter, edge, s, t);
     } else {
         PathEdge edge(a, b);
         // Catch the case where both vertices land on the same surface
         if (a.cosineFactor(edge.d) < 1e-5f || b.cosineFactor(edge.d) < 1e-5f)
             return Vec3f(0.0f);
-        if (scene.occluded(Ray(a.pos(), edge.d, 1e-4f, edge.r*(1.0f - 1e-4f))))
+        Ray ray(a.pos(), edge.d, 1e-4f, edge.r*(1.0f - 1e-4f));
+        Vec3f transmittance = tracer.generalizedShadowRayAndPdfs(ray, a.selectMedium(edge.d), nullptr,
+                bounce, a.onSurface(), b.onSurface(), edge.pdfForward, edge.pdfBackward);
+        if (transmittance == 0.0f)
             return Vec3f(0.0f);
 
-        Vec3f unweightedContrib = a.throughput()*a.eval(edge.d, true)*b.eval(-edge.d, false)*b.throughput()/edge.rSq;
+        Vec3f unweightedContrib = transmittance*a.throughput()*a.eval(edge.d, true)*b.eval(-edge.d, false)*b.throughput()/edge.rSq;
 
         return unweightedContrib*misWeight(camera, emitter, edge, s, t);
     }
 }
 
-bool LightPath::bdptCameraConnect(const TraceableScene &scene, const LightPath &camera,
-        const LightPath &emitter, int s, PathSampleGenerator &sampler,
-        Vec3f &weight, Vec2f &pixel)
+bool LightPath::bdptCameraConnect(const TraceBase &tracer, const LightPath &camera, const LightPath &emitter,
+        int s, int maxBounce, PathSampleGenerator &sampler, Vec3f &weight, Vec2f &pixel)
 {
     const PathVertex &a = emitter[s - 1];
     const PathVertex &b = camera[0];
+
+    int bounce = emitter.vertexIndex(s - 1) + camera.vertexIndex(0);
+    if (bounce >= maxBounce)
+        return false;
 
     // s=1,t=1 paths are generally useless for infinite area lights, so we ignore them completely
     if (s == 1 && a.emitter()->isInfinite())
         return false;
 
     PathEdge edge(a, b);
-    if (scene.occluded(Ray(a.pos(), edge.d, 1e-4f, edge.r*(1.0f - 1e-4f))))
+    Ray ray(a.pos(), edge.d, 1e-4f, edge.r*(1.0f - 1e-4f));
+    Vec3f transmittance = tracer.generalizedShadowRayAndPdfs(ray, a.selectMedium(edge.d), nullptr,
+            bounce, a.onSurface(), b.onSurface(), edge.pdfForward, edge.pdfBackward);
+    if (transmittance == 0.0f)
         return false;
 
     Vec3f splatWeight;
     if (!b.camera()->evalDirection(sampler, b.cameraRecord().point, DirectionSample(-edge.d), splatWeight, pixel))
         return false;
 
-    weight = splatWeight*b.throughput()*a.eval(edge.d, true)*a.throughput()/edge.rSq;
+    weight = transmittance*splatWeight*b.throughput()*a.eval(edge.d, true)*a.throughput()/edge.rSq;
     weight *= misWeight(camera, emitter, edge, s, 1);
 
     return true;

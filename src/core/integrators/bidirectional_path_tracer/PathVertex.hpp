@@ -27,7 +27,7 @@ class PathVertex
         EmitterVertex,
         CameraVertex,
         SurfaceVertex,
-        VolumeVertex
+        MediumVertex
     };
 
     union VertexRecord
@@ -60,11 +60,13 @@ class PathVertex
     VertexType _type;
     VertexRecord _record;
     VertexSampler _sampler;
+    const Medium *_medium;
 
     Vec3f _throughput;
     float _pdfForward;
     float _pdfBackward;
     bool _dirac;
+    bool _forward;
     bool _connectable;
 
 public:
@@ -73,7 +75,9 @@ public:
     : _type(EmitterVertex),
       _record(EmitterRecord(emitterPdf)),
       _sampler(emitter),
+      _medium(nullptr),
       _dirac(false),
+      _forward(false),
       _connectable(!_dirac)
     {
     }
@@ -81,7 +85,9 @@ public:
     : _type(CameraVertex),
       _record(CameraRecord(pixel)),
       _sampler(camera),
+      _medium(nullptr),
       _dirac(camera->isFilterDirac()),
+      _forward(false),
       _connectable(!_dirac)
     {
     }
@@ -89,17 +95,21 @@ public:
     : _type(SurfaceVertex),
       _record(surface),
       _sampler(bsdf),
+      _medium(nullptr),
       _throughput(throughput_),
-      _dirac(bsdf != nullptr && bsdf->lobes().isPureSpecular()),
-      _connectable(!_dirac)
+      _dirac(false),
+      _forward(false),
+      _connectable(bsdf == nullptr || !bsdf->lobes().isPureDirac())
     {
     }
     PathVertex(const PhaseFunction *phase, const MediumRecord &medium, const Vec3f &throughput_)
-    : _type(VolumeVertex),
+    : _type(MediumVertex),
       _record(medium),
       _sampler(phase),
+      _medium(nullptr),
       _throughput(throughput_),
       _dirac(false),
+      _forward(false),
       _connectable(!_dirac)
     {
     }
@@ -112,9 +122,17 @@ public:
     void evalPdfs(const PathVertex *prev, const PathEdge *prevEdge, const PathVertex &next,
             const PathEdge &nextEdge, float *forward, float *backward) const;
 
+    void pointerFixup();
+
     Vec3f pos() const;
 
     float cosineFactor(const Vec3f &d) const;
+    const Medium *selectMedium(const Vec3f &d) const;
+
+    const Medium *medium() const
+    {
+        return _medium;
+    }
 
     const CameraRecord &cameraRecord() const
     {
@@ -171,6 +189,16 @@ public:
         return _pdfBackward;
     }
 
+    float &pdfForward()
+    {
+        return _pdfForward;
+    }
+
+    float &pdfBackward()
+    {
+        return _pdfBackward;
+    }
+
     bool connectable() const
     {
         return _connectable;
@@ -181,6 +209,11 @@ public:
         return _dirac;
     }
 
+    bool isForward() const
+    {
+        return _forward;
+    }
+
     bool isInfiniteEmitter() const
     {
         return _type == EmitterVertex && _sampler.emitter->isInfinite();
@@ -189,6 +222,11 @@ public:
     bool isInfiniteSurface() const
     {
         return _type == SurfaceVertex && _record.surface.info.primitive->isInfinite();
+    }
+
+    bool onSurface() const
+    {
+        return _type != MediumVertex;
     }
 };
 

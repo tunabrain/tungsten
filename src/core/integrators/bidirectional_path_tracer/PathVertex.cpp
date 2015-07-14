@@ -42,7 +42,7 @@ bool PathVertex::sampleRootVertex(TraceState &state)
             _throughput = record.point.weight/record.emitterPdf;
             _pdfForward = record.point.pdf*record.emitterPdf;
         }
-        state.medium = _sampler.emitter->extMedium().get();
+        _medium = state.medium = _sampler.emitter->extMedium().get();
         return true;
     } case CameraVertex: {
         CameraRecord &record = _record.camera;
@@ -51,7 +51,7 @@ bool PathVertex::sampleRootVertex(TraceState &state)
 
         _throughput = record.point.weight;
         _pdfForward = record.point.pdf;
-        state.medium = _sampler.camera->medium().get();
+        _medium = state.medium = _sampler.camera->medium().get();
         return true;
     } default:
         return false;
@@ -105,48 +105,90 @@ bool PathVertex::sampleNextVertex(const TraceableScene &scene, TraceBase &tracer
                 scatterWeight, emission, state.wasSpecular, state.mediumState);
         if (!scattered)
             return false;
+        _medium = state.medium;
 
-        prev->_pdfBackward = _sampler.bsdf->pdf(record.event.makeFlippedQuery());
+        if (record.event.sampledLobe.isForward())
+            prev->_pdfBackward = record.event.pdf;
+        else
+            prev->_pdfBackward = _sampler.bsdf->pdf(record.event.makeFlippedQuery());
         _dirac = record.event.sampledLobe.isPureSpecular();
-        if (!_dirac && !prev->isInfiniteEmitter())
-            prev->_pdfBackward *= prev->cosineFactor(prevEdge->d)/prevEdge->rSq;
+        _forward = record.event.sampledLobe.isForward();
+        // Technically, we could connect to these kinds of vertices (e.g. BSDF with transparency),
+        // but this creates so much headache for back-propagating the PDFs that we're just not
+        // going to bother
+        if (_forward)
+            _connectable = false;
         weight = record.event.weight;
         pdf = record.event.pdf;
 
         break;
-    } case VolumeVertex: {
-        //MediumRecord &record = _record.medium;
+    } case MediumVertex: {
+        MediumRecord &record = _record.medium;
 
-        // TODO: Participating media
+        if (!record.mediumSample.phase->sample(state.sampler, state.ray.dir(), record.phaseSample))
+            return false;
 
-        //prev->_pdfBackward = _sampler.medium->phasePdf(_record.volume.makeFlippedQuery())
-        //        *prev->cosineFactor(prevEdge->d)/prevEdge->rSq;
-        //weight = record.weight;
-        //pdf = record.pdf;
-        return false;
+        prev->_pdfBackward = record.mediumSample.phase->pdf(-record.phaseSample.w, -state.ray.dir());
+
+        _medium = state.medium;
+        state.ray = state.ray.scatter(record.mediumSample.p, record.phaseSample.w, 0.0f);
+        state.ray.setPrimaryRay(false);
+
+        weight = record.phaseSample.weight;
+        pdf = record.phaseSample.pdf;
+
+        break;
     } default:
         return false;
     }
 
-    SurfaceRecord record;
-    if (scene.intersect(state.ray, record.data, record.info)) {
-        record.event = tracer.makeLocalScatterEvent(record.data, record.info, state.ray, &state.sampler);
+    SurfaceRecord surfaceRecord;
+    bool didHit = scene.intersect(state.ray, surfaceRecord.data, surfaceRecord.info);
 
-        next = PathVertex(record.info.bsdf, record, _throughput*weight);
-        next._record.surface.event.info = &next._record.surface.info;
+    bool hitSurface;
+    float edgePdfForward;
+    float edgePdfBackward;
+    MediumRecord mediumRecord;
+    if (state.medium) {
+        if (!state.medium->sampleDistance(state.sampler, state.ray, state.mediumState, mediumRecord.mediumSample))
+            return false;
+        if (mediumRecord.mediumSample.t < 1e-6f)
+            return false;
+        hitSurface = mediumRecord.mediumSample.exited;
+        edgePdfForward = mediumRecord.mediumSample.pdf;
+        Ray reverseRay(mediumRecord.mediumSample.p, -state.ray.dir(), 0.0f, mediumRecord.mediumSample.t);
+        edgePdfBackward = state.medium->pdf(reverseRay, onSurface());
+        weight *= mediumRecord.mediumSample.weight;
+        if (hitSurface && !didHit)
+            return false;
+    } else {
+        hitSurface = true;
+        edgePdfForward = 1.0f;
+        edgePdfBackward = 1.0f;
+    }
+
+    if (!hitSurface) {
+        mediumRecord.wi = state.ray.dir();
+        next = PathVertex(mediumRecord.mediumSample.phase, mediumRecord, _throughput*weight);
         state.bounce++;
-        nextEdge = PathEdge(*this, next);
+        nextEdge = PathEdge(*this, next, edgePdfForward, edgePdfBackward);
         next._pdfForward = pdf;
-        if (isInfiniteEmitter())
-            next._pdfForward *= next.cosineFactor(nextEdge.d);
-        else if (!_dirac)
-            next._pdfForward *= next.cosineFactor(nextEdge.d)/nextEdge.rSq;
 
         return true;
-    } else if (!adjoint && scene.intersectInfinites(state.ray, record.data, record.info)) {
-        next = PathVertex(record.info.bsdf, record, _throughput*weight);
+    } else if (didHit) {
+        surfaceRecord.event = tracer.makeLocalScatterEvent(surfaceRecord.data, surfaceRecord.info, state.ray, &state.sampler);
+
+        next = PathVertex(surfaceRecord.info.bsdf, surfaceRecord, _throughput*weight);
+        next.pointerFixup();
         state.bounce++;
-        nextEdge = PathEdge(state.ray.dir(), 1.0f, 1.0f);
+        nextEdge = PathEdge(*this, next, edgePdfForward, edgePdfBackward);
+        next._pdfForward = pdf;
+
+        return true;
+    } else if (!adjoint && scene.intersectInfinites(state.ray, surfaceRecord.data, surfaceRecord.info)) {
+        next = PathVertex(surfaceRecord.info.bsdf, surfaceRecord, _throughput*weight);
+        state.bounce++;
+        nextEdge = PathEdge(state.ray.dir(), 1.0f, 1.0f, edgePdfForward, edgePdfBackward);
         next._pdfForward = pdf;
 
         return true;
@@ -170,10 +212,8 @@ Vec3f PathVertex::eval(const Vec3f &d, bool adjoint) const
                 _record.surface.event.wi,
                 _record.surface.event.frame.toLocal(d)),
                 adjoint);
-    case VolumeVertex:
-        // TODO: Media
-        //return _sampler.medium->phaseEval(_record.volume.makeWarpedQuery(_record.volume.wi, d));
-        return Vec3f(0.0f);
+    case MediumVertex:
+        return _sampler.phase->eval(_record.medium.wi, d);
     default:
         return Vec3f(0.0f);
     }
@@ -187,36 +227,40 @@ void PathVertex::evalPdfs(const PathVertex *prev, const PathEdge *prevEdge, cons
         if (_sampler.emitter->isInfinite())
             // Positional pdf is constant for a fixed direction, which is the case
             // for connections to a point on an infinite emitter
-            *forward = _record.emitter.point.pdf*next.cosineFactor(nextEdge.d);
+            *forward = nextEdge.pdfForward*_record.emitter.point.pdf*next.cosineFactor(nextEdge.d);
         else
-            *forward = next.cosineFactor(nextEdge.d)/nextEdge.rSq*
+            *forward = nextEdge.pdfForward*next.cosineFactor(nextEdge.d)/nextEdge.rSq*
                     _sampler.emitter->directionalPdf(_record.emitter.point, DirectionSample(nextEdge.d));
         break;
     case CameraVertex:
-        *forward = next.cosineFactor(nextEdge.d)/nextEdge.rSq*
+        *forward = nextEdge.pdfForward*next.cosineFactor(nextEdge.d)/nextEdge.rSq*
                 _sampler.camera->directionPdf(_record.camera.point, DirectionSample(nextEdge.d));
         break;
     case SurfaceVertex: {
         const SurfaceScatterEvent &event = _record.surface.event;
         Vec3f dPrev = event.frame.toLocal(-prevEdge->d);
         Vec3f dNext = event.frame.toLocal(nextEdge.d);
-        *forward  = _sampler.bsdf->pdf(event.makeWarpedQuery(dPrev, dNext));
-        *backward = _sampler.bsdf->pdf(event.makeWarpedQuery(dNext, dPrev));
+        *forward  = nextEdge .pdfForward *_sampler.bsdf->pdf(event.makeWarpedQuery(dPrev, dNext));
+        *backward = prevEdge->pdfBackward*_sampler.bsdf->pdf(event.makeWarpedQuery(dNext, dPrev));
         if (!next .isInfiniteEmitter()) *forward  *= next .cosineFactor(nextEdge .d)/nextEdge .rSq;
         if (!prev->isInfiniteEmitter()) *backward *= prev->cosineFactor(prevEdge->d)/prevEdge->rSq;
         break;
-    } case VolumeVertex: {
-        //const MediumRecord &record = _record.medium;
-        //Vec3f dPrev = -prevEdge->d;
-        //Vec3f dNext = nextEdge.d;
-        // TODO: Media
-        *forward = *backward = 0.0f;
-        //*forward  = next .cosineFactor(nextEdge .d)/nextEdge .rSq*
-        //        _sampler.medium->phasePdf(event.makeWarpedQuery(dPrev, dNext));
-        //*backward = prev->cosineFactor(prevEdge->d)/prevEdge->rSq*
-        //        _sampler.medium->phasePdf(event.makeWarpedQuery(dNext, dPrev));
+    } case MediumVertex: {
+        *forward  = nextEdge .pdfForward *_sampler.phase->pdf(prevEdge->d,   nextEdge.d);
+        *backward = prevEdge->pdfBackward*_sampler.phase->pdf(-nextEdge.d, -prevEdge->d);
+        if (!next .isInfiniteEmitter()) *forward  *= next .cosineFactor(nextEdge .d)/nextEdge .rSq;
+        if (!prev->isInfiniteEmitter()) *backward *= prev->cosineFactor(prevEdge->d)/prevEdge->rSq;
         break;
     }}
+}
+
+void PathVertex::pointerFixup()
+{
+    // Yuck. It's best not to ask.
+    // A combination of MSVC limitations and poor design decisions
+    // have lead to this ugliness. Once the BSDF interface gets refactored
+    // we can hopefully get rid of this.
+    _record.surface.event.info = &_record.surface.info;
 }
 
 Vec3f PathVertex::pos() const
@@ -228,7 +272,7 @@ Vec3f PathVertex::pos() const
         return _record.camera.point.p;
     case SurfaceVertex:
         return _record.surface.info.p;
-    case VolumeVertex:
+    case MediumVertex:
         return _record.medium.mediumSample.p;
     default:
         return Vec3f(0.0f);
@@ -244,10 +288,26 @@ float PathVertex::cosineFactor(const Vec3f &d) const
         return std::abs(_record.camera.point.Ng.dot(d));
     case SurfaceVertex:
         return std::abs(_record.surface.info.Ng.dot(d));
-    case VolumeVertex:
+    case MediumVertex:
         return 1.0f;
     default:
         return 0.0f;
+    }
+}
+
+const Medium *PathVertex::selectMedium(const Vec3f &d) const
+{
+    switch (_type) {
+    case EmitterVertex:
+        return _sampler.emitter->extMedium().get();
+    case CameraVertex:
+        return _sampler.camera->medium().get();
+    case SurfaceVertex:
+        return _record.surface.info.primitive->selectMedium(_medium, d.dot(_record.surface.info.Ng) < 0.0f);
+    case MediumVertex:
+        return _medium;
+    default:
+        return nullptr;
     }
 }
 

@@ -32,19 +32,18 @@ Vec3f BidirectionalPathTracer::traceSample(Vec2u pixel, PathSampleGenerator &sam
 
     Vec3f result = cameraPath.bdptWeightedPathEmission(_settings.minBounces + 2, _settings.maxBounces + 1);
     for (int s = 1; s <= lightLength; ++s) {
-        int lowerBound = max(_settings.minBounces - s + 2, 1);
         int upperBound = min(_settings.maxBounces - s + 1, cameraLength);
-        for (int t = lowerBound; t <= upperBound; ++t) {
+        for (int t = 1; t <= upperBound; ++t) {
             if (!cameraPath[t - 1].connectable() || !emitterPath[s - 1].connectable())
                 continue;
 
             if (t == 1) {
                 Vec2f pixel;
                 Vec3f splatWeight;
-                if (LightPath::bdptCameraConnect(*_scene, cameraPath, emitterPath, s, sampler, splatWeight, pixel))
+                if (LightPath::bdptCameraConnect(*this, cameraPath, emitterPath, s, _settings.maxBounces, sampler, splatWeight, pixel))
                     _splatBuffer->splatFiltered(pixel, splatWeight);
             } else {
-                result += LightPath::bdptConnect(*_scene, cameraPath, emitterPath, s, t);
+                result += LightPath::bdptConnect(*this, cameraPath, emitterPath, s, t, _settings.maxBounces);
             }
         }
     }
