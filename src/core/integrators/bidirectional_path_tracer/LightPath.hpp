@@ -88,9 +88,6 @@ public:
     static bool bdptCameraConnect(const TraceableScene &scene, const LightPath &camera,
             const LightPath &emitter, int s, PathSampleGenerator &sampler,
             Vec3f &weight, Vec2f &pixel);
-
-    static void samplePathsInterleaved(LightPath &cameraPath, LightPath &emitterPath,
-            const TraceableScene &scene, TraceBase &tracer, PathSampleGenerator &sampler);
 };
 
 }

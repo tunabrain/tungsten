@@ -242,38 +242,4 @@ bool LightPath::bdptCameraConnect(const TraceableScene &scene, const LightPath &
     return true;
 }
 
-void LightPath::samplePathsInterleaved(LightPath &cameraPath, LightPath &emitterPath,
-        const TraceableScene &scene, TraceBase &tracer, PathSampleGenerator &sampler)
-{
-    TraceState  cameraState(sampler);
-    TraceState emitterState(sampler);
-    bool  cameraPathValid =  cameraPath[0].sampleRootVertex( cameraState);
-    bool emitterPathValid = emitterPath[0].sampleRootVertex(emitterState);
-
-    int  cameraLength = 0;
-    int emitterLength = 0;
-    while (cameraPathValid || emitterPathValid) {
-        if (cameraPathValid) {
-            cameraLength++;
-            cameraPathValid = cameraLength < cameraPath.maxLength() &&
-                    cameraPath[cameraLength - 1].sampleNextVertex(scene, tracer, cameraState, false,
-                            cameraLength == 1 ? nullptr : &cameraPath[cameraLength - 2],
-                            cameraLength == 1 ? nullptr : &cameraPath.edge(cameraLength - 2),
-                            cameraPath[cameraLength], cameraPath.edge(cameraLength - 1));
-            sampler.advancePath();
-        }
-        if (emitterPathValid) {
-            emitterLength++;
-            emitterPathValid = emitterLength < emitterPath.maxLength() &&
-                    emitterPath[emitterLength - 1].sampleNextVertex(scene, tracer, emitterState, true,
-                            emitterLength == 1 ? nullptr : &emitterPath[emitterLength - 2],
-                            emitterLength == 1 ? nullptr : &emitterPath.edge(emitterLength - 2),
-                            emitterPath[emitterLength], emitterPath.edge(emitterLength - 1));
-            sampler.advancePath();
-        }
-    }
-     cameraPath._length =  cameraLength;
-    emitterPath._length = emitterLength;
-}
-
 }
