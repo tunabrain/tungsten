@@ -52,6 +52,7 @@ public:
     virtual bool sampleDistance(PathSampleGenerator &sampler, const Ray &ray,
             MediumState &state, MediumSample &sample) const override;
     virtual Vec3f transmittance(const Ray &ray) const override;
+    virtual float pdf(const Ray &ray, bool onSurface) const override;
 };
 
 }

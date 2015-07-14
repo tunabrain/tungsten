@@ -28,6 +28,9 @@ public:
     virtual bool sampleDistance(PathSampleGenerator &sampler, const Ray &ray,
             MediumState &state, MediumSample &sample) const override;
     virtual Vec3f transmittance(const Ray &ray) const override;
+    virtual float pdf(const Ray &ray, bool onSurface) const override;
+    virtual Vec3f transmittanceAndPdfs(const Ray &ray, bool startOnSurface, bool endOnSurface,
+            float &pdfForward, float &pdfBackward) const override;
 
     Vec3f sigmaA() const { return _sigmaA; }
     Vec3f sigmaS() const { return _sigmaS; }

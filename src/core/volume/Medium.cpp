@@ -33,6 +33,14 @@ rapidjson::Value Medium::toJson(Allocator &allocator) const
     return std::move(v);
 }
 
+Vec3f Medium::transmittanceAndPdfs(const Ray &ray, bool startOnSurface, bool endOnSurface,
+        float &pdfForward, float &pdfBackward) const
+{
+    pdfForward = pdf(ray, endOnSurface);
+    pdfBackward = pdf(ray.scatter(ray.hitpoint(), -ray.dir(), 0.0f, ray.farT()), startOnSurface);
+    return transmittance(ray);
+}
+
 const PhaseFunction *Medium::phaseFunction(const Vec3f &/*p*/) const
 {
     return _phaseFunction.get();

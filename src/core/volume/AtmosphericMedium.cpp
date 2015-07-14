@@ -202,4 +202,9 @@ Vec3f AtmosphericMedium::transmittance(const Ray &ray) const
     return std::exp(-_sigmaS*depthAndT.x());
 }
 
+float AtmosphericMedium::pdf(const Ray &/*ray*/, bool /*onSurface*/) const
+{
+    return 0.0f; // TODO: Broken, for now. Figure this out later
+}
+
 }
