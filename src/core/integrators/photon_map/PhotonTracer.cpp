@@ -53,6 +53,7 @@ void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRan
                     p.pos = mediumSample.p;
                     p.dir = ray.dir();
                     p.power = throughput;
+                    p.bounce = bounce;
                 }
 
                 PhaseSample phaseSample;
@@ -70,6 +71,7 @@ void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRan
                 p.pos = info.p;
                 p.dir = ray.dir();
                 p.power = throughput*std::abs(info.Ns.dot(ray.dir())/info.Ng.dot(ray.dir()));
+                p.bounce = bounce;
             }
         }
 
@@ -121,11 +123,17 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
     Vec3f result(0.0f);
     int bounce = 0;
     bool didHit = _scene->intersect(ray, data, info);
-    while ((medium || didHit) && bounce < _settings.maxBounces - 1) {
+    while ((medium || didHit) && bounce < _settings.maxBounces) {
+        bounce++;
+
         if (medium) {
             if (mediumTree) {
                 Vec3f beamEstimate(0.0f);
                 mediumTree->beamQuery(ray.pos(), ray.dir(), ray.farT(), [&](const VolumePhoton &p, float t, float distSq) {
+                    int fullPathBounce = bounce + p.bounce;
+                    if (fullPathBounce < _settings.minBounces || fullPathBounce >= _settings.maxBounces)
+                        return;
+
                     Ray mediumQuery(ray);
                     mediumQuery.setFarT(t);
                     beamEstimate += (3.0f*INV_PI*sqr(1.0f - distSq/p.radiusSq))/p.radiusSq
@@ -171,17 +179,16 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
             break;
 
         sampler.advancePath();
-        bounce++;
         if (bounce < _settings.maxBounces)
             didHit = _scene->intersect(ray, data, info);
     }
 
     if (!didHit) {
-        if (!medium && _scene->intersectInfinites(ray, data, info))
+        if (!medium && bounce > _settings.minBounces && _scene->intersectInfinites(ray, data, info))
             result += throughput*info.primitive->evalDirect(data, info);
         return result;
     }
-    if (info.primitive->isEmissive())
+    if (info.primitive->isEmissive() && bounce > _settings.minBounces)
         result += throughput*info.primitive->evalDirect(data, info);
 
     int count = surfaceTree.nearestNeighbours(ray.hitpoint(), _photonQuery.get(), _distanceQuery.get(),
@@ -194,6 +201,10 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
 
     Vec3f surfaceEstimate(0.0f);
     for (int i = 0; i < count; ++i) {
+        int fullPathBounce = bounce + _photonQuery[i]->bounce;
+        if (fullPathBounce < _settings.minBounces || fullPathBounce >= _settings.maxBounces)
+            continue;
+
         event.wo = event.frame.toLocal(-_photonQuery[i]->dir);
         // Asymmetry due to shading normals already compensated for when storing the photon,
         // so we don't use the adjoint BSDF here

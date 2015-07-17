@@ -8,6 +8,7 @@ namespace Tungsten {
 struct Photon
 {
     uint32 splitData;
+    uint32 bounce;
     Vec3f pos;
     Vec3f dir;
     Vec3f power;
