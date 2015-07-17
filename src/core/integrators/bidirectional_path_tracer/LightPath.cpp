@@ -215,16 +215,6 @@ Vec3f LightPath::bdptWeightedPathEmission(int minLength, int maxLength) const
         }
         connectable[0] = true;
 
-        // Convert densities of dirac vertices sampled from non-dirac vertices to projected solid angle measure
-        if (connectable[0] && !connectable[1] && !_vertices[t - 1].isInfiniteSurface())
-            pdfForward[1] *= invGeometryFactor(t - 2);
-        for (int i = 1; i < t - 1; ++i)
-            if (connectable[i] && !connectable[i + 1])
-                pdfForward[i + 1] *= invGeometryFactor(t - 2 - i);
-        for (int i = t - 1; i >= 1; --i)
-            if (connectable[i] && !connectable[i - 1])
-                pdfBackward[i - 1] *= invGeometryFactor(t - 1 - i);
-
         PositionSample point(record.info);
         DirectionSample direction(-_edges[t - 2].d);
         if (record.info.primitive->isInfinite()) {
@@ -239,6 +229,16 @@ Vec3f LightPath::bdptWeightedPathEmission(int minLength, int maxLength) const
             pdfForward[1] = record.info.primitive->directionalPdf(point, direction)*
                     _edges[t - 2].pdfBackward*_vertices[t - 2].cosineFactor(_edges[t - 2].d)/_edges[t - 2].rSq;
         }
+
+        // Convert densities of dirac vertices sampled from non-dirac vertices to projected solid angle measure
+        if (connectable[0] && !connectable[1] && !_vertices[t - 1].isInfiniteSurface())
+            pdfForward[1] *= invGeometryFactor(t - 2);
+        for (int i = 1; i < t - 1; ++i)
+            if (connectable[i] && !connectable[i + 1])
+                pdfForward[i + 1] *= invGeometryFactor(t - 2 - i);
+        for (int i = t - 1; i >= 1; --i)
+            if (connectable[i] && !connectable[i - 1])
+                pdfBackward[i - 1] *= invGeometryFactor(t - 1 - i);
 
         float weight = 1.0f;
         float pi = 1.0f;
