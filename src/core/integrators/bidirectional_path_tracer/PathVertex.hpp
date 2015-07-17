@@ -75,7 +75,7 @@ public:
     : _type(EmitterVertex),
       _record(EmitterRecord(emitterPdf)),
       _sampler(emitter),
-      _medium(nullptr),
+      _medium(emitter->extMedium().get()),
       _dirac(false),
       _forward(false),
       _connectable(!_dirac)
@@ -85,7 +85,7 @@ public:
     : _type(CameraVertex),
       _record(CameraRecord(pixel)),
       _sampler(camera),
-      _medium(nullptr),
+      _medium(camera->medium().get()),
       _dirac(camera->isFilterDirac()),
       _forward(false),
       _connectable(!_dirac)

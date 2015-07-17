@@ -105,7 +105,6 @@ bool PathVertex::sampleNextVertex(const TraceableScene &scene, TraceBase &tracer
                 scatterWeight, emission, state.wasSpecular, state.mediumState);
         if (!scattered)
             return false;
-        _medium = state.medium;
 
         if (record.event.sampledLobe.isForward())
             prev->_pdfBackward = record.event.pdf;
@@ -130,7 +129,6 @@ bool PathVertex::sampleNextVertex(const TraceableScene &scene, TraceBase &tracer
 
         prev->_pdfBackward = record.mediumSample.phase->pdf(-record.phaseSample.w, -state.ray.dir());
 
-        _medium = state.medium;
         state.ray = state.ray.scatter(record.mediumSample.p, record.phaseSample.w, 0.0f);
         state.ray.setPrimaryRay(false);
 
@@ -170,6 +168,7 @@ bool PathVertex::sampleNextVertex(const TraceableScene &scene, TraceBase &tracer
     if (!hitSurface) {
         mediumRecord.wi = state.ray.dir();
         next = PathVertex(mediumRecord.mediumSample.phase, mediumRecord, _throughput*weight);
+        next._medium = state.medium;
         state.bounce++;
         nextEdge = PathEdge(*this, next, edgePdfForward, edgePdfBackward);
         next._pdfForward = pdf;
@@ -179,6 +178,7 @@ bool PathVertex::sampleNextVertex(const TraceableScene &scene, TraceBase &tracer
         surfaceRecord.event = tracer.makeLocalScatterEvent(surfaceRecord.data, surfaceRecord.info, state.ray, &state.sampler);
 
         next = PathVertex(surfaceRecord.info.bsdf, surfaceRecord, _throughput*weight);
+        next._medium = state.medium;
         next.pointerFixup();
         state.bounce++;
         nextEdge = PathEdge(*this, next, edgePdfForward, edgePdfBackward);
@@ -187,6 +187,7 @@ bool PathVertex::sampleNextVertex(const TraceableScene &scene, TraceBase &tracer
         return true;
     } else if (!adjoint && scene.intersectInfinites(state.ray, surfaceRecord.data, surfaceRecord.info)) {
         next = PathVertex(surfaceRecord.info.bsdf, surfaceRecord, _throughput*weight);
+        next._medium = state.medium;
         state.bounce++;
         nextEdge = PathEdge(state.ray.dir(), 1.0f, 1.0f, edgePdfForward, edgePdfBackward);
         next._pdfForward = pdf;
@@ -302,9 +303,10 @@ const Medium *PathVertex::selectMedium(const Vec3f &d) const
         return _sampler.emitter->extMedium().get();
     case CameraVertex:
         return _sampler.camera->medium().get();
-    case SurfaceVertex:
-        return _record.surface.info.primitive->selectMedium(_medium, d.dot(_record.surface.info.Ng) < 0.0f);
-    case MediumVertex:
+    case SurfaceVertex: {
+        const Primitive *p = _record.surface.info.primitive;
+        return p->overridesMedia() ? p->selectMedium(_medium, d.dot(_record.surface.info.Ng) < 0.0f) : _medium;
+    } case MediumVertex:
         return _medium;
     default:
         return nullptr;
