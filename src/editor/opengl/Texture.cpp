@@ -276,7 +276,7 @@ void Texture::copy(void *data, int level)
                 w, h, _glChanType, _elementType, data);
 
             if (data)
-                data = (uint8_t *)data + w*h*_elementSize;
+                data = (char *)data + w*h*_elementSize;
         }
         break;
     case TEXTURE_2D:

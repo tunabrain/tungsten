@@ -129,7 +129,7 @@ void MainWindow::openScene(const QString &path)
 {
     Scene *newScene = nullptr;
     try {
-        newScene = Scene::load(Path(path.toStdString()));
+        newScene = Scene::load(Path(path.toUtf8().data()));
         newScene->loadResources();
     } catch (const std::runtime_error &e) {
         QMessageBox::warning(

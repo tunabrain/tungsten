@@ -8,6 +8,7 @@
 #include "io/ImageIO.hpp"
 
 #include <QGridLayout>
+#include <functional>
 #include <memory>
 #include <vector>
 

@@ -50,21 +50,20 @@ public:
     void draw(GL::Shader &shader);
 };
 
+enum MouseConsumers
+{
+    CameraConsumer    = (1 << 0),
+    GizmoConsumer     = (1 << 1),
+    SelectionConsumer = (1 << 2),
+};
+
 class PreviewWindow : public QGLWidget
 {
     Q_OBJECT
 
-    static CONSTEXPR float Fov  = 60.0f;
-    static CONSTEXPR float Near = 0.01f;
-    static CONSTEXPR float Far  = 100.0f;
-
-    enum MouseConsumers
-    {
-        CameraConsumer    = (1 << 0),
-        GizmoConsumer     = (1 << 1),
-        SelectionConsumer = (1 << 2),
-    };
-    const std::array<MouseConsumers, 3> DefaultPriorities{{GizmoConsumer, CameraConsumer, SelectionConsumer}};
+    const float Fov  = 60.0f;
+    const float Near = 0.01f;
+    const float Far  = 100.0f;
 
     struct SelectionState
     {
