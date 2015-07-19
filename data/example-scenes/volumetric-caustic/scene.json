@@ -1,0 +1,297 @@
+{
+    "media": [
+        {
+            "name": "gas",
+            "phase_function": {
+                "type": "isotropic"
+            },
+            "max_bounces": 1024,
+            "type": "homogeneous",
+            "sigma_a": 0,
+            "sigma_s": 1
+        }
+    ],
+    "bsdfs": [
+        {
+            "name": "leftWall",
+            "albedo": [
+                0.63,
+                0.065,
+                0.05
+            ],
+            "type": "lambert"
+        },
+        {
+            "name": "rightWall",
+            "albedo": [
+                0.14,
+                0.45,
+                0.091
+            ],
+            "type": "lambert"
+        },
+        {
+            "name": "floor",
+            "albedo": [
+                0.725,
+                0.71,
+                0.68
+            ],
+            "type": "lambert"
+        },
+        {
+            "name": "ceiling",
+            "albedo": [
+                0.725,
+                0.71,
+                0.68
+            ],
+            "type": "lambert"
+        },
+        {
+            "name": "backWall",
+            "albedo": [
+                0.725,
+                0.71,
+                0.68
+            ],
+            "type": "lambert"
+        },
+        {
+            "name": "frontWall",
+            "albedo": 1,
+            "type": "forward"
+        },
+        {
+            "name": "sphere",
+            "albedo": 1,
+            "type": "dielectric",
+            "ior": 1.5,
+            "enable_refraction": true
+        },
+        {
+            "name": "light",
+            "albedo": 1,
+            "type": "null"
+        }
+    ],
+    "primitives": [
+        {
+            "name": "floor",
+            "transform": {
+                "scale": [
+                    2,
+                    4,
+                    2
+                ],
+                "rotation": [
+                    0,
+                    90,
+                    0
+                ]
+            },
+            "type": "quad",
+            "bsdf": "floor"
+        },
+        {
+            "name": "ceiling",
+            "transform": {
+                "position": [
+                    0,
+                    2,
+                    0
+                ],
+                "scale": [
+                    2,
+                    4,
+                    2
+                ],
+                "rotation": [
+                    0,
+                    0,
+                    180
+                ]
+            },
+            "type": "quad",
+            "bsdf": "ceiling"
+        },
+        {
+            "name": "backWall",
+            "transform": {
+                "position": [
+                    0,
+                    1,
+                    -1
+                ],
+                "scale": [
+                    2,
+                    4,
+                    2
+                ],
+                "rotation": [
+                    0,
+                    90,
+                    90
+                ]
+            },
+            "type": "quad",
+            "bsdf": "backWall"
+        },
+        {
+            "name": "frontWall",
+            "transform": {
+                "position": [
+                    0,
+                    1,
+                    1
+                ],
+                "scale": [
+                    2,
+                    4,
+                    2
+                ],
+                "rotation": [
+                    0,
+                    90,
+                    -90
+                ]
+            },
+            "int_medium": "gas",
+            "type": "quad",
+            "bsdf": "frontWall"
+        },
+        {
+            "name": "rightWall",
+            "transform": {
+                "position": [
+                    1,
+                    1,
+                    0
+                ],
+                "scale": [
+                    2,
+                    4,
+                    2
+                ],
+                "rotation": [
+                    0,
+                    -180,
+                    90
+                ]
+            },
+            "type": "quad",
+            "bsdf": "rightWall"
+        },
+        {
+            "name": "leftWall",
+            "transform": {
+                "position": [
+                    -1,
+                    1,
+                    0
+                ],
+                "scale": [
+                    2,
+                    4,
+                    2
+                ],
+                "rotation": [
+                    0,
+                    0,
+                    90
+                ]
+            },
+            "type": "quad",
+            "bsdf": "leftWall"
+        },
+        {
+            "name": "Lens",
+            "transform": {
+                "position": [
+                    -0.22827,
+                    1.2,
+                    0.152505
+                ],
+                "scale": 0.3
+            },
+            "ext_medium": "gas",
+            "type": "sphere",
+            "bsdf": "sphere"
+        },
+        {
+            "name": "light",
+            "transform": {
+                "position": [
+                    -0.005,
+                    1.98,
+                    -0.03
+                ],
+                "scale": [
+                    0.005,
+                    1,
+                    0.004
+                ],
+                "rotation": [
+                    0,
+                    0,
+                    180
+                ]
+            },
+            "power": [
+                34,
+                24,
+                8
+            ],
+            "ext_medium": "gas",
+            "type": "quad",
+            "bsdf": "light"
+        }
+    ],
+    "camera": {
+        "tonemap": "filmic",
+        "resolution": [
+            1000,
+            563
+        ],
+        "reconstruction_filter": "tent",
+        "transform": {
+            "position": [
+                -1.05697e-006,
+                1,
+                7
+            ],
+            "look_at": [
+                0,
+                1,
+                0
+            ],
+            "up": [
+                0,
+                1,
+                0
+            ]
+        },
+        "type": "pinhole",
+        "fov": 35
+    },
+    "integrator": {
+        "min_bounces": 0,
+        "max_bounces": 6,
+        "enable_consistency_checks": false,
+        "enable_two_sided_shading": true,
+        "type": "bidirectional_path_tracer"
+    },
+    "renderer": {
+        "output_file": "TungstenRender.png",
+        "resume_render_file": "TungstenRenderState.dat",
+        "overwrite_output_files": false,
+        "adaptive_sampling": false,
+        "enable_resume_render": false,
+        "stratified_sampler": false,
+        "scene_bvh": true,
+        "spp": 32,
+        "spp_step": 16,
+        "checkpoint_interval": "0",
+        "timeout": "0"
+    }
+}

@@ -1,0 +1,344 @@
+{
+    "media": [],
+    "bsdfs": [
+        {
+            "name": "leftWall",
+            "albedo": [
+                0.63,
+                0.065,
+                0.05
+            ],
+            "type": "lambert"
+        },
+        {
+            "name": "rightWall",
+            "albedo": [
+                0.14,
+                0.45,
+                0.091
+            ],
+            "type": "lambert"
+        },
+        {
+            "name": "floor",
+            "albedo": [
+                0.725,
+                0.71,
+                0.68
+            ],
+            "type": "lambert"
+        },
+        {
+            "name": "ceiling",
+            "albedo": [
+                0.725,
+                0.71,
+                0.68
+            ],
+            "type": "lambert"
+        },
+        {
+            "name": "backWall",
+            "albedo": [
+                0.725,
+                0.71,
+                0.68
+            ],
+            "type": "lambert"
+        },
+        {
+            "name": "shortBox",
+            "albedo": [
+                0.725,
+                0.71,
+                0.68
+            ],
+            "type": "lambert"
+        },
+        {
+            "name": "tallBox",
+            "albedo": [
+                0.725,
+                0.71,
+                0.68
+            ],
+            "type": "lambert"
+        },
+        {
+            "name": "light",
+            "albedo": 1,
+            "type": "null"
+        },
+        {
+            "name": "water",
+            "albedo": 1,
+            "type": "dielectric",
+            "ior": 1.8,
+            "enable_refraction": true
+        }
+    ],
+    "primitives": [
+        {
+            "name": "floor",
+            "transform": {
+                "scale": [
+                    2,
+                    4,
+                    2
+                ],
+                "rotation": [
+                    0,
+                    90,
+                    0
+                ]
+            },
+            "type": "quad",
+            "bsdf": "floor"
+        },
+        {
+            "name": "ceiling",
+            "transform": {
+                "position": [
+                    0,
+                    2,
+                    0
+                ],
+                "scale": [
+                    2,
+                    4,
+                    2
+                ],
+                "rotation": [
+                    0,
+                    0,
+                    -180
+                ]
+            },
+            "type": "quad",
+            "bsdf": "ceiling"
+        },
+        {
+            "name": "backWall",
+            "transform": {
+                "position": [
+                    0,
+                    1,
+                    -1
+                ],
+                "scale": [
+                    2,
+                    4,
+                    2
+                ],
+                "rotation": [
+                    0,
+                    90,
+                    90
+                ]
+            },
+            "type": "quad",
+            "bsdf": "backWall"
+        },
+        {
+            "name": "rightWall",
+            "transform": {
+                "position": [
+                    1,
+                    1,
+                    0
+                ],
+                "scale": [
+                    2,
+                    4,
+                    2
+                ],
+                "rotation": [
+                    0,
+                    180,
+                    90
+                ]
+            },
+            "type": "quad",
+            "bsdf": "rightWall"
+        },
+        {
+            "name": "leftWall",
+            "transform": {
+                "position": [
+                    -1,
+                    1,
+                    0
+                ],
+                "scale": [
+                    2,
+                    4,
+                    2
+                ],
+                "rotation": [
+                    0,
+                    0,
+                    90
+                ]
+            },
+            "type": "quad",
+            "bsdf": "leftWall"
+        },
+        {
+            "name": "shortBox",
+            "transform": {
+                "position": [
+                    0.5132,
+                    0.15215,
+                    0.44471
+                ],
+                "scale": [
+                    0.319977,
+                    0.325132,
+                    0.322768
+                ],
+                "rotation": [
+                    90,
+                    90,
+                    -66.034
+                ]
+            },
+            "type": "cube",
+            "bsdf": "shortBox"
+        },
+        {
+            "name": "tallBox",
+            "transform": {
+                "position": [
+                    -0.528405,
+                    0.335942,
+                    -0.291415
+                ],
+                "scale": [
+                    0.34664,
+                    0.341188,
+                    0.684957
+                ],
+                "rotation": [
+                    90,
+                    -180,
+                    157.627
+                ]
+            },
+            "type": "cube",
+            "bsdf": "tallBox"
+        },
+        {
+            "name": "light",
+            "transform": {
+                "position": [
+                    -0.005,
+                    1.98,
+                    -0.03
+                ],
+                "scale": [
+                    0.005,
+                    1,
+                    0.004
+                ],
+                "rotation": [
+                    0,
+                    0,
+                    -180
+                ]
+            },
+            "power": [
+                34,
+                24,
+                8
+            ],
+            "type": "quad",
+            "bsdf": "light"
+        },
+        {
+            "name": "Water",
+            "transform": {
+                "scale": [
+                    1,
+                    1.5,
+                    1
+                ]
+            },
+            "type": "mesh",
+            "file": "water.wo3",
+            "smooth": true,
+            "backface_culling": false,
+            "recompute_normals": true,
+            "bsdf": "water"
+        },
+        {
+            "name": "Front",
+            "transform": {
+                "scale": [
+                    1,
+                    1.5,
+                    1
+                ]
+            },
+            "type": "mesh",
+            "file": "front.wo3",
+            "smooth": false,
+            "backface_culling": false,
+            "recompute_normals": true,
+            "bsdf": "water"
+        }
+    ],
+    "camera": {
+        "tonemap": "filmic",
+        "resolution": [
+            1000,
+            563
+        ],
+        "reconstruction_filter": "tent",
+        "transform": {
+            "position": [
+                -1.03263e-006,
+                0.990944,
+                6.83879
+            ],
+            "look_at": [
+                0,
+                0.990944,
+                3.19966e-012
+            ],
+            "up": [
+                0,
+                1,
+                0
+            ]
+        },
+        "type": "pinhole",
+        "fov": 35
+    },
+    "integrator": {
+        "type": "progressive_photon_map",
+        "min_bounces": 0,
+        "max_bounces": 8,
+        "enable_consistency_checks": false,
+        "enable_two_sided_shading": true,
+        "gather_radius": 0.05,
+        "photon_count": 5000000,
+        "volume_photon_count": 100000,
+        "gather_photon_count": 20,
+        "alpha": 0.3,
+        "fixed_volume_radius": false,
+        "volume_gather_radius": 0.05
+    },
+    "renderer": {
+        "output_file": "TungstenRender.png",
+        "resume_render_file": "TungstenRenderState.dat",
+        "overwrite_output_files": false,
+        "adaptive_sampling": false,
+        "enable_resume_render": false,
+        "stratified_sampler": false,
+        "scene_bvh": true,
+        "spp": 16,
+        "spp_step": 1,
+        "checkpoint_interval": "0",
+        "timeout": "0"
+    }
+}
