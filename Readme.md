@@ -4,7 +4,7 @@
 
 ## About ##
 
-Tungsten is a physically based renderer originally written for the [yearly renderer competition at ETH](http://graphics.ethz.ch/teaching/imsynth14/competition/competition.php). It simulates full light transport through arbitrary geometry based on unbiased integration of the [rendering equation](http://en.wikipedia.org/wiki/Rendering_equation) using path tracing.
+Tungsten is a physically based renderer originally written for the [yearly renderer competition at ETH](http://graphics.ethz.ch/teaching/imsynth14/competition/competition.php). It simulates full light transport through arbitrary geometry based on unbiased integration of the [rendering equation](http://en.wikipedia.org/wiki/Rendering_equation). To do this, Tungsten supports various light transport algorithms such as bidirectional path tracing, progressive photon mapping, primary sample space metropolis light transport and more.
 
 Tungsten is written in C++11 and makes use of Intel's high-performance geometry intersection library [embree](http://embree.github.io/). Tungsten takes full advantage of multicore systems and tries to offer good performance through frequent benchmarking and optimization. At least SSE3 support is required to run the renderer.
 
@@ -12,7 +12,7 @@ Tungsten is written in C++11 and makes use of Intel's high-performance geometry 
 
 Documentation is planned, but currently unavailable (sorry!). A lengthy overview of features is available in the [final project report](http://graphics.ethz.ch/teaching/imsynth14/competition//1st%20Place..%20Benedikt%20Bitterli/report.html) written as part of the submission for the rendering competition, although that document may be outdated.
 
-A small example JSON scene file can be found in `data/materialtest`. It also contains the Tungsten material test ball that you can use to test different materials and lighting setups.
+A small selection of example scenes can be found in `data/example-scenes`. There is also a material test scene found in `data/materialtest`, which contains the Tungsten material test ball that you can use to test different materials and lighting setups..
 
 ## License ##
 
