@@ -11,10 +11,11 @@ class CheckerTexture : public Texture
 
     Vec3f _onColor, _offColor;
     int _resU, _resV;
+    float _offsetU, _offsetV;
 
 public:
     CheckerTexture();
-    CheckerTexture(Vec3f onColor, Vec3f offColor, int resU, int resV);
+    CheckerTexture(Vec3f onColor, Vec3f offColor, int resU, int resV, float offsetU, float offsetV);
 
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
@@ -57,6 +58,16 @@ public:
         return _resV;
     }
 
+    float offsetU() const
+    {
+        return _offsetU;
+    }
+
+    float offsetV() const
+    {
+        return _offsetV;
+    }
+
     void setOffColor(Vec3f offColor)
     {
         _offColor = offColor;
@@ -76,6 +87,17 @@ public:
     {
         _resV = resV;
     }
+
+    void setOffsetU(float offsetU)
+    {
+        _offsetU = offsetU;
+    }
+
+    void setOffsetV(float offsetV)
+    {
+        _offsetV = offsetV;
+    }
+
 };
 
 }
