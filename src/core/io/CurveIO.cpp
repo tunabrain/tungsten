@@ -306,11 +306,11 @@ struct FiberAttribute
     template<typename T>
     std::unique_ptr<T[]> load(InputStreamHandle in, uint64 elementsRequired)
     {
-        std::unique_ptr<T[]> result(new T[elementsRequired]);
-        FileUtils::streamRead(in, result.get(), elementsPresent);
+        std::unique_ptr<T[]> result(new T[size_t(elementsRequired)]);
+        FileUtils::streamRead(in, result.get(), size_t(elementsPresent));
         // Copy-extend
-        for (uint64 i = elementsPresent; i < elementsRequired; ++i)
-            result[i] = result[elementsPresent - 1];
+        for (size_t i = size_t(elementsPresent); i < size_t(elementsRequired); ++i)
+            result[i] = result[size_t(elementsPresent - 1)];
         return std::move(result);
     }
 };
@@ -351,19 +351,19 @@ static bool loadFiber(const Path &path, CurveData &data)
         in->seekg(size_t(offset), std::ios_base::beg);
 
         if (data.curveEnds && attribute.matches("num_vertices", true, FIBER_UINT16, 1)) {
-            data.curveEnds->resize(numCurves);
+            data.curveEnds->resize(size_t(numCurves));
             auto vertexCounts = attribute.load<uint16>(in, numCurves);
-            for (uint64 i = 0; i < numCurves; ++i)
+            for (size_t i = 0; i < size_t(numCurves); ++i)
                 (*data.curveEnds)[i] = uint32(vertexCounts[i]) + (i > 0 ? (*data.curveEnds)[i - 1] : 0);
         } else if (data.nodeData && attribute.matches("position", false, FIBER_FLOAT, 3)) {
-            data.nodeData->resize(numVertices);
+            data.nodeData->resize(size_t(numVertices));
             auto pos = attribute.load<Vec3f>(in, numVertices);
-            for (uint64 i = 0; i < numVertices; ++i)
+            for (size_t i = 0; i < size_t(numVertices); ++i)
                 (*data.nodeData)[i] = Vec4f(pos[i].x(), pos[i].y(), pos[i].z(), (*data.nodeData)[i].w());
         } else if (data.nodeData && attribute.matches("width", false, FIBER_FLOAT, 1)) {
-            data.nodeData->resize(numVertices);
+            data.nodeData->resize(size_t(numVertices));
             auto width = attribute.load<float>(in, numVertices);
-            for (uint64 i = 0; i < numVertices; ++i)
+            for (size_t i = 0; i < size_t(numVertices); ++i)
                 (*data.nodeData)[i].w() = width[i];
         }
 
@@ -409,7 +409,7 @@ static bool saveFiber(const Path &path, const CurveData &data)
 
     writeFiberAttributeDescriptor(out, "num_vertices", numCurves*sizeof(uint16), true, FIBER_UINT16, 1);
     const std::vector<uint32> &curveEnds = *data.curveEnds;
-    for (uint64 i = 0; i < numCurves; ++i)
+    for (size_t i = 0; i < size_t(numCurves); ++i)
         FileUtils::streamWrite(out, uint16((*data.curveEnds)[i] - (i ? (*data.curveEnds)[i - 1] : 0)));
     writeFiberAttributeDescriptor(out, "position", numVertices*sizeof(Vec3f), false, FIBER_FLOAT, 3);
     for (const Vec4f &v : *data.nodeData)

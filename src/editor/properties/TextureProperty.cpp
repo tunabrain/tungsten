@@ -209,7 +209,7 @@ void TextureProperty::buildTexturePage(PropertySheet *sheet, BladeTexture *tex)
     buildTextureDisplay(sheet);
 }
 
-void TextureProperty::buildTexturePage(PropertySheet *sheet, DiskTexture */*tex*/)
+void TextureProperty::buildTexturePage(PropertySheet *sheet, DiskTexture * /*tex*/)
 {
     buildTextureDisplay(sheet);
 }

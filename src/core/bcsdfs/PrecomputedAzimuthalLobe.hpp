@@ -55,7 +55,7 @@ public:
     {
         float u = (AzimuthalResolution - 1)*phi*INV_TWO_PI;
         float v = (AzimuthalResolution - 1)*cosThetaD;
-        return _sampler->pdf(v, u)*float(AzimuthalResolution*INV_TWO_PI);
+        return _sampler->pdf(v, int(u))*float(AzimuthalResolution*INV_TWO_PI);
     }
 
     float weight(float cosThetaD) const

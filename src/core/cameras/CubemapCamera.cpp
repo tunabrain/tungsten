@@ -82,7 +82,7 @@ void CubemapCamera::init()
 
 inline void CubemapCamera::directionToFace(const Vec3f &d, int &face, Vec2f &offset) const
 {
-    float maxDim = std::abs(d).maxDim();
+    int maxDim = std::abs(d).maxDim();
     face = d[maxDim] < 0.0f ? maxDim*2 + 1 : maxDim*2;
     offset = Vec2f(
         _basisU[face].dot(d)/std::abs(d[maxDim]),

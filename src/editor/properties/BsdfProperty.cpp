@@ -578,11 +578,11 @@ void BsdfProperty::buildBsdfPage(PropertySheet *sheet, ThinSheetBsdf *bsdf)
     });
 }
 
-void BsdfProperty::buildBsdfPage(PropertySheet */*sheet*/, ForwardBsdf */*bsdf*/)
+void BsdfProperty::buildBsdfPage(PropertySheet * /*sheet*/, ForwardBsdf * /*bsdf*/)
 {
 }
 
-void BsdfProperty::buildBsdfPage(PropertySheet */*sheet*/, LambertBsdf */*bsdf*/)
+void BsdfProperty::buildBsdfPage(PropertySheet * /*sheet*/, LambertBsdf * /*bsdf*/)
 {
 }
 
@@ -605,11 +605,11 @@ void BsdfProperty::buildBsdfPage(PropertySheet *sheet, PlasticBsdf *bsdf)
     });
 }
 
-void BsdfProperty::buildBsdfPage(PropertySheet */*sheet*/, MirrorBsdf */*bsdf*/)
+void BsdfProperty::buildBsdfPage(PropertySheet * /*sheet*/, MirrorBsdf * /*bsdf*/)
 {
 }
 
-void BsdfProperty::buildBsdfPage(PropertySheet */*sheet*/, ErrorBsdf */*bsdf*/)
+void BsdfProperty::buildBsdfPage(PropertySheet * /*sheet*/, ErrorBsdf * /*bsdf*/)
 {
 }
 
@@ -651,7 +651,7 @@ void BsdfProperty::buildBsdfPage(PropertySheet *sheet, PhongBsdf *bsdf)
     });
 }
 
-void BsdfProperty::buildBsdfPage(PropertySheet */*sheet*/, NullBsdf */*bsdf*/)
+void BsdfProperty::buildBsdfPage(PropertySheet * /*sheet*/, NullBsdf * /*bsdf*/)
 {
 }
 

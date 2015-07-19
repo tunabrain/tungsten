@@ -358,7 +358,7 @@ bool TransformGizmo::update(const QMouseEvent *event)
     if (_transforming) {
         if (event->buttons() != Qt::NoButton && event->buttons() != Qt::LeftButton)
             abortTransform();
-        else if ((event->buttons() & Qt::LeftButton) != _needsMouseDown)
+        else if (bool(event->buttons() & Qt::LeftButton) != _needsMouseDown)
             endTransform();
         else
             updateTransform(event->pos().x(), event->pos().y());
