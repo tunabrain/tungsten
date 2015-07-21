@@ -358,9 +358,8 @@ bool TriangleMesh::tangentSpace(const IntersectionTemporary &data, const Interse
     float invDet = s1*t2 - s2*t1;
     if (std::abs(invDet) < 1e-6f)
         return false;
-    float det = 1.0f/invDet;
-    T = det*(q1*t2 - t1*q2);
-    B = det*(q2*s1 - s2*q1);
+    T = (q1*t2 - t1*q2).normalized();
+    B = (q2*s1 - s2*q1).normalized();
 
     return true;
 }
