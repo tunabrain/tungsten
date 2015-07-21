@@ -20,7 +20,7 @@ public:
     {
     }
 
-    virtual void startPath(uint32 /*pixelId*/, int /*sample*/)
+    virtual void startPath(uint32 /*pixelId*/, uint32 /*sample*/)
     {
     }
     virtual void advancePath()

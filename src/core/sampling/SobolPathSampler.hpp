@@ -66,7 +66,7 @@ public:
         _supplementalSampler.loadState(in);
     }
 
-    virtual void startPath(uint32 pixelId, int sample) override final
+    virtual void startPath(uint32 pixelId, uint32 sample) override final
     {
         _scramble = _seed ^ MathUtil::hash32(pixelId);
         _index = sample;

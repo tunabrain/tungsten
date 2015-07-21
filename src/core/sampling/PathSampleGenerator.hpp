@@ -42,7 +42,7 @@ class PathSampleGenerator
 public:
     virtual ~PathSampleGenerator() {}
 
-    virtual void startPath(uint32 pixelId, int sample) = 0;
+    virtual void startPath(uint32 pixelId, uint32 sample) = 0;
     virtual void advancePath() = 0;
     // FIXME: advancePath() is currently never called for direct camera
     // connections. This is because there is currently no use case where

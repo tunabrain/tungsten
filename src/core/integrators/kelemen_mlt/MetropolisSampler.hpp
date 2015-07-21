@@ -80,7 +80,7 @@ public:
         std::memset(_sampleVector.get(), 0, maxVectorSize*sizeof(SampleRecord));
     }
 
-    virtual void startPath(uint32 /*pixelId*/, int /*sample*/) override
+    virtual void startPath(uint32 /*pixelId*/, uint32 /*sample*/) override
     {
     }
     virtual void advancePath() override
