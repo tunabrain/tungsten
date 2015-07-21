@@ -48,8 +48,9 @@ void BidirectionalPathTraceIntegrator::renderTile(uint32 id, uint32 tileId)
 
             Vec3f c(0.0f);
             for (int i = 0; i < spp; ++i) {
+                uint32 lightPathId = pixelIndex*_scene->rendererSettings().spp() + _currentSpp + i;
                 tile.sampler->startPath(pixelIndex, _currentSpp + i);
-                Vec3f s(_tracers[id]->traceSample(pixel, *tile.sampler));
+                Vec3f s(_tracers[id]->traceSample(pixel, lightPathId, *tile.sampler));
 
                 c += s;
             }

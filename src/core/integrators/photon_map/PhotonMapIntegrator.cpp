@@ -56,7 +56,7 @@ void PhotonMapIntegrator::tracePhotons(uint32 taskId, uint32 numSubTasks, uint32
     uint32 totalSurfaceCast = 0;
     uint32 totalVolumeCast = 0;
     for (uint32 i = 0; i < photonsToCast; ++i) {
-        sampler.startPath(taskId, photonBase + i);
+        sampler.startPath(0, photonBase + i);
         _tracers[threadId]->tracePhoton(
             data.surfaceRange,
             data.volumeRange,

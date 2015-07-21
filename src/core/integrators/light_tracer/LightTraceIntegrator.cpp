@@ -27,7 +27,7 @@ void LightTraceIntegrator::traceRays(uint32 taskId, uint32 numSubTasks, uint32 t
     uint32 raysToCast = intLerp(0, rayCount, taskId + 1, numSubTasks) - rayBase;
 
     for (uint32 i = 0; i < raysToCast; ++i) {
-        sampler.startPath(taskId, _currentSpp*_w*_h + rayBase + i);
+        sampler.startPath(0, _currentSpp*_w*_h + rayBase + i);
         _tracers[threadId]->traceSample(sampler);
     }
 }

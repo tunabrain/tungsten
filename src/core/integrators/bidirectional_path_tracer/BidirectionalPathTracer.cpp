@@ -13,7 +13,7 @@ BidirectionalPathTracer::BidirectionalPathTracer(TraceableScene *scene, const Bi
 {
 }
 
-Vec3f BidirectionalPathTracer::traceSample(Vec2u pixel, PathSampleGenerator &sampler)
+Vec3f BidirectionalPathTracer::traceSample(Vec2u pixel, uint32 lightPathId, PathSampleGenerator &sampler)
 {
     LightPath & cameraPath = * _cameraPath;
     LightPath &emitterPath = *_emitterPath;
@@ -25,6 +25,7 @@ Vec3f BidirectionalPathTracer::traceSample(Vec2u pixel, PathSampleGenerator &sam
     emitterPath.startEmitterPath(light, lightPdf);
 
      cameraPath.tracePath(*_scene, *this, sampler);
+    sampler.startPath(0, lightPathId);
     emitterPath.tracePath(*_scene, *this, sampler);
 
     int cameraLength =  cameraPath.length();
