@@ -76,7 +76,7 @@ static inline void intersectHalfCylinder(StackNode node, float tMin,
     float newT = segmentT*(node.tMax - node.tMin) + node.tMin;
 
     if (newT >= 0.0f && newT <= 1.0f) {
-        isect.uv = Vec2f(newT, 0.0f);
+        isect.uv = Vec2f(newT, 0.5f + 0.5f*distance/width);
         isect.t = t0;
         isect.w = width;
         tMax = t0;
