@@ -12,6 +12,14 @@
 
 namespace Tungsten {
 
+template<typename T>
+std::unique_ptr<T[]> zeroAlloc(size_t size)
+{
+    std::unique_ptr<T[]> result(new T[size]);
+    std::memset(result.get(), 0, size*sizeof(T));
+    return std::move(result);
+}
+
 // Default to low-res 16:9
 Camera::Camera()
 : Camera(Mat4f(), Vec2u(1000u, 563u))
@@ -121,37 +129,23 @@ float Camera::directionPdf(const PositionSample &/*point*/, const DirectionSampl
 void Camera::prepareForRender()
 {
     precompute();
-    _pixels.resize(_res.x()*_res.y(), Vec3d(0.0));
-    _weights.resize(_res.x()*_res.y(), 0.0);
+    _colorBuffer = zeroAlloc<Vec3f> (_res.product());
+    _sampleCount = zeroAlloc<uint32>(_res.product());
 }
 
 void Camera::teardownAfterRender()
 {
-    _pixels.clear();
-    _weights.clear();
-    _splats.clear();
+    _colorBuffer.reset();
+    _sampleCount.reset();
     _splatBuffer.reset();
-    _pixels.shrink_to_fit();
-    _weights.shrink_to_fit();
-    _splats.shrink_to_fit();
-    _splatWeight = 0;
 }
 
 void Camera::requestSplatBuffer()
 {
     _splatBuffer.reset(new AtomicFramebuffer(_res.x(), _res.y(), _filter));
-    _splats.resize(_res.x()*_res.y(), Vec3d(0.0));
-    _splatWeight = 0;
+    _splatWeight = 1.0;
 }
 
-void Camera::blitSplatBuffer(uint64 numSplats)
-{
-    for (uint32 y = 0; y < _res.y(); ++y)
-        for (uint32 x = 0; x < _res.x(); ++x)
-            _splats[x + y*_res.x()] += Vec3d(_splatBuffer->get(x, y));
-    _splatWeight += numSplats;
-    _splatBuffer->unsafeReset();
-}
 
 void Camera::setTransform(const Vec3f &pos, const Vec3f &lookAt, const Vec3f &up)
 {

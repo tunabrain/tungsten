@@ -116,12 +116,13 @@ void BidirectionalPathTraceIntegrator::startRender(std::function<void()> complet
         return;
     }
 
+    _scene->cam().setSplatWeight(1.0/(_w*_h*_nextSpp));
+
     using namespace std::placeholders;
     _group = ThreadUtils::pool->enqueue(
         std::bind(&BidirectionalPathTraceIntegrator::renderTile, this, _3, _1),
         _tiles.size(),
         [&, completionCallback]() {
-            _scene->cam().blitSplatBuffer(_w*_h*(_nextSpp - _currentSpp));
             _currentSpp = _nextSpp;
             advanceSpp();
             completionCallback();

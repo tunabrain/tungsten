@@ -88,12 +88,13 @@ void LightTraceIntegrator::startRender(std::function<void()> completionCallback)
         return;
     }
 
+    _scene->cam().setSplatWeight(1.0/(_w*_h*_nextSpp));
+
     using namespace std::placeholders;
     _group = ThreadUtils::pool->enqueue(
         std::bind(&LightTraceIntegrator::traceRays, this, _1, _2, _3),
         _tracers.size(),
         [&, completionCallback]() {
-            _scene->cam().blitSplatBuffer(_w*_h*(_nextSpp - _currentSpp));
             _currentSpp = _nextSpp;
             advanceSpp();
             completionCallback();

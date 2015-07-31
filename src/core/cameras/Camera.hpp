@@ -49,12 +49,11 @@ protected:
     std::shared_ptr<Medium> _medium;
     ReconstructionFilter _filter;
 
-    std::vector<Vec3d> _pixels;
-    std::vector<uint32> _weights;
+    std::unique_ptr<Vec3f[]> _colorBuffer;
+    std::unique_ptr<uint32[]> _sampleCount;
 
     std::unique_ptr<AtomicFramebuffer> _splatBuffer;
-    std::vector<Vec3d> _splats;
-    uint64 _splatWeight;
+    double _splatWeight;
 
 private:
     void precompute();
@@ -83,7 +82,6 @@ public:
     virtual void teardownAfterRender();
 
     void requestSplatBuffer();
-    void blitSplatBuffer(uint64 numSplats);
 
     void setTransform(const Vec3f &pos, const Vec3f &lookAt, const Vec3f &up);
     void setPos(const Vec3f &pos);
@@ -93,8 +91,8 @@ public:
     void addSamples(int x, int y, const Vec3f &c, uint32 weight)
     {
         int idx = x + y*_res.x();
-        _pixels[idx] += Vec3d(c);
-        _weights[idx] += weight;
+        _colorBuffer[idx] += c;
+        _sampleCount[idx] += weight;
     }
 
     inline Vec3f tonemap(const Vec3f &c) const
@@ -105,10 +103,17 @@ public:
     inline Vec3f getLinear(int x, int y) const
     {
         int idx = x + y*_res.x();
-        Vec3d result = _pixels[idx]/double(max(_weights[idx], uint32(1)));
-        if (!_splats.empty())
-            result += _splats[idx]/double(max(_splatWeight, uint64(1)));
-        return Vec3f(result);
+        Vec3f result(0.0f);
+        if (_colorBuffer)
+            result += Vec3f(Vec3d(_colorBuffer[idx])*(1.0/double(max(_sampleCount[idx], uint32(1)))));
+        if (_splatBuffer)
+            result += Vec3f(Vec3d(_splatBuffer->get(x, y))*_splatWeight);
+        return result;
+    }
+
+    void setSplatWeight(double weight)
+    {
+        _splatWeight = weight;
     }
 
     inline Vec3f get(int x, int y) const
@@ -156,14 +161,14 @@ public:
         return _tonemapOp;
     }
 
-    std::vector<Vec3d> &pixels()
+    std::unique_ptr<Vec3f[]> &pixels()
     {
-        return _pixels;
+        return _colorBuffer;
     }
 
-    std::vector<uint32> &weights()
+    std::unique_ptr<uint32[]> &weights()
     {
-        return _weights;
+        return _sampleCount;
     }
 
     AtomicFramebuffer *splatBuffer()

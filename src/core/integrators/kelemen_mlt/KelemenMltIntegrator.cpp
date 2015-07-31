@@ -77,12 +77,14 @@ void KelemenMltIntegrator::startRender(std::function<void()> completionCallback)
         return;
     }
 
+    double weight = double(_w*_h)/(_w*_h*_nextSpp + _settings.initialSamplePool);
+    _scene->cam().setSplatWeight(weight);
+
     using namespace std::placeholders;
     _group = ThreadUtils::pool->enqueue(
         std::bind(&KelemenMltIntegrator::traceRays, this, _1, _2, _3),
         _tracers.size(),
         [&, completionCallback]() {
-            _scene->cam().blitSplatBuffer(_nextSpp - _currentSpp);
             _currentSpp = _nextSpp;
             advanceSpp();
             completionCallback();
