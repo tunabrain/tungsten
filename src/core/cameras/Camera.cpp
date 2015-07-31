@@ -151,6 +151,16 @@ void Camera::requestSplatBuffer()
     _splatWeight = 1.0;
 }
 
+void Camera::blitSplatBuffer()
+{
+    for (uint32 y = 0; y < _res.y(); ++y) {
+        for (uint32 x = 0; x < _res.x(); ++x) {
+            _colorBuffer[x + y*_res.x()] = _splatBuffer->get(x, y);
+            _sampleCount[x + y*_res.x()] = 1;
+        }
+    }
+    _splatBuffer->unsafeReset();
+}
 
 void Camera::setTransform(const Vec3f &pos, const Vec3f &lookAt, const Vec3f &up)
 {

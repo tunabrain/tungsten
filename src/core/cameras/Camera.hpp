@@ -84,6 +84,7 @@ public:
 
     void requestColorBuffer();
     void requestSplatBuffer();
+    void blitSplatBuffer();
 
     void setTransform(const Vec3f &pos, const Vec3f &lookAt, const Vec3f &up);
     void setPos(const Vec3f &pos);

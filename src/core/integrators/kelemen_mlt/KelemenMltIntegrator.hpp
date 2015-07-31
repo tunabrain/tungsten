@@ -23,6 +23,13 @@ namespace Tungsten {
 
 class KelemenMltIntegrator : public Integrator
 {
+    struct PathCandidate
+    {
+        uint64 state;
+        double luminanceSum;
+        float luminance;
+    };
+
     KelemenMltSettings _settings;
 
     std::shared_ptr<TaskGroup> _group;
@@ -33,10 +40,17 @@ class KelemenMltIntegrator : public Integrator
     UniformSampler _sampler;
     std::vector<std::unique_ptr<KelemenMltTracer>> _tracers;
 
+    bool _chainsLaunched;
+    double _luminanceScale;
+    std::unique_ptr<PathCandidate[]> _pathCandidates;
+
     virtual void saveState(OutputStreamHandle &out) override;
     virtual void loadState(InputStreamHandle &in) override;
 
-    void traceRays(uint32 taskId, uint32 numSubTasks, uint32 threadId);
+    void traceSamplePool(uint32 taskId, uint32 numSubTasks, uint32 threadId);
+    void runSampleChain(uint32 taskId, uint32 numSubTasks, uint32 threadId);
+
+    void selectSeedPaths();
 
 public:
     KelemenMltIntegrator();

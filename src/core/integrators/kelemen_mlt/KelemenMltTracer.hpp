@@ -15,31 +15,31 @@ class AtomicFramebuffer;
 
 class KelemenMltTracer : public PathTracer
 {
-    struct PathCandidate
-    {
-        uint64 state;
-        float luminanceSum;
-    };
-
     AtomicFramebuffer *_splatBuffer;
     KelemenMltSettings _settings;
     UniformSampler _sampler;
 
     std::unique_ptr<SplatQueue> _currentSplats;
     std::unique_ptr<SplatQueue> _proposedSplats;
-    std::unique_ptr<PathCandidate[]> _pathCandidates;
-
+    std::unique_ptr<MetropolisSampler> _cameraSampler;
+    std::unique_ptr<MetropolisSampler> _emitterSampler;
     std::unique_ptr<LightPath> _cameraPath;
     std::unique_ptr<LightPath> _emitterPath;
 
-    void tracePath(PathSampleGenerator &cameraSampler, PathSampleGenerator &emitterSampler, SplatQueue &splatQueue);
-
-    void selectSeedPath(int &idx, float &weight);
+    std::unique_ptr<Vec3f[]> _directEmission;
 
 public:
-    KelemenMltTracer(TraceableScene *scene, const KelemenMltSettings &settings, uint32 threadId);
+    KelemenMltTracer(TraceableScene *scene, const KelemenMltSettings &settings, uint64 seed, uint32 threadId);
 
-    void startSampleChain(int chainLength);
+    void tracePath(PathSampleGenerator &cameraSampler, PathSampleGenerator &emitterSampler, SplatQueue &splatQueue);
+
+    void startSampleChain(UniformSampler &replaySampler, float luminance);
+    void runSampleChain(int chainLength, float luminanceScale);
+
+    UniformSampler &sampler()
+    {
+        return _sampler;
+    }
 };
 
 }
