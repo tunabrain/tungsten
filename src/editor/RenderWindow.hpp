@@ -27,6 +27,7 @@ class RenderWindow : public QWidget
     QLabel *_sppLabel, *_statusLabel;
 
     bool _rendering;
+    bool _autoRefresh;
 
     float _zoom;
     QPoint _lastMousePos;
@@ -49,6 +50,7 @@ private slots:
     void zoomOut();
     void resetView();
     void togglePreview();
+    void toggleAutoRefresh();
 
 protected:
     virtual void paintEvent(QPaintEvent *event);

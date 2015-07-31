@@ -5,6 +5,7 @@
 #include "io/FileUtils.hpp"
 
 #include <string.h>
+#include <QTimer>
 #include <QtGui>
 
 namespace Tungsten {
@@ -14,6 +15,7 @@ RenderWindow::RenderWindow(QWidget *proxyParent, MainWindow *parent)
   _parent(*parent),
   _scene(nullptr),
   _rendering(false),
+  _autoRefresh(false),
   _zoom(1.0f),
   _panX(0.0f),
   _panY(0.0f),
@@ -27,6 +29,7 @@ RenderWindow::RenderWindow(QWidget *proxyParent, MainWindow *parent)
     new QShortcut(QKeySequence("+"), this, SLOT(zoomIn()));
     new QShortcut(QKeySequence("-"), this, SLOT(zoomOut()));
     new QShortcut(QKeySequence("F5"), this, SLOT(refresh()));
+    new QShortcut(QKeySequence("R"), this, SLOT(toggleAutoRefresh()));
     new QShortcut(QKeySequence("Home"), this, SLOT(resetView()));
     new QShortcut(QKeySequence("Ctrl+Tab"), this, SLOT(togglePreview()));
 
@@ -195,6 +198,9 @@ void RenderWindow::refresh()
             pixels[idx] = tonemap(_scene->camera()->get(x, y));
 
     update();
+
+    if (_autoRefresh)
+        QTimer::singleShot(2000, this, SLOT(refresh()));
 }
 
 void RenderWindow::toggleRender()
@@ -228,6 +234,13 @@ void RenderWindow::togglePreview()
 {
     if (!_rendering)
         _parent.togglePreview();
+}
+
+void RenderWindow::toggleAutoRefresh()
+{
+    _autoRefresh = !_autoRefresh;
+    if (_autoRefresh)
+        QTimer::singleShot(2000, this, SLOT(refresh()));
 }
 
 }
