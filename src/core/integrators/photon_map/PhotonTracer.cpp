@@ -15,6 +15,7 @@ void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRan
 {
     float lightPdf;
     const Primitive *light = chooseLightAdjoint(sampler, lightPdf);
+    const Medium *medium = light->extMedium().get();
 
     PositionSample point;
     if (!light->samplePosition(sampler, point))
@@ -33,7 +34,6 @@ void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRan
     Medium::MediumState state;
     state.reset();
     Vec3f emission(0.0f);
-    const Medium *medium = nullptr; // TODO: Media
 
     int bounce = 0;
     bool wasSpecular = true;
