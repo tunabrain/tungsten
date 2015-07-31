@@ -91,6 +91,7 @@ void BidirectionalPathTraceIntegrator::prepareForRender(TraceableScene &scene, u
 
     _w = scene.cam().resolution().x();
     _h = scene.cam().resolution().y();
+    scene.cam().requestColorBuffer();
     scene.cam().requestSplatBuffer();
 
     for (uint32 i = 0; i < ThreadUtils::pool->threadCount(); ++i)

@@ -181,6 +181,7 @@ void ProgressivePhotonMapIntegrator::prepareForRender(TraceableScene &scene, uin
     _iteration = 0;
     _scene = &scene;
     advanceSpp();
+    scene.cam().requestColorBuffer();
 
     _surfacePhotons.resize(_settings.photonCount);
     if (!_scene->media().empty())

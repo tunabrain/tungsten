@@ -169,6 +169,7 @@ void PhotonMapIntegrator::prepareForRender(TraceableScene &scene, uint32 seed)
     _totalTracedVolumePhotons  = 0;
     _scene = &scene;
     advanceSpp();
+    scene.cam().requestColorBuffer();
 
     _surfacePhotons.resize(_settings.photonCount);
     if (!_scene->media().empty())

@@ -129,8 +129,6 @@ float Camera::directionPdf(const PositionSample &/*point*/, const DirectionSampl
 void Camera::prepareForRender()
 {
     precompute();
-    _colorBuffer = zeroAlloc<Vec3f> (_res.product());
-    _sampleCount = zeroAlloc<uint32>(_res.product());
 }
 
 void Camera::teardownAfterRender()
@@ -138,6 +136,12 @@ void Camera::teardownAfterRender()
     _colorBuffer.reset();
     _sampleCount.reset();
     _splatBuffer.reset();
+}
+
+void Camera::requestColorBuffer()
+{
+    _colorBuffer = zeroAlloc<Vec3f> (_res.product());
+    _sampleCount = zeroAlloc<uint32>(_res.product());
 }
 
 void Camera::requestSplatBuffer()
