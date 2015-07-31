@@ -26,8 +26,6 @@ class KelemenMltTracer : public PathTracer
     std::unique_ptr<LightPath> _cameraPath;
     std::unique_ptr<LightPath> _emitterPath;
 
-    std::unique_ptr<Vec3f[]> _directEmission;
-
 public:
     KelemenMltTracer(TraceableScene *scene, const KelemenMltSettings &settings, uint64 seed, uint32 threadId);
 
