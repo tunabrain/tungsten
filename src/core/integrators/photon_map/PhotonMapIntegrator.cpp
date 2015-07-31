@@ -147,7 +147,7 @@ void PhotonMapIntegrator::buildPhotonDataStructures()
     _surfaceTree = streamCompactAndBuild(surfaceRanges, _surfacePhotons, _totalTracedSurfacePhotons);
     if (!_volumePhotons.empty()) {
         _volumeTree = streamCompactAndBuild(volumeRanges, _volumePhotons, _totalTracedVolumePhotons);
-        _volumeTree->buildVolumeHierarchy(true, 1.0f);
+        _volumeTree->buildVolumeHierarchy(false, 1.0f);
     }
 }
 
