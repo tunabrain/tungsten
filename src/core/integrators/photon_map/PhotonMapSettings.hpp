@@ -16,7 +16,7 @@ struct PhotonMapSettings : public TraceSettings
 
     PhotonMapSettings()
     : photonCount(1000000),
-      volumePhotonCount(100000),
+      volumePhotonCount(1000000),
       gatherCount(20),
       gatherRadius(1e30f)
     {
