@@ -51,6 +51,7 @@ protected:
 
     std::unique_ptr<Vec3f[]> _colorBuffer;
     std::unique_ptr<uint32[]> _sampleCount;
+    double _colorBufferWeight;
 
     std::unique_ptr<AtomicFramebuffer> _splatBuffer;
     double _splatWeight;
@@ -106,10 +107,15 @@ public:
         int idx = x + y*_res.x();
         Vec3f result(0.0f);
         if (_colorBuffer)
-            result += Vec3f(Vec3d(_colorBuffer[idx])*(1.0/double(max(_sampleCount[idx], uint32(1)))));
+            result += Vec3f(Vec3d(_colorBuffer[idx])*(_colorBufferWeight/double(max(_sampleCount[idx], uint32(1)))));
         if (_splatBuffer)
             result += Vec3f(Vec3d(_splatBuffer->get(x, y))*_splatWeight);
         return result;
+    }
+
+    void setColorBufferWeight(double weight)
+    {
+        _colorBufferWeight = weight;
     }
 
     void setSplatWeight(double weight)

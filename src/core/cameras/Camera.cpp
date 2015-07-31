@@ -142,6 +142,7 @@ void Camera::requestColorBuffer()
 {
     _colorBuffer = zeroAlloc<Vec3f> (_res.product());
     _sampleCount = zeroAlloc<uint32>(_res.product());
+    _colorBufferWeight = 1.0;
 }
 
 void Camera::requestSplatBuffer()
