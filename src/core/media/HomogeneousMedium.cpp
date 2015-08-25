@@ -10,14 +10,17 @@
 namespace Tungsten {
 
 HomogeneousMedium::HomogeneousMedium()
-: _sigmaA(0.0f),
-  _sigmaS(0.0f)
+: _materialSigmaA(0.0f),
+  _materialSigmaS(0.0f),
+  _density(1.0f)
 {
     init();
 }
 
 void HomogeneousMedium::init()
 {
+    _sigmaA = _materialSigmaA*_density;
+    _sigmaS = _materialSigmaS*_density;
     _sigmaT = _sigmaA + _sigmaS;
     _albedo = _sigmaS/_sigmaT;
     _maxAlbedo = _albedo.max();
@@ -28,8 +31,9 @@ void HomogeneousMedium::init()
 void HomogeneousMedium::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     Medium::fromJson(v, scene);
-    JsonUtils::fromJson(v, "sigma_a", _sigmaA);
-    JsonUtils::fromJson(v, "sigma_s", _sigmaS);
+    JsonUtils::fromJson(v, "sigma_a", _materialSigmaA);
+    JsonUtils::fromJson(v, "sigma_s", _materialSigmaS);
+    JsonUtils::fromJson(v, "density", _density);
 
     init();
 }
@@ -38,8 +42,9 @@ rapidjson::Value HomogeneousMedium::toJson(Allocator &allocator) const
 {
     rapidjson::Value v(Medium::toJson(allocator));
     v.AddMember("type", "homogeneous", allocator);
-    v.AddMember("sigma_a", JsonUtils::toJsonValue(_sigmaA, allocator), allocator);
-    v.AddMember("sigma_s", JsonUtils::toJsonValue(_sigmaS, allocator), allocator);
+    v.AddMember("sigma_a", JsonUtils::toJsonValue(_materialSigmaA, allocator), allocator);
+    v.AddMember("sigma_s", JsonUtils::toJsonValue(_materialSigmaS, allocator), allocator);
+    v.AddMember("density", JsonUtils::toJsonValue(_density, allocator), allocator);
 
     return std::move(v);
 }

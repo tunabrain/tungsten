@@ -2,7 +2,7 @@
 
 #include "materials/ConstantTexture.hpp"
 
-#include "volume/Medium.hpp"
+#include "media/Medium.hpp"
 
 #include "io/Scene.hpp"
 

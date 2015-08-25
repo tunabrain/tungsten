@@ -1,7 +1,7 @@
 #include "MediumProperty.hpp"
 #include "PropertySheet.hpp"
 
-#include "volume/Medium.hpp"
+#include "media/Medium.hpp"
 
 #include "io/Scene.hpp"
 

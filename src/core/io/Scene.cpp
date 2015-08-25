@@ -37,8 +37,8 @@
 #include "cameras/CubemapCamera.hpp"
 #include "cameras/PinholeCamera.hpp"
 
-#include "volume/HomogeneousMedium.hpp"
-#include "volume/AtmosphericMedium.hpp"
+#include "media/HomogeneousMedium.hpp"
+#include "media/AtmosphericMedium.hpp"
 
 #include "bcsdfs/LambertianFiberBcsdf.hpp"
 #include "bcsdfs/RoughWireBcsdf.hpp"

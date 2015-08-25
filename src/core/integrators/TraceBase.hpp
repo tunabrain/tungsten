@@ -16,7 +16,7 @@
 
 #include "cameras/Camera.hpp"
 
-#include "volume/Medium.hpp"
+#include "media/Medium.hpp"
 
 #include "math/TangentFrame.hpp"
 #include "math/MathUtil.hpp"

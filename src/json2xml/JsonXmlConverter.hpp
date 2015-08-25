@@ -16,8 +16,8 @@
 #include "cameras/ThinlensCamera.hpp"
 #include "cameras/PinholeCamera.hpp"
 
-#include "volume/HomogeneousMedium.hpp"
-#include "volume/Medium.hpp"
+#include "media/HomogeneousMedium.hpp"
+#include "media/Medium.hpp"
 
 #include "bsdfs/RoughDielectricBsdf.hpp"
 #include "bsdfs/RoughConductorBsdf.hpp"

@@ -12,7 +12,7 @@
 
 #include "cameras/Camera.hpp"
 
-#include "volume/Medium.hpp"
+#include "media/Medium.hpp"
 
 namespace Tungsten {
 

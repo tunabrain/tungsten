@@ -1,7 +1,7 @@
 #ifndef TRACESTATE_HPP_
 #define TRACESTATE_HPP_
 
-#include "volume/Medium.hpp"
+#include "media/Medium.hpp"
 
 #include "math/Ray.hpp"
 

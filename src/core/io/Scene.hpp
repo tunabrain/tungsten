@@ -26,7 +26,7 @@
 
 #include "cameras/Camera.hpp"
 
-#include "volume/Medium.hpp"
+#include "media/Medium.hpp"
 
 #include "bsdfs/Bsdf.hpp"
 
