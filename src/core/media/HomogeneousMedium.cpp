@@ -22,10 +22,7 @@ void HomogeneousMedium::init()
     _sigmaA = _materialSigmaA*_density;
     _sigmaS = _materialSigmaS*_density;
     _sigmaT = _sigmaA + _sigmaS;
-    _albedo = _sigmaS/_sigmaT;
-    _maxAlbedo = _albedo.max();
-    _absorptionWeight = 1.0f/_maxAlbedo;
-    _absorptionOnly = _maxAlbedo == 0.0f;
+    _absorptionOnly = _sigmaS == 0.0f;
 }
 
 void HomogeneousMedium::fromJson(const rapidjson::Value &v, const Scene &scene)

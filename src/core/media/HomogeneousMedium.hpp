@@ -12,9 +12,6 @@ class HomogeneousMedium : public Medium
 
     Vec3f _sigmaA, _sigmaS;
     Vec3f _sigmaT;
-    Vec3f _albedo;
-    float _maxAlbedo;
-    float _absorptionWeight;
     bool _absorptionOnly;
 
     void init();
