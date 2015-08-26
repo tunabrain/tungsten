@@ -23,7 +23,7 @@ namespace Tungsten {
 
 TextureProperty::TextureProperty(QWidget *parent, PropertySheet &sheet, std::string name,
         std::shared_ptr<Texture> value, bool allowNone, Scene *scene, TexelConversion conversion,
-        std::function<bool(std::shared_ptr<Texture> &)> setter)
+        bool scalarGammaCorrect, std::function<bool(std::shared_ptr<Texture> &)> setter)
 : _parent(parent),
   _sheet(sheet),
   _allowNone(allowNone),
@@ -33,7 +33,8 @@ TextureProperty::TextureProperty(QWidget *parent, PropertySheet &sheet, std::str
   _scene(scene),
   _conversion(conversion),
   _currentMode(textureToMode(_value.get())),
-  _texturePage(nullptr)
+  _texturePage(nullptr),
+  _scalarGammaCorrect(scalarGammaCorrect)
 {
     buildTextureHeader(&sheet);
     _pageRow = sheet.rowCount();
@@ -117,14 +118,14 @@ void TextureProperty::buildTexturePage(PropertySheet *sheet)
 void TextureProperty::buildTexturePage(PropertySheet *sheet, ConstantTexture *tex)
 {
     if (_currentMode == TEXTURE_SCALAR) {
-        sheet->addFloatProperty(tex->average().x(), "Value", [this, tex](float f) {
-            tex->setValue(f);
+        sheet->addFloatProperty(toGamma(tex->average().x()), "Value", [this, tex](float f) {
+            tex->setValue(toLinear(f));
             _setter(_value);
             return true;
         });
     } else {
-        sheet->addVectorProperty(tex->average(), "Value", false, [this, tex](Vec3f v) {
-            tex->setValue(v);
+        sheet->addVectorProperty(toGamma(tex->average()), "Value", false, [this, tex](Vec3f v) {
+            tex->setValue(toLinear(v));
             _setter(_value);
             return true;
         });
@@ -255,6 +256,23 @@ std::shared_ptr<Texture> TextureProperty::instantiateTexture(TextureMode mode)
     case TEXTURE_IES:     return std::make_shared<IesTexture>();
     default:              return nullptr;
     }
+}
+
+float TextureProperty::toLinear(float f) const
+{
+    return _scalarGammaCorrect ? std::pow(f, 2.2f) : f;
+}
+Vec3f TextureProperty::toLinear(Vec3f v) const
+{
+    return _scalarGammaCorrect ? std::pow(v, 2.2f) : v;
+}
+float TextureProperty::toGamma(float f) const
+{
+    return _scalarGammaCorrect ? std::pow(f, 1.0f/2.2f) : f;
+}
+Vec3f TextureProperty::toGamma(Vec3f v) const
+{
+    return _scalarGammaCorrect ? std::pow(v, 1.0f/2.2f) : v;
 }
 
 void TextureProperty::changeMode(TextureMode mode)

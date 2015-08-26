@@ -53,7 +53,8 @@ public:
     ListProperty *addListProperty(std::vector<std::string> list, int index, std::string name,
             std::function<bool(const std::string &, int)> setter);
     TextureProperty *addTextureProperty(std::shared_ptr<Texture> value, std::string name, bool allowNone,
-            Scene *scene, TexelConversion conversion, std::function<bool(std::shared_ptr<Texture> &)> setter);
+            Scene *scene, TexelConversion conversion, bool scalarGammaCorrect,
+            std::function<bool(std::shared_ptr<Texture> &)> setter);
     BsdfProperty *addBsdfProperty(std::shared_ptr<Bsdf> value, std::string name, bool nested,
             Scene *scene, std::function<bool(std::shared_ptr<Bsdf> &)> setter);
     MediumProperty *addMediumProperty(std::shared_ptr<Medium> value, std::string name,

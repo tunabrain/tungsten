@@ -13,7 +13,7 @@ void PrimitiveProperties::fillPropertySheet(PropertySheet *sheet, Primitive *p)
         emit primitiveNameChange(p);
         return true;
     });
-    sheet->addTextureProperty(p->emission(), "Emission", true, _scene, TexelConversion::REQUEST_RGB,
+    sheet->addTextureProperty(p->emission(), "Emission", true, _scene, TexelConversion::REQUEST_RGB, false,
         [this, p](std::shared_ptr<Texture> &tex) {
             p->setEmission(tex);
             emit triggerRedraw();

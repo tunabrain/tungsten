@@ -66,6 +66,8 @@ class TextureProperty : public Property
     QWidget *_texturePage;
     int _pageRow;
 
+    bool _scalarGammaCorrect;
+
     bool _gammaCorrect;
     bool _linear;
     bool _clamp;
@@ -73,6 +75,11 @@ class TextureProperty : public Property
     int _resolution;
 
     TextureDisplay *_bitmapDisplay;
+
+    float toLinear(float f) const;
+    Vec3f toLinear(Vec3f f) const;
+    float toGamma(float f) const;
+    Vec3f toGamma(Vec3f f) const;
 
     void changeMode(TextureMode mode);
 
@@ -104,7 +111,7 @@ class TextureProperty : public Property
 
 public:
     TextureProperty(QWidget *parent, PropertySheet &sheet, std::string name, std::shared_ptr<Texture> value,
-            bool allowNone, Scene *scene, TexelConversion conversion,
+            bool allowNone, Scene *scene, TexelConversion conversion, bool scalarGammaCorrect,
             std::function<bool(std::shared_ptr<Texture> &)> setter);
 
     virtual void setVisible(bool visible) override;

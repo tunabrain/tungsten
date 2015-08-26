@@ -257,14 +257,14 @@ void BsdfProperty::buildBsdfPage()
         return true;
     });
     if (hasAlbedo(_type)) {
-        sheet->addTextureProperty(_value->albedo(), "Albedo", false, _scene, TexelConversion::REQUEST_RGB,
+        sheet->addTextureProperty(_value->albedo(), "Albedo", false, _scene, TexelConversion::REQUEST_RGB, true,
             [this](std::shared_ptr<Texture> &t) {
                 _value->setAlbedo(t);
                 updateBsdfDisplay();
                 return true;
         });
     }
-    sheet->addTextureProperty(_value->bump(), "Bump map", true, _scene, TexelConversion::REQUEST_AVERAGE,
+    sheet->addTextureProperty(_value->bump(), "Bump map", true, _scene, TexelConversion::REQUEST_AVERAGE, false,
         [this](std::shared_ptr<Texture> &bump) {
             _value->setBump(bump);
             updateBsdfDisplay();
@@ -357,7 +357,7 @@ void BsdfProperty::buildBsdfPage(PropertySheet *sheet, RoughDielectricBsdf *bsdf
             updateBsdfDisplay();
             return true;
     });
-    sheet->addTextureProperty(bsdf->roughness(), "Roughness", false, _scene, TexelConversion::REQUEST_AVERAGE,
+    sheet->addTextureProperty(bsdf->roughness(), "Roughness", false, _scene, TexelConversion::REQUEST_AVERAGE, false,
         [this, bsdf](std::shared_ptr<Texture> &tex) {
             bsdf->setRoughness(tex);
             updateBsdfDisplay();
@@ -389,7 +389,7 @@ void BsdfProperty::buildBsdfPage(PropertySheet *sheet, RoughConductorBsdf *bsdf)
             updateBsdfDisplay();
             return true;
     });
-    sheet->addTextureProperty(bsdf->roughness(), "Roughness", false, _scene, TexelConversion::REQUEST_AVERAGE,
+    sheet->addTextureProperty(bsdf->roughness(), "Roughness", false, _scene, TexelConversion::REQUEST_AVERAGE, false,
         [this, bsdf](std::shared_ptr<Texture> &tex) {
             bsdf->setRoughness(tex);
             updateBsdfDisplay();
@@ -420,7 +420,7 @@ void BsdfProperty::buildBsdfPage(PropertySheet *sheet, RoughPlasticBsdf *bsdf)
             updateBsdfDisplay();
             return true;
     });
-    sheet->addTextureProperty(bsdf->roughness(), "Roughness", false, _scene, TexelConversion::REQUEST_AVERAGE,
+    sheet->addTextureProperty(bsdf->roughness(), "Roughness", false, _scene, TexelConversion::REQUEST_AVERAGE, false,
         [this, bsdf](std::shared_ptr<Texture> &tex) {
             bsdf->setRoughness(tex);
             updateBsdfDisplay();
@@ -430,7 +430,7 @@ void BsdfProperty::buildBsdfPage(PropertySheet *sheet, RoughPlasticBsdf *bsdf)
 
 void BsdfProperty::buildBsdfPage(PropertySheet *sheet, TransparencyBsdf *bsdf)
 {
-    sheet->addTextureProperty(bsdf->opacity(), "Opacity", false, _scene, TexelConversion::REQUEST_AUTO,
+    sheet->addTextureProperty(bsdf->opacity(), "Opacity", false, _scene, TexelConversion::REQUEST_AUTO, true,
         [this, bsdf](std::shared_ptr<Texture> &tex) {
             bsdf->setOpacity(tex);
             updateBsdfDisplay();
@@ -507,7 +507,7 @@ void BsdfProperty::buildBsdfPage(PropertySheet *sheet, ConductorBsdf *bsdf)
 
 void BsdfProperty::buildBsdfPage(PropertySheet *sheet, OrenNayarBsdf *bsdf)
 {
-    sheet->addTextureProperty(bsdf->roughness(), "Roughness", false, _scene, TexelConversion::REQUEST_AVERAGE,
+    sheet->addTextureProperty(bsdf->roughness(), "Roughness", false, _scene, TexelConversion::REQUEST_AVERAGE, false,
         [this, bsdf](std::shared_ptr<Texture> &tex) {
             bsdf->setRoughness(tex);
             updateBsdfDisplay();
@@ -538,7 +538,7 @@ void BsdfProperty::buildBsdfPage(PropertySheet *sheet, RoughCoatBsdf *bsdf)
             updateBsdfDisplay();
             return true;
     });
-    sheet->addTextureProperty(bsdf->roughness(), "Roughness", false, _scene, TexelConversion::REQUEST_AVERAGE,
+    sheet->addTextureProperty(bsdf->roughness(), "Roughness", false, _scene, TexelConversion::REQUEST_AVERAGE, false,
         [this, bsdf](std::shared_ptr<Texture> &tex) {
             bsdf->setRoughness(tex);
             updateBsdfDisplay();
@@ -565,7 +565,7 @@ void BsdfProperty::buildBsdfPage(PropertySheet *sheet, ThinSheetBsdf *bsdf)
         updateBsdfDisplay();
         return true;
     });
-    sheet->addTextureProperty(bsdf->thickness(), "Thickness", false, _scene, TexelConversion::REQUEST_AVERAGE,
+    sheet->addTextureProperty(bsdf->thickness(), "Thickness", false, _scene, TexelConversion::REQUEST_AVERAGE, false,
         [this, bsdf](std::shared_ptr<Texture> &tex) {
             bsdf->setThickness(tex);
             updateBsdfDisplay();
@@ -615,7 +615,7 @@ void BsdfProperty::buildBsdfPage(PropertySheet * /*sheet*/, ErrorBsdf * /*bsdf*/
 
 void BsdfProperty::buildBsdfPage(PropertySheet *sheet, MixedBsdf *bsdf)
 {
-    sheet->addTextureProperty(bsdf->ratio(), "Ratio", false, _scene, TexelConversion::REQUEST_AVERAGE,
+    sheet->addTextureProperty(bsdf->ratio(), "Ratio", false, _scene, TexelConversion::REQUEST_AVERAGE, false,
         [this, bsdf](std::shared_ptr<Texture> &tex) {
             bsdf->setRatio(tex);
             updateBsdfDisplay();

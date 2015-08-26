@@ -89,10 +89,10 @@ ListProperty *PropertySheet::addListProperty(std::vector<std::string> list, int 
 
 TextureProperty *PropertySheet::addTextureProperty(std::shared_ptr<Texture> value, std::string name,
         bool allowNone, Scene *scene, TexelConversion conversion,
-        std::function<bool(std::shared_ptr<Texture> &)> setter)
+        bool scalarGammaCorrect, std::function<bool(std::shared_ptr<Texture> &)> setter)
 {
     TextureProperty *property = new TextureProperty(_parent, *this, std::move(name),
-            std::move(value), allowNone, scene, conversion, std::move(setter));
+            std::move(value), allowNone, scene, conversion, scalarGammaCorrect, std::move(setter));
     _properties.emplace_back(property);
     return property;
 }
