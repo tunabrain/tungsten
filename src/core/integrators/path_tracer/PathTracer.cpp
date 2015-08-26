@@ -48,8 +48,10 @@ Vec3f PathTracer::traceSample(Vec2u pixel, PathSampleGenerator &sampler)
                 break;
             throughput *= mediumSample.weight;
             hitSurface = mediumSample.exited;
-            if (hitSurface && !didHit)
+            if (hitSurface && !didHit) {
+                handleInfiniteLights(data, info, _settings.enableLightSampling, ray, throughput, wasSpecular, emission);
                 break;
+            }
         }
 
         if (hitSurface) {
@@ -83,12 +85,8 @@ Vec3f PathTracer::traceSample(Vec2u pixel, PathSampleGenerator &sampler)
         bounce++;
         if (bounce < _settings.maxBounces)
             didHit = _scene->intersect(ray, data, info);
-    }
-    if (!didHit && !medium && bounce >= _settings.minBounces) {
-        if (_scene->intersectInfinites(ray, data, info)) {
-            if (!_settings.enableLightSampling || bounce == 0 || wasSpecular || !info.primitive->isSamplable())
-                emission += throughput*info.primitive->evalDirect(data, info);
-        }
+        if (!didHit || bounce == _settings.maxBounces)
+            handleInfiniteLights(data, info, _settings.enableLightSampling, ray, throughput, wasSpecular, emission);
     }
     if (std::isnan(throughput.sum() + emission.sum()))
         return nanEnvDirColor;

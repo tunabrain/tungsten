@@ -561,4 +561,14 @@ bool TraceBase::handleSurface(SurfaceScatterEvent &event, IntersectionTemporary 
     return true;
 }
 
+void TraceBase::handleInfiniteLights(IntersectionTemporary &data,
+        IntersectionInfo &info, bool enableLightSampling, Ray &ray,
+        Vec3f throughput, bool wasSpecular, Vec3f &emission)
+{
+    if (_scene->intersectInfinites(ray, data, info)) {
+        if (!enableLightSampling || wasSpecular || !info.primitive->isSamplable())
+            emission += throughput*info.primitive->evalDirect(data, info);
+    }
+}
+
 }

@@ -160,6 +160,10 @@ public:
                int bounce, bool adjoint, bool enableLightSampling, Ray &ray,
                Vec3f &throughput, Vec3f &emission, bool &wasSpecular,
                Medium::MediumState &state);
+
+    void handleInfiniteLights(IntersectionTemporary &data,
+            IntersectionInfo &info, bool enableLightSampling, Ray &ray,
+            Vec3f throughput, bool wasSpecular, Vec3f &emission);
 };
 
 }
