@@ -39,6 +39,7 @@
 
 #include "media/HomogeneousMedium.hpp"
 #include "media/AtmosphericMedium.hpp"
+#include "media/ExponentialMedium.hpp"
 
 #include "bcsdfs/LambertianFiberBcsdf.hpp"
 #include "bcsdfs/RoughWireBcsdf.hpp"
@@ -130,6 +131,8 @@ std::shared_ptr<Medium> Scene::instantiateMedium(std::string type, const rapidjs
         result = std::make_shared<HomogeneousMedium>();
     else if (type == "atmosphere")
         result = std::make_shared<AtmosphericMedium>();
+    else if (type == "exponential")
+        result = std::make_shared<ExponentialMedium>();
     else {
         DBG("Unkown medium type: '%s'", type.c_str());
         return nullptr;
