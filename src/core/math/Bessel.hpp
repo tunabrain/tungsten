@@ -1,6 +1,8 @@
 #ifndef BESSEL_HPP_
 #define BESSEL_HPP_
 
+#include "Polynomial.hpp"
+
 // This code has been adapted from Boost math special functions
 // Credit goes to the original authors, Xiaogang Zhang and John Maddock
 // The original license is reproduced here
@@ -121,34 +123,6 @@ static CONSTEXPR double
 static CONSTEXPR double SQRT_PI = 1.7724538509055160273;
 }
 
-// Computes rational polynomial P(x)/Q(x)
-template<int Size>
-inline double rational(double x, const double P[], const double Q[])
-{
-    if (x <= 1) {
-        double s1 = P[Size - 1];
-        double s2 = Q[Size - 1];
-        for (int i = Size - 2; i >= 0; --i) {
-            s1 *= x;
-            s2 *= x;
-            s1 += P[i];
-            s2 += Q[i];
-        }
-        return s1/s2;
-    } else {
-        x = 1.0f/x;
-        double s1 = P[0];
-        double s2 = Q[0];
-        for (int i = 1; i < Size; ++i) {
-            s1 *= x;
-            s2 *= x;
-            s1 += P[i];
-            s2 += Q[i];
-        }
-        return s1/s2;
-    }
-}
-
 static inline double J1(double x)
 {
     if (x == 0.0)
@@ -157,17 +131,17 @@ static inline double J1(double x)
     double result;
     double w = std::abs(x);
     if (w <= 4.0) {
-        double r = rational<7>(x*x, Data::P1, Data::Q1);
+        double r = Polynomial::rational<7>(x*x, Data::P1, Data::Q1);
         double factor = w*(w + Data::x1)*((w - Data::x11/256.0) - Data::x12);
         result = factor*r;
     } else if (w <= 8.0) {
-        double r = rational<8>(x*x, Data::P2, Data::Q2);
+        double r = Polynomial::rational<8>(x*x, Data::P2, Data::Q2);
         double factor = w*(w + Data::x2)*((w - Data::x21/256.0) - Data::x22);
         result = factor*r;
     } else {
         double y = 8.0/w;
-        double rc = rational<7>(y*y, Data::PC, Data::QC);
-        double rs = rational<7>(y*y, Data::PS, Data::QS);
+        double rc = Polynomial::rational<7>(y*y, Data::PC, Data::QC);
+        double rs = Polynomial::rational<7>(y*y, Data::PS, Data::QS);
         double factor = 1.0/(std::sqrt(w)*Data::SQRT_PI);
         double sx = sin(x);
         double cx = cos(x);
