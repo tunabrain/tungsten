@@ -12,6 +12,8 @@ CONSTEXPR float FOUR_PI     = PI*4.0f;
 CONSTEXPR float INV_PI      = 1.0f/PI;
 CONSTEXPR float INV_TWO_PI  = 0.5f*INV_PI;
 CONSTEXPR float INV_FOUR_PI = 0.25f*INV_PI;
+CONSTEXPR float SQRT_PI     = 1.77245385091f;
+CONSTEXPR float INV_SQRT_PI = 1.0f/SQRT_PI;
 
 class Angle
 {

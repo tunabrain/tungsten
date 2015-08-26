@@ -11,33 +11,23 @@ namespace Tungsten {
 
 class AtmosphericMedium : public Medium
 {
-    const float Rg = 6360.0f*1e3f;
-    const float Rt = 6420.0f*1e3f;
-    const float Hr = 8.0f*1e3f;
-    const float BetaR = 5.8f*1e-6f;
-    const float BetaG = 13.5f*1e-6f;
-    const float BetaB = 33.1f*1e-6f;
-    const float FalloffScale = 14.0f;
-
     const Scene *_scene;
-
     std::string _primName;
 
-    Vec3f _pos;
-    float _scale;
+    Vec3f _materialSigmaA, _materialSigmaS;
+    float _density;
+    float _falloffScale;
+    float _radius;
+    Vec3f _center;
 
-    Vec3f _sigmaS;
-    float _rG;
-    float _rT;
-    float _hR;
+    float _effectiveFalloffScale;
+    Vec3f _sigmaA, _sigmaS;
+    Vec3f _sigmaT;
+    bool _absorptionOnly;
 
-    inline bool sphereMinTMaxT(const Vec3f &o, const Vec3f &w, Vec2f &tSpan, float r) const;
-
-    inline Vec2f densityAndDerivative(float r, float mu, float t, float d) const;
-
-    void sampleColorChannel(PathSampleGenerator &sampler, MediumState &state, MediumSample &sample) const;
-
-    Vec2f opticalDepthAndT(const Vec3f &p, const Vec3f &w, float maxT, float targetDepth) const;
+    inline float density(float h, float t0) const;
+    inline float densityIntegral(float h, float t0, float t1) const;
+    inline float inverseOpticalDepth(double h, double t0, double sigmaT, double xi) const;
 
 public:
     AtmosphericMedium();
@@ -53,6 +43,8 @@ public:
             MediumState &state, MediumSample &sample) const override;
     virtual Vec3f transmittance(const Ray &ray) const override;
     virtual float pdf(const Ray &ray, bool onSurface) const override;
+    virtual Vec3f transmittanceAndPdfs(const Ray &ray, bool startOnSurface, bool endOnSurface,
+            float &pdfForward, float &pdfBackward) const override;
 };
 
 }

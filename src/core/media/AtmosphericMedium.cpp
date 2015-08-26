@@ -4,87 +4,21 @@
 
 #include "sampling/PathSampleGenerator.hpp"
 
+#include "math/Erf.hpp"
+
 #include "io/Scene.hpp"
 
 namespace Tungsten {
 
 AtmosphericMedium::AtmosphericMedium()
 : _scene(nullptr),
-  _pos(0.0f),
-  _scale(Rg)
+  _materialSigmaA(0.0f),
+  _materialSigmaS(0.0f),
+  _density(1.0f),
+  _falloffScale(1.0f),
+  _radius(1.0f),
+  _center(0.0f)
 {
-}
-
-bool AtmosphericMedium::sphereMinTMaxT(const Vec3f &o, const Vec3f &w, Vec2f &tSpan, float r) const
-{
-    Vec3f p = o - _pos;
-    float B = p.dot(w);
-    float C = p.lengthSq() - r*r;
-    float detSq = B*B - C;
-    if (detSq >= 0.0f) {
-        float det = std::sqrt(detSq);
-        tSpan.x() = -B - det;
-        tSpan.y() = -B + det;
-        return true;
-    }
-
-    return false;
-}
-
-Vec2f AtmosphericMedium::densityAndDerivative(float r, float mu, float t, float d) const
-{
-    float density = std::exp((_rG - d)/_hR);
-    float dDdT = std::abs((t + r*mu)/(d*_hR))*max(density, 0.01f);
-    return Vec2f(density, dDdT);
-}
-
-void AtmosphericMedium::sampleColorChannel(PathSampleGenerator &sampler, MediumState &state, MediumSample &sample) const
-{
-    state.component = sampler.nextDiscrete(DiscreteTransmittanceSample, 3);
-    sample.pdf = 1.0f/3.0f;
-    sample.weight = Vec3f(0.0f);
-    sample.weight[state.component] = 3.0f;
-}
-
-Vec2f AtmosphericMedium::opticalDepthAndT(const Vec3f &p, const Vec3f &w, float maxT, float targetDepth) const
-{
-    CONSTEXPR int MaxStepCount = 1024*10;
-    CONSTEXPR float maxError = 0.02f;
-    int iter = 0;
-
-    Vec3f localP = p - _pos;
-    float r = localP.length();
-    float mu = w.dot(localP)/r;
-
-    float opticalDepth = 0.0f;
-    Vec2f dD = densityAndDerivative(r, mu, 0.0f, r);
-    float dT = min(maxError/dD.y(), maxT*0.2f);
-    float t = dT;
-    while (t < maxT) {
-        float d = std::sqrt(r*r + t*t + 2.0f*r*t*mu);
-        Vec2f newDd = densityAndDerivative(r, mu, t, d);
-
-        float depthStep = (dD.x() + newDd.x())*0.5f*dT;
-        opticalDepth += depthStep;
-        if (opticalDepth >= targetDepth) {
-            float alpha = (targetDepth - opticalDepth + depthStep)/depthStep;
-            t -= dT*(1.0f - alpha);
-            return Vec2f(targetDepth, t);
-        }
-
-        dD = newDd;
-        dT = min(maxError/newDd.y(), maxT*0.2f);
-        t += dT;
-
-        if (iter++ > MaxStepCount) {
-            FAIL("Exceeded maximum step count: %s %s %s %s", p, w, maxT, targetDepth);
-        }
-    }
-    float d = std::sqrt(r*r + maxT*maxT + 2.0f*r*maxT*mu);
-    Vec2f newDd = densityAndDerivative(r, mu, maxT, d);
-    opticalDepth += (dD.x() + newDd.x())*0.5f*(maxT - t + dT);
-
-    return Vec2f(opticalDepth, maxT);
 }
 
 void AtmosphericMedium::fromJson(const rapidjson::Value &v, const Scene &scene)
@@ -92,19 +26,28 @@ void AtmosphericMedium::fromJson(const rapidjson::Value &v, const Scene &scene)
     _scene = &scene;
 
     Medium::fromJson(v, scene);
-    JsonUtils::fromJson(v, "pos", _pos);
-    JsonUtils::fromJson(v, "scale", _scale);
     JsonUtils::fromJson(v, "pivot", _primName);
+    JsonUtils::fromJson(v, "sigma_a", _materialSigmaA);
+    JsonUtils::fromJson(v, "sigma_s", _materialSigmaS);
+    JsonUtils::fromJson(v, "density", _density);
+    JsonUtils::fromJson(v, "falloff_scale", _falloffScale);
+    JsonUtils::fromJson(v, "radius", _radius);
+    JsonUtils::fromJson(v, "center", _center);
 }
 
 rapidjson::Value AtmosphericMedium::toJson(Allocator &allocator) const
 {
     rapidjson::Value v(Medium::toJson(allocator));
     v.AddMember("type", "atmosphere", allocator);
-    v.AddMember("scale", _scale, allocator);
-    v.AddMember("pos", JsonUtils::toJsonValue(_pos, allocator), allocator);
+    v.AddMember("sigma_a", JsonUtils::toJsonValue(_materialSigmaA, allocator), allocator);
+    v.AddMember("sigma_s", JsonUtils::toJsonValue(_materialSigmaS, allocator), allocator);
+    v.AddMember("density", JsonUtils::toJsonValue(_density, allocator), allocator);
+    v.AddMember("falloff_scale", JsonUtils::toJsonValue(_falloffScale, allocator), allocator);
+    v.AddMember("radius", JsonUtils::toJsonValue(_radius, allocator), allocator);
     if (!_primName.empty())
         v.AddMember("pivot", _primName.c_str(), allocator);
+    else
+        v.AddMember("center", JsonUtils::toJsonValue(_center, allocator), allocator);
 
     return std::move(v);
 }
@@ -118,23 +61,42 @@ void AtmosphericMedium::prepareForRender()
 {
     if (!_primName.empty()) {
         const Primitive *prim = _scene->findPrimitive(_primName);
-        if (!prim) {
+        if (!prim)
             DBG("Note: unable to find pivot object '%s' for atmospheric medium", _primName.c_str());
-        } else {
-            _pos = prim->transform()*Vec3f(0.0f);
-            _scale = Rg/(prim->transform().extractScale()*Vec3f(1.0f)).max();
-        }
+        else
+            _center = prim->transform()*Vec3f(0.0f);
     }
 
-    _sigmaS = 1.0f/FalloffScale*Vec3f(
-        float(double(BetaR)*double(_scale)),
-        float(double(BetaG)*double(_scale)),
-        float(double(BetaB)*double(_scale))
-    );
+    _effectiveFalloffScale = _falloffScale/_radius;
+    _sigmaA = _materialSigmaA*_density;
+    _sigmaS = _materialSigmaS*_density;
+    _sigmaT = _sigmaA + _sigmaS;
+    _absorptionOnly = _sigmaS == 0.0f;
+}
 
-    _rG = float(double(Rg)/double(_scale));
-    _rT = float(double((Rt - Rg)*FalloffScale + Rg)/double(_scale));
-    _hR = float(FalloffScale*double(Hr)/double(_scale));
+inline float AtmosphericMedium::density(float h, float t0) const
+{
+    return std::exp(-sqr(_effectiveFalloffScale)*(h*h - _radius*_radius + t0*t0));
+}
+
+inline float AtmosphericMedium::densityIntegral(float h, float t0, float t1) const
+{
+    float s = _effectiveFalloffScale;
+    if (t1 == Ray::infinity())
+        return (SQRT_PI*0.5f/s)*std::exp((-h*h + _radius*_radius)*s*s)*Erf::erfc(s*t0);
+    else
+        return (SQRT_PI*0.5f/s)*std::exp((-h*h + _radius*_radius)*s*s)*Erf::erfDifference(s*t0, s*t1);
+}
+
+inline float AtmosphericMedium::inverseOpticalDepth(double h, double t0, double sigmaT, double xi) const
+{
+    double s = _effectiveFalloffScale;
+    double inner = std::erf(s*t0) - 2.0*double(INV_SQRT_PI)*std::exp(s*s*(h - _radius)*(h + _radius))*s*std::log(xi)/sigmaT;
+
+    if (inner >= 1.0)
+        return Ray::infinity();
+    else
+        return Erf::erfInv(inner)/s;
 }
 
 bool AtmosphericMedium::sampleDistance(PathSampleGenerator &sampler, const Ray &ray,
@@ -143,68 +105,90 @@ bool AtmosphericMedium::sampleDistance(PathSampleGenerator &sampler, const Ray &
     if (state.bounce > _maxBounce)
         return false;
 
-    sample.phase = _phaseFunction.get();
+    Vec3f p = (ray.pos() - _center);
+    float t0 = p.dot(ray.dir());
+    float  h = (p - t0*ray.dir()).length();
 
-    Vec2f tSpan;
-    if (!sphereMinTMaxT(ray.pos(), ray.dir(), tSpan, _rT) || ray.farT() < tSpan.x()) {
+    float maxT = ray.farT() + t0;
+    if (_absorptionOnly) {
         sample.t = ray.farT();
-        sample.weight = Vec3f(1.0f);
+        sample.weight = std::exp(-_sigmaT*densityIntegral(h, t0, maxT));
         sample.pdf = 1.0f;
-        sample.p = ray.pos() + sample.t*ray.dir();
         sample.exited = true;
-        return true;
-    }
-
-    if (state.firstScatter) {
-        sampleColorChannel(sampler, state, sample);
     } else {
-        sample.pdf = 1.0f;
-        sample.weight = Vec3f(0.0f);
-        sample.weight[state.component] = 1.0f;
-    }
-    state.advance();
+        int component = sampler.nextDiscrete(DiscreteTransmittanceSample, 3);
+        float sigmaTc = _sigmaT[component];
+        float xi = 1.0f - sampler.next1D(MediumTransmittanceSample);
 
-    float sigmaSc = _sigmaS[state.component];
-    float targetDepth = -std::log(1.0f - sampler.next1D(MediumTransmittanceSample))/sigmaSc;
-    float minT = max(0.0f, tSpan.x());
-    Vec3f p = ray.pos() + minT*ray.dir();
-    float maxT = min(ray.farT(), tSpan.y()) - minT;
+        float t = inverseOpticalDepth(h, t0, sigmaTc, xi);
+        sample.t = min(t, maxT);
+        sample.weight = std::exp(-_sigmaT*densityIntegral(h, t0, sample.t));
+        sample.exited = (t >= maxT);
+        if (sample.exited) {
+            sample.pdf = sample.weight.avg();
+        } else {
+            float rho = density(h, sample.t);
+            sample.pdf = (rho*_sigmaT*sample.weight).avg();
+            sample.weight *= rho*_sigmaS;
+        }
+        sample.weight /= sample.pdf;
+        sample.t -= t0;
 
-    Vec2f depthAndT = opticalDepthAndT(p, ray.dir(), maxT, targetDepth);
-    float sampledT = depthAndT.y();
-    sample.exited = sampledT == maxT;
-
-    float extinction = std::exp(-sigmaSc*depthAndT.x());
-    if (sample.exited) {
-        sample.t = ray.farT();
-        sample.pdf *= sigmaSc*extinction;
-    } else {
-        sample.t = (sampledT + minT);
-        sample.pdf *= extinction;
+        state.advance();
     }
     sample.p = ray.pos() + sample.t*ray.dir();
+    sample.phase = _phaseFunction.get();
 
     return true;
 }
 
 Vec3f AtmosphericMedium::transmittance(const Ray &ray) const
 {
-    Vec2f tSpan;
-    if (!sphereMinTMaxT(ray.pos(), ray.dir(), tSpan, _rT) || ray.farT() < tSpan.x())
-        return Vec3f(1.0f);
+    Vec3f p = (ray.pos() - _center);
+    float t0 = p.dot(ray.dir());
+    float t1 = ray.farT() + t0;
+    float  h = (p - t0*ray.dir()).length();
 
-    float minT = max(0.0f, tSpan.x());
-    Vec3f p = ray.pos() + minT*ray.dir();
-    float maxT = min(ray.farT() - minT, tSpan.y());
-
-    Vec2f depthAndT = opticalDepthAndT(p, ray.dir(), maxT, 1.0f);
-
-    return std::exp(-_sigmaS*depthAndT.x());
+    return std::exp(-_sigmaT*densityIntegral(h, t0, t1));
 }
 
-float AtmosphericMedium::pdf(const Ray &/*ray*/, bool /*onSurface*/) const
+float AtmosphericMedium::pdf(const Ray &ray, bool onSurface) const
 {
-    return 0.0f; // TODO: Broken, for now. Figure this out later
+    if (_absorptionOnly) {
+        return 1.0f;
+    } else {
+        Vec3f p = (ray.pos() - _center);
+        float t0 = p.dot(ray.dir());
+        float t1 = ray.farT() + t0;
+        float  h = (p - t0*ray.dir()).length();
+
+        Vec3f transmittance = std::exp(-_sigmaT*densityIntegral(h, t0, t1));
+        if (onSurface) {
+            return transmittance.avg();
+        } else {
+            return (density(h, t0)*_sigmaT*transmittance).avg();
+        }
+    }
+}
+
+Vec3f AtmosphericMedium::transmittanceAndPdfs(const Ray &ray, bool startOnSurface, bool endOnSurface,
+        float &pdfForward, float &pdfBackward) const
+{
+    Vec3f p = (ray.pos() - _center);
+    float t0 = p.dot(ray.dir());
+    float t1 = ray.farT() + t0;
+    float  h = (p - t0*ray.dir()).length();
+
+    Vec3f transmittance = std::exp(-_sigmaT*densityIntegral(h, t0, t1));
+
+    if (_absorptionOnly) {
+        pdfForward = pdfBackward = 1.0f;
+    } else {
+        pdfForward  =   endOnSurface ? transmittance.avg() : (density(h, t1)*_sigmaT*transmittance).avg();
+        pdfBackward = startOnSurface ? transmittance.avg() : (density(h, t0)*_sigmaT*transmittance).avg();
+    }
+
+    return transmittance;
 }
 
 }
