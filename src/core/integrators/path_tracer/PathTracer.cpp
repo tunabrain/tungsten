@@ -88,6 +88,8 @@ Vec3f PathTracer::traceSample(Vec2u pixel, PathSampleGenerator &sampler)
         if (!didHit || bounce == _settings.maxBounces)
             handleInfiniteLights(data, info, _settings.enableLightSampling, ray, throughput, wasSpecular, emission);
     }
+    if (bounce == 0)
+        handleInfiniteLights(data, info, _settings.enableLightSampling, ray, throughput, wasSpecular, emission);
     if (std::isnan(throughput.sum() + emission.sum()))
         return nanEnvDirColor;
     return emission;
