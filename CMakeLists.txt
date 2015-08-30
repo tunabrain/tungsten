@@ -89,6 +89,9 @@ target_link_libraries(scenemanip ${core_libs})
 add_executable(hdrmanip src/hdrmanip/hdrmanip.cpp)
 target_link_libraries(hdrmanip ${core_libs})
 
+add_executable(denoiser src/denoiser/denoiser.cpp)
+target_link_libraries(denoiser ${core_libs})
+
 add_executable(tungsten src/tungsten/tungsten.cpp)
 target_link_libraries(tungsten ${core_libs})
 
