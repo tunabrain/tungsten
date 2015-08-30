@@ -1,6 +1,8 @@
 #ifndef RENDERERSETTINGS_HPP_
 #define RENDERERSETTINGS_HPP_
 
+#include "cameras/OutputBufferSettings.hpp"
+
 #include "io/JsonSerializable.hpp"
 #include "io/DirectoryChange.hpp"
 #include "io/JsonUtils.hpp"
@@ -26,6 +28,7 @@ class RendererSettings : public JsonSerializable
     uint32 _sppStep;
     std::string _checkpointInterval;
     std::string _timeout;
+    std::vector<OutputBufferSettings> _outputs;
 
 public:
     RendererSettings()
@@ -43,7 +46,7 @@ public:
     {
     }
 
-    virtual void fromJson(const rapidjson::Value &v, const Scene &/*scene*/)
+    virtual void fromJson(const rapidjson::Value &v, const Scene &scene)
     {
         JsonUtils::fromJson(v, "output_directory", _outputDirectory);
 
@@ -63,6 +66,14 @@ public:
         JsonUtils::fromJson(v, "spp_step", _sppStep);
         JsonUtils::fromJson(v, "checkpoint_interval", _checkpointInterval);
         JsonUtils::fromJson(v, "timeout", _timeout);
+
+        const rapidjson::Value::Member *outputs = v.FindMember("output_buffers");
+        if (outputs && outputs->value.IsArray()) {
+            for (rapidjson::SizeType i = 0; i < outputs->value.Size(); ++i) {
+                _outputs.emplace_back();
+                _outputs.back().fromJson(outputs->value[i], scene);
+            }
+        }
     }
 
     virtual rapidjson::Value toJson(Allocator &allocator) const
@@ -85,6 +96,12 @@ public:
         v.AddMember("spp_step", _sppStep, allocator);
         v.AddMember("checkpoint_interval", _checkpointInterval.c_str(), allocator);
         v.AddMember("timeout", _timeout.c_str(), allocator);
+        if (!_outputs.empty()) {
+            rapidjson::Value outputs(rapidjson::kArrayType);
+            for (const auto &b : _outputs)
+                outputs.PushBack(b.toJson(allocator), allocator);
+            v.AddMember("output_buffers", outputs, allocator);
+        }
         return std::move(v);
     }
 
@@ -166,6 +183,11 @@ public:
     std::string timeout() const
     {
         return _timeout;
+    }
+
+    const std::vector<OutputBufferSettings> &renderOutputs() const
+    {
+        return _outputs;
     }
 
     void setUseSceneBvh(bool value)

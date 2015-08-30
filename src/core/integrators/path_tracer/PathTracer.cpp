@@ -1,10 +1,13 @@
 #include "PathTracer.hpp"
 
+#include "bsdfs/TransparencyBsdf.hpp"
+
 namespace Tungsten {
 
 PathTracer::PathTracer(TraceableScene *scene, const PathTracerSettings &settings, uint32 threadId)
 : TraceBase(scene, settings, threadId),
-  _settings(settings)
+  _settings(settings),
+  _trackOutputValues(!scene->rendererSettings().renderOutputs().empty())
 {
 }
 
@@ -38,6 +41,9 @@ Vec3f PathTracer::traceSample(Vec2u pixel, PathSampleGenerator &sampler)
     Vec3f emission(0.0f);
     const Medium *medium = _scene->cam().medium().get();
 
+    bool recordedOutputValues = false;
+    float hitDistance = 0.0f;
+
     int bounce = 0;
     bool didHit = _scene->intersect(ray, data, info);
     bool wasSpecular = true;
@@ -45,24 +51,47 @@ Vec3f PathTracer::traceSample(Vec2u pixel, PathSampleGenerator &sampler)
         bool hitSurface = true;
         if (medium) {
             if (!medium->sampleDistance(sampler, ray, state, mediumSample))
-                break;
+                return emission;
             throughput *= mediumSample.weight;
             hitSurface = mediumSample.exited;
-            if (hitSurface && !didHit) {
-                handleInfiniteLights(data, info, _settings.enableLightSampling, ray, throughput, wasSpecular, emission);
+            if (hitSurface && !didHit)
                 break;
-            }
         }
 
         if (hitSurface) {
+            hitDistance += ray.farT();
+
             surfaceEvent = makeLocalScatterEvent(data, info, ray, &sampler);
-            if (!handleSurface(surfaceEvent, data, info, medium, bounce, false,
-                    _settings.enableLightSampling, ray, throughput, emission, wasSpecular, state))
-                break;
+            Vec3f transmittance(-1.0f);
+            bool terminate = !handleSurface(surfaceEvent, data, info, medium, bounce, false,
+                    _settings.enableLightSampling, ray, throughput, emission, wasSpecular, state, &transmittance);
+
+            if (_trackOutputValues && !recordedOutputValues && (!wasSpecular || terminate)) {
+                if (_scene->cam().depthBuffer())
+                    _scene->cam().depthBuffer()->addSample(pixel, hitDistance);
+                if (_scene->cam().normalBuffer())
+                    _scene->cam().normalBuffer()->addSample(pixel, info.Ns);
+                if (_scene->cam().albedoBuffer()) {
+                    Vec3f albedo;
+                    if (const TransparencyBsdf *bsdf = dynamic_cast<const TransparencyBsdf *>(info.bsdf))
+                        albedo = (*bsdf->base()->albedo())[info];
+                    else
+                        albedo = (*info.bsdf->albedo())[info];
+                    if (info.primitive->isEmissive())
+                        albedo += info.primitive->evalDirect(data, info);
+                    _scene->cam().albedoBuffer()->addSample(pixel, albedo);
+                }
+                if (_scene->cam().visibilityBuffer() && transmittance != -1.0f)
+                    _scene->cam().visibilityBuffer()->addSample(pixel, transmittance.avg());
+                recordedOutputValues = true;
+            }
+
+            if (terminate)
+                return emission;
         } else {
             if (!handleVolume(sampler, mediumSample, medium, bounce, false,
                     _settings.enableVolumeLightSampling, ray, throughput, emission, wasSpecular))
-                break;
+                return emission;
         }
 
         if (throughput.max() == 0.0f)
@@ -73,7 +102,7 @@ Vec3f PathTracer::traceSample(Vec2u pixel, PathSampleGenerator &sampler)
             if (sampler.nextBoolean(DiscreteRouletteSample, roulettePdf))
                 throughput /= roulettePdf;
             else
-                break;
+                return emission;
         }
 
         if (std::isnan(ray.dir().sum() + ray.pos().sum()))
@@ -85,13 +114,20 @@ Vec3f PathTracer::traceSample(Vec2u pixel, PathSampleGenerator &sampler)
         bounce++;
         if (bounce < _settings.maxBounces)
             didHit = _scene->intersect(ray, data, info);
-        if (!didHit || bounce == _settings.maxBounces)
-            handleInfiniteLights(data, info, _settings.enableLightSampling, ray, throughput, wasSpecular, emission);
     }
-    if (bounce == 0)
-        handleInfiniteLights(data, info, _settings.enableLightSampling, ray, throughput, wasSpecular, emission);
+    handleInfiniteLights(data, info, _settings.enableLightSampling, ray, throughput, wasSpecular, emission);
     if (std::isnan(throughput.sum() + emission.sum()))
         return nanEnvDirColor;
+
+    if (_trackOutputValues && !recordedOutputValues) {
+        if (_scene->cam().depthBuffer() && bounce == 0)
+            _scene->cam().depthBuffer()->addSample(pixel, Ray::infinity());
+        if (_scene->cam().normalBuffer())
+            _scene->cam().normalBuffer()->addSample(pixel, -ray.dir());
+        if (_scene->cam().albedoBuffer() && info.primitive && info.primitive->isInfinite())
+            _scene->cam().albedoBuffer()->addSample(pixel, info.primitive->evalDirect(data, info));
+    }
+
     return emission;
 
     } catch (std::runtime_error &e) {

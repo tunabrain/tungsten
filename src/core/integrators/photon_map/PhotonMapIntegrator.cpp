@@ -84,19 +84,16 @@ void PhotonMapIntegrator::tracePixels(uint32 tileId, uint32 threadId)
             Vec2u pixel(tile.x + x, tile.y + y);
             uint32 pixelIndex = pixel.x() + pixel.y()*_w;
 
-            Vec3f c(0.0f);
             for (int i = 0; i < spp; ++i) {
                 tile.sampler->startPath(pixelIndex, _currentSpp + i);
-                Vec3f s(_tracers[threadId]->traceSample(pixel,
+                Vec3f c = _tracers[threadId]->traceSample(pixel,
                     *_surfaceTree,
                     _volumeTree.get(),
                     *tile.sampler,
                     _settings.gatherRadius
-                ));
-                c += s;
+                );
+                _scene->cam().colorBuffer()->addSample(pixel, c);
             }
-
-            _scene->cam().addSamples(x + tile.x, y + tile.y, c, spp);
         }
     }
 }

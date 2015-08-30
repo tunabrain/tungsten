@@ -3,6 +3,7 @@
 
 #include "ReconstructionFilter.hpp"
 #include "AtomicFramebuffer.hpp"
+#include "OutputBuffer.hpp"
 #include "Tonemap.hpp"
 
 #include "samplerecords/DirectionSample.hpp"
@@ -49,8 +50,14 @@ protected:
     std::shared_ptr<Medium> _medium;
     ReconstructionFilter _filter;
 
-    std::unique_ptr<Vec3f[]> _colorBuffer;
-    std::unique_ptr<uint32[]> _sampleCount;
+    OutputBufferSettings _colorBufferSettings;
+
+    std::unique_ptr<OutputBufferVec3f> _colorBuffer;
+    std::unique_ptr<OutputBufferF>     _depthBuffer;
+    std::unique_ptr<OutputBufferVec3f> _normalBuffer;
+    std::unique_ptr<OutputBufferVec3f> _albedoBuffer;
+    std::unique_ptr<OutputBufferF> _visibilityBuffer;
+
     double _colorBufferWeight;
 
     std::unique_ptr<AtomicFramebuffer> _splatBuffer;
@@ -82,6 +89,7 @@ public:
     virtual void prepareForRender();
     virtual void teardownAfterRender();
 
+    void requestOutputBuffers(const std::vector<OutputBufferSettings> &settings);
     void requestColorBuffer();
     void requestSplatBuffer();
     void blitSplatBuffer();
@@ -91,11 +99,58 @@ public:
     void setLookAt(const Vec3f &lookAt);
     void setUp(const Vec3f &up);
 
-    void addSamples(int x, int y, const Vec3f &c, uint32 weight)
+    void saveOutputBuffers() const;
+    void serializeOutputBuffers(OutputStreamHandle &out) const;
+    void deserializeOutputBuffers(InputStreamHandle &in);
+
+    OutputBufferVec3f *colorBuffer()
     {
-        int idx = x + y*_res.x();
-        _colorBuffer[idx] += c;
-        _sampleCount[idx] += weight;
+        return _colorBuffer.get();
+    }
+
+    OutputBufferF *depthBuffer()
+    {
+        return _depthBuffer.get();
+    }
+
+    OutputBufferVec3f *normalBuffer()
+    {
+        return _normalBuffer.get();
+    }
+
+    OutputBufferVec3f *albedoBuffer()
+    {
+        return _albedoBuffer.get();
+    }
+
+    OutputBufferF *visibilityBuffer()
+    {
+        return _visibilityBuffer.get();
+    }
+
+    const OutputBufferVec3f *colorBuffer() const
+    {
+        return _colorBuffer.get();
+    }
+
+    const OutputBufferF *depthBuffer() const
+    {
+        return _depthBuffer.get();
+    }
+
+    const OutputBufferVec3f *normalBuffer() const
+    {
+        return _normalBuffer.get();
+    }
+
+    const OutputBufferVec3f *albedoBuffer() const
+    {
+        return _albedoBuffer.get();
+    }
+
+    const OutputBufferF *visibilityBuffer() const
+    {
+        return _visibilityBuffer.get();
     }
 
     inline Vec3f tonemap(const Vec3f &c) const
@@ -108,7 +163,7 @@ public:
         int idx = x + y*_res.x();
         Vec3f result(0.0f);
         if (_colorBuffer)
-            result += Vec3f(Vec3d(_colorBuffer[idx])*(_colorBufferWeight/double(max(_sampleCount[idx], uint32(1)))));
+            result += (*_colorBuffer)[idx]*_colorBufferWeight;
         if (_splatBuffer)
             result += Vec3f(Vec3d(_splatBuffer->get(x, y))*_splatWeight);
         return result;
@@ -167,16 +222,6 @@ public:
     Tonemap::Type tonemapOp() const
     {
         return _tonemapOp;
-    }
-
-    std::unique_ptr<Vec3f[]> &pixels()
-    {
-        return _colorBuffer;
-    }
-
-    std::unique_ptr<uint32[]> &weights()
-    {
-        return _sampleCount;
     }
 
     AtomicFramebuffer *splatBuffer()

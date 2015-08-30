@@ -81,6 +81,7 @@ public:
         _virtualIntersector.occludedPtr = &TraceableScene::occluded;
 
         _cam.prepareForRender();
+        _cam.requestOutputBuffers(_settings.renderOutputs());
 
         for (std::shared_ptr<Medium> &m : _media)
             m->prepareForRender();

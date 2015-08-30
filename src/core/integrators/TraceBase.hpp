@@ -62,7 +62,8 @@ protected:
                              IntersectionTemporary &data,
                              IntersectionInfo &info,
                              int bounce,
-                             Ray &ray);
+                             Ray &ray,
+                             Vec3f *transmittance);
 
     bool volumeLensSample(const Camera &camera,
                     PathSampleGenerator &sampler,
@@ -85,7 +86,8 @@ protected:
                       SurfaceScatterEvent &event,
                       const Medium *medium,
                       int bounce,
-                      const Ray &parentRay);
+                      const Ray &parentRay,
+                      Vec3f *transmittance);
 
     Vec3f bsdfSample(const Primitive &light,
                      SurfaceScatterEvent &event,
@@ -111,7 +113,8 @@ protected:
                        SurfaceScatterEvent &event,
                        const Medium *medium,
                        int bounce,
-                       const Ray &parentRay);
+                       const Ray &parentRay,
+                       Vec3f *transmittance);
 
     Vec3f volumeSampleDirect(const Primitive &light,
                         PathSampleGenerator &sampler,
@@ -132,7 +135,8 @@ protected:
     Vec3f estimateDirect(SurfaceScatterEvent &event,
                          const Medium *medium,
                          int bounce,
-                         const Ray &parentRay);
+                         const Ray &parentRay,
+                         Vec3f *transmission);
 
 public:
     SurfaceScatterEvent makeLocalScatterEvent(IntersectionTemporary &data, IntersectionInfo &info,
@@ -159,7 +163,7 @@ public:
                IntersectionInfo &info, const Medium *&medium,
                int bounce, bool adjoint, bool enableLightSampling, Ray &ray,
                Vec3f &throughput, Vec3f &emission, bool &wasSpecular,
-               Medium::MediumState &state);
+               Medium::MediumState &state, Vec3f *transmittance = nullptr);
 
     void handleInfiniteLights(IntersectionTemporary &data,
             IntersectionInfo &info, bool enableLightSampling, Ray &ray,

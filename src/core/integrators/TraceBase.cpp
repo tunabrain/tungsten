@@ -143,7 +143,8 @@ Vec3f TraceBase::attenuatedEmission(const Primitive &light,
                          IntersectionTemporary &data,
                          IntersectionInfo &info,
                          int bounce,
-                         Ray &ray)
+                         Ray &ray,
+                         Vec3f *transmittance)
 {
     CONSTEXPR float fudgeFactor = 1.0f + 1e-3f;
 
@@ -157,11 +158,13 @@ Vec3f TraceBase::attenuatedEmission(const Primitive &light,
     info.w = ray.dir();
     light.intersectionInfo(data, info);
 
-    Vec3f transmittance = generalizedShadowRay(ray, medium, &light, bounce);
-    if (transmittance == 0.0f)
+    Vec3f shadow = generalizedShadowRay(ray, medium, &light, bounce);
+    if (transmittance)
+        *transmittance = shadow;
+    if (shadow == 0.0f)
         return Vec3f(0.0f);
 
-    return transmittance*light.evalDirect(data, info);
+    return shadow*light.evalDirect(data, info);
 }
 
 bool TraceBase::volumeLensSample(const Camera &camera,
@@ -238,7 +241,8 @@ Vec3f TraceBase::lightSample(const Primitive &light,
                              SurfaceScatterEvent &event,
                              const Medium *medium,
                              int bounce,
-                             const Ray &parentRay)
+                             const Ray &parentRay,
+                             Vec3f *transmittance)
 {
     LightSample sample;
     if (!light.sampleDirect(_threadId, event.info->p, *event.sampler, sample))
@@ -262,7 +266,7 @@ Vec3f TraceBase::lightSample(const Primitive &light,
 
     IntersectionTemporary data;
     IntersectionInfo info;
-    Vec3f e = attenuatedEmission(light, medium, sample.dist, data, info, bounce, ray);
+    Vec3f e = attenuatedEmission(light, medium, sample.dist, data, info, bounce, ray, transmittance);
     if (e == 0.0f)
         return Vec3f(0.0f);
 
@@ -298,7 +302,7 @@ Vec3f TraceBase::bsdfSample(const Primitive &light,
 
     IntersectionTemporary data;
     IntersectionInfo info;
-    Vec3f e = attenuatedEmission(light, medium, -1.0f, data, info, bounce, ray);
+    Vec3f e = attenuatedEmission(light, medium, -1.0f, data, info, bounce, ray, nullptr);
 
     if (e == Vec3f(0.0f))
         return Vec3f(0.0f);
@@ -330,7 +334,7 @@ Vec3f TraceBase::volumeLightSample(PathSampleGenerator &sampler,
 
     IntersectionTemporary data;
     IntersectionInfo info;
-    Vec3f e = attenuatedEmission(light, medium, lightSample.dist, data, info, bounce, ray);
+    Vec3f e = attenuatedEmission(light, medium, lightSample.dist, data, info, bounce, ray, nullptr);
     if (e == 0.0f)
         return Vec3f(0.0f);
 
@@ -358,7 +362,7 @@ Vec3f TraceBase::volumePhaseSample(const Primitive &light,
 
     IntersectionTemporary data;
     IntersectionInfo info;
-    Vec3f e = attenuatedEmission(light, medium, -1.0f, data, info, bounce, ray);
+    Vec3f e = attenuatedEmission(light, medium, -1.0f, data, info, bounce, ray, nullptr);
 
     if (e == Vec3f(0.0f))
         return Vec3f(0.0f);
@@ -374,14 +378,15 @@ Vec3f TraceBase::sampleDirect(const Primitive &light,
                               SurfaceScatterEvent &event,
                               const Medium *medium,
                               int bounce,
-                              const Ray &parentRay)
+                              const Ray &parentRay,
+                              Vec3f *transmittance)
 {
     Vec3f result(0.0f);
 
     if (event.info->bsdf->lobes().isPureSpecular() || event.info->bsdf->lobes().isForward())
         return Vec3f(0.0f);
 
-    result += lightSample(light, event, medium, bounce, parentRay);
+    result += lightSample(light, event, medium, bounce, parentRay, transmittance);
     event.sampler->advancePath();
     if (!light.isDirac()) {
         result += bsdfSample(light, event, medium, bounce, parentRay);
@@ -478,13 +483,14 @@ Vec3f TraceBase::volumeEstimateDirect(PathSampleGenerator &sampler,
 Vec3f TraceBase::estimateDirect(SurfaceScatterEvent &event,
                                 const Medium *medium,
                                 int bounce,
-                                const Ray &parentRay)
+                                const Ray &parentRay,
+                                Vec3f *transmittance)
 {
     float weight;
     const Primitive *light = chooseLight(*event.sampler, event.info->p, weight);
     if (light == nullptr)
         return Vec3f(0.0f);
-    return sampleDirect(*light, event, medium, bounce, parentRay)*weight;
+    return sampleDirect(*light, event, medium, bounce, parentRay, transmittance)*weight;
 }
 
 bool TraceBase::handleVolume(PathSampleGenerator &sampler, MediumSample &mediumSample,
@@ -511,7 +517,7 @@ bool TraceBase::handleSurface(SurfaceScatterEvent &event, IntersectionTemporary 
                               IntersectionInfo &info, const Medium *&medium,
                               int bounce, bool adjoint, bool enableLightSampling, Ray &ray,
                               Vec3f &throughput, Vec3f &emission, bool &wasSpecular,
-                              Medium::MediumState &state)
+                              Medium::MediumState &state, Vec3f *transmittance)
 {
     const Bsdf &bsdf = *info.bsdf;
 
@@ -529,7 +535,7 @@ bool TraceBase::handleSurface(SurfaceScatterEvent &event, IntersectionTemporary 
     } else {
         if (!adjoint) {
             if (enableLightSampling && bounce < _settings.maxBounces - 1)
-                emission += estimateDirect(event, medium, bounce + 1, ray)*throughput;
+                emission += estimateDirect(event, medium, bounce + 1, ray, transmittance)*throughput;
 
             if (info.primitive->isEmissive() && bounce >= _settings.minBounces) {
                 if (!enableLightSampling || wasSpecular || !info.primitive->isSamplable())

@@ -12,14 +12,6 @@
 
 namespace Tungsten {
 
-template<typename T>
-std::unique_ptr<T[]> zeroAlloc(size_t size)
-{
-    std::unique_ptr<T[]> result(new T[size]);
-    std::memset(result.get(), 0, size*sizeof(T));
-    return std::move(result);
-}
-
 // Default to low-res 16:9
 Camera::Camera()
 : Camera(Mat4f(), Vec2u(1000u, 563u))
@@ -31,6 +23,8 @@ Camera::Camera(const Mat4f &transform, const Vec2u &res)
   _transform(transform),
   _res(res)
 {
+    _colorBufferSettings.setType(OutputColor);
+
     _pos    = _transform*Vec3f(0.0f, 0.0f, 2.0f);
     _lookAt = _transform*Vec3f(0.0f, 0.0f, -1.0f);
     _up     = _transform*Vec3f(0.0f, 1.0f, 0.0f);
@@ -133,15 +127,33 @@ void Camera::prepareForRender()
 
 void Camera::teardownAfterRender()
 {
-    _colorBuffer.reset();
-    _sampleCount.reset();
+         _colorBuffer.reset();
+         _depthBuffer.reset();
+        _normalBuffer.reset();
+        _albedoBuffer.reset();
+    _visibilityBuffer.reset();
+
     _splatBuffer.reset();
+}
+
+void Camera::requestOutputBuffers(const std::vector<OutputBufferSettings> &settings)
+{
+    for (const auto &b : settings) {
+        switch (b.type()) {
+        case OutputColor:           _colorBuffer.reset(new OutputBufferVec3f(_res, b)); break;
+        case OutputDepth:           _depthBuffer.reset(new OutputBufferF    (_res, b)); break;
+        case OutputNormal:         _normalBuffer.reset(new OutputBufferVec3f(_res, b)); break;
+        case OutputAlbedo:         _albedoBuffer.reset(new OutputBufferVec3f(_res, b)); break;
+        case OutputVisibility: _visibilityBuffer.reset(new OutputBufferF    (_res, b)); break;
+        default: break;
+        }
+    }
 }
 
 void Camera::requestColorBuffer()
 {
-    _colorBuffer = zeroAlloc<Vec3f> (_res.product());
-    _sampleCount = zeroAlloc<uint32>(_res.product());
+    if (!_colorBuffer)
+        _colorBuffer.reset(new OutputBufferVec3f(_res, _colorBufferSettings));
     _colorBufferWeight = 1.0;
 }
 
@@ -153,12 +165,9 @@ void Camera::requestSplatBuffer()
 
 void Camera::blitSplatBuffer()
 {
-    for (uint32 y = 0; y < _res.y(); ++y) {
-        for (uint32 x = 0; x < _res.x(); ++x) {
-            _colorBuffer[x + y*_res.x()] = _splatBuffer->get(x, y);
-            _sampleCount[x + y*_res.x()] = 1;
-        }
-    }
+    for (uint32 y = 0; y < _res.y(); ++y)
+        for (uint32 x = 0; x < _res.x(); ++x)
+            _colorBuffer->addSample(Vec2u(x, y), _splatBuffer->get(x, y));
     _splatBuffer->unsafeReset();
 }
 
@@ -190,6 +199,33 @@ void Camera::setUp(const Vec3f &up)
     _up = up;
     _transform = Mat4f::lookAt(_pos, _lookAt - _pos, _up);
     precompute();
+}
+
+void Camera::saveOutputBuffers() const
+{
+    if (     _colorBuffer)      _colorBuffer->save();
+    if (     _depthBuffer)      _depthBuffer->save();
+    if (    _normalBuffer)     _normalBuffer->save();
+    if (    _albedoBuffer)     _albedoBuffer->save();
+    if (_visibilityBuffer) _visibilityBuffer->save();
+}
+
+void Camera::serializeOutputBuffers(OutputStreamHandle &out) const
+{
+    if (     _colorBuffer)      _colorBuffer->serialize(out);
+    if (     _depthBuffer)      _depthBuffer->serialize(out);
+    if (    _normalBuffer)     _normalBuffer->serialize(out);
+    if (    _albedoBuffer)     _albedoBuffer->serialize(out);
+    if (_visibilityBuffer) _visibilityBuffer->serialize(out);
+}
+
+void Camera::deserializeOutputBuffers(InputStreamHandle &in)
+{
+    if (     _colorBuffer)      _colorBuffer->deserialize(in);
+    if (     _depthBuffer)      _depthBuffer->deserialize(in);
+    if (    _normalBuffer)     _normalBuffer->deserialize(in);
+    if (    _albedoBuffer)     _albedoBuffer->deserialize(in);
+    if (_visibilityBuffer) _visibilityBuffer->deserialize(in);
 }
 
 }

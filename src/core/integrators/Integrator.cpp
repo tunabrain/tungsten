@@ -73,6 +73,9 @@ void Integrator::writeBuffers(const std::string &suffix, bool overwrite)
     if (!settings.hdrOutputFile().empty())
         ImageIO::saveHdr(incrementalFilename(settings.hdrOutputFile(), suffix, overwrite),
                 &hdr[0].x(), res.x(), res.y(), 3);
+
+    if (suffix.empty() && !settings.renderOutputs().empty())
+        _scene->cam().saveOutputBuffers();
 }
 
 void Integrator::saveOutputs()
@@ -120,8 +123,7 @@ void Integrator::saveRenderResumeData(Scene &scene)
     FileUtils::streamWrite(out, JsonUtils::jsonToString(document));
     uint64 jsonHash = sceneHash(scene);
     FileUtils::streamWrite(out, jsonHash);
-    FileUtils::streamWrite(out, _scene->cam().pixels());
-    FileUtils::streamWrite(out, _scene->cam().weights());
+    _scene->cam().serializeOutputBuffers(out);
     saveState(out);
 }
 
@@ -154,8 +156,7 @@ bool Integrator::resumeRender(Scene &scene)
     if (jsonHash != sceneHash(scene))
         return false;
 
-    FileUtils::streamRead(in, _scene->cam().pixels());
-    FileUtils::streamRead(in, _scene->cam().weights());
+    _scene->cam().deserializeOutputBuffers(in);
     loadState(in);
 
     _currentSpp = jsonSpp;

@@ -144,16 +144,13 @@ void PathTraceIntegrator::renderTile(uint32 id, uint32 tileId)
 
             SampleRecord &record = _samples[variancePixelIndex];
             int spp = record.nextSampleCount;
-            Vec3f c(0.0f);
             for (int i = 0; i < spp; ++i) {
                 tile.sampler->startPath(pixelIndex, record.sampleIndex + i);
-                Vec3f s(_tracers[id]->traceSample(pixel, *tile.sampler));
+                Vec3f c = _tracers[id]->traceSample(pixel, *tile.sampler);
 
-                record.addSample(s);
-                c += s;
+                record.addSample(c);
+                _scene->cam().colorBuffer()->addSample(pixel, c);
             }
-
-            _scene->cam().addSamples(x + tile.x, y + tile.y, c, spp);
         }
     }
 }
