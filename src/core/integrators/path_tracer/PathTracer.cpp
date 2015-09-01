@@ -121,7 +121,7 @@ Vec3f PathTracer::traceSample(Vec2u pixel, PathSampleGenerator &sampler)
 
     if (_trackOutputValues && !recordedOutputValues) {
         if (_scene->cam().depthBuffer() && bounce == 0)
-            _scene->cam().depthBuffer()->addSample(pixel, Ray::infinity());
+            _scene->cam().depthBuffer()->addSample(pixel, 0.0f);
         if (_scene->cam().normalBuffer())
             _scene->cam().normalBuffer()->addSample(pixel, -ray.dir());
         if (_scene->cam().albedoBuffer() && info.primitive && info.primitive->isInfinite())
