@@ -175,7 +175,7 @@ public:
         if (_variance) {
             std::unique_ptr<float[]> scaled(new float[numPixels]);
             for (uint32 i = 0; i < numPixels; ++i)
-                scaled[i] = _variance[i]/float(max(uint32(1), _sampleCount[i] - 1));
+                scaled[i] = _variance[i]/float(_sampleCount[i]*max(uint32(1), _sampleCount[i] - 1));
 
             if (!hdrFile.empty())
                 ImageIO::saveHdr(hdrVariance, scaled.get(), _res.x(), _res.y(), 1);
