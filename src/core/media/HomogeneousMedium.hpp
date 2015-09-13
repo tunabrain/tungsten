@@ -14,8 +14,6 @@ class HomogeneousMedium : public Medium
     Vec3f _sigmaT;
     bool _absorptionOnly;
 
-    void init();
-
 public:
     HomogeneousMedium();
 
@@ -23,6 +21,8 @@ public:
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
     virtual bool isHomogeneous() const override;
+
+    virtual void prepareForRender() override;
 
     virtual bool sampleDistance(PathSampleGenerator &sampler, const Ray &ray,
             MediumState &state, MediumSample &sample) const override;
@@ -36,7 +36,5 @@ public:
 };
 
 }
-
-
 
 #endif /* HOMOGENEOUSMEDIUM_HPP_ */

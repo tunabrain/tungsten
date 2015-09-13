@@ -14,15 +14,6 @@ HomogeneousMedium::HomogeneousMedium()
   _materialSigmaS(0.0f),
   _density(1.0f)
 {
-    init();
-}
-
-void HomogeneousMedium::init()
-{
-    _sigmaA = _materialSigmaA*_density;
-    _sigmaS = _materialSigmaS*_density;
-    _sigmaT = _sigmaA + _sigmaS;
-    _absorptionOnly = _sigmaS == 0.0f;
 }
 
 void HomogeneousMedium::fromJson(const rapidjson::Value &v, const Scene &scene)
@@ -31,8 +22,6 @@ void HomogeneousMedium::fromJson(const rapidjson::Value &v, const Scene &scene)
     JsonUtils::fromJson(v, "sigma_a", _materialSigmaA);
     JsonUtils::fromJson(v, "sigma_s", _materialSigmaS);
     JsonUtils::fromJson(v, "density", _density);
-
-    init();
 }
 
 rapidjson::Value HomogeneousMedium::toJson(Allocator &allocator) const
@@ -49,6 +38,14 @@ rapidjson::Value HomogeneousMedium::toJson(Allocator &allocator) const
 bool HomogeneousMedium::isHomogeneous() const
 {
     return true;
+}
+
+void HomogeneousMedium::prepareForRender()
+{
+    _sigmaA = _materialSigmaA*_density;
+    _sigmaS = _materialSigmaS*_density;
+    _sigmaT = _sigmaA + _sigmaS;
+    _absorptionOnly = _sigmaS == 0.0f;
 }
 
 bool HomogeneousMedium::sampleDistance(PathSampleGenerator &sampler, const Ray &ray,
