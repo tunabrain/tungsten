@@ -22,6 +22,10 @@
 #include <mutex>
 #include <deque>
 
+#ifdef OPENVDB_AVAILABLE
+#include <openvdb/openvdb.h>
+#endif
+
 namespace Tungsten {
 
 static const int OPT_CHECKPOINTS       = 0;
@@ -150,6 +154,10 @@ public:
 
         embree::rtcInit();
         embree::rtcStartThreads(_threadCount);
+
+#ifdef OPENVDB_AVAILABLE
+        openvdb::initialize();
+#endif
 
         ThreadUtils::startThreads(_threadCount);
 

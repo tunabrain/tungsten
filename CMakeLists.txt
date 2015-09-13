@@ -74,6 +74,16 @@ else()
     message(STATUS "No OpenEXR detected. Building without .exr support")
 endif()
 
+find_package(OpenVDB)
+if (OPENVDB_FOUND)
+    message(STATUS "OpenVDB detected. Building with .vdb support")
+    add_definitions(-DOPENVDB_AVAILABLE)
+    include_directories(${OPENVDB_INCLUDE_DIR})
+    set(core_libs ${core_libs} ${OPENVDB_LIBRARIES})
+else()
+    message(STATUS "No OpenVDB detected. Building without .vdb support")
+endif()
+
 file(GLOB_RECURSE Core_SOURCES "src/core/*.cpp")
 add_library(core STATIC ${Core_SOURCES})
 

@@ -11,6 +11,10 @@
 #include "RenderWindow.hpp"
 #include "MainWindow.hpp"
 
+#ifdef OPENVDB_AVAILABLE
+#include <openvdb/openvdb.h>
+#endif
+
 using namespace Tungsten;
 
 int main(int argc, char *argv[])
@@ -20,6 +24,10 @@ int main(int argc, char *argv[])
 
     embree::rtcInit();
     embree::rtcStartThreads(threadCount);
+
+#ifdef OPENVDB_AVAILABLE
+        openvdb::initialize();
+#endif
 
     QApplication app(argc, argv);
 
