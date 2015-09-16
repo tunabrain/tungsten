@@ -28,6 +28,8 @@
 
 #include "media/Medium.hpp"
 
+#include "grids/Grid.hpp"
+
 #include "bsdfs/Bsdf.hpp"
 
 namespace Tungsten {
@@ -53,6 +55,7 @@ class Scene : public JsonSerializable
 
     std::shared_ptr<PhaseFunction> instantiatePhase     (std::string type, const rapidjson::Value &value) const;
     std::shared_ptr<Medium>        instantiateMedium    (std::string type, const rapidjson::Value &value) const;
+    std::shared_ptr<Grid>          instantiateGrid      (std::string type, const rapidjson::Value &value) const;
     std::shared_ptr<Bsdf>          instantiateBsdf      (std::string type, const rapidjson::Value &value) const;
     std::shared_ptr<Primitive>     instantiatePrimitive (std::string type, const rapidjson::Value &value) const;
     std::shared_ptr<Camera>        instantiateCamera    (std::string type, const rapidjson::Value &value) const;
@@ -90,6 +93,7 @@ public:
 
     std::shared_ptr<PhaseFunction> fetchPhase(const rapidjson::Value &v) const;
     std::shared_ptr<Medium> fetchMedium(const rapidjson::Value &v) const;
+    std::shared_ptr<Grid> fetchGrid(const rapidjson::Value &v) const;
     std::shared_ptr<Bsdf> fetchBsdf(const rapidjson::Value &v) const;
     std::shared_ptr<Texture> fetchTexture(const rapidjson::Value &v, TexelConversion conversion) const;
     bool textureFromJsonMember(const rapidjson::Value &v, const char *field, TexelConversion conversion,

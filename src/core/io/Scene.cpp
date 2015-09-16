@@ -40,6 +40,7 @@
 #include "media/HomogeneousMedium.hpp"
 #include "media/AtmosphericMedium.hpp"
 #include "media/ExponentialMedium.hpp"
+#include "media/VoxelMedium.hpp"
 
 #include "bcsdfs/LambertianFiberBcsdf.hpp"
 #include "bcsdfs/RoughWireBcsdf.hpp"
@@ -64,6 +65,8 @@
 #include "bsdfs/MixedBsdf.hpp"
 #include "bsdfs/NullBsdf.hpp"
 #include "bsdfs/Bsdf.hpp"
+
+#include "grids/VdbGrid.hpp"
 
 #include "Debug.hpp"
 
@@ -133,8 +136,26 @@ std::shared_ptr<Medium> Scene::instantiateMedium(std::string type, const rapidjs
         result = std::make_shared<AtmosphericMedium>();
     else if (type == "exponential")
         result = std::make_shared<ExponentialMedium>();
+    else if (type == "voxel")
+        result = std::make_shared<VoxelMedium>();
     else {
         DBG("Unkown medium type: '%s'", type.c_str());
+        return nullptr;
+    }
+    result->fromJson(value, *this);
+    return result;
+}
+
+std::shared_ptr<Grid> Scene::instantiateGrid(std::string type, const rapidjson::Value &value) const
+{
+    std::shared_ptr<Grid> result;
+#if OPENVDB_AVAILABLE
+    if (type == "vdb")
+        result = std::make_shared<VdbGrid>();
+    else
+#endif
+    {
+        DBG("Unkown grid type: '%s'", type.c_str());
         return nullptr;
     }
     result->fromJson(value, *this);
@@ -338,14 +359,20 @@ std::shared_ptr<PhaseFunction> Scene::fetchPhase(const rapidjson::Value &v) cons
 
 std::shared_ptr<Medium> Scene::fetchMedium(const rapidjson::Value &v) const
 {
-    using namespace std::placeholders;
-    return fetchObject(_media, v, std::bind(&Scene::instantiateMedium, this, _1, _2));
+    return fetchObject(_media, v, std::bind(&Scene::instantiateMedium, this,
+            std::placeholders::_1, std::placeholders::_2));
+}
+
+std::shared_ptr<Grid> Scene::fetchGrid(const rapidjson::Value &v) const
+{
+    return instantiateGrid(JsonUtils::as<std::string>(v, "type"), v);
 }
 
 std::shared_ptr<Bsdf> Scene::fetchBsdf(const rapidjson::Value &v) const
 {
     using namespace std::placeholders;
-    auto result = fetchObject(_bsdfs, v, std::bind(&Scene::instantiateBsdf, this, _1, _2));
+    auto result = fetchObject(_bsdfs, v, std::bind(&Scene::instantiateBsdf, this,
+            std::placeholders::_1, std::placeholders::_2));
     if (!result)
         return _errorBsdf;
     return std::move(result);
@@ -483,8 +510,6 @@ void Scene::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     JsonSerializable::fromJson(v, scene);
 
-    using namespace std::placeholders;
-
     const rapidjson::Value::Member *media      = v.FindMember("media");
     const rapidjson::Value::Member *bsdfs      = v.FindMember("bsdfs");
     const rapidjson::Value::Member *primitives = v.FindMember("primitives");
@@ -493,13 +518,16 @@ void Scene::fromJson(const rapidjson::Value &v, const Scene &scene)
     const rapidjson::Value::Member *renderer   = v.FindMember("renderer");
 
     if (media && media->value.IsArray())
-        loadObjectList(media->value, std::bind(&Scene::instantiateMedium, this, _1, _2), _media);
+        loadObjectList(media->value, std::bind(&Scene::instantiateMedium, this,
+                std::placeholders::_1, std::placeholders::_2), _media);
 
     if (bsdfs && bsdfs->value.IsArray())
-        loadObjectList(bsdfs->value, std::bind(&Scene::instantiateBsdf, this, _1, _2), _bsdfs);
+        loadObjectList(bsdfs->value, std::bind(&Scene::instantiateBsdf, this,
+                std::placeholders::_1, std::placeholders::_2), _bsdfs);
 
     if (primitives && primitives->value.IsArray())
-        loadObjectList(primitives->value, std::bind(&Scene::instantiatePrimitive, this, _1, _2), _primitives);
+        loadObjectList(primitives->value, std::bind(&Scene::instantiatePrimitive, this,
+                std::placeholders::_1, std::placeholders::_2), _primitives);
 
     if (camera && camera->value.IsObject()) {
         auto result = instantiateCamera(JsonUtils::as<std::string>(camera->value, "type"), camera->value);
