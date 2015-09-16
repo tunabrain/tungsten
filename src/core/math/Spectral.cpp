@@ -4,10 +4,6 @@ namespace Tungsten {
 
 namespace Spectral {
 
-static CONSTEXPR int CIE_samples = 471;
-static CONSTEXPR float CIE_Min = 360.0f;
-static CONSTEXPR float CIE_Max = 830.0f;
-
 const float CIE_X_entries[] = {
     0.0001299000f, 0.0001458470f, 0.0001638021f, 0.0001840037f,
     0.0002066902f, 0.0002321000f, 0.0002607280f, 0.0002930750f,
