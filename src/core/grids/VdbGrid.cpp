@@ -102,7 +102,7 @@ float VdbGrid::density(Vec3f p) const
     return gridAt(_grid, p);
 }
 
-float VdbGrid::densityIntegral(Vec3f p, Vec3f w, float t0, float t1) const
+float VdbGrid::densityIntegral(PathSampleGenerator &/*sampler*/, Vec3f p, Vec3f w, float t0, float t1) const
 {
     float ta = t0;
     float fa = gridAt(_grid, p);
@@ -117,7 +117,8 @@ float VdbGrid::densityIntegral(Vec3f p, Vec3f w, float t0, float t1) const
     return integral;
 }
 
-Vec2f VdbGrid::inverseOpticalDepth(Vec3f p, Vec3f w, float t0, float t1, float sigmaT, float xi) const
+Vec2f VdbGrid::inverseOpticalDepth(PathSampleGenerator &/*sampler*/, Vec3f p, Vec3f w, float t0, float t1,
+        float sigmaT, float xi) const
 {
     float ta = t0;
     float fa = gridAt(_grid, p)*sigmaT;

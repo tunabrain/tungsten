@@ -142,7 +142,7 @@ bool AtmosphericMedium::sampleDistance(PathSampleGenerator &sampler, const Ray &
     return true;
 }
 
-Vec3f AtmosphericMedium::transmittance(const Ray &ray) const
+Vec3f AtmosphericMedium::transmittance(PathSampleGenerator &/*sampler*/, const Ray &ray) const
 {
     Vec3f p = (ray.pos() - _center);
     float t0 = p.dot(ray.dir());
@@ -152,7 +152,7 @@ Vec3f AtmosphericMedium::transmittance(const Ray &ray) const
     return std::exp(-_sigmaT*densityIntegral(h, t0, t1));
 }
 
-float AtmosphericMedium::pdf(const Ray &ray, bool onSurface) const
+float AtmosphericMedium::pdf(PathSampleGenerator &/*sampler*/, const Ray &ray, bool onSurface) const
 {
     if (_absorptionOnly) {
         return 1.0f;
@@ -171,8 +171,8 @@ float AtmosphericMedium::pdf(const Ray &ray, bool onSurface) const
     }
 }
 
-Vec3f AtmosphericMedium::transmittanceAndPdfs(const Ray &ray, bool startOnSurface, bool endOnSurface,
-        float &pdfForward, float &pdfBackward) const
+Vec3f AtmosphericMedium::transmittanceAndPdfs(PathSampleGenerator &/*sampler*/, const Ray &ray, bool startOnSurface,
+        bool endOnSurface, float &pdfForward, float &pdfBackward) const
 {
     Vec3f p = (ray.pos() - _center);
     float t0 = p.dot(ray.dir());

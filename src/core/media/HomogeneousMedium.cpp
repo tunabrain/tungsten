@@ -85,7 +85,7 @@ bool HomogeneousMedium::sampleDistance(PathSampleGenerator &sampler, const Ray &
 
     return true;
 }
-Vec3f HomogeneousMedium::transmittance(const Ray &ray) const
+Vec3f HomogeneousMedium::transmittance(PathSampleGenerator &/*sampler*/, const Ray &ray) const
 {
     if (ray.farT() == Ray::infinity())
         return Vec3f(0.0f);
@@ -94,7 +94,7 @@ Vec3f HomogeneousMedium::transmittance(const Ray &ray) const
     }
 }
 
-float HomogeneousMedium::pdf(const Ray &ray, bool onSurface) const
+float HomogeneousMedium::pdf(PathSampleGenerator &/*sampler*/, const Ray &ray, bool onSurface) const
 {
     if (_absorptionOnly) {
         return 1.0f;
@@ -106,8 +106,8 @@ float HomogeneousMedium::pdf(const Ray &ray, bool onSurface) const
     }
 }
 
-Vec3f HomogeneousMedium::transmittanceAndPdfs(const Ray &ray, bool startOnSurface, bool endOnSurface,
-        float &pdfForward, float &pdfBackward) const
+Vec3f HomogeneousMedium::transmittanceAndPdfs(PathSampleGenerator &/*sampler*/, const Ray &ray, bool startOnSurface,
+        bool endOnSurface, float &pdfForward, float &pdfBackward) const
 {
     if (ray.farT() == Ray::infinity()) {
         pdfForward = pdfBackward = 0.0f;

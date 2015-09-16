@@ -93,7 +93,7 @@ public:
     Vec3f bdptWeightedPathEmission(int minLength, int maxLength) const;
 
     static Vec3f bdptConnect(const TraceBase &tracer, const LightPath &camera, const LightPath &emitter,
-            int s, int t, int maxBounce);
+            int s, int t, int maxBounce, PathSampleGenerator &sampler);
     static bool bdptCameraConnect(const TraceBase &tracer, const LightPath &camera, const LightPath &emitter,
             int s, int maxBounce, PathSampleGenerator &sampler, Vec3f &weight, Vec2f &pixel);
 };

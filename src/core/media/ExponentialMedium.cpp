@@ -127,7 +127,7 @@ bool ExponentialMedium::sampleDistance(PathSampleGenerator &sampler, const Ray &
 
     return true;
 }
-Vec3f ExponentialMedium::transmittance(const Ray &ray) const
+Vec3f ExponentialMedium::transmittance(PathSampleGenerator &/*sampler*/, const Ray &ray) const
 {
     float  x = _falloffScale*(ray.pos() - _unitPoint).dot(_unitFalloffDirection);
     float dx = _falloffScale*ray.dir().dot(_unitFalloffDirection);
@@ -138,7 +138,7 @@ Vec3f ExponentialMedium::transmittance(const Ray &ray) const
         return std::exp(-_sigmaT*densityIntegral(x, dx, ray.farT()));
 }
 
-float ExponentialMedium::pdf(const Ray &ray, bool onSurface) const
+float ExponentialMedium::pdf(PathSampleGenerator &/*sampler*/, const Ray &ray, bool onSurface) const
 {
     if (_absorptionOnly) {
         return 1.0f;
@@ -155,8 +155,8 @@ float ExponentialMedium::pdf(const Ray &ray, bool onSurface) const
     }
 }
 
-Vec3f ExponentialMedium::transmittanceAndPdfs(const Ray &ray, bool startOnSurface, bool endOnSurface,
-        float &pdfForward, float &pdfBackward) const
+Vec3f ExponentialMedium::transmittanceAndPdfs(PathSampleGenerator &/*sampler*/, const Ray &ray, bool startOnSurface,
+        bool endOnSurface, float &pdfForward, float &pdfBackward) const
 {
     float  x = _falloffScale*(ray.pos() - _unitPoint).dot(_unitFalloffDirection);
     float dx = _falloffScale*ray.dir().dot(_unitFalloffDirection);

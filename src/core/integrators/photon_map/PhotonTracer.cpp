@@ -135,11 +135,11 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
                     mediumQuery.setFarT(t);
                     beamEstimate += (3.0f*INV_PI*sqr(1.0f - distSq/p.radiusSq))/p.radiusSq
                             *medium->phaseFunction(p.pos)->eval(ray.dir(), -p.dir)
-                            *medium->transmittance(mediumQuery)*p.power;
+                            *medium->transmittance(sampler, mediumQuery)*p.power;
                 });
                 result += throughput*beamEstimate;
             }
-            throughput *= medium->transmittance(ray);
+            throughput *= medium->transmittance(sampler, ray);
         }
         if (!didHit)
             break;

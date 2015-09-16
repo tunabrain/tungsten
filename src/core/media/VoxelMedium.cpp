@@ -107,7 +107,7 @@ bool VoxelMedium::sampleDistance(PathSampleGenerator &sampler, const Ray &ray,
 
     if (_absorptionOnly) {
         sample.t = maxT;
-        sample.weight = std::exp(-_sigmaT*(_grid->densityIntegral(p, w, t0, t1)/wPrime));
+        sample.weight = std::exp(-_sigmaT*(_grid->densityIntegral(sampler, p, w, t0, t1)/wPrime));
         sample.pdf = 1.0f;
         sample.exited = true;
     } else {
@@ -116,7 +116,7 @@ bool VoxelMedium::sampleDistance(PathSampleGenerator &sampler, const Ray &ray,
         float xi = 1.0f - sampler.next1D();
         float logXi = -std::log(xi);
 
-        Vec2f tAndDensity = _grid->inverseOpticalDepth(p, w, t0, t1, sigmaTc, logXi);
+        Vec2f tAndDensity = _grid->inverseOpticalDepth(sampler, p, w, t0, t1, sigmaTc, logXi);
         sample.t = tAndDensity.x();
         sample.exited = (sample.t >= t1);
         sample.weight = std::exp(-_sigmaT*(logXi/sigmaTc));
@@ -139,7 +139,7 @@ bool VoxelMedium::sampleDistance(PathSampleGenerator &sampler, const Ray &ray,
     return true;
 }
 
-Vec3f VoxelMedium::transmittance(const Ray &ray) const
+Vec3f VoxelMedium::transmittance(PathSampleGenerator &sampler, const Ray &ray) const
 {
     Vec3f p = _worldToGrid*ray.pos();
     Vec3f w = _worldToGrid.transformVector(ray.dir());
@@ -149,10 +149,10 @@ Vec3f VoxelMedium::transmittance(const Ray &ray) const
     if (!bboxIntersection(_gridBounds, p, w, t0, t1))
         return Vec3f(1.0f);
 
-    return std::exp(-_sigmaT*(_grid->densityIntegral(p, w, t0, t1)/wPrime));
+    return std::exp(-_sigmaT*(_grid->densityIntegral(sampler, p, w, t0, t1)/wPrime));
 }
 
-float VoxelMedium::pdf(const Ray &ray, bool onSurface) const
+float VoxelMedium::pdf(PathSampleGenerator &sampler, const Ray &ray, bool onSurface) const
 {
     if (_absorptionOnly) {
         return 1.0f;
@@ -165,7 +165,7 @@ float VoxelMedium::pdf(const Ray &ray, bool onSurface) const
         if (!bboxIntersection(_gridBounds, p, w, t0, t1))
             return 1.0f;
 
-        Vec3f transmittance = std::exp(-_sigmaT*(_grid->densityIntegral(p, w, t0, t1)/wPrime));
+        Vec3f transmittance = std::exp(-_sigmaT*(_grid->densityIntegral(sampler, p, w, t0, t1)/wPrime));
         if (onSurface) {
             return transmittance.avg();
         } else {
@@ -174,8 +174,8 @@ float VoxelMedium::pdf(const Ray &ray, bool onSurface) const
     }
 }
 
-Vec3f VoxelMedium::transmittanceAndPdfs(const Ray &ray, bool startOnSurface, bool endOnSurface,
-        float &pdfForward, float &pdfBackward) const
+Vec3f VoxelMedium::transmittanceAndPdfs(PathSampleGenerator &sampler, const Ray &ray, bool startOnSurface,
+        bool endOnSurface, float &pdfForward, float &pdfBackward) const
 {
     Vec3f p = _worldToGrid*ray.pos();
     Vec3f w = _worldToGrid.transformVector(ray.dir());
@@ -187,7 +187,7 @@ Vec3f VoxelMedium::transmittanceAndPdfs(const Ray &ray, bool startOnSurface, boo
         return Vec3f(1.0f);
     }
 
-    Vec3f transmittance = std::exp(-_sigmaT*(_grid->densityIntegral(p, w, t0, t1)/wPrime));
+    Vec3f transmittance = std::exp(-_sigmaT*(_grid->densityIntegral(sampler, p, w, t0, t1)/wPrime));
 
     if (_absorptionOnly) {
         pdfForward = pdfBackward = 1.0f;

@@ -47,7 +47,8 @@ protected:
     bool isConsistent(const SurfaceScatterEvent &event, const Vec3f &w) const;
 
     template<bool ComputePdfs>
-    inline Vec3f generalizedShadowRayImpl(Ray &ray,
+    inline Vec3f generalizedShadowRayImpl(PathSampleGenerator &sampler,
+                               Ray &ray,
                                const Medium *medium,
                                const Primitive *endCap,
                                int bounce,
@@ -56,7 +57,8 @@ protected:
                                float &pdfForward,
                                float &pdfBackward) const;
 
-    Vec3f attenuatedEmission(const Primitive &light,
+    Vec3f attenuatedEmission(PathSampleGenerator &sampler,
+                             const Primitive &light,
                              const Medium *medium,
                              float expectedDist,
                              IntersectionTemporary &data,
@@ -142,11 +144,13 @@ public:
     SurfaceScatterEvent makeLocalScatterEvent(IntersectionTemporary &data, IntersectionInfo &info,
             Ray &ray, PathSampleGenerator *sampler) const;
 
-    Vec3f generalizedShadowRay(Ray &ray,
+    Vec3f generalizedShadowRay(PathSampleGenerator &sampler,
+                               Ray &ray,
                                const Medium *medium,
                                const Primitive *endCap,
                                int bounce) const;
-    Vec3f generalizedShadowRayAndPdfs(Ray &ray,
+    Vec3f generalizedShadowRayAndPdfs(PathSampleGenerator &sampler,
+                               Ray &ray,
                                const Medium *medium,
                                const Primitive *endCap,
                                int bounce,

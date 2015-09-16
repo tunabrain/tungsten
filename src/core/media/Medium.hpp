@@ -53,10 +53,10 @@ public:
 
     virtual bool sampleDistance(PathSampleGenerator &sampler, const Ray &ray,
             MediumState &state, MediumSample &sample) const = 0;
-    virtual Vec3f transmittance(const Ray &ray) const = 0;
-    virtual float pdf(const Ray &ray, bool onSurface) const = 0;
-    virtual Vec3f transmittanceAndPdfs(const Ray &ray, bool startOnSurface, bool endOnSurface,
-            float &pdfForward, float &pdfBackward) const;
+    virtual Vec3f transmittance(PathSampleGenerator &sampler, const Ray &ray) const = 0;
+    virtual float pdf(PathSampleGenerator &sampler, const Ray &ray, bool onSurface) const = 0;
+    virtual Vec3f transmittanceAndPdfs(PathSampleGenerator &sampler, const Ray &ray, bool startOnSurface,
+            bool endOnSurface, float &pdfForward, float &pdfBackward) const;
     virtual const PhaseFunction *phaseFunction(const Vec3f &p) const;
 };
 

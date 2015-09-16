@@ -61,7 +61,7 @@ void KelemenMltTracer::tracePath(PathSampleGenerator &cameraSampler, PathSampleG
                 if (LightPath::bdptCameraConnect(*this, cameraPath, emitterPath, s, _settings.maxBounces, emitterSampler, splatWeight, pixel))
                     splatQueue.addFilteredSplat(pixel, splatWeight*lightSplatScale);
             } else {
-                primarySplat += LightPath::bdptConnect(*this, cameraPath, emitterPath, s, t, _settings.maxBounces);
+                primarySplat += LightPath::bdptConnect(*this, cameraPath, emitterPath, s, t, _settings.maxBounces, cameraSampler);
             }
         }
     }
