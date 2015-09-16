@@ -44,11 +44,11 @@ bool LambertianFiberBcsdf::sample(SurfaceScatterEvent &event) const
     if (!event.requestedLobe.test(BsdfLobes::DiffuseLobe))
         return false;
 
-    float h = event.sampler->next1D(BsdfSample)*2.0f - 1.0f;
+    float h = event.sampler->next1D()*2.0f - 1.0f;
     float nx = h;
     float nz = trigInverse(nx);
 
-    Vec3f d = SampleWarp::cosineHemisphere(event.sampler->next2D(BsdfSample));
+    Vec3f d = SampleWarp::cosineHemisphere(event.sampler->next2D());
 
     event.wo = Vec3f(d.z()*nx + d.x()*nz, d.y(), d.z()*nz - d.x()*nx);
     event.pdf = lambertianCylinder(event.wo);

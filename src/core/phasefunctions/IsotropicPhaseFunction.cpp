@@ -19,7 +19,7 @@ Vec3f IsotropicPhaseFunction::eval(const Vec3f &/*wi*/, const Vec3f &/*wo*/) con
 
 bool IsotropicPhaseFunction::sample(PathSampleGenerator &sampler, const Vec3f &/*wi*/, PhaseSample &sample) const
 {
-    sample.w = SampleWarp::uniformSphere(sampler.next2D(MediumPhaseSample));
+    sample.w = SampleWarp::uniformSphere(sampler.next2D());
     sample.weight = Vec3f(1.0f);
     sample.pdf = SampleWarp::uniformSpherePdf();
     return true;

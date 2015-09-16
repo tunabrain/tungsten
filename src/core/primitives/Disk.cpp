@@ -136,7 +136,7 @@ void Disk::makeSamplable(const TraceableScene &/*scene*/, uint32 /*threadIndex*/
 
 bool Disk::samplePosition(PathSampleGenerator &sampler, PositionSample &sample) const
 {
-    Vec2f xi = sampler.next2D(EmitterSample);
+    Vec2f xi = sampler.next2D();
     Vec2f lQ = SampleWarp::uniformDisk(xi).xy()*_r;
     sample.p = _center + lQ.x()*_frame.bitangent + lQ.y()*_frame.tangent;
     sample.pdf = _invArea;
@@ -152,7 +152,7 @@ bool Disk::samplePosition(PathSampleGenerator &sampler, PositionSample &sample) 
 bool Disk::sampleDirection(PathSampleGenerator &sampler, const PositionSample &/*point*/, DirectionSample &sample) const
 {
     // TODO: Cone angle
-    Vec3f d = SampleWarp::cosineHemisphere(sampler.next2D(EmitterSample));
+    Vec3f d = SampleWarp::cosineHemisphere(sampler.next2D());
     sample.d = _frame.toGlobal(d);
     sample.weight = Vec3f(1.0f);
     sample.pdf = SampleWarp::cosineHemispherePdf(d);
@@ -165,7 +165,7 @@ bool Disk::sampleDirect(uint32 /*threadIndex*/, const Vec3f &p, PathSampleGenera
     if (_n.dot(p - _center) < 0.0f)
         return false;
 
-    Vec2f lQ = SampleWarp::uniformDisk(sampler.next2D(EmitterSample)).xy()*_r;
+    Vec2f lQ = SampleWarp::uniformDisk(sampler.next2D()).xy()*_r;
     Vec3f q = _center + lQ.x()*_frame.bitangent + lQ.y()*_frame.tangent;
     sample.d = q - p;
     float rSq = sample.d.lengthSq();

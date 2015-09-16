@@ -20,7 +20,6 @@ void LightTracer::traceSample(PathSampleGenerator &sampler)
     DirectionSample direction;
     if (!light->sampleDirection(sampler, point, direction))
         return;
-    sampler.advancePath();
 
     Vec3f throughput(point.weight/lightPdf);
 
@@ -36,7 +35,6 @@ void LightTracer::traceSample(PathSampleGenerator &sampler)
             _splatBuffer->splatFiltered(splat.pixel, value);
         }
     }
-    sampler.advancePath();
 
     Ray ray(point.p, direction.d);
     throughput *= direction.weight;
@@ -92,7 +90,6 @@ void LightTracer::traceSample(PathSampleGenerator &sampler)
         if (std::isnan(throughput.sum()))
             break;
 
-        sampler.advancePath();
         bounce++;
         if (bounce < _settings.maxBounces)
             didHit = _scene->intersect(ray, data, info);

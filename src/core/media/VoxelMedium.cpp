@@ -111,9 +111,9 @@ bool VoxelMedium::sampleDistance(PathSampleGenerator &sampler, const Ray &ray,
         sample.pdf = 1.0f;
         sample.exited = true;
     } else {
-        int component = sampler.nextDiscrete(DiscreteTransmittanceSample, 3);
+        int component = sampler.nextDiscrete(3);
         float sigmaTc = _sigmaT[component];
-        float xi = 1.0f - sampler.next1D(MediumTransmittanceSample);
+        float xi = 1.0f - sampler.next1D();
         float logXi = -std::log(xi);
 
         Vec2f tAndDensity = _grid->inverseOpticalDepth(p, w, t0, t1, sigmaTc, logXi);

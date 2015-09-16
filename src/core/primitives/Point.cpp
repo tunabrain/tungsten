@@ -85,7 +85,7 @@ bool Point::samplePosition(PathSampleGenerator &/*sampler*/, PositionSample &sam
 
 bool Point::sampleDirection(PathSampleGenerator &sampler, const PositionSample &/*point*/, DirectionSample &sample) const
 {
-    sample.d = SampleWarp::uniformSphere(sampler.next2D(EmitterSample));
+    sample.d = SampleWarp::uniformSphere(sampler.next2D());
     sample.weight = Vec3f(1.0f);
     sample.pdf = SampleWarp::uniformSpherePdf();
 

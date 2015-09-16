@@ -102,9 +102,9 @@ bool ExponentialMedium::sampleDistance(PathSampleGenerator &sampler, const Ray &
         sample.pdf = 1.0f;
         sample.exited = true;
     } else {
-        int component = sampler.nextDiscrete(DiscreteTransmittanceSample, 3);
+        int component = sampler.nextDiscrete(3);
         float sigmaTc = _sigmaT[component];
-        float xi = 1.0f - sampler.next1D(MediumTransmittanceSample);
+        float xi = 1.0f - sampler.next1D();
         float logXi = std::log(xi);
 
         float t = inverseOpticalDepth(x, dx, sigmaTc, logXi);

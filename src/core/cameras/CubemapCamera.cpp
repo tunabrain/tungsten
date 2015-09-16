@@ -158,7 +158,7 @@ bool CubemapCamera::samplePosition(PathSampleGenerator &/*sampler*/, PositionSam
 bool CubemapCamera::sampleDirection(PathSampleGenerator &sampler, const PositionSample &point,
         DirectionSample &sample) const
 {
-    Vec2u pixel(sampler.next2D(CameraSample)*Vec2f(_res));
+    Vec2u pixel(sampler.next2D()*Vec2f(_res));
     return sampleDirection(sampler, point, pixel, sample);
 }
 
@@ -172,7 +172,7 @@ bool CubemapCamera::sampleDirection(PathSampleGenerator &sampler, const Position
         return false;
 
     float filterPdf;
-    uv += _filter.sample(sampler.next2D(CameraSample), filterPdf)*_pixelSize;
+    uv += _filter.sample(sampler.next2D(), filterPdf)*_pixelSize;
 
     sample.d = uvToDirection(face, uv, sample.pdf);
     sample.weight = Vec3f(1.0f);

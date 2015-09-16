@@ -83,9 +83,6 @@ public:
     virtual void startPath(uint32 /*pixelId*/, uint32 /*sample*/) override
     {
     }
-    virtual void advancePath() override
-    {
-    }
 
     virtual void saveState(OutputStreamHandle &/*out*/) override
     {
@@ -127,16 +124,16 @@ public:
         _sampleVector[idx].time = _currentTime;
     }
 
-    virtual bool nextBoolean(SampleBlock block, float pTrue) override final
+    virtual bool nextBoolean(float pTrue) override final
     {
-        return next1D(block) < pTrue;
+        return next1D() < pTrue;
     }
-    virtual int nextDiscrete(SampleBlock block, int numChoices) override final
+    virtual int nextDiscrete(int numChoices) override final
     {
-        return int(next1D(block)*numChoices);
+        return int(next1D()*numChoices);
     }
 
-    inline virtual float next1D(SampleBlock /*block*/) override final
+    inline virtual float next1D() override final
     {
         if (_vectorIdx == _maxSize)
             FAIL("Terrible things have occurred! Exceeded maximum size of metropolis sampler");
@@ -163,10 +160,10 @@ public:
         return sample.value;
     }
 
-    inline virtual Vec2f next2D(SampleBlock block) override final
+    inline virtual Vec2f next2D() override final
     {
-        float a = next1D(block);
-        float b = next1D(block);
+        float a = next1D();
+        float b = next1D();
         return Vec2f(a, b);
     }
 };

@@ -144,7 +144,7 @@ void Sphere::makeSamplable(const TraceableScene &/*scene*/, uint32 /*threadIndex
 
 bool Sphere::samplePosition(PathSampleGenerator &sampler, PositionSample &sample) const
 {
-    Vec2f xi = sampler.next2D(EmitterSample);
+    Vec2f xi = sampler.next2D();
     Vec3f localN = SampleWarp::uniformSphere(xi);
     sample.Ng = _rot*localN;
     sample.p = sample.Ng*_radius + _pos;
@@ -159,7 +159,7 @@ bool Sphere::samplePosition(PathSampleGenerator &sampler, PositionSample &sample
 
 bool Sphere::sampleDirection(PathSampleGenerator &sampler, const PositionSample &point, DirectionSample &sample) const
 {
-    Vec3f d = SampleWarp::cosineHemisphere(sampler.next2D(EmitterSample));
+    Vec3f d = SampleWarp::cosineHemisphere(sampler.next2D());
     sample.d = TangentFrame(point.Ng).toGlobal(d);
     sample.weight = Vec3f(1.0f);
     sample.pdf = SampleWarp::cosineHemispherePdf(d);
@@ -177,7 +177,7 @@ bool Sphere::sampleDirect(uint32 /*threadIndex*/, const Vec3f &p, PathSampleGene
 
     L.normalize();
     float cosTheta = std::sqrt(C)/d;
-    sample.d = SampleWarp::uniformSphericalCap(sampler.next2D(EmitterSample), cosTheta);
+    sample.d = SampleWarp::uniformSphericalCap(sampler.next2D(), cosTheta);
 
     float B = d*sample.d.z();
     float det = std::sqrt(max(B*B - C, 0.0f));

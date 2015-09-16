@@ -43,7 +43,7 @@ Vec3f HenyeyGreensteinPhaseFunction::eval(const Vec3f &wi, const Vec3f &wo) cons
 
 bool HenyeyGreensteinPhaseFunction::sample(PathSampleGenerator &sampler, const Vec3f &wi, PhaseSample &sample) const
 {
-    Vec2f xi = sampler.next2D(MediumPhaseSample);
+    Vec2f xi = sampler.next2D();
     if (_g == 0.0f) {
         sample.w = SampleWarp::uniformSphere(xi);
         sample.weight = Vec3f(1.0f);

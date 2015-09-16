@@ -23,9 +23,6 @@ public:
     virtual void startPath(uint32 /*pixelId*/, uint32 /*sample*/)
     {
     }
-    virtual void advancePath()
-    {
-    }
 
     virtual void saveState(OutputStreamHandle &out)
     {
@@ -36,19 +33,19 @@ public:
         _sampler.loadState(in);
     }
 
-    virtual bool nextBoolean(SampleBlock /*block*/, float pTrue) override final
+    virtual bool nextBoolean(float pTrue) override final
     {
         return _sampler.next1D() < pTrue;
     }
-    virtual int nextDiscrete(SampleBlock /*block*/, int numChoices) override final
+    virtual int nextDiscrete(int numChoices) override final
     {
         return int(_sampler.next1D()*numChoices);
     }
-    virtual float next1D(SampleBlock /*block*/) override final
+    virtual float next1D() override final
     {
         return _sampler.next1D();
     }
-    virtual Vec2f next2D(SampleBlock /*block*/) override final
+    virtual Vec2f next2D() override final
     {
         float a = _sampler.next1D();
         float b = _sampler.next1D();

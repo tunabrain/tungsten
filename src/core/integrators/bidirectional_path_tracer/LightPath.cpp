@@ -166,7 +166,6 @@ void LightPath::tracePath(const TraceableScene &scene, TraceBase &tracer, PathSa
                 _length == 1 ? nullptr : &_edges[_length - 2],
                 _vertices[_length], _edges[_length - 1]))
             break;
-        sampler.advancePath();
         _length++;
     }
 

@@ -138,8 +138,8 @@ bool RoughWireBcsdf::sample(SurfaceScatterEvent &event) const
     if (!event.requestedLobe.test(BsdfLobes::GlossyLobe))
         return false;
 
-    float xi1 = event.sampler->next1D(BsdfSample);
-    Vec2f xi23 = event.sampler->next2D(BsdfSample);
+    float xi1 = event.sampler->next1D();
+    Vec2f xi23 = event.sampler->next2D();
 
     float sinThetaI = event.wi.y();
     float cosThetaI = trigInverse(sinThetaI);

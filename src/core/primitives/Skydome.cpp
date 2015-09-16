@@ -141,10 +141,10 @@ void Skydome::makeSamplable(const TraceableScene &scene, uint32 /*threadIndex*/)
 
 bool Skydome::samplePosition(PathSampleGenerator &sampler, PositionSample &sample) const
 {
-    float faceXi = sampler.next1D(EmitterSample);
-    Vec2f xi = sampler.next2D(EmitterSample);
+    float faceXi = sampler.next1D();
+    Vec2f xi = sampler.next2D();
 
-    sample.uv = _sky->sample(MAP_SPHERICAL, sampler.next2D(EmitterSample));
+    sample.uv = _sky->sample(MAP_SPHERICAL, sampler.next2D());
     float sinTheta;
     sample.Ng = -uvToDirection(sample.uv, sinTheta);
 
@@ -170,7 +170,7 @@ bool Skydome::sampleDirection(PathSampleGenerator &/*sampler*/, const PositionSa
 
 bool Skydome::sampleDirect(uint32 /*threadIndex*/, const Vec3f &/*p*/, PathSampleGenerator &sampler, LightSample &sample) const
 {
-    Vec2f uv = _sky->sample(MAP_SPHERICAL, sampler.next2D(EmitterSample));
+    Vec2f uv = _sky->sample(MAP_SPHERICAL, sampler.next2D());
     float sinTheta;
     sample.d = uvToDirection(uv, sinTheta);
     sample.pdf = INV_PI*INV_TWO_PI*_sky->pdf(MAP_SPHERICAL, uv)/sinTheta;

@@ -17,31 +17,11 @@ class SobolPathSampler : public PathSampleGenerator
     uint32 _seed;
     uint32 _scramble;
     uint32 _index;
-    int _pathOffset;
-    int _blockOffset[ContinuousBlockSize];
+    uint32 _dimension;
 
     inline uint32 permutedIndex() const
     {
         return (_index & ~0xFF) | ((_index + _scramble) & 0xFF);
-    }
-
-    int blockMaximum(SampleBlock block)
-    {
-        switch (block) {
-        case EmitterSample:
-            return 6;
-        case MediumTransmittanceSample:
-            return 1;
-        case DiscreteEmitterSample:
-            return 1;
-        case DiscreteTransmittanceSample:
-            return 1;
-        case DiscreteTransparencySample:
-            return 1;
-        case DiscreteRouletteSample:
-            return 1;
-        }
-        return 0;
     }
 
 public:
@@ -50,7 +30,7 @@ public:
       _seed(seed),
       _scramble(0),
       _index(0),
-      _pathOffset(0)
+      _dimension(0)
     {
     }
 
@@ -70,41 +50,30 @@ public:
     {
         _scramble = _seed ^ MathUtil::hash32(pixelId);
         _index = sample;
-        _pathOffset = 0;
-        std::memset(_blockOffset, 0, ContinuousBlockSize*sizeof(int));
+        _dimension = 0;
     }
 
-    virtual void advancePath() override final
-    {
-        _pathOffset += ContinuousBlockSize;
-        std::memset(_blockOffset, 0, ContinuousBlockSize*sizeof(int));
-    }
-
-    virtual bool nextBoolean(SampleBlock /*block*/, float pTrue) override final
+    virtual bool nextBoolean(float pTrue) override final
     {
         return _supplementalSampler.next1D() < pTrue;
     }
 
-    virtual int nextDiscrete(SampleBlock /*block*/, int numChoices) override final
+    virtual int nextDiscrete(int numChoices) override final
     {
         return int(_supplementalSampler.next1D()*numChoices);
     }
 
-    virtual float next1D(SampleBlock block) override final
+    virtual float next1D() override final
     {
-        if (_blockOffset[block] > blockMaximum(block))
-            FAIL("_blockOffset[%s] (%d) > %d", block, _blockOffset[block], blockMaximum(block));
-        int dimension = _pathOffset + block + _blockOffset[block];
-        _blockOffset[block]++;
-        if (dimension >= 1024)
+        if (_dimension >= 1024)
             return _supplementalSampler.next1D();
-        return BitManip::normalizedUint(sobol::sample(permutedIndex(), dimension, _scramble));
+        return BitManip::normalizedUint(sobol::sample(permutedIndex(), _dimension++, _scramble));
     }
 
-    inline virtual Vec2f next2D(SampleBlock block) override final
+    inline virtual Vec2f next2D() override final
     {
-        float a = next1D(block);
-        float b = next1D(block);
+        float a = next1D();
+        float b = next1D();
         return Vec2f(a, b);
     }
 };

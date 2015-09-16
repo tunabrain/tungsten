@@ -63,10 +63,10 @@ bool HomogeneousMedium::sampleDistance(PathSampleGenerator &sampler, const Ray &
         sample.pdf = 1.0f;
         sample.exited = true;
     } else {
-        int component = sampler.nextDiscrete(DiscreteTransmittanceSample, 3);
+        int component = sampler.nextDiscrete(3);
         float sigmaTc = _sigmaT[component];
 
-        float t = -std::log(1.0f - sampler.next1D(MediumTransmittanceSample))/sigmaTc;
+        float t = -std::log(1.0f - sampler.next1D())/sigmaTc;
         sample.t = min(t, maxT);
         sample.weight = std::exp(-sample.t*_sigmaT);
         sample.exited = (t >= maxT);

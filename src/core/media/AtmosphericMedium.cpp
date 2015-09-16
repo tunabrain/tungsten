@@ -116,9 +116,9 @@ bool AtmosphericMedium::sampleDistance(PathSampleGenerator &sampler, const Ray &
         sample.pdf = 1.0f;
         sample.exited = true;
     } else {
-        int component = sampler.nextDiscrete(DiscreteTransmittanceSample, 3);
+        int component = sampler.nextDiscrete(3);
         float sigmaTc = _sigmaT[component];
-        float xi = 1.0f - sampler.next1D(MediumTransmittanceSample);
+        float xi = 1.0f - sampler.next1D();
 
         float t = inverseOpticalDepth(h, t0, sigmaTc, xi);
         sample.t = min(t, maxT);

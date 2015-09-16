@@ -141,7 +141,7 @@ void Quad::makeSamplable(const TraceableScene &/*scene*/, uint32 /*threadIndex*/
 
 bool Quad::samplePosition(PathSampleGenerator &sampler, PositionSample &sample) const
 {
-    Vec2f xi = sampler.next2D(EmitterSample);
+    Vec2f xi = sampler.next2D();
     sample.p = _base + xi.x()*_edge0 + xi.y()*_edge1;
     sample.pdf = _invArea;
     sample.uv = xi;
@@ -153,7 +153,7 @@ bool Quad::samplePosition(PathSampleGenerator &sampler, PositionSample &sample) 
 
 bool Quad::sampleDirection(PathSampleGenerator &sampler, const PositionSample &/*point*/, DirectionSample &sample) const
 {
-    Vec3f d = SampleWarp::cosineHemisphere(sampler.next2D(EmitterSample));
+    Vec3f d = SampleWarp::cosineHemisphere(sampler.next2D());
     sample.d = _frame.toGlobal(d);
     sample.weight = Vec3f(1.0f);
     sample.pdf = SampleWarp::cosineHemispherePdf(d);
@@ -166,7 +166,7 @@ bool Quad::sampleDirect(uint32 /*threadIndex*/, const Vec3f &p, PathSampleGenera
     if (_frame.normal.dot(p - _base) <= 0.0f)
         return false;
 
-    Vec2f xi = sampler.next2D(EmitterSample);
+    Vec2f xi = sampler.next2D();
     Vec3f q = _base + xi.x()*_edge0 + xi.y()*_edge1;
     sample.d = q - p;
     float rSq = sample.d.lengthSq();

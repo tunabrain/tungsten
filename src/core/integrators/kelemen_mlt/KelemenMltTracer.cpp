@@ -24,7 +24,7 @@ void KelemenMltTracer::tracePath(PathSampleGenerator &cameraSampler, PathSampleG
     splatQueue.clear();
 
     Vec2f resF(_scene->cam().resolution());
-    Vec2u pixel = min(Vec2u(resF*cameraSampler.next2D(CameraSample)), _scene->cam().resolution());
+    Vec2u pixel = min(Vec2u(resF*cameraSampler.next2D()), _scene->cam().resolution());
 
     if (!_settings.bidirectional) {
         splatQueue.addSplat(pixel, traceSample(pixel, cameraSampler));

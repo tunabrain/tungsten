@@ -105,11 +105,11 @@ void InfiniteSphereCap::makeSamplable(const TraceableScene &scene, uint32 /*thre
 
 bool InfiniteSphereCap::samplePosition(PathSampleGenerator &sampler, PositionSample &sample) const
 {
-    float faceXi = sampler.next1D(EmitterSample);
-    Vec2f xi = sampler.next2D(EmitterSample);
+    float faceXi = sampler.next1D();
+    Vec2f xi = sampler.next2D();
 
     sample.uv = Vec2f(0.0f);
-    sample.Ng = -_capFrame.toGlobal(SampleWarp::uniformSphericalCap(sampler.next2D(EmitterSample), _cosCapAngle));
+    sample.Ng = -_capFrame.toGlobal(SampleWarp::uniformSphericalCap(sampler.next2D(), _cosCapAngle));
     sample.p = SampleWarp::projectedBox(_sceneBounds, sample.Ng, faceXi, xi);
     sample.pdf = SampleWarp::projectedBoxPdf(_sceneBounds, sample.Ng);
     sample.weight = Vec3f(1.0f/sample.pdf);
@@ -128,7 +128,7 @@ bool InfiniteSphereCap::sampleDirection(PathSampleGenerator &/*sampler*/, const 
 
 bool InfiniteSphereCap::sampleDirect(uint32 /*threadIndex*/, const Vec3f &/*p*/, PathSampleGenerator &sampler, LightSample &sample) const
 {
-    Vec3f dir = SampleWarp::uniformSphericalCap(sampler.next2D(EmitterSample), _cosCapAngle);
+    Vec3f dir = SampleWarp::uniformSphericalCap(sampler.next2D(), _cosCapAngle);
     sample.d = _capFrame.toGlobal(dir);
     sample.dist = Ray::infinity();
     sample.pdf = SampleWarp::uniformSphericalCapPdf(_cosCapAngle);

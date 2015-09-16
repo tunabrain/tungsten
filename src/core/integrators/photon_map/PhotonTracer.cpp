@@ -23,7 +23,6 @@ void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRan
     DirectionSample direction;
     if (!light->sampleDirection(sampler, point, direction))
         return;
-    sampler.advancePath();
 
     Ray ray(point.p, direction.d);
     Vec3f throughput(point.weight*direction.weight/lightPdf);
@@ -93,7 +92,6 @@ void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRan
         if (std::isnan(throughput.sum()))
             break;
 
-        sampler.advancePath();
         bounce++;
         if (bounce < _settings.maxBounces)
             didHit = _scene->intersect(ray, data, info);
@@ -110,7 +108,6 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
     DirectionSample direction;
     if (!_scene->cam().sampleDirection(sampler, point, pixel, direction))
         return Vec3f(0.0f);
-    sampler.advancePath();
 
     Vec3f throughput = point.weight*direction.weight;
     Ray ray(point.p, direction.d);
@@ -155,7 +152,7 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
         float transparencyScalar = transparency.avg();
 
         Vec3f wo;
-        if (sampler.nextBoolean(DiscreteTransparencySample, transparencyScalar)) {
+        if (sampler.nextBoolean(transparencyScalar)) {
             wo = ray.dir();
             throughput *= transparency/transparencyScalar;
         } else {
@@ -178,7 +175,6 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
         if (std::isnan(throughput.sum()))
             break;
 
-        sampler.advancePath();
         if (bounce < _settings.maxBounces)
             didHit = _scene->intersect(ray, data, info);
     }

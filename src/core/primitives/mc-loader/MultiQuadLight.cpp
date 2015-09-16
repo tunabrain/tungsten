@@ -197,7 +197,7 @@ void MultiQuadLight::makeSamplable(const TraceableScene &/*scene*/, uint32 threa
 
 bool MultiQuadLight::sampleDirect(uint32 threadIndex, const Vec3f &p, PathSampleGenerator &pathSampler, LightSample &sample) const
 {
-    float xi = pathSampler.next1D(EmitterSample);
+    float xi = pathSampler.next1D();
 
     ThreadlocalSampleInfo &sampler = *_samplers[threadIndex];
 
@@ -208,11 +208,11 @@ bool MultiQuadLight::sampleDirect(uint32 threadIndex, const Vec3f &p, PathSample
     if (result.first == -1)
         return false;
 
-    int idx = pathSampler.next1D(EmitterSample) < 0.5f ? result.first*2 : result.first*2 + 1;
+    int idx = pathSampler.next1D() < 0.5f ? result.first*2 : result.first*2 + 1;
 
     const QuadGeometry::TriangleInfo &t = _geometry.triangle(idx);
 
-    Vec3f q = SampleWarp::uniformTriangle(pathSampler.next2D(EmitterSample), t.p0, t.p1, t.p2);
+    Vec3f q = SampleWarp::uniformTriangle(pathSampler.next2D(), t.p0, t.p1, t.p2);
     Vec3f L = q - p;
 
     float rSq = L.lengthSq();

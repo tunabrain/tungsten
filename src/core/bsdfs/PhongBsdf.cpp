@@ -49,12 +49,12 @@ bool PhongBsdf::sample(SurfaceScatterEvent &event) const
 
     bool sampleGlossy;
     if (evalGlossy && evalDiffuse)
-        sampleGlossy = event.sampler->nextBoolean(DiscreteBsdfSample, 1.0f - _diffuseRatio);
+        sampleGlossy = event.sampler->nextBoolean(1.0f - _diffuseRatio);
     else
         sampleGlossy = evalGlossy;
 
     if (sampleGlossy) {
-        Vec2f xi = event.sampler->next2D(BsdfSample);
+        Vec2f xi = event.sampler->next2D();
         float phi      = xi.x()*TWO_PI;
         float cosTheta = std::pow(xi.y(), _invExponent);
         float sinTheta = std::sqrt(max(0.0f, 1.0f - cosTheta*cosTheta));
@@ -68,7 +68,7 @@ bool PhongBsdf::sample(SurfaceScatterEvent &event) const
 
         event.sampledLobe = BsdfLobes::GlossyReflectionLobe;
     } else {
-        event.wo = SampleWarp::cosineHemisphere(event.sampler->next2D(BsdfSample));
+        event.wo = SampleWarp::cosineHemisphere(event.sampler->next2D());
         event.sampledLobe = BsdfLobes::DiffuseReflectionLobe;
     }
 

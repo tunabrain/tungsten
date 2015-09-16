@@ -26,7 +26,6 @@ Vec3f PathTracer::traceSample(Vec2u pixel, PathSampleGenerator &sampler)
     DirectionSample direction;
     if (!_scene->cam().sampleDirection(sampler, point, pixel, direction))
         return Vec3f(0.0f);
-    sampler.advancePath();
 
     Vec3f throughput = point.weight*direction.weight;
     Ray ray(point.p, direction.d);
@@ -99,7 +98,7 @@ Vec3f PathTracer::traceSample(Vec2u pixel, PathSampleGenerator &sampler)
 
         float roulettePdf = std::abs(throughput).max();
         if (bounce > 2 && roulettePdf < 0.1f) {
-            if (sampler.nextBoolean(DiscreteRouletteSample, roulettePdf))
+            if (sampler.nextBoolean(roulettePdf))
                 throughput /= roulettePdf;
             else
                 return emission;
@@ -110,7 +109,6 @@ Vec3f PathTracer::traceSample(Vec2u pixel, PathSampleGenerator &sampler)
         if (std::isnan(throughput.sum() + emission.sum()))
             return nanBsdfColor;
 
-        sampler.advancePath();
         bounce++;
         if (bounce < _settings.maxBounces)
             didHit = _scene->intersect(ray, data, info);

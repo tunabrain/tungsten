@@ -218,8 +218,8 @@ bool HairBcsdf::sample(SurfaceScatterEvent &event) const
     if (!event.requestedLobe.test(BsdfLobes::GlossyLobe))
         return false;
 
-    Vec2f xiN = event.sampler->next2D(BsdfSample);
-    Vec2f xiM = event.sampler->next2D(BsdfSample);
+    Vec2f xiN = event.sampler->next2D();
+    Vec2f xiM = event.sampler->next2D();
 
     float sinThetaI = event.wi.y();
     float cosThetaI = trigInverse(sinThetaI);

@@ -393,7 +393,7 @@ void TriangleMesh::makeSamplable(const TraceableScene &/*scene*/, uint32 /*threa
 
 bool TriangleMesh::samplePosition(PathSampleGenerator &sampler, PositionSample &sample) const
 {
-    float u = sampler.next1D(EmitterSample);
+    float u = sampler.next1D();
     int idx;
     _triSampler->warp(u, idx);
 
@@ -405,7 +405,7 @@ bool TriangleMesh::samplePosition(PathSampleGenerator &sampler, PositionSample &
     Vec2f uv2 = _tfVerts[_tris[idx].v2].uv();
     Vec3f normal = (p1 - p0).cross(p2 - p0).normalized();
 
-    Vec2f lambda = SampleWarp::uniformTriangleUv(sampler.next2D(EmitterSample));
+    Vec2f lambda = SampleWarp::uniformTriangleUv(sampler.next2D());
 
     sample.p = p0*lambda.x() + p1*lambda.y() + p2*(1.0f - lambda.x() - lambda.y());
     sample.uv = uv0*lambda.x() + uv1*lambda.y() + uv2*(1.0f - lambda.x() - lambda.y());
@@ -418,7 +418,7 @@ bool TriangleMesh::samplePosition(PathSampleGenerator &sampler, PositionSample &
 
 bool TriangleMesh::sampleDirection(PathSampleGenerator &sampler, const PositionSample &point, DirectionSample &sample) const
 {
-    Vec3f d = SampleWarp::cosineHemisphere(sampler.next2D(EmitterSample));
+    Vec3f d = SampleWarp::cosineHemisphere(sampler.next2D());
     sample.d = TangentFrame(point.Ng).toGlobal(d);
     sample.weight = Vec3f(1.0f);
     sample.pdf = SampleWarp::cosineHemispherePdf(d);

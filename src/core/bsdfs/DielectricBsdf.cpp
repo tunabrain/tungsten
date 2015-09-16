@@ -66,7 +66,7 @@ bool DielectricBsdf::sample(SurfaceScatterEvent &event) const
     else
         return false;
 
-    if (event.sampler->nextBoolean(DiscreteBsdfSample, reflectionProbability)) {
+    if (event.sampler->nextBoolean(reflectionProbability)) {
         event.wo = Vec3f(-event.wi.x(), -event.wi.y(), event.wi.z());
         event.pdf = reflectionProbability;
         event.sampledLobe = BsdfLobes::SpecularReflectionLobe;

@@ -172,12 +172,12 @@ void Cube::makeSamplable(const TraceableScene &/*scene*/, uint32 /*threadIndex*/
 
 bool Cube::samplePosition(PathSampleGenerator &sampler, PositionSample &sample) const
 {
-    float u = sampler.next1D(EmitterSample);
+    float u = sampler.next1D();
     int dim = sampleFace(u);
     float s = (dim + 1) % 3;
     float t = (dim + 2) % 3;
 
-    Vec2f xi = sampler.next2D(EmitterSample);
+    Vec2f xi = sampler.next2D();
 
     Vec3f n(0.0f);
     n[dim] = u < 0.5f ? -1.0f : 1.0f;
@@ -198,7 +198,7 @@ bool Cube::samplePosition(PathSampleGenerator &sampler, PositionSample &sample) 
 
 bool Cube::sampleDirection(PathSampleGenerator &sampler, const PositionSample &point, DirectionSample &sample) const
 {
-    Vec3f d = SampleWarp::cosineHemisphere(sampler.next2D(EmitterSample));
+    Vec3f d = SampleWarp::cosineHemisphere(sampler.next2D());
     sample.d = TangentFrame(point.Ng).toGlobal(d);
     sample.weight = Vec3f(1.0f);
     sample.pdf = SampleWarp::cosineHemispherePdf(d);

@@ -48,10 +48,10 @@ bool OrenNayarBsdf::sample(SurfaceScatterEvent &event) const
 
     float roughness = (*_roughness)[*event.info].x();
     float ratio = clamp(roughness, 0.01f, 1.0f);
-    if (event.sampler->nextBoolean(DiscreteBsdfSample, ratio))
-        event.wo  = SampleWarp::uniformHemisphere(event.sampler->next2D(BsdfSample));
+    if (event.sampler->nextBoolean(ratio))
+        event.wo  = SampleWarp::uniformHemisphere(event.sampler->next2D());
     else
-        event.wo  = SampleWarp::cosineHemisphere(event.sampler->next2D(BsdfSample));
+        event.wo  = SampleWarp::cosineHemisphere(event.sampler->next2D());
 
     event.pdf = SampleWarp::uniformHemispherePdf(event.wo)*ratio + SampleWarp::cosineHemispherePdf(event.wo)*(1.0f - ratio);
     event.weight = eval(event)/event.pdf;

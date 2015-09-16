@@ -79,7 +79,7 @@ rapidjson::Value ThinlensCamera::toJson(Allocator &allocator) const
 
 bool ThinlensCamera::samplePosition(PathSampleGenerator &sampler, PositionSample &sample) const
 {
-    Vec2f lensUv = sampler.next2D(CameraSample);
+    Vec2f lensUv = sampler.next2D();
     Vec2f aperturePos = _aperture->sample(MAP_UNIFORM, lensUv);
     aperturePos = (aperturePos*2.0f - 1.0f)*_apertureSize;
 
@@ -94,7 +94,7 @@ bool ThinlensCamera::samplePosition(PathSampleGenerator &sampler, PositionSample
 bool ThinlensCamera::sampleDirection(PathSampleGenerator &sampler, const PositionSample &point,
         DirectionSample &sample) const
 {
-    Vec2u pixel(sampler.next2D(CameraSample)*Vec2f(_res));
+    Vec2u pixel(sampler.next2D()*Vec2f(_res));
     return sampleDirection(sampler, point, pixel, sample);
 }
 
@@ -102,7 +102,7 @@ bool ThinlensCamera::sampleDirection(PathSampleGenerator &sampler, const Positio
         DirectionSample &sample) const
 {
     float pdf;
-    Vec2f pixelUv = _filter.sample(sampler.next2D(CameraSample), pdf);
+    Vec2f pixelUv = _filter.sample(sampler.next2D(), pdf);
     Vec3f planePos = Vec3f(
         -1.0f  + (float(pixel.x()) + pixelUv.x())*2.0f*_pixelSize.x(),
         _ratio - (float(pixel.y()) + pixelUv.y())*2.0f*_pixelSize.x(),

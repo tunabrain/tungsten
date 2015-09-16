@@ -27,7 +27,7 @@ Vec3f RayleighPhaseFunction::eval(const Vec3f &wi, const Vec3f &wo) const
 
 bool RayleighPhaseFunction::sample(PathSampleGenerator &sampler, const Vec3f &wi, PhaseSample &sample) const
 {
-    Vec2f xi = sampler.next2D(MediumPhaseSample);
+    Vec2f xi = sampler.next2D();
     float phi = xi.x()*TWO_PI;
     float z = xi.y()*4.0f - 2.0f;
     float invZ = std::sqrt(z*z + 1.0f);

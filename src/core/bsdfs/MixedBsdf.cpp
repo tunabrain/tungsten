@@ -77,7 +77,7 @@ bool MixedBsdf::sample(SurfaceScatterEvent &event) const
     if (!adjustedRatio(event.requestedLobe, event.info, ratio))
         return false;
 
-    if (event.sampler->nextBoolean(DiscreteBsdfSample, ratio)) {
+    if (event.sampler->nextBoolean(ratio)) {
         if (!_bsdf0->sample(event))
             return false;
 

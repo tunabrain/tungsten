@@ -387,11 +387,8 @@ Vec3f TraceBase::sampleDirect(const Primitive &light,
         return Vec3f(0.0f);
 
     result += lightSample(light, event, medium, bounce, parentRay, transmittance);
-    event.sampler->advancePath();
-    if (!light.isDirac()) {
+    if (!light.isDirac())
         result += bsdfSample(light, event, medium, bounce, parentRay);
-        event.sampler->advancePath();
-    }
 
     return result;
 }
@@ -404,11 +401,8 @@ Vec3f TraceBase::volumeSampleDirect(const Primitive &light,
                     const Ray &parentRay)
 {
     Vec3f result = volumeLightSample(sampler, mediumSample, light, medium, bounce, parentRay);
-    sampler.advancePath();
-    if (!light.isDirac()) {
+    if (!light.isDirac())
         result += volumePhaseSample(light, sampler, mediumSample, medium, bounce, parentRay);
-        sampler.advancePath();
-    }
 
     return result;
 }
@@ -446,7 +440,7 @@ const Primitive *TraceBase::chooseLight(PathSampleGenerator &sampler, const Vec3
     }
     if (total == 0.0f)
         return nullptr;
-    float t = sampler.next1D(EmitterSample)*total;
+    float t = sampler.next1D()*total;
     for (size_t i = 0; i < _lightPdf.size(); ++i) {
         if (t < _lightPdf[i] || i == _lightPdf.size() - 1) {
             weight = total/_lightPdf[i];
@@ -460,7 +454,7 @@ const Primitive *TraceBase::chooseLight(PathSampleGenerator &sampler, const Vec3
 
 const Primitive *TraceBase::chooseLightAdjoint(PathSampleGenerator &sampler, float &pdf)
 {
-    float u = sampler.next1D(EmitterSample);
+    float u = sampler.next1D();
     int lightIdx;
     _lightSampler->warp(u, lightIdx);
     pdf = _lightSampler->pdf(lightIdx);
@@ -526,7 +520,7 @@ bool TraceBase::handleSurface(SurfaceScatterEvent &event, IntersectionTemporary 
     float transparencyScalar = transparency.avg();
 
     Vec3f wo;
-    if (event.sampler->nextBoolean(DiscreteTransparencySample, transparencyScalar) ){
+    if (event.sampler->nextBoolean(transparencyScalar) ){
         wo = ray.dir();
         event.pdf = transparencyScalar;
         event.weight = transparency/transparencyScalar;

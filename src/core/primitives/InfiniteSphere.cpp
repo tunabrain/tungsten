@@ -122,14 +122,14 @@ void InfiniteSphere::makeSamplable(const TraceableScene &scene, uint32 /*threadI
 
 bool InfiniteSphere::samplePosition(PathSampleGenerator &sampler, PositionSample &sample) const
 {
-    float faceXi = sampler.next1D(EmitterSample);
-    Vec2f xi = sampler.next2D(EmitterSample);
+    float faceXi = sampler.next1D();
+    Vec2f xi = sampler.next2D();
 
     if (_emission->isConstant()) {
-        sample.Ng = -SampleWarp::uniformSphere(sampler.next2D(EmitterSample));
+        sample.Ng = -SampleWarp::uniformSphere(sampler.next2D());
         sample.uv = directionToUV(-sample.Ng);
     } else {
-        sample.uv = _emission->sample(MAP_SPHERICAL, sampler.next2D(EmitterSample));
+        sample.uv = _emission->sample(MAP_SPHERICAL, sampler.next2D());
         float sinTheta;
         sample.Ng = -uvToDirection(sample.uv, sinTheta);
     }
@@ -161,12 +161,12 @@ bool InfiniteSphere::sampleDirection(PathSampleGenerator &/*sampler*/, const Pos
 bool InfiniteSphere::sampleDirect(uint32 /*threadIndex*/, const Vec3f &/*p*/, PathSampleGenerator &sampler, LightSample &sample) const
 {
     if (_emission->isConstant()) {
-        sample.d = SampleWarp::uniformSphere(sampler.next2D(EmitterSample));
+        sample.d = SampleWarp::uniformSphere(sampler.next2D());
         sample.dist = Ray::infinity();
         sample.pdf = INV_FOUR_PI;
         return true;
     } else {
-        Vec2f uv = _emission->sample(MAP_SPHERICAL, sampler.next2D(EmitterSample));
+        Vec2f uv = _emission->sample(MAP_SPHERICAL, sampler.next2D());
         float sinTheta;
         sample.d = uvToDirection(uv, sinTheta);
         sample.pdf = INV_PI*INV_TWO_PI*_emission->pdf(MAP_SPHERICAL, uv)/sinTheta;
