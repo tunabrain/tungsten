@@ -102,29 +102,32 @@ float VdbGrid::density(Vec3f p) const
     return gridAt(_grid, p);
 }
 
-float VdbGrid::densityIntegral(PathSampleGenerator &/*sampler*/, Vec3f p, Vec3f w, float t0, float t1) const
+float VdbGrid::densityIntegral(PathSampleGenerator &sampler, Vec3f p, Vec3f w, float t0, float t1) const
 {
     float ta = t0;
     float fa = gridAt(_grid, p);
     float integral = 0.0f;
+    float dT = sampler.next1D()*_stepSize;
     do {
-        float tb = min(ta + _stepSize, t1);
+        float tb = min(ta + dT, t1);
         float fb = gridAt(_grid, p + w*tb);
         integral += (fa + fb)*0.5f*(tb - ta);
         ta = tb;
         fa = fb;
+        dT = _stepSize;
     } while (ta < t1);
     return integral;
 }
 
-Vec2f VdbGrid::inverseOpticalDepth(PathSampleGenerator &/*sampler*/, Vec3f p, Vec3f w, float t0, float t1,
+Vec2f VdbGrid::inverseOpticalDepth(PathSampleGenerator &sampler, Vec3f p, Vec3f w, float t0, float t1,
         float sigmaT, float xi) const
 {
     float ta = t0;
     float fa = gridAt(_grid, p)*sigmaT;
     float integral = 0.0f;
+    float dT = sampler.next1D()*_stepSize;
     do {
-        float tb = min(ta + _stepSize, t1);
+        float tb = min(ta + dT, t1);
         float fb = gridAt(_grid, p + w*tb)*sigmaT;
         float delta = (fa + fb)*0.5f*(tb - ta);
         if (integral + delta >= xi) {
@@ -138,6 +141,7 @@ Vec2f VdbGrid::inverseOpticalDepth(PathSampleGenerator &/*sampler*/, Vec3f p, Ve
         integral += delta;
         ta = tb;
         fa = fb;
+        dT = _stepSize;
     } while (ta < t1);
     return Vec2f(t1, fa);
 }
