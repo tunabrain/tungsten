@@ -13,16 +13,37 @@ namespace Tungsten {
 
 class VdbGrid : public Grid
 {
+    enum class IntegrationMethod
+    {
+        ExactNearest,
+        Raymarching,
+    };
+    enum class SampleMethod
+    {
+        ExactNearest,
+        Raymarching,
+    };
+
     PathPtr _path;
     std::string _gridName;
+    std::string _integrationString;
+    std::string _sampleString;
     float _stepSize;
     Mat4f _configTransform;
     Mat4f _invConfigTransform;
 
+    IntegrationMethod _integrationMethod;
+    SampleMethod _sampleMethod;
     openvdb::FloatGrid::Ptr _grid;
     Mat4f _transform;
     Mat4f _invTransform;
     Box3f _bounds;
+
+    static std::string sampleMethodToString(SampleMethod method);
+    static std::string integrationMethodToString(IntegrationMethod method);
+
+    static SampleMethod stringToSampleMethod(const std::string &name);
+    static IntegrationMethod stringToIntegrationMethod(const std::string &name);
 
 public:
     VdbGrid();
