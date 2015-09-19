@@ -116,14 +116,13 @@ bool VoxelMedium::sampleDistance(PathSampleGenerator &sampler, const Ray &ray,
         float xi = 1.0f - sampler.next1D();
         float logXi = -std::log(xi);
 
-        Vec2f tAndDensity = _grid->inverseOpticalDepth(sampler, p, w, t0, t1, sigmaTc, logXi);
+        Vec2f tAndDensity = _grid->inverseOpticalDepth(sampler, p, w, t0, t1, sigmaTc/wPrime, logXi);
         sample.t = tAndDensity.x();
         sample.exited = (sample.t >= t1);
         sample.weight = std::exp(-_sigmaT*(logXi/sigmaTc));
         if (sample.exited) {
             sample.pdf = sample.weight.avg();
         } else {
-            //float rho = _grid->density(p + w*sample.t);
             float rho = tAndDensity.y();
             sample.pdf = (rho*_sigmaT*sample.weight).avg();
             sample.weight *= rho*_sigmaS;
