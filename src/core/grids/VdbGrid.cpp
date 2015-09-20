@@ -19,18 +19,20 @@ namespace Tungsten {
 std::string VdbGrid::sampleMethodToString(SampleMethod method)
 {
     switch (method) {
-    case SampleMethod::Raymarching:  return "raymarching";
     default:
     case SampleMethod::ExactNearest: return "exact_nearest";
+    case SampleMethod::ExactLinear:  return "exact_linear";
+    case SampleMethod::Raymarching:  return "raymarching";
     }
 }
 
 std::string VdbGrid::integrationMethodToString(IntegrationMethod method)
 {
     switch (method) {
-    case IntegrationMethod::Raymarching:  return "raymarching";
     default:
     case IntegrationMethod::ExactNearest: return "exact_nearest";
+    case IntegrationMethod::ExactLinear:  return "exact_linear";
+    case IntegrationMethod::Raymarching:  return "raymarching";
     }
 }
 
@@ -38,6 +40,8 @@ VdbGrid::SampleMethod VdbGrid::stringToSampleMethod(const std::string &name)
 {
     if (name == "exact_nearest")
         return SampleMethod::ExactNearest;
+    else if (name == "exact_linear")
+        return SampleMethod::ExactLinear;
     else if (name == "raymarching")
         return SampleMethod::Raymarching;
     FAIL("Invalid sample method: '%s'", name);
@@ -47,6 +51,8 @@ VdbGrid::IntegrationMethod VdbGrid::stringToIntegrationMethod(const std::string 
 {
     if (name == "exact_nearest")
         return IntegrationMethod::ExactNearest;
+    else if (name == "exact_linear")
+        return IntegrationMethod::ExactLinear;
     else if (name == "raymarching")
         return IntegrationMethod::Raymarching;
     FAIL("Invalid integration method: '%s'", name);
@@ -112,7 +118,7 @@ void VdbGrid::loadResources()
 
     openvdb::CoordBBox bbox = _grid->evalActiveVoxelBoundingBox();
     Vec3i minP = Vec3i(bbox.min().x(), bbox.min().y(), bbox.min().z());
-    Vec3i maxP = Vec3i(bbox.max().x(), bbox.max().y(), bbox.max().z());
+    Vec3i maxP = Vec3i(bbox.max().x(), bbox.max().y(), bbox.max().z()) + 1;
     Vec3f diag = Vec3f(maxP - minP);
     float scale = 1.0f/diag.max();
     diag *= scale;
@@ -142,36 +148,51 @@ Box3f VdbGrid::bounds() const
     return _bounds;
 }
 
-static inline float gridAt(const openvdb::FloatGrid::Ptr &grid, Vec3f p)
+template<typename TreeT>
+static inline float gridAt(TreeT &acc, Vec3f p)
 {
-    return openvdb::tools::BoxSampler::sample(grid->tree(), openvdb::Vec3R(p.x(), p.y(), p.z()));
+    return openvdb::tools::BoxSampler::sample(acc, openvdb::Vec3R(p.x(), p.y(), p.z()));
 }
 
 float VdbGrid::density(Vec3f p) const
 {
-    return gridAt(_grid, p);
+    return gridAt(_grid->tree(), p);
 }
 
 float VdbGrid::densityIntegral(PathSampleGenerator &sampler, Vec3f p, Vec3f w, float t0, float t1) const
 {
+    auto accessor = _grid->getConstAccessor();
+
     if (_integrationMethod == IntegrationMethod::ExactNearest) {
         VdbRaymarcher<openvdb::FloatGrid::TreeType, 3> dda;
-        auto accessor = _grid->getConstAccessor();
 
-        float result = 0.0f;
+        float integral = 0.0f;
         dda.march(DdaRay(p + 0.5f, w), t0, t1, accessor, [&](openvdb::Coord voxel, float ta, float tb) {
-            result += accessor.getValue(voxel)*(tb - ta);
+            integral += accessor.getValue(voxel)*(tb - ta);
             return false;
         });
-        return result;
+        return integral;
+    } else if (_integrationMethod == IntegrationMethod::ExactLinear) {
+        VdbRaymarcher<openvdb::FloatGrid::TreeType, 3> dda;
+
+        float integral = 0.0f;
+//        float fa = gridAt(accessor, p + w*t0);
+        dda.march(DdaRay(p, w), t0, t1, accessor, [&](openvdb::Coord /*voxel*/, float ta, float tb) {
+            float fa = gridAt(accessor, p + w*ta);
+            float fb = gridAt(accessor, p + w*tb);
+            integral += (fa + fb)*0.5f*(tb - ta);
+//            fa = fb;
+            return false;
+        });
+        return integral;
     } else {
         float ta = t0;
-        float fa = gridAt(_grid, p);
+        float fa = gridAt(accessor, p + w*t0);
         float integral = 0.0f;
         float dT = sampler.next1D()*_stepSize;
         do {
             float tb = min(ta + dT, t1);
-            float fb = gridAt(_grid, p + w*tb);
+            float fb = gridAt(accessor, p + w*tb);
             integral += (fa + fb)*0.5f*(tb - ta);
             ta = tb;
             fa = fb;
@@ -184,35 +205,59 @@ float VdbGrid::densityIntegral(PathSampleGenerator &sampler, Vec3f p, Vec3f w, f
 Vec2f VdbGrid::inverseOpticalDepth(PathSampleGenerator &sampler, Vec3f p, Vec3f w, float t0, float t1,
         float sigmaT, float xi) const
 {
+    auto accessor = _grid->getConstAccessor();
+
     if (_sampleMethod == SampleMethod::ExactNearest) {
         VdbRaymarcher<openvdb::FloatGrid::TreeType, 3> dda;
-        auto accessor = _grid->getConstAccessor();
 
-        float opticalDepth = 0.0f;
+        float integral = 0.0f;
         Vec2f result(t1, 0.0f);
         dda.march(DdaRay(p + 0.5f, w), t0, t1, accessor, [&](openvdb::Coord voxel, float ta, float tb) {
             float v = accessor.getValue(voxel);
             float delta = v*sigmaT*(tb - ta);
-            if (opticalDepth + delta >= xi) {
-                result = Vec2f(ta + (tb - ta)*(xi - opticalDepth)/delta, v);
+            if (integral + delta >= xi) {
+                result = Vec2f(ta + (tb - ta)*(xi - integral)/delta, v);
                 return true;
             }
-            opticalDepth += delta;
+            integral += delta;
+            return false;
+        });
+        return result;
+    } else if (_sampleMethod == SampleMethod::ExactLinear) {
+        VdbRaymarcher<openvdb::FloatGrid::TreeType, 3> dda;
+
+        float integral = 0.0f;
+        float fa = gridAt(accessor, p + w*t0);
+        Vec2f result(t1, 0.0f);
+        dda.march(DdaRay(p + 0.5f, w), t0, t1, accessor, [&](openvdb::Coord /*voxel*/, float ta, float tb) {
+            float fb = gridAt(accessor, p + tb*w);
+            float delta = (fb + fa)*0.5f*sigmaT*(tb - ta);
+            if (integral + delta >= xi) {
+                float a = (fb - fa)*sigmaT;
+                float b = fa*sigmaT;
+                float c = (integral - xi)/(tb - ta);
+                float mantissa = max(b*b - 2.0f*a*c, 0.0f);
+                float x1 = (-b + std::sqrt(mantissa))/a;
+                result = Vec2f(ta + (tb - ta)*x1, fa + (fb - fa)*x1);
+                return true;
+            }
+            integral += delta;
+            fa = fb;
             return false;
         });
         return result;
     } else {
         float ta = t0;
-        float fa = gridAt(_grid, p)*sigmaT;
+        float fa = gridAt(accessor, p + w*t0);
         float integral = 0.0f;
         float dT = sampler.next1D()*_stepSize;
         do {
             float tb = min(ta + dT, t1);
-            float fb = gridAt(_grid, p + w*tb)*sigmaT;
-            float delta = (fa + fb)*0.5f*(tb - ta);
+            float fb = gridAt(accessor, p + w*tb);
+            float delta = (fa + fb)*sigmaT*0.5f*(tb - ta);
             if (integral + delta >= xi) {
-                float a = (fb - fa);
-                float b = fa;
+                float a = (fb - fa)*sigmaT;
+                float b = fa*sigmaT;
                 float c = (integral - xi)/(tb - ta);
                 float mantissa = max(b*b - 2.0f*a*c, 0.0f);
                 float x1 = (-b + std::sqrt(mantissa))/a;

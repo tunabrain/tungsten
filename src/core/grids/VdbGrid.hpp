@@ -16,11 +16,13 @@ class VdbGrid : public Grid
     enum class IntegrationMethod
     {
         ExactNearest,
+        ExactLinear,
         Raymarching,
     };
     enum class SampleMethod
     {
         ExactNearest,
+        ExactLinear,
         Raymarching,
     };
 
