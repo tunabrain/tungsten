@@ -130,6 +130,18 @@ void VdbGrid::loadResources()
     _invTransform = Mat4f::scale(Vec3f(1.0f/scale))*Mat4f::translate(center);
     _bounds = Box3f(Vec3f(minP), Vec3f(maxP));
 
+    if (_sampleMethod == SampleMethod::ExactLinear || _integrationMethod == IntegrationMethod::ExactLinear) {
+        auto accessor = _grid->getAccessor();
+        for (openvdb::FloatGrid::ValueOnCIter iter = _grid->cbeginValueOn(); iter.test(); ++iter) {
+            if (*iter != 0.0f)
+                for (int z = -1; z <= 1; ++z)
+                    for (int y = -1; y <= 1; ++y)
+                        for (int x = -1; x <= 1; ++x)
+                            accessor.setValueOn(iter.getCoord() + openvdb::Coord(x, y, z));
+            _bounds = Box3f(Vec3f(minP - 1), Vec3f(maxP + 1));
+        }
+    }
+
     _invConfigTransform = _configTransform.invert();
 }
 
