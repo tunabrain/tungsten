@@ -93,13 +93,14 @@ bool Cube::intersect(Ray &ray, IntersectionTemporary &data) const
     }
 
     if (ttMin <= ttMax) {
-        data.primitive = this;
-        if (ttMin == ray.nearT()) {
-            ray.setFarT(ttMax);
-            data.as<CubeIntersection>()->backSide = true;
-        } else {
+        if (ttMin > ray.nearT() && ttMin < ray.farT()) {
+            data.primitive = this;
             ray.setFarT(ttMin);
             data.as<CubeIntersection>()->backSide = false;
+        } else if (ttMax > ray.nearT() && ttMax < ray.farT()) {
+            data.primitive = this;
+            ray.setFarT(ttMax);
+            data.as<CubeIntersection>()->backSide = true;
         }
         return true;
     }
