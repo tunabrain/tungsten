@@ -171,7 +171,7 @@ float VdbGrid::density(Vec3f p) const
     return gridAt(_grid->tree(), p);
 }
 
-float VdbGrid::densityIntegral(PathSampleGenerator &sampler, Vec3f p, Vec3f w, float t0, float t1) const
+Vec3f VdbGrid::transmittance(PathSampleGenerator &sampler, Vec3f p, Vec3f w, float t0, float t1, Vec3f sigmaT) const
 {
     auto accessor = _grid->getConstAccessor();
 
@@ -183,7 +183,7 @@ float VdbGrid::densityIntegral(PathSampleGenerator &sampler, Vec3f p, Vec3f w, f
             integral += accessor.getValue(voxel)*(tb - ta);
             return false;
         });
-        return integral;
+        return std::exp(-integral*sigmaT);
     } else if (_integrationMethod == IntegrationMethod::ExactLinear) {
         VdbRaymarcher<openvdb::FloatGrid::TreeType, 3> dda;
 
@@ -196,7 +196,7 @@ float VdbGrid::densityIntegral(PathSampleGenerator &sampler, Vec3f p, Vec3f w, f
 //            fa = fb;
             return false;
         });
-        return integral;
+        return std::exp(-integral*sigmaT);
     } else {
         float ta = t0;
         float fa = gridAt(accessor, p + w*t0);
@@ -210,7 +210,7 @@ float VdbGrid::densityIntegral(PathSampleGenerator &sampler, Vec3f p, Vec3f w, f
             fa = fb;
             dT = _stepSize;
         } while (ta < t1);
-        return integral;
+        return std::exp(-integral*sigmaT);
     }
 }
 
