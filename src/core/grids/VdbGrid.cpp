@@ -224,7 +224,7 @@ Vec2f VdbGrid::inverseOpticalDepth(PathSampleGenerator &sampler, Vec3f p, Vec3f 
 
         float integral = 0.0f;
         Vec2f result(t1, 0.0f);
-        dda.march(DdaRay(p + 0.5f, w), t0, t1, accessor, [&](openvdb::Coord voxel, float ta, float tb) {
+        bool exited = !dda.march(DdaRay(p + 0.5f, w), t0, t1, accessor, [&](openvdb::Coord voxel, float ta, float tb) {
             float v = accessor.getValue(voxel);
             float delta = v*sigmaT*(tb - ta);
             if (integral + delta >= xi) {
@@ -234,14 +234,14 @@ Vec2f VdbGrid::inverseOpticalDepth(PathSampleGenerator &sampler, Vec3f p, Vec3f 
             integral += delta;
             return false;
         });
-        return result;
+        return exited ? Vec2f(t1, integral) : result;
     } else if (_sampleMethod == SampleMethod::ExactLinear) {
         VdbRaymarcher<openvdb::FloatGrid::TreeType, 3> dda;
 
         float integral = 0.0f;
         float fa = gridAt(accessor, p + w*t0);
         Vec2f result(t1, 0.0f);
-        dda.march(DdaRay(p + 0.5f, w), t0, t1, accessor, [&](openvdb::Coord /*voxel*/, float ta, float tb) {
+        bool exited = !dda.march(DdaRay(p + 0.5f, w), t0, t1, accessor, [&](openvdb::Coord /*voxel*/, float ta, float tb) {
             float fb = gridAt(accessor, p + tb*w);
             float delta = (fb + fa)*0.5f*sigmaT*(tb - ta);
             if (integral + delta >= xi) {
@@ -257,7 +257,7 @@ Vec2f VdbGrid::inverseOpticalDepth(PathSampleGenerator &sampler, Vec3f p, Vec3f 
             fa = fb;
             return false;
         });
-        return result;
+        return exited ? Vec2f(t1, integral) : result;
     } else {
         float ta = t0;
         float fa = gridAt(accessor, p + w*t0);
@@ -280,7 +280,7 @@ Vec2f VdbGrid::inverseOpticalDepth(PathSampleGenerator &sampler, Vec3f p, Vec3f 
             fa = fb;
             dT = _stepSize;
         } while (ta < t1);
-        return Vec2f(t1, fa);
+        return Vec2f(t1, integral);
     }
 }
 
