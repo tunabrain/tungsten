@@ -18,6 +18,7 @@ class VdbGrid : public Grid
         ExactNearest,
         ExactLinear,
         Raymarching,
+        ResidualRatio,
     };
     enum class SampleMethod
     {
@@ -26,17 +27,22 @@ class VdbGrid : public Grid
         Raymarching,
     };
 
+    typedef openvdb::tree::Tree4<openvdb::Vec2s, 5, 4, 3>::Type Vec2fTree;
+    typedef openvdb::Grid<Vec2fTree> Vec2fGrid;
+
     PathPtr _path;
     std::string _gridName;
     std::string _integrationString;
     std::string _sampleString;
     float _stepSize;
+    int _supergridSubsample;
     Mat4f _configTransform;
     Mat4f _invConfigTransform;
 
     IntegrationMethod _integrationMethod;
     SampleMethod _sampleMethod;
     openvdb::FloatGrid::Ptr _grid;
+    Vec2fGrid::Ptr _superGrid;
     Mat4f _transform;
     Mat4f _invTransform;
     Box3f _bounds;
@@ -46,6 +52,8 @@ class VdbGrid : public Grid
 
     static SampleMethod stringToSampleMethod(const std::string &name);
     static IntegrationMethod stringToIntegrationMethod(const std::string &name);
+
+    void generateSuperGrid();
 
 public:
     VdbGrid();

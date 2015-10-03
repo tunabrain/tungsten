@@ -6,6 +6,8 @@
 
 #include "sampling/PathSampleGenerator.hpp"
 
+#include "math/BitManip.hpp"
+
 #include "io/JsonUtils.hpp"
 #include "io/Scene.hpp"
 
@@ -30,9 +32,10 @@ std::string VdbGrid::integrationMethodToString(IntegrationMethod method)
 {
     switch (method) {
     default:
-    case IntegrationMethod::ExactNearest: return "exact_nearest";
-    case IntegrationMethod::ExactLinear:  return "exact_linear";
-    case IntegrationMethod::Raymarching:  return "raymarching";
+    case IntegrationMethod::ExactNearest:  return "exact_nearest";
+    case IntegrationMethod::ExactLinear:   return "exact_linear";
+    case IntegrationMethod::Raymarching:   return "raymarching";
+    case IntegrationMethod::ResidualRatio: return "residual_ratio";
     }
 }
 
@@ -55,6 +58,8 @@ VdbGrid::IntegrationMethod VdbGrid::stringToIntegrationMethod(const std::string 
         return IntegrationMethod::ExactLinear;
     else if (name == "raymarching")
         return IntegrationMethod::Raymarching;
+    else if (name == "residual_ratio")
+        return IntegrationMethod::ResidualRatio;
     FAIL("Invalid integration method: '%s'", name);
 }
 
@@ -62,10 +67,65 @@ VdbGrid::VdbGrid()
 : _gridName("density"),
   _integrationString("exact_nearest"),
   _sampleString("exact_nearest"),
-  _stepSize(5.0f)
+  _stepSize(5.0f),
+  _supergridSubsample(10)
 {
     _integrationMethod = stringToIntegrationMethod(_integrationString);
     _sampleMethod = stringToSampleMethod(_sampleString);
+}
+
+inline int roundDown(int a, int b)
+{
+    int c = a >> 31;
+    return c ^ ((c ^ a)/b);
+}
+
+void VdbGrid::generateSuperGrid()
+{
+    const int offset = _supergridSubsample/2;
+    auto divideCoord = [&](const openvdb::Coord &a)
+    {
+        return openvdb::Coord(
+            roundDown(a.x() + offset, _supergridSubsample),
+            roundDown(a.y() + offset, _supergridSubsample),
+            roundDown(a.z() + offset, _supergridSubsample));
+    };
+
+    _superGrid = Vec2fGrid::create(openvdb::Vec2s(0.0f));
+    auto accessor = _superGrid->getAccessor();
+
+    Vec2fGrid::Ptr minMaxGrid = Vec2fGrid::create(openvdb::Vec2s(1e30f, 0.0f));
+    auto minMaxAccessor = minMaxGrid->getAccessor();
+
+    for (openvdb::FloatGrid::ValueOnCIter iter = _grid->cbeginValueOn(); iter.test(); ++iter) {
+        openvdb::Coord coord = divideCoord(iter.getCoord());
+        float d = *iter;
+        accessor.setValue(coord, openvdb::Vec2s(accessor.getValue(coord).x() + d, 0.0f));
+
+        openvdb::Vec2s minMax = minMaxAccessor.getValue(coord);
+        minMaxAccessor.setValue(coord, openvdb::Vec2s(min(minMax.x(), d), max(minMax.y(), d)));
+    }
+
+    float normalize = 1.0f/cube(_supergridSubsample);
+    const float Gamma = 2.0f;
+    const float D = std::sqrt(3.0f)*_supergridSubsample;
+    for (Vec2fGrid::ValueOnIter iter = _superGrid->beginValueOn(); iter.test(); ++iter) {
+        openvdb::Vec2s minMax = minMaxAccessor.getValue(iter.getCoord());
+
+        float muMin = minMax.x();
+        float muMax = minMax.y();
+        float muAvg = iter->x()*normalize;
+        float muR = muMax - muMin;
+        float muC = clamp(muMin + muR*(std::pow(Gamma, 1.0f/(D*muR)) - 1.0f), muMin, muAvg);
+        iter.setValue(openvdb::Vec2s(muC, 0.0f));
+    }
+
+    for (openvdb::FloatGrid::ValueOnCIter iter = _grid->cbeginValueOn(); iter.test(); ++iter) {
+        openvdb::Coord coord = divideCoord(iter.getCoord());
+        openvdb::Vec2s v = accessor.getValue(coord);
+        float residual = max(v.y(), std::abs(*iter - v.x()));
+        accessor.setValue(coord, openvdb::Vec2s(v.x(), residual));
+    }
 }
 
 void VdbGrid::fromJson(const rapidjson::Value &v, const Scene &scene)
@@ -75,6 +135,7 @@ void VdbGrid::fromJson(const rapidjson::Value &v, const Scene &scene)
     JsonUtils::fromJson(v, "integration_method", _integrationString);
     JsonUtils::fromJson(v, "sampling_method", _sampleString);
     JsonUtils::fromJson(v, "step_size", _stepSize);
+    JsonUtils::fromJson(v, "supergrid_subsample", _supergridSubsample);
     JsonUtils::fromJson(v, "transform", _configTransform);
 
     _integrationMethod = stringToIntegrationMethod(_integrationString);
@@ -90,6 +151,8 @@ rapidjson::Value VdbGrid::toJson(Allocator &allocator) const
     v.AddMember("grid_name", _gridName.c_str(), allocator);
     v.AddMember("integration_method", _integrationString.c_str(), allocator);
     v.AddMember("sampling_method", _sampleString.c_str(), allocator);
+    if (_integrationMethod == IntegrationMethod::ResidualRatio)
+        v.AddMember("supergrid_subsample", _supergridSubsample, allocator);
     if (_integrationMethod == IntegrationMethod::Raymarching || _sampleMethod == SampleMethod::Raymarching)
         v.AddMember("step_size", _stepSize, allocator);
     v.AddMember("transform", JsonUtils::toJsonValue(_configTransform, allocator), allocator);
@@ -125,6 +188,9 @@ void VdbGrid::loadResources()
     Vec3f center = Vec3f(minP)*scale + Vec3f(diag.x(), 0.0f, diag.z())*0.5f;
 
     std::cout << minP << " -> " << maxP << std::endl;
+
+    if (_integrationMethod == IntegrationMethod::ResidualRatio)
+        generateSuperGrid();
 
     _transform = Mat4f::translate(-center)*Mat4f::scale(Vec3f(scale));
     _invTransform = Mat4f::scale(Vec3f(1.0f/scale))*Mat4f::translate(center);
@@ -196,6 +262,39 @@ Vec3f VdbGrid::transmittance(PathSampleGenerator &sampler, Vec3f p, Vec3f w, flo
             return false;
         });
         return std::exp(-integral*sigmaT);
+    } else if (_integrationMethod == IntegrationMethod::ResidualRatio) {
+        VdbRaymarcher<Vec2fGrid::TreeType, 3> dda;
+
+        float scale = _supergridSubsample;
+        float invScale = 1.0f/scale;
+        sigmaT *= scale;
+
+        float sigmaTc = sigmaT.max();
+
+        auto superAccessor =  _superGrid->getConstAccessor();
+
+        UniformSampler &generator = sampler.uniformGenerator();
+
+        float controlIntegral = 0.0f;
+        Vec3f Tr(1.0f);
+        dda.march(DdaRay(p*invScale + 0.5f, w), t0*invScale, t1*invScale, superAccessor, [&](openvdb::Coord voxel, float ta, float tb) {
+            openvdb::Vec2s v = superAccessor.getValue(voxel);
+            float muC = v.x();
+            float muR = v.y();
+            muR *= sigmaTc;
+
+            controlIntegral += muC*(tb - ta);
+
+            while (true) {
+                ta -= BitManip::normalizedLog(generator.nextI())/muR;
+                if (ta >= tb)
+                    break;
+                Tr *= 1.0f - sigmaT*((gridAt(accessor, p + w*ta*scale) - muC)/muR);
+            }
+
+            return false;
+        });
+        return std::exp(-controlIntegral*sigmaT)*Tr;
     } else {
         float ta = t0;
         float fa = gridAt(accessor, p + w*t0);
