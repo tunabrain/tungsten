@@ -3,12 +3,22 @@
 
 #include "IntTypes.hpp"
 
+#include <memory>
 #include <string>
 
 namespace Tungsten {
 
 class BitManip
 {
+    static struct Initializer
+    {
+        Initializer();
+    } initializer;
+
+    static CONSTEXPR uint32 LogMantissaBits = 16;
+
+    static std::unique_ptr<float[]> _logLookup;
+
 public:
     // Note: Could replace this with memcpy, which gcc optimizes to the same assembly
     // as the code below. I'm not sure how other compiler treat it though, since it's
@@ -37,6 +47,32 @@ public:
     static inline float normalizedUint(uint32 i)
     {
         return uintBitsToFloat((i >> 9u) | 0x3F800000u) - 1.0f;
+    }
+
+#if defined(__GNUC__)
+    static inline uint32 msb(uint32 x)
+    {
+        return 32 - __builtin_clz(x);
+    }
+#else
+    static inline uint32 msb(uint32 x)
+    {
+        static const uint32 table[] = {0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4};
+
+        uint32 result = 0;
+        if (x & 0xFFFF0000U) { result += 16; x >>= 16; }
+        if (x & 0x0000FF00U) { result +=  8; x >>=  8; }
+        if (x & 0x000000F0U) { result +=  4; x >>=  4; }
+        return result + table[x];
+    }
+#endif
+
+    // Computes std::log(x/UINT_MAX) to within 1e-5 accuracy, but 16x faster
+    static inline float normalizedLog(uint32 x)
+    {
+        uint32 ai = msb(x);
+        uint32 res = ai < LogMantissaBits ? (x << (LogMantissaBits - ai)) : (x >> (ai - LogMantissaBits));
+        return (_logLookup[res] + int(ai - LogMantissaBits - 32))*0.693147181f;
     }
 
     // std::hash is not necessarily portable across compilers.
