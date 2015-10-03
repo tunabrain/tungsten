@@ -188,12 +188,11 @@ Vec3f VdbGrid::transmittance(PathSampleGenerator &sampler, Vec3f p, Vec3f w, flo
         VdbRaymarcher<openvdb::FloatGrid::TreeType, 3> dda;
 
         float integral = 0.0f;
-//        float fa = gridAt(accessor, p + w*t0);
+        float fa = gridAt(accessor, p + w*t0);
         dda.march(DdaRay(p, w), t0, t1, accessor, [&](openvdb::Coord /*voxel*/, float ta, float tb) {
-            float fa = gridAt(accessor, p + w*ta);
             float fb = gridAt(accessor, p + w*tb);
             integral += (fa + fb)*0.5f*(tb - ta);
-//            fa = fb;
+            fa = fb;
             return false;
         });
         return std::exp(-integral*sigmaT);
