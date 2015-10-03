@@ -56,6 +56,11 @@ public:
     {
         return _sampler;
     }
+
+    virtual UniformSampler &uniformGenerator() override final
+    {
+        return _sampler;
+    }
 };
 
 }

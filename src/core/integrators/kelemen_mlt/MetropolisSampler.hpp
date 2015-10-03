@@ -166,6 +166,11 @@ public:
         float b = next1D();
         return Vec2f(a, b);
     }
+
+    virtual UniformSampler &uniformGenerator() override final
+    {
+        return *_helperGenerator;
+    }
 };
 
 }

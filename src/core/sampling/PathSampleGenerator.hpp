@@ -1,6 +1,8 @@
 #ifndef PATHSAMPLEGENERATOR_HPP_
 #define PATHSAMPLEGENERATOR_HPP_
 
+#include "UniformSampler.hpp"
+
 #include "math/Vec.hpp"
 
 #include "io/FileUtils.hpp"
@@ -21,6 +23,8 @@ public:
     virtual int nextDiscrete(int numChoices) = 0;
     virtual float next1D() = 0;
     virtual Vec2f next2D() = 0;
+
+    virtual UniformSampler &uniformGenerator() = 0;
 };
 
 }
