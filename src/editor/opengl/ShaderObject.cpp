@@ -37,7 +37,7 @@ ShaderObject::ShaderObject(ShaderType type, const Path &path)
 ShaderObject::~ShaderObject()
 {
     if (_glName)
-        glDeleteShader(_glName);
+        glf->glDeleteShader(_glName);
 }
 
 ShaderObject::ShaderObject(ShaderObject &&o)
@@ -75,11 +75,11 @@ void ShaderObject::compile()
         sources.push_back(s.source.c_str());
 
     if (_glName)
-        glDeleteShader(_glName);
+        glf->glDeleteShader(_glName);
 
-    _glName = glCreateShader(shaderTypeToGl(_type));
-    glShaderSource(_glName, _sources.size(), &sources[0], nullptr);
-    glCompileShader(_glName);
+    _glName = glf->glCreateShader(shaderTypeToGl(_type));
+    glf->glShaderSource(_glName, _sources.size(), &sources[0], nullptr);
+    glf->glCompileShader(_glName);
 
     check();
 }
@@ -87,21 +87,21 @@ void ShaderObject::compile()
 void ShaderObject::check()
 {
     int status, length;
-    glGetShaderiv(_glName, GL_COMPILE_STATUS, &status);
-    glGetShaderiv(_glName, GL_INFO_LOG_LENGTH, &length);
+    glf->glGetShaderiv(_glName, GL_COMPILE_STATUS, &status);
+    glf->glGetShaderiv(_glName, GL_INFO_LOG_LENGTH, &length);
 
     std::unique_ptr<GLchar[]> log;
     if (length > 1) {
         log.reset(new GLchar[length]);
-        glGetShaderInfoLog(_glName, length, nullptr, log.get());
+        glf->glGetShaderInfoLog(_glName, length, nullptr, log.get());
     }
 
     if (status != GL_TRUE) {
         int srcLength;
-        glGetShaderiv(_glName, GL_SHADER_SOURCE_LENGTH, &srcLength);
+        glf->glGetShaderiv(_glName, GL_SHADER_SOURCE_LENGTH, &srcLength);
 
         std::unique_ptr<GLchar[]> src(new GLchar[srcLength]);
-        glGetShaderSource(_glName, srcLength, nullptr, src.get());
+        glf->glGetShaderSource(_glName, srcLength, nullptr, src.get());
 
         std::istringstream stream(src.get());
         std::string line;

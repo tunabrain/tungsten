@@ -5,7 +5,7 @@
 
 #include "io/FileUtils.hpp"
 
-#include <QtGui>
+#include <QtWidgets>
 
 namespace Tungsten {
 

@@ -1,7 +1,7 @@
 #include "BoolProperty.hpp"
 #include "PropertyForm.hpp"
 
-#include <QtGui>
+#include <QtWidgets>
 
 namespace Tungsten {
 

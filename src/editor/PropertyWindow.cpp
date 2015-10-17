@@ -8,7 +8,7 @@
 
 #include "io/Scene.hpp"
 
-#include <QtGui>
+#include <QtWidgets>
 
 namespace Tungsten {
 
@@ -97,12 +97,12 @@ void PropertyWindow::rebuildTabs()
 
     PrimitiveProperties *primProps = new PrimitiveProperties(_propertyTabs, _scene, _selection);
     connect(primProps, SIGNAL(primitiveNameChange(Primitive *)), this, SLOT(changePrimitiveName(Primitive *)));
-    connect(primProps, SIGNAL(triggerRedraw()), _parent.previewWindow(), SLOT(updateGL()));
+    connect(primProps, SIGNAL(triggerRedraw()), _parent.previewWindow(), SLOT(update()));
     _propertyTabs->addTab(primProps, "Primitive");
 
     VerticalScrollArea *scrollArea = new VerticalScrollArea(_propertyTabs);
     BsdfProperties *bsdfProps = new BsdfProperties(scrollArea, _scene, _selection);
-    connect(bsdfProps, SIGNAL(triggerRedraw()), _parent.previewWindow(), SLOT(updateGL()));
+    connect(bsdfProps, SIGNAL(triggerRedraw()), _parent.previewWindow(), SLOT(update()));
 
     scrollArea->setWidget(bsdfProps);
     _propertyTabs->addTab(scrollArea, "Material");

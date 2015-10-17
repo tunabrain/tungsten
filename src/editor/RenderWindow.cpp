@@ -6,7 +6,7 @@
 
 #include <string.h>
 #include <QTimer>
-#include <QtGui>
+#include <QtWidgets>
 
 namespace Tungsten {
 

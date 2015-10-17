@@ -10,7 +10,7 @@
 #include "BoolProperty.hpp"
 #include "IntProperty.hpp"
 
-#include <QtGui>
+#include <QtWidgets>
 
 namespace Tungsten {
 

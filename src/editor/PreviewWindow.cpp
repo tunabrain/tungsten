@@ -1,6 +1,6 @@
 
 #include <QtCore/QtCore>
-#include <QtGui>
+#include <QtWidgets>
 
 #include "PreviewWindow.hpp"
 #include "ShapePainter.hpp"
@@ -52,8 +52,8 @@ void GlMesh::draw(Shader &shader)
     _vertexBuffer.drawIndexed(_indexBuffer, shader, GL_TRIANGLES);
 }
 
-PreviewWindow::PreviewWindow(QWidget *proxyParent, MainWindow *parent, const QGLFormat &format)
-: QGLWidget(new CoreProfileContext(format), proxyParent),
+PreviewWindow::PreviewWindow(QWidget *proxyParent, MainWindow *parent)
+: QOpenGLWidget(parent),
   _parent(*parent),
   _scene(parent->scene()),
   _selection(parent->selection()),
@@ -62,6 +62,7 @@ PreviewWindow::PreviewWindow(QWidget *proxyParent, MainWindow *parent, const QGL
 {
     setMouseTracking(true);
     setFocusPolicy(Qt::ClickFocus);
+    setUpdateBehavior(NoPartialUpdate);
 
     new QShortcut(QKeySequence("A"), this, SLOT(toggleSelectAll()));
     new QShortcut(QKeySequence("G"), this, SLOT(grabGizmo()));
@@ -100,7 +101,7 @@ PreviewWindow::PreviewWindow(QWidget *proxyParent, MainWindow *parent, const QGL
     gizmoMapper->setMapping(zShortcut, 2);
     connect(gizmoMapper, SIGNAL(mapped(int)), &_gizmo, SLOT(fixAxis(int)));
     connect(lShortcut, SIGNAL(activated()), &_gizmo, SLOT(toggleTranslateLocal()));
-    connect(&_gizmo, SIGNAL(redraw()), this, SLOT(updateGL()));
+    connect(&_gizmo, SIGNAL(redraw()), this, SLOT(update()));
     connect(&_gizmo, SIGNAL(transformFinished(Mat4f)), this, SLOT(transformFinished(Mat4f)));
 }
 
@@ -205,11 +206,11 @@ void PreviewWindow::pickPrimitive()
     _fbo->selectAttachments(1);
     _fbo->setReadBuffer(RT_ATTACHMENT0);
 
-    glViewport(0, 0, width(), height());
+    glf->glViewport(0, 0, width(), height());
 
-    glDisable(GL_MULTISAMPLE);
-    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glf->glDisable(GL_MULTISAMPLE);
+    glf->glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    glf->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     _solidShader->bind();
     renderMeshes(*_solidShader, [this](uint32 i) {
@@ -230,10 +231,10 @@ void PreviewWindow::pickPrimitive()
 
     std::unordered_set<uint32> uniquePixels;
     std::vector<uint32> buffer(w*h);
-    glReadPixels(startX, height() - startY - h - 1, w, h, GL_RGBA, GL_UNSIGNED_BYTE, &buffer[0]);
+    glf->glReadPixels(startX, height() - startY - h - 1, w, h, GL_RGBA, GL_UNSIGNED_BYTE, &buffer[0]);
 
     _fbo->unbind();
-    glEnable(GL_MULTISAMPLE);
+    glf->glEnable(GL_MULTISAMPLE);
 
     for (uint32 pixel : buffer) {
         if (pixel != 0xFFFFFFFF) {
@@ -306,7 +307,7 @@ bool PreviewWindow::handleMouse(QMouseEvent *event)
             break;
         }
     }
-    updateGL();
+    update();
 
     if (!caughtMouse) {
         _mousePriorities = DefaultPriorities;
@@ -328,7 +329,7 @@ void PreviewWindow::toggleSelectAll()
     }
 
     updateFixedTransform();
-    updateGL();
+    update();
 
     emit selectionChanged();
 }
@@ -346,7 +347,7 @@ void PreviewWindow::transformFinished(Mat4f delta)
     for (Primitive *e : _selection)
         e->setTransform(delta*e->transform());
     updateFixedTransform();
-    updateGL();
+    update();
 }
 
 void PreviewWindow::recomputeCentroids()
@@ -368,7 +369,7 @@ void PreviewWindow::recomputeCentroids()
 
     _rebuildMeshes = true;
     updateFixedTransform();
-    updateGL();
+    update();
 }
 
 void PreviewWindow::computeHardNormals()
@@ -376,7 +377,7 @@ void PreviewWindow::computeHardNormals()
     for (Primitive *e : _selection)
         if (TriangleMesh *m = dynamic_cast<TriangleMesh *>(e))
             m->setSmoothed(false);
-    updateGL();
+    update();
 }
 
 void PreviewWindow::computeSmoothNormals()
@@ -391,7 +392,7 @@ void PreviewWindow::computeSmoothNormals()
     }
 
     _rebuildMeshes = true;
-    updateGL();
+    update();
 }
 
 void PreviewWindow::freezeTransforms()
@@ -410,7 +411,7 @@ void PreviewWindow::freezeTransforms()
 
     _rebuildMeshes = true;
     updateFixedTransform();
-    updateGL();
+    update();
 }
 
 void PreviewWindow::duplicateSelection()
@@ -429,7 +430,7 @@ void PreviewWindow::duplicateSelection()
 
     rebuildMeshMap();
     updateFixedTransform();
-    updateGL();
+    update();
 
     emit selectionChanged();
     emit primitiveListChanged();
@@ -443,7 +444,7 @@ void PreviewWindow::deleteSelection()
     _selection.clear();
     _gizmo.abortTransform();
     rebuildMeshMap();
-    updateGL();
+    update();
 
     emit selectionChanged();
     emit primitiveListChanged();
@@ -502,7 +503,7 @@ void PreviewWindow::addModel()
 
         rebuildMeshMap();
         updateFixedTransform();
-        updateGL();
+        update();
 
         emit selectionChanged();
         emit primitiveListChanged();
@@ -519,7 +520,8 @@ void PreviewWindow::initializeGL()
 {
     GL::initOpenGL();
 
-    if (!QGLFormat::openGLVersionFlags().testFlag(QGLFormat::OpenGL_Version_3_2)) {
+    if (!(format().version() >= qMakePair(3, 2)) ||
+        !(QOpenGLContext::currentContext()->isValid())) {
         QMessageBox::critical(this,
                 "No OpenGL Support",
                 "This system does not appear to support OpenGL 3.2.\n\n"
@@ -530,11 +532,11 @@ void PreviewWindow::initializeGL()
     }
 
     GLuint vao;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
+    glf->glGenVertexArrays(1, &vao);
+    glf->glBindVertexArray(vao);
 
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LEQUAL);
+    glf->glEnable(GL_DEPTH_TEST);
+    glf->glDepthFunc(GL_LEQUAL);
 
     _fbo.reset(new RenderTarget());
 
@@ -554,7 +556,7 @@ void PreviewWindow::drawBackgroundGradient()
     float w = width();
     float h = height();
 
-    glDepthMask(GL_FALSE);
+    glf->glDepthMask(GL_FALSE);
 
     {
         ShapePainter painter;
@@ -567,7 +569,7 @@ void PreviewWindow::drawBackgroundGradient()
         painter.addVertex(Vec2f(0.0f,    h));
     }
 
-    glDepthMask(GL_TRUE);
+    glf->glDepthMask(GL_TRUE);
 }
 
 void PreviewWindow::drawGrid()
@@ -609,7 +611,7 @@ void PreviewWindow::paintGL()
         rebuildMeshMap();
     }
 
-    glViewport(0, 0, width(), height());
+    glf->glViewport(0, 0, width(), height());
     RenderTarget::resetViewport();
 
     if (!_screenBuffer && width() > 0 && height() > 0) {
@@ -621,11 +623,13 @@ void PreviewWindow::paintGL()
         _depthBuffer->init();
     }
 
-    if (_selectionState.finished && _scene)
+    if (_selectionState.finished && _scene) {
         pickPrimitive();
+        makeCurrent();
+    }
 
-    glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glf->glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+    glf->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     drawBackgroundGradient();
 
@@ -639,7 +643,7 @@ void PreviewWindow::paintGL()
 
     drawGrid();
 
-    glEnable(GL_FRAMEBUFFER_SRGB);
+    glf->glEnable(GL_FRAMEBUFFER_SRGB);
 
     const std::vector<std::shared_ptr<Primitive>> &prims = _scene->primitives();
 
@@ -649,9 +653,9 @@ void PreviewWindow::paintGL()
     _wireframeShader->uniformF("Resolution", width(), height());
     renderMeshes(*_wireframeShader, [&](size_t i) { return _selection.count(prims[i].get()) == 1; });
 
-    glDisable(GL_DEPTH_TEST);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glf->glDisable(GL_DEPTH_TEST);
+    glf->glEnable(GL_BLEND);
+    glf->glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     if (!_selection.empty())
         _gizmo.draw();
@@ -668,10 +672,10 @@ void PreviewWindow::paintGL()
         }
     }
 
-    glDisable(GL_BLEND);
-    glEnable(GL_DEPTH_TEST);
+    glf->glDisable(GL_BLEND);
+    glf->glEnable(GL_DEPTH_TEST);
 
-    glDisable(GL_FRAMEBUFFER_SRGB);
+    glf->glDisable(GL_FRAMEBUFFER_SRGB);
 }
 
 void PreviewWindow::resizeGL(int width, int height)
@@ -682,7 +686,7 @@ void PreviewWindow::resizeGL(int width, int height)
         _screenBuffer.reset();
         _depthBuffer.reset();
     }
-    updateGL();
+    update();
 }
 
 void PreviewWindow::mouseMoveEvent(QMouseEvent *event)
@@ -713,15 +717,15 @@ void PreviewWindow::keyPressEvent(QKeyEvent *event)
         _gizmo.abortTransform();
         break;
     }
-    QGLWidget::keyPressEvent(event);
-    updateGL();
+    QOpenGLWidget::keyPressEvent(event);
+    update();
 }
 
 void PreviewWindow::keyReleaseEvent(QKeyEvent *event)
 {
     if (event->key() == Qt::Key_Control)
         _gizmo.setSnapToGrid(false);
-    QGLWidget::keyPressEvent(event);
+    QOpenGLWidget::keyPressEvent(event);
 }
 
 void PreviewWindow::showContextMenu()
@@ -759,7 +763,7 @@ void PreviewWindow::showContextMenu()
             updateFixedTransform();
 
             _rebuildMeshes = true;
-            updateGL();
+            update();
             return;
         }
     }
@@ -775,13 +779,13 @@ void PreviewWindow::sceneChanged()
         _rebuildMeshes = true;
     }
 
-    updateGL();
+    update();
 }
 
 void PreviewWindow::changeSelection()
 {
     updateFixedTransform();
-    updateGL();
+    update();
 }
 
 }

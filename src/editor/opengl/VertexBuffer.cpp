@@ -84,8 +84,8 @@ void VertexBuffer::enableVertexAttrib(int i)
     const VertexAttrib& a = _attributes[i];
 
     if (a.index >= 0) {
-        glEnableVertexAttribArray(a.index);
-        glVertexAttribPointer(a.index, a.size, a.type, a.norm, _elementSize,
+        glf->glEnableVertexAttribArray(a.index);
+        glf->glVertexAttribPointer(a.index, a.size, a.type, a.norm, _elementSize,
                 reinterpret_cast<const GLvoid *>(a.offset));
     }
 }
@@ -93,7 +93,7 @@ void VertexBuffer::enableVertexAttrib(int i)
 void VertexBuffer::disableVertexAttrib(int i)
 {
     if (_attributes[i].index >= 0)
-        glDisableVertexAttribArray(_attributes[i].index);
+        glf->glDisableVertexAttribArray(_attributes[i].index);
 }
 
 void VertexBuffer::enableVertexAttributes()
@@ -111,7 +111,7 @@ void VertexBuffer::disableVertexAttributes()
 void VertexBuffer::mapAttributes(Shader &shader)
 {
     for (size_t i = 0; i < _attributes.size(); i++)
-        _attributes[i].index = glGetAttribLocation(shader.program(), _attributes[i].name.c_str());
+        _attributes[i].index = glf->glGetAttribLocation(shader.program(), _attributes[i].name.c_str());
 }
 
 void VertexBuffer::draw(Shader &shader, GLenum mode, int count)
@@ -119,7 +119,7 @@ void VertexBuffer::draw(Shader &shader, GLenum mode, int count)
     bind();
     mapAttributes(shader);
     enableVertexAttributes();
-    glDrawArrays(mode, 0, count ? count : _length);
+    glf->glDrawArrays(mode, 0, count ? count : _length);
     disableVertexAttributes();
     unbind();
 }
@@ -130,7 +130,7 @@ void VertexBuffer::drawIndexed(BufferObject &ibo, Shader &shader, GLenum mode, i
     ibo.bind();
     mapAttributes(shader);
     enableVertexAttributes();
-    glDrawElements(mode, count ? count : ibo.size()/sizeof(uint32), GL_UNSIGNED_INT, nullptr);
+    glf->glDrawElements(mode, count ? count : ibo.size()/sizeof(uint32), GL_UNSIGNED_INT, nullptr);
     disableVertexAttributes();
     ibo.unbind();
     unbind();

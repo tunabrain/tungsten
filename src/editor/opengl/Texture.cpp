@@ -70,7 +70,7 @@ size_t Texture::_memoryUsage = 0;
 
 void Texture::initTextureUnits()
 {
-    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &_maxTextureUnits);
+    glf->glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &_maxTextureUnits);
     _unitTicket.resize(_maxTextureUnits, 0);
     _units.resize(_maxTextureUnits, nullptr);
 }
@@ -106,7 +106,7 @@ Texture::~Texture()
 {
     if (_glName) {
         _memoryUsage -= size();
-        glDeleteTextures(1, &_glName);
+        glf->glDeleteTextures(1, &_glName);
     }
 }
 
@@ -163,7 +163,7 @@ Texture &Texture::operator=(Texture &&o)
 void Texture::selectUnit(int unit)
 {
     if (unit != _selectedUnit) {
-        glActiveTexture(GL_TEXTURE0 + unit);
+        glf->glActiveTexture(GL_TEXTURE0 + unit);
         _selectedUnit = unit;
     }
 }
@@ -213,40 +213,40 @@ void Texture::setFilter(bool clamp, bool linear)
     bindAny();
 
     if (_type > TEXTURE_BUFFER)
-        glTexParameteri(_glType, GL_TEXTURE_WRAP_S, coordMode);
+        glf->glTexParameteri(_glType, GL_TEXTURE_WRAP_S, coordMode);
     if (_type > TEXTURE_1D)
-        glTexParameteri(_glType, GL_TEXTURE_WRAP_T, coordMode);
+        glf->glTexParameteri(_glType, GL_TEXTURE_WRAP_T, coordMode);
     if (_type > TEXTURE_2D || _type == TEXTURE_CUBE)
-        glTexParameteri(_glType, GL_TEXTURE_WRAP_R, coordMode);
+        glf->glTexParameteri(_glType, GL_TEXTURE_WRAP_R, coordMode);
 
     if (_type != TEXTURE_BUFFER) {
-        glTexParameteri(_glType, GL_TEXTURE_MIN_FILTER, interpMode);
-        glTexParameteri(_glType, GL_TEXTURE_MAG_FILTER, interpMode);
-        glTexParameteri(_glType, GL_TEXTURE_MAX_LEVEL, _levels - 1);
+        glf->glTexParameteri(_glType, GL_TEXTURE_MIN_FILTER, interpMode);
+        glf->glTexParameteri(_glType, GL_TEXTURE_MAG_FILTER, interpMode);
+        glf->glTexParameteri(_glType, GL_TEXTURE_MAX_LEVEL, _levels - 1);
     }
 }
 
 void Texture::init(GLuint bufferObject)
 {
-    glGenTextures(1, &_glName);
+    glf->glGenTextures(1, &_glName);
 
     bindAny();
 
     switch (_type) {
     case TEXTURE_BUFFER:
-        glTexBuffer(GL_TEXTURE_BUFFER, _glFormat, bufferObject);
+        glf->glTexBuffer(GL_TEXTURE_BUFFER, _glFormat, bufferObject);
         break;
     case TEXTURE_1D:
-        glTexImage1D(GL_TEXTURE_1D, 0, _glFormat, _width, 0, _glChanType, _elementType, nullptr);
+        glf->glTexImage1D(GL_TEXTURE_1D, 0, _glFormat, _width, 0, _glChanType, _elementType, nullptr);
         break;
     case TEXTURE_CUBE:
-        glTexImage2D(GL_TEXTURE_CUBE_MAP, 0, _glFormat, _width, _height, 0, _glChanType, _elementType, nullptr);
+        glf->glTexImage2D(GL_TEXTURE_CUBE_MAP, 0, _glFormat, _width, _height, 0, _glChanType, _elementType, nullptr);
         break;
     case TEXTURE_2D:
-        glTexImage2D(GL_TEXTURE_2D, 0, _glFormat, _width, _height, 0, _glChanType, _elementType, nullptr);
+        glf->glTexImage2D(GL_TEXTURE_2D, 0, _glFormat, _width, _height, 0, _glChanType, _elementType, nullptr);
         break;
     case TEXTURE_3D:
-        glTexImage3D(GL_TEXTURE_3D, 0, _glFormat, _width, _height, _depth, 0, _glChanType, _elementType, nullptr);
+        glf->glTexImage3D(GL_TEXTURE_3D, 0, _glFormat, _width, _height, _depth, 0, _glChanType, _elementType, nullptr);
         break;
     }
 
@@ -268,7 +268,7 @@ void Texture::copy(void *data, int level)
         FAIL("Texture copy not available for texture buffer - use BufferObject::copyData instead");
         break;
     case TEXTURE_1D:
-        glTexSubImage1D(GL_TEXTURE_1D, level, 0, w, _glChanType, _elementType, data);
+        glf->glTexSubImage1D(GL_TEXTURE_1D, level, 0, w, _glChanType, _elementType, data);
         break;
     case TEXTURE_CUBE:
         for (int i = 0; i < 6; i++) {
@@ -317,7 +317,7 @@ void Texture::bind(int unit)
         return;
 
     _units[unit] = this;
-    glBindTexture(_glType, _glName);
+    glf->glBindTexture(_glType, _glName);
     _boundUnit = unit;
 }
 
