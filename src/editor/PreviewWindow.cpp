@@ -62,6 +62,16 @@ PreviewWindow::PreviewWindow(QWidget *proxyParent, MainWindow *parent)
 {
     setMouseTracking(true);
     setFocusPolicy(Qt::ClickFocus);
+
+    QSurfaceFormat fmt;
+    fmt.setMajorVersion(3);
+    fmt.setMinorVersion(2);
+    fmt.setProfile(QSurfaceFormat::CoreProfile);
+    fmt.setAlphaBufferSize(8);
+    fmt.setDepthBufferSize(24);
+    fmt.setSamples(4);
+    setFormat(fmt);
+
     setUpdateBehavior(NoPartialUpdate);
 
     new QShortcut(QKeySequence("A"), this, SLOT(toggleSelectAll()));

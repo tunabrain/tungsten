@@ -31,15 +31,6 @@ int main(int argc, char *argv[])
 
     QApplication app(argc, argv);
 
-    QSurfaceFormat fmt;
-    fmt.setMajorVersion(3);
-    fmt.setMinorVersion(2);
-    fmt.setProfile(QSurfaceFormat::CoreProfile);
-    fmt.setAlphaBufferSize(8);
-    fmt.setDepthBufferSize(24);
-    fmt.setSamples(4);
-    QSurfaceFormat::setDefaultFormat(fmt);
-
     QDir::setCurrent(QString::fromStdString(FileUtils::getExecutablePath().parent().nativeSeparators().asString()));
     Path path = FileUtils::getExecutablePath().parent()/"data/editor/style/style.qss";
     app.setStyleSheet(QString::fromStdString(FileUtils::loadText(path)));
