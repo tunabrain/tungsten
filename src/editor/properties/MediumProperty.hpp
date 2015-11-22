@@ -12,7 +12,7 @@ class QLabel;
 
 namespace Tungsten {
 
-class PropertySheet;
+class PropertyForm;
 class Medium;
 class Scene;
 
@@ -30,7 +30,7 @@ class MediumProperty : public Property
     void buildMediumList();
 
 public:
-    MediumProperty(QWidget *parent, PropertySheet &sheet, std::string name, std::shared_ptr<Medium> value,
+    MediumProperty(QWidget *parent, PropertyForm &sheet, std::string name, std::shared_ptr<Medium> value,
             std::function<bool(std::shared_ptr<Medium> &)> setter, Scene *scene);
 
     virtual void setVisible(bool visible) override;

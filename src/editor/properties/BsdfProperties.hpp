@@ -7,7 +7,7 @@
 
 namespace Tungsten {
 
-class PropertySheet;
+class PropertyForm;
 class Primitive;
 class Scene;
 
@@ -18,7 +18,7 @@ class BsdfProperties : public QWidget
     Scene *_scene;
     std::unordered_set<Primitive *> &_selection;
 
-    void fillPropertySheet(PropertySheet *sheet, Primitive *p);
+    void fillPropertySheet(PropertyForm *sheet, Primitive *p);
 
 public:
     BsdfProperties(QWidget *proxyParent, Scene *scene, std::unordered_set<Primitive *> &selection);

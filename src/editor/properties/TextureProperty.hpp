@@ -26,7 +26,7 @@ class BitmapTexture;
 class ColorPickButton;
 class TextureDisplay;
 class CheckerTexture;
-class PropertySheet;
+class PropertyForm;
 class ListProperty;
 class BladeTexture;
 class DiskTexture;
@@ -52,7 +52,7 @@ class TextureProperty : public Property
     };
 
     QWidget *_parent;
-    PropertySheet &_sheet;
+    PropertyForm &_sheet;
     bool _allowNone;
     std::string _name;
     std::shared_ptr<Texture> _value;
@@ -89,17 +89,17 @@ class TextureProperty : public Property
     int modeToOption(TextureMode mode);
     TextureMode optionToMode(int option);
 
-    void buildTextureHeader(PropertySheet *sheet);
+    void buildTextureHeader(PropertyForm *sheet);
     void buildTexturePage();
 
-    void buildTexturePage(PropertySheet *sheet);
-    void buildTexturePage(PropertySheet *sheet, ConstantTexture *tex);
-    void buildTexturePage(PropertySheet *sheet, BitmapTexture *tex);
-    void buildTexturePage(PropertySheet *sheet, CheckerTexture *tex);
-    void buildTexturePage(PropertySheet *sheet, BladeTexture *tex);
-    void buildTexturePage(PropertySheet *sheet, DiskTexture *tex);
-    void buildTexturePage(PropertySheet *sheet, IesTexture *tex);
-    void buildTextureDisplay(PropertySheet *sheet);
+    void buildTexturePage(PropertyForm *sheet);
+    void buildTexturePage(PropertyForm *sheet, ConstantTexture *tex);
+    void buildTexturePage(PropertyForm *sheet, BitmapTexture *tex);
+    void buildTexturePage(PropertyForm *sheet, CheckerTexture *tex);
+    void buildTexturePage(PropertyForm *sheet, BladeTexture *tex);
+    void buildTexturePage(PropertyForm *sheet, DiskTexture *tex);
+    void buildTexturePage(PropertyForm *sheet, IesTexture *tex);
+    void buildTextureDisplay(PropertyForm *sheet);
 
     void loadBitmap(PathPtr path);
     void updateBitmapFlags();
@@ -110,7 +110,7 @@ class TextureProperty : public Property
     void updateTexture();
 
 public:
-    TextureProperty(QWidget *parent, PropertySheet &sheet, std::string name, std::shared_ptr<Texture> value,
+    TextureProperty(QWidget *parent, PropertyForm &sheet, std::string name, std::shared_ptr<Texture> value,
             bool allowNone, Scene *scene, TexelConversion conversion, bool scalarGammaCorrect,
             std::function<bool(std::shared_ptr<Texture> &)> setter);
 

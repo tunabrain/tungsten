@@ -1,5 +1,5 @@
 #include "VectorProperty.hpp"
-#include "PropertySheet.hpp"
+#include "PropertyForm.hpp"
 
 #include "editor/ColorPickButton.hpp"
 #include "editor/QtUtils.hpp"
@@ -8,7 +8,7 @@
 
 namespace Tungsten {
 
-VectorProperty::VectorProperty(QWidget *parent, PropertySheet &sheet, std::string name, Vec3f value,
+VectorProperty::VectorProperty(QWidget *parent, PropertyForm &sheet, std::string name, Vec3f value,
         bool isAbsorption, std::function<bool(Vec3f)> setter)
 : _value(value),
   _setter(std::move(setter)),

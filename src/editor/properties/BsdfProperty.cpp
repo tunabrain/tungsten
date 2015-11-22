@@ -1,6 +1,6 @@
 #include "BsdfProperty.hpp"
 #include "VectorProperty.hpp"
-#include "PropertySheet.hpp"
+#include "PropertyForm.hpp"
 
 #include "editor/BsdfDisplay.hpp"
 #include "editor/QtLambda.hpp"
@@ -36,7 +36,7 @@ namespace Tungsten {
 static std::vector<std::string>   prettyDistributionList{"Beckmann", "GGX", "Phong"};
 static std::vector<std::string> internalDistributionList{"beckmann", "ggx", "phong"};
 
-BsdfProperty::BsdfProperty(QWidget *parent, PropertySheet &sheet, std::string name, std::shared_ptr<Bsdf> value, bool nested,
+BsdfProperty::BsdfProperty(QWidget *parent, PropertyForm &sheet, std::string name, std::shared_ptr<Bsdf> value, bool nested,
         std::function<bool(std::shared_ptr<Bsdf> &)> setter, Scene *scene)
 : _parent(parent),
   _sheet(sheet),
@@ -164,7 +164,7 @@ std::shared_ptr<Bsdf> BsdfProperty::instantiateBsdf(BsdfType type) const
     }
 }
 
-void BsdfProperty::buildBsdfHeader(PropertySheet *sheet, QWidget *parent)
+void BsdfProperty::buildBsdfHeader(PropertyForm *sheet, QWidget *parent)
 {
     _bsdfSelector = new QComboBox(parent);
     connect(_bsdfSelector, SIGNAL(activated(int)), this, SLOT(pickBsdf(int)));
@@ -213,7 +213,7 @@ void BsdfProperty::buildBsdfPage()
         delete _display;
 
     _bsdfPage = new QWidget();
-    PropertySheet *sheet = new PropertySheet(_bsdfPage);
+    PropertyForm *sheet = new PropertyForm(_bsdfPage);
 
     _display = new BsdfDisplay(200, 200, _bsdfPage);
     sheet->addWidget(_display, 0, 0, 1, 2, Qt::AlignHCenter);
@@ -281,7 +281,7 @@ void BsdfProperty::buildBsdfPage()
     _sheet.addWidget(_bsdfPage, _pageRow, 0, 1, 2);
 }
 
-void BsdfProperty::buildBsdfPage(PropertySheet *sheet)
+void BsdfProperty::buildBsdfPage(PropertyForm *sheet)
 {
     switch (_type) {
     case TYPE_CONDUCTOR:        buildBsdfPage(sheet, dynamic_cast<ConductorBsdf       *>(_value.get())); break;
@@ -306,7 +306,7 @@ void BsdfProperty::buildBsdfPage(PropertySheet *sheet)
     }
 }
 
-static void addComplexIorProperty(QWidget *parent, PropertySheet *sheet, const std::string &material, Vec3f eta, Vec3f k,
+static void addComplexIorProperty(QWidget *parent, PropertyForm *sheet, const std::string &material, Vec3f eta, Vec3f k,
         std::function<void(const std::string &)> materialSetter, std::function<bool(Vec3f)> etaSetter,
         std::function<bool(Vec3f)> kSetter)
 {
@@ -339,7 +339,7 @@ static void addComplexIorProperty(QWidget *parent, PropertySheet *sheet, const s
     QObject::connect(presets, SIGNAL(activated(int)), lambdaSlot, SLOT(call()));
 }
 
-void BsdfProperty::buildBsdfPage(PropertySheet *sheet, RoughDielectricBsdf *bsdf)
+void BsdfProperty::buildBsdfPage(PropertyForm *sheet, RoughDielectricBsdf *bsdf)
 {
     sheet->addFloatProperty(bsdf->ior(), "IOR", [this, bsdf](float f) {
         bsdf->setIor(f);
@@ -365,7 +365,7 @@ void BsdfProperty::buildBsdfPage(PropertySheet *sheet, RoughDielectricBsdf *bsdf
     });
 }
 
-void BsdfProperty::buildBsdfPage(PropertySheet *sheet, RoughConductorBsdf *bsdf)
+void BsdfProperty::buildBsdfPage(PropertyForm *sheet, RoughConductorBsdf *bsdf)
 {
     addComplexIorProperty(_bsdfPage, sheet, bsdf->materialName(), bsdf->eta(), bsdf->k(),
         [this, bsdf](const std::string &name) {
@@ -397,7 +397,7 @@ void BsdfProperty::buildBsdfPage(PropertySheet *sheet, RoughConductorBsdf *bsdf)
     });
 }
 
-void BsdfProperty::buildBsdfPage(PropertySheet *sheet, RoughPlasticBsdf *bsdf)
+void BsdfProperty::buildBsdfPage(PropertyForm *sheet, RoughPlasticBsdf *bsdf)
 {
     sheet->addFloatProperty(bsdf->ior(), "IOR", [this, bsdf](float f) {
         bsdf->setIor(f);
@@ -428,7 +428,7 @@ void BsdfProperty::buildBsdfPage(PropertySheet *sheet, RoughPlasticBsdf *bsdf)
     });
 }
 
-void BsdfProperty::buildBsdfPage(PropertySheet *sheet, TransparencyBsdf *bsdf)
+void BsdfProperty::buildBsdfPage(PropertyForm *sheet, TransparencyBsdf *bsdf)
 {
     sheet->addTextureProperty(bsdf->opacity(), "Opacity", false, _scene, TexelConversion::REQUEST_AUTO, true,
         [this, bsdf](std::shared_ptr<Texture> &tex) {
@@ -445,7 +445,7 @@ void BsdfProperty::buildBsdfPage(PropertySheet *sheet, TransparencyBsdf *bsdf)
     });
 }
 
-void BsdfProperty::buildBsdfPage(PropertySheet *sheet, SmoothCoatBsdf *bsdf)
+void BsdfProperty::buildBsdfPage(PropertyForm *sheet, SmoothCoatBsdf *bsdf)
 {
     sheet->addFloatProperty(bsdf->ior(), "IOR", [this, bsdf](float f) {
         bsdf->setIor(f);
@@ -471,7 +471,7 @@ void BsdfProperty::buildBsdfPage(PropertySheet *sheet, SmoothCoatBsdf *bsdf)
     });
 }
 
-void BsdfProperty::buildBsdfPage(PropertySheet *sheet, DielectricBsdf *bsdf)
+void BsdfProperty::buildBsdfPage(PropertyForm *sheet, DielectricBsdf *bsdf)
 {
     sheet->addFloatProperty(bsdf->ior(), "IOR", [this, bsdf](float f) {
         bsdf->setIor(f);
@@ -485,7 +485,7 @@ void BsdfProperty::buildBsdfPage(PropertySheet *sheet, DielectricBsdf *bsdf)
     });
 }
 
-void BsdfProperty::buildBsdfPage(PropertySheet *sheet, ConductorBsdf *bsdf)
+void BsdfProperty::buildBsdfPage(PropertyForm *sheet, ConductorBsdf *bsdf)
 {
     addComplexIorProperty(_bsdfPage, sheet, bsdf->materialName(), bsdf->eta(), bsdf->k(),
         [this, bsdf](const std::string &name) {
@@ -505,7 +505,7 @@ void BsdfProperty::buildBsdfPage(PropertySheet *sheet, ConductorBsdf *bsdf)
     );
 }
 
-void BsdfProperty::buildBsdfPage(PropertySheet *sheet, OrenNayarBsdf *bsdf)
+void BsdfProperty::buildBsdfPage(PropertyForm *sheet, OrenNayarBsdf *bsdf)
 {
     sheet->addTextureProperty(bsdf->roughness(), "Roughness", false, _scene, TexelConversion::REQUEST_AVERAGE, false,
         [this, bsdf](std::shared_ptr<Texture> &tex) {
@@ -515,7 +515,7 @@ void BsdfProperty::buildBsdfPage(PropertySheet *sheet, OrenNayarBsdf *bsdf)
     });
 }
 
-void BsdfProperty::buildBsdfPage(PropertySheet *sheet, RoughCoatBsdf *bsdf)
+void BsdfProperty::buildBsdfPage(PropertyForm *sheet, RoughCoatBsdf *bsdf)
 {
     sheet->addFloatProperty(bsdf->ior(), "IOR", [this, bsdf](float f) {
         bsdf->setIor(f);
@@ -553,7 +553,7 @@ void BsdfProperty::buildBsdfPage(PropertySheet *sheet, RoughCoatBsdf *bsdf)
     });
 }
 
-void BsdfProperty::buildBsdfPage(PropertySheet *sheet, ThinSheetBsdf *bsdf)
+void BsdfProperty::buildBsdfPage(PropertyForm *sheet, ThinSheetBsdf *bsdf)
 {
     sheet->addFloatProperty(bsdf->ior(), "IOR", [this, bsdf](float f) {
         bsdf->setIor(f);
@@ -578,15 +578,15 @@ void BsdfProperty::buildBsdfPage(PropertySheet *sheet, ThinSheetBsdf *bsdf)
     });
 }
 
-void BsdfProperty::buildBsdfPage(PropertySheet * /*sheet*/, ForwardBsdf * /*bsdf*/)
+void BsdfProperty::buildBsdfPage(PropertyForm * /*sheet*/, ForwardBsdf * /*bsdf*/)
 {
 }
 
-void BsdfProperty::buildBsdfPage(PropertySheet * /*sheet*/, LambertBsdf * /*bsdf*/)
+void BsdfProperty::buildBsdfPage(PropertyForm * /*sheet*/, LambertBsdf * /*bsdf*/)
 {
 }
 
-void BsdfProperty::buildBsdfPage(PropertySheet *sheet, PlasticBsdf *bsdf)
+void BsdfProperty::buildBsdfPage(PropertyForm *sheet, PlasticBsdf *bsdf)
 {
     sheet->addFloatProperty(bsdf->ior(), "IOR", [this, bsdf](float f) {
         bsdf->setIor(f);
@@ -605,15 +605,15 @@ void BsdfProperty::buildBsdfPage(PropertySheet *sheet, PlasticBsdf *bsdf)
     });
 }
 
-void BsdfProperty::buildBsdfPage(PropertySheet * /*sheet*/, MirrorBsdf * /*bsdf*/)
+void BsdfProperty::buildBsdfPage(PropertyForm * /*sheet*/, MirrorBsdf * /*bsdf*/)
 {
 }
 
-void BsdfProperty::buildBsdfPage(PropertySheet * /*sheet*/, ErrorBsdf * /*bsdf*/)
+void BsdfProperty::buildBsdfPage(PropertyForm * /*sheet*/, ErrorBsdf * /*bsdf*/)
 {
 }
 
-void BsdfProperty::buildBsdfPage(PropertySheet *sheet, MixedBsdf *bsdf)
+void BsdfProperty::buildBsdfPage(PropertyForm *sheet, MixedBsdf *bsdf)
 {
     sheet->addTextureProperty(bsdf->ratio(), "Ratio", false, _scene, TexelConversion::REQUEST_AVERAGE, false,
         [this, bsdf](std::shared_ptr<Texture> &tex) {
@@ -637,7 +637,7 @@ void BsdfProperty::buildBsdfPage(PropertySheet *sheet, MixedBsdf *bsdf)
     });
 }
 
-void BsdfProperty::buildBsdfPage(PropertySheet *sheet, PhongBsdf *bsdf)
+void BsdfProperty::buildBsdfPage(PropertyForm *sheet, PhongBsdf *bsdf)
 {
     sheet->addFloatProperty(bsdf->exponent(), "Exponent", [this, bsdf](float f) {
         bsdf->setExponent(f);
@@ -651,7 +651,7 @@ void BsdfProperty::buildBsdfPage(PropertySheet *sheet, PhongBsdf *bsdf)
     });
 }
 
-void BsdfProperty::buildBsdfPage(PropertySheet * /*sheet*/, NullBsdf * /*bsdf*/)
+void BsdfProperty::buildBsdfPage(PropertyForm * /*sheet*/, NullBsdf * /*bsdf*/)
 {
 }
 

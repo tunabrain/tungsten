@@ -11,7 +11,7 @@ class QLabel;
 
 namespace Tungsten {
 
-class PropertySheet;
+class PropertyForm;
 
 class PathProperty : public Property
 {
@@ -32,7 +32,7 @@ private slots:
     void openPath();
 
 public:
-    PathProperty(QWidget *parent, PropertySheet &sheet, std::string name, std::string value,
+    PathProperty(QWidget *parent, PropertyForm &sheet, std::string name, std::string value,
             std::string searchDir, std::string title, std::string extensions,
             std::function<bool(const std::string &)> setter);
 

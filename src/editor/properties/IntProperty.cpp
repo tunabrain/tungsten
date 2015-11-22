@@ -1,11 +1,11 @@
 #include "IntProperty.hpp"
-#include "PropertySheet.hpp"
+#include "PropertyForm.hpp"
 
 #include <QtGui>
 
 namespace Tungsten {
 
-IntProperty::IntProperty(QWidget *parent, PropertySheet &sheet, std::string name, int value, int min, int max,
+IntProperty::IntProperty(QWidget *parent, PropertyForm &sheet, std::string name, int value, int min, int max,
         std::function<bool(int)> setter)
 : _value(value),
   _setter(std::move(setter))

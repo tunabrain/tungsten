@@ -1,5 +1,5 @@
 #include "TextureProperty.hpp"
-#include "PropertySheet.hpp"
+#include "PropertyForm.hpp"
 #include "ListProperty.hpp"
 
 #include "materials/ConstantTexture.hpp"
@@ -21,7 +21,7 @@
 
 namespace Tungsten {
 
-TextureProperty::TextureProperty(QWidget *parent, PropertySheet &sheet, std::string name,
+TextureProperty::TextureProperty(QWidget *parent, PropertyForm &sheet, std::string name,
         std::shared_ptr<Texture> value, bool allowNone, Scene *scene, TexelConversion conversion,
         bool scalarGammaCorrect, std::function<bool(std::shared_ptr<Texture> &)> setter)
 : _parent(parent),
@@ -41,7 +41,7 @@ TextureProperty::TextureProperty(QWidget *parent, PropertySheet &sheet, std::str
     buildTexturePage();
 }
 
-void TextureProperty::buildTextureHeader(PropertySheet *sheet)
+void TextureProperty::buildTextureHeader(PropertyForm *sheet)
 {
     _selectProperty = sheet->addListProperty(typeList(), modeToOption(_currentMode), _name, [this](const std::string &, int option) {
         changeMode(optionToMode(option));
@@ -94,7 +94,7 @@ void TextureProperty::buildTexturePage()
         _texturePage->deleteLater();
 
     _texturePage = new QWidget();
-    PropertySheet *sheet = new PropertySheet(_texturePage);
+    PropertyForm *sheet = new PropertyForm(_texturePage);
 
     buildTexturePage(sheet);
 
@@ -104,7 +104,7 @@ void TextureProperty::buildTexturePage()
     _sheet.addWidget(_texturePage, _pageRow, 1);
 }
 
-void TextureProperty::buildTexturePage(PropertySheet *sheet)
+void TextureProperty::buildTexturePage(PropertyForm *sheet)
 {
     if (_currentMode == TEXTURE_SCALAR)  buildTexturePage(sheet, dynamic_cast<ConstantTexture *>(_value.get()));
     if (_currentMode == TEXTURE_RGB)     buildTexturePage(sheet, dynamic_cast<ConstantTexture *>(_value.get()));
@@ -115,7 +115,7 @@ void TextureProperty::buildTexturePage(PropertySheet *sheet)
     if (_currentMode == TEXTURE_IES)     buildTexturePage(sheet, dynamic_cast<IesTexture      *>(_value.get()));
 }
 
-void TextureProperty::buildTexturePage(PropertySheet *sheet, ConstantTexture *tex)
+void TextureProperty::buildTexturePage(PropertyForm *sheet, ConstantTexture *tex)
 {
     if (_currentMode == TEXTURE_SCALAR) {
         sheet->addFloatProperty(toGamma(tex->average().x()), "Value", [this, tex](float f) {
@@ -132,7 +132,7 @@ void TextureProperty::buildTexturePage(PropertySheet *sheet, ConstantTexture *te
     }
 }
 
-void TextureProperty::buildTexturePage(PropertySheet *sheet, BitmapTexture *tex)
+void TextureProperty::buildTexturePage(PropertyForm *sheet, BitmapTexture *tex)
 {
     _gammaCorrect = tex->gammaCorrect();
     _linear = tex->linear();
@@ -168,7 +168,7 @@ void TextureProperty::buildTexturePage(PropertySheet *sheet, BitmapTexture *tex)
     buildTextureDisplay(sheet);
 }
 
-void TextureProperty::buildTexturePage(PropertySheet *sheet, CheckerTexture *tex)
+void TextureProperty::buildTexturePage(PropertyForm *sheet, CheckerTexture *tex)
 {
     sheet->addVectorProperty(tex->onColor(), "On Color", false, [this, tex](Vec3f v) {
         tex->setOnColor(v);
@@ -194,7 +194,7 @@ void TextureProperty::buildTexturePage(PropertySheet *sheet, CheckerTexture *tex
     buildTextureDisplay(sheet);
 }
 
-void TextureProperty::buildTexturePage(PropertySheet *sheet, BladeTexture *tex)
+void TextureProperty::buildTexturePage(PropertyForm *sheet, BladeTexture *tex)
 {
     sheet->addIntProperty(tex->numBlades(), 3, 999, "Number of Blades", [this, tex](int i) {
         tex->setNumBlades(i);
@@ -210,12 +210,12 @@ void TextureProperty::buildTexturePage(PropertySheet *sheet, BladeTexture *tex)
     buildTextureDisplay(sheet);
 }
 
-void TextureProperty::buildTexturePage(PropertySheet *sheet, DiskTexture * /*tex*/)
+void TextureProperty::buildTexturePage(PropertyForm *sheet, DiskTexture * /*tex*/)
 {
     buildTextureDisplay(sheet);
 }
 
-void TextureProperty::buildTexturePage(PropertySheet *sheet, IesTexture *tex)
+void TextureProperty::buildTexturePage(PropertyForm *sheet, IesTexture *tex)
 {
     _resolution = tex->resolution();
 
@@ -235,7 +235,7 @@ void TextureProperty::buildTexturePage(PropertySheet *sheet, IesTexture *tex)
     buildTextureDisplay(sheet);
 }
 
-void TextureProperty::buildTextureDisplay(PropertySheet *sheet)
+void TextureProperty::buildTextureDisplay(PropertyForm *sheet)
 {
     _bitmapDisplay = new TextureDisplay(200, 200, _texturePage);
     _bitmapDisplay->changeTexture(_value.get());

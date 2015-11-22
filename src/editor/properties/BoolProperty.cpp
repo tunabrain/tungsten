@@ -1,11 +1,11 @@
 #include "BoolProperty.hpp"
-#include "PropertySheet.hpp"
+#include "PropertyForm.hpp"
 
 #include <QtGui>
 
 namespace Tungsten {
 
-BoolProperty::BoolProperty(QWidget *parent, PropertySheet &sheet, std::string name, int value,
+BoolProperty::BoolProperty(QWidget *parent, PropertyForm &sheet, std::string name, int value,
         std::function<bool(bool)> setter)
 : _value(value),
   _setter(std::move(setter))

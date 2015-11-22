@@ -10,7 +10,7 @@ class QLabel;
 
 namespace Tungsten {
 
-class PropertySheet;
+class PropertyForm;
 
 class StringProperty : public Property
 {
@@ -22,7 +22,7 @@ class StringProperty : public Property
     QLineEdit *_lineEdit;
 
 public:
-    StringProperty(QWidget *parent, PropertySheet &sheet, std::string name, std::string value, std::function<bool(const std::string &)> setter);
+    StringProperty(QWidget *parent, PropertyForm &sheet, std::string name, std::string value, std::function<bool(const std::string &)> setter);
 
     virtual void setVisible(bool visible) override;
 

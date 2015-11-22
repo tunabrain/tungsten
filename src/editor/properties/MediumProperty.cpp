@@ -1,5 +1,5 @@
 #include "MediumProperty.hpp"
-#include "PropertySheet.hpp"
+#include "PropertyForm.hpp"
 
 #include "media/Medium.hpp"
 
@@ -9,7 +9,7 @@
 
 namespace Tungsten {
 
-MediumProperty::MediumProperty(QWidget *parent, PropertySheet &sheet, std::string name, std::shared_ptr<Medium> value,
+MediumProperty::MediumProperty(QWidget *parent, PropertyForm &sheet, std::string name, std::shared_ptr<Medium> value,
         std::function<bool(std::shared_ptr<Medium> &)> setter, Scene *scene)
 : _value(std::move(value)),
   _setter(std::move(setter)),

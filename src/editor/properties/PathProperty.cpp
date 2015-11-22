@@ -1,5 +1,5 @@
 #include "PathProperty.hpp"
-#include "PropertySheet.hpp"
+#include "PropertyForm.hpp"
 
 #include "editor/QtUtils.hpp"
 
@@ -9,7 +9,7 @@
 
 namespace Tungsten {
 
-PathProperty::PathProperty(QWidget *parent, PropertySheet &sheet, std::string name, std::string value,
+PathProperty::PathProperty(QWidget *parent, PropertyForm &sheet, std::string name, std::string value,
         std::string searchDir, std::string title, std::string extensions,
         std::function<bool(const std::string &)> setter)
 : _value(value),

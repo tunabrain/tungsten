@@ -10,7 +10,7 @@ class QLabel;
 
 namespace Tungsten {
 
-class PropertySheet;
+class PropertyForm;
 
 class IntProperty : public Property
 {
@@ -26,7 +26,7 @@ private slots:
     void setValue(int newValue);
 
 public:
-    IntProperty(QWidget *parent, PropertySheet &sheet, std::string name, int value, int min, int max,
+    IntProperty(QWidget *parent, PropertyForm &sheet, std::string name, int value, int min, int max,
             std::function<bool(int)> setter);
 
     virtual void setVisible(bool visible) override;

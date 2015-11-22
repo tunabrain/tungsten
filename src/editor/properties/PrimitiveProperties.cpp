@@ -1,12 +1,12 @@
 #include "PrimitiveProperties.hpp"
-#include "PropertySheet.hpp"
+#include "PropertyForm.hpp"
 #include "FloatProperty.hpp"
 
 #include "io/Scene.hpp"
 
 namespace Tungsten {
 
-void PrimitiveProperties::fillPropertySheet(PropertySheet *sheet, Primitive *p)
+void PrimitiveProperties::fillPropertySheet(PropertyForm *sheet, Primitive *p)
 {
     sheet->addStringProperty(p->name(), "Name", [this, p](const std::string &s) {
         p->setName(s);
@@ -36,7 +36,7 @@ PrimitiveProperties::PrimitiveProperties(QWidget *proxyParent, Scene *scene, std
   _scene(scene),
   _selection(selection)
 {
-    PropertySheet *sheet = new PropertySheet(this);
+    PropertyForm *sheet = new PropertyForm(this);
     setLayout(sheet);
     if (!_selection.empty())
         fillPropertySheet(sheet, *_selection.begin());

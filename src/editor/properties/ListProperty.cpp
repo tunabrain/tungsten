@@ -1,5 +1,5 @@
 #include "ListProperty.hpp"
-#include "PropertySheet.hpp"
+#include "PropertyForm.hpp"
 
 #include "Platform.hpp"
 
@@ -8,7 +8,7 @@
 
 namespace Tungsten {
 
-ListProperty::ListProperty(QWidget *parent, PropertySheet &sheet, std::string name, std::vector<std::string> list,
+ListProperty::ListProperty(QWidget *parent, PropertyForm &sheet, std::string name, std::vector<std::string> list,
         std::string value, std::function<bool(const std::string &, int)> setter)
 : _list(std::move(list)),
   _index(0),
@@ -31,7 +31,7 @@ ListProperty::ListProperty(QWidget *parent, PropertySheet &sheet, std::string na
     sheet.addWidget(_comboBox, sheet.rowCount() - 1, 1);
 }
 
-ListProperty::ListProperty(QWidget *parent, PropertySheet &sheet, std::string name, std::vector<std::string> list,
+ListProperty::ListProperty(QWidget *parent, PropertyForm &sheet, std::string name, std::vector<std::string> list,
         int index, std::function<bool(const std::string &, int)> setter)
 : ListProperty(parent, sheet, std::move(name), list, list[index], std::move(setter))
 {

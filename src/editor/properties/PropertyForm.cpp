@@ -1,4 +1,4 @@
-#include "PropertySheet.hpp"
+#include "PropertyForm.hpp"
 #include "TextureProperty.hpp"
 #include "MediumProperty.hpp"
 #include "VectorProperty.hpp"
@@ -14,35 +14,35 @@
 
 namespace Tungsten {
 
-PropertySheet::PropertySheet(QWidget *parent)
+PropertyForm::PropertyForm(QWidget *parent)
 : _parent(parent)
 {
     setColumnStretch(0, 0);
     setColumnStretch(1, 1);
 }
 
-BoolProperty *PropertySheet::addBoolProperty(int value, std::string name, std::function<bool(bool)> setter)
+BoolProperty *PropertyForm::addBoolProperty(int value, std::string name, std::function<bool(bool)> setter)
 {
     BoolProperty *property = new BoolProperty(_parent, *this, std::move(name), value, std::move(setter));
     _properties.emplace_back(property);
     return property;
 }
 
-IntProperty *PropertySheet::addIntProperty(int value, int min, int max, std::string name, std::function<bool(int)> setter)
+IntProperty *PropertyForm::addIntProperty(int value, int min, int max, std::string name, std::function<bool(int)> setter)
 {
     IntProperty *property = new IntProperty(_parent, *this, std::move(name), value, min, max, std::move(setter));
     _properties.emplace_back(property);
     return property;
 }
 
-FloatProperty *PropertySheet::addFloatProperty(float value, std::string name, std::function<bool(float)> setter)
+FloatProperty *PropertyForm::addFloatProperty(float value, std::string name, std::function<bool(float)> setter)
 {
     FloatProperty *property = new FloatProperty(_parent, *this, std::move(name), value, std::move(setter));
     _properties.emplace_back(property);
     return property;
 }
 
-VectorProperty *PropertySheet::addVectorProperty(Vec3f value, std::string name, bool isAbsorption,
+VectorProperty *PropertyForm::addVectorProperty(Vec3f value, std::string name, bool isAbsorption,
         std::function<bool(Vec3f)> setter)
 {
     VectorProperty *property = new VectorProperty(_parent, *this, std::move(name), value, isAbsorption, std::move(setter));
@@ -50,7 +50,7 @@ VectorProperty *PropertySheet::addVectorProperty(Vec3f value, std::string name, 
     return property;
 }
 
-StringProperty *PropertySheet::addStringProperty(std::string value, std::string name, std::function<bool(const std::string &)> setter)
+StringProperty *PropertyForm::addStringProperty(std::string value, std::string name, std::function<bool(const std::string &)> setter)
 {
     StringProperty *property = new StringProperty(_parent, *this, std::move(name),
             std::move(value), std::move(setter));
@@ -58,7 +58,7 @@ StringProperty *PropertySheet::addStringProperty(std::string value, std::string 
     return property;
 }
 
-PathProperty *PropertySheet::addPathProperty(std::string value, std::string name,
+PathProperty *PropertyForm::addPathProperty(std::string value, std::string name,
         std::string searchDir, std::string title, std::string extensions,
         std::function<bool(const std::string &)> setter)
 {
@@ -69,7 +69,7 @@ PathProperty *PropertySheet::addPathProperty(std::string value, std::string name
     return property;
 }
 
-ListProperty *PropertySheet::addListProperty(std::vector<std::string> list, std::string value, std::string name,
+ListProperty *PropertyForm::addListProperty(std::vector<std::string> list, std::string value, std::string name,
         std::function<bool(const std::string &, int)> setter)
 {
     ListProperty *property = new ListProperty(_parent, *this, std::move(name),
@@ -78,7 +78,7 @@ ListProperty *PropertySheet::addListProperty(std::vector<std::string> list, std:
     return property;
 }
 
-ListProperty *PropertySheet::addListProperty(std::vector<std::string> list, int index, std::string name,
+ListProperty *PropertyForm::addListProperty(std::vector<std::string> list, int index, std::string name,
         std::function<bool(const std::string &, int)> setter)
 {
     ListProperty *property = new ListProperty(_parent, *this, std::move(name),
@@ -87,7 +87,7 @@ ListProperty *PropertySheet::addListProperty(std::vector<std::string> list, int 
     return property;
 }
 
-TextureProperty *PropertySheet::addTextureProperty(std::shared_ptr<Texture> value, std::string name,
+TextureProperty *PropertyForm::addTextureProperty(std::shared_ptr<Texture> value, std::string name,
         bool allowNone, Scene *scene, TexelConversion conversion,
         bool scalarGammaCorrect, std::function<bool(std::shared_ptr<Texture> &)> setter)
 {
@@ -97,7 +97,7 @@ TextureProperty *PropertySheet::addTextureProperty(std::shared_ptr<Texture> valu
     return property;
 }
 
-BsdfProperty *PropertySheet::addBsdfProperty(std::shared_ptr<Bsdf> value, std::string name, bool nested,
+BsdfProperty *PropertyForm::addBsdfProperty(std::shared_ptr<Bsdf> value, std::string name, bool nested,
         Scene *scene, std::function<bool(std::shared_ptr<Bsdf> &)> setter)
 {
     BsdfProperty *property = new BsdfProperty(_parent, *this, name, std::move(value), nested, std::move(setter), scene);
@@ -105,7 +105,7 @@ BsdfProperty *PropertySheet::addBsdfProperty(std::shared_ptr<Bsdf> value, std::s
     return property;
 }
 
-MediumProperty *PropertySheet::addMediumProperty(std::shared_ptr<Medium> value, std::string name,
+MediumProperty *PropertyForm::addMediumProperty(std::shared_ptr<Medium> value, std::string name,
         Scene *scene, std::function<bool(std::shared_ptr<Medium> &)> setter)
 {
     MediumProperty *property = new MediumProperty(_parent, *this, name, std::move(value), std::move(setter), scene);

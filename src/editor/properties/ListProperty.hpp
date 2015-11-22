@@ -12,7 +12,7 @@ class QLabel;
 
 namespace Tungsten {
 
-class PropertySheet;
+class PropertyForm;
 
 class ListProperty : public Property
 {
@@ -26,9 +26,9 @@ class ListProperty : public Property
     QComboBox *_comboBox;
 
 public:
-    ListProperty(QWidget *parent, PropertySheet &sheet, std::string name, std::vector<std::string> list,
+    ListProperty(QWidget *parent, PropertyForm &sheet, std::string name, std::vector<std::string> list,
             std::string value, std::function<bool(const std::string &, int)> setter);
-    ListProperty(QWidget *parent, PropertySheet &sheet, std::string name, std::vector<std::string> list,
+    ListProperty(QWidget *parent, PropertyForm &sheet, std::string name, std::vector<std::string> list,
             int index, std::function<bool(const std::string &, int)> setter);
 
     virtual void setVisible(bool visible) override;

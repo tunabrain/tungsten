@@ -9,7 +9,7 @@ class QCheckBox;
 
 namespace Tungsten {
 
-class PropertySheet;
+class PropertyForm;
 
 class BoolProperty : public Property
 {
@@ -20,7 +20,7 @@ class BoolProperty : public Property
     QCheckBox *_checkbox;
 
 public:
-    BoolProperty(QWidget *parent, PropertySheet &sheet, std::string name, int value, std::function<bool(bool)> setter);
+    BoolProperty(QWidget *parent, PropertyForm &sheet, std::string name, int value, std::function<bool(bool)> setter);
 
     virtual void setVisible(bool visible) override;
 

@@ -29,14 +29,14 @@ class Medium;
 class Scene;
 class Bsdf;
 
-class PropertySheet : public QGridLayout
+class PropertyForm : public QGridLayout
 {
     QWidget *_parent;
 
     std::vector<std::unique_ptr<Property>> _properties;
 
 public:
-    PropertySheet(QWidget *parent);
+    PropertyForm(QWidget *parent);
 
     BoolProperty *addBoolProperty(int value, std::string name, std::function<bool(bool)> setter);
     IntProperty *addIntProperty(int value, int min, int max, std::string name, std::function<bool(int)> setter);

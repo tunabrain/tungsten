@@ -1,11 +1,11 @@
 #include "FloatProperty.hpp"
-#include "PropertySheet.hpp"
+#include "PropertyForm.hpp"
 
 #include <QtGui>
 
 namespace Tungsten {
 
-FloatProperty::FloatProperty(QWidget *parent, PropertySheet &sheet, std::string name, float value,
+FloatProperty::FloatProperty(QWidget *parent, PropertyForm &sheet, std::string name, float value,
         std::function<bool(float)> setter)
 : _value(value),
   _setter(std::move(setter))

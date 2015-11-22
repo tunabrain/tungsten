@@ -10,7 +10,7 @@ class QLabel;
 
 namespace Tungsten {
 
-class PropertySheet;
+class PropertyForm;
 
 class FloatProperty : public Property
 {
@@ -26,7 +26,7 @@ private slots:
     void textEdited();
 
 public:
-    FloatProperty(QWidget *parent, PropertySheet &sheet, std::string name, float value, std::function<bool(float)> setter);
+    FloatProperty(QWidget *parent, PropertyForm &sheet, std::string name, float value, std::function<bool(float)> setter);
 
     virtual void setVisible(bool visible) override;
 };

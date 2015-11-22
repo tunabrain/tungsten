@@ -1,11 +1,11 @@
 #include "StringProperty.hpp"
-#include "PropertySheet.hpp"
+#include "PropertyForm.hpp"
 
 #include <QtGui>
 
 namespace Tungsten {
 
-StringProperty::StringProperty(QWidget *parent, PropertySheet &sheet, std::string name, std::string value,
+StringProperty::StringProperty(QWidget *parent, PropertyForm &sheet, std::string name, std::string value,
         std::function<bool(const std::string &)> setter)
 : _value(value),
   _setter(std::move(setter))

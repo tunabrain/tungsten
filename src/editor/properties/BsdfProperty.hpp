@@ -12,7 +12,7 @@ class QWidget;
 
 namespace Tungsten {
 
-class PropertySheet;
+class PropertyForm;
 class BsdfDisplay;
 class Scene;
 class Bsdf;
@@ -64,7 +64,7 @@ class BsdfProperty : public Property
     };
 
     QWidget *_parent;
-    PropertySheet &_sheet;
+    PropertyForm &_sheet;
     std::string _name;
     std::shared_ptr<Bsdf> _value;
     bool _nested;
@@ -86,29 +86,29 @@ class BsdfProperty : public Property
     bool hasAlbedo(BsdfType type) const;
     std::shared_ptr<Bsdf> instantiateBsdf(BsdfType type) const;
 
-    void buildBsdfHeader(PropertySheet *sheet, QWidget *parent);
+    void buildBsdfHeader(PropertyForm *sheet, QWidget *parent);
     void buildBsdfList();
     void buildBsdfPage();
 
-    void buildBsdfPage(PropertySheet *sheet);
-    void buildBsdfPage(PropertySheet *sheet, RoughDielectricBsdf *bsdf);
-    void buildBsdfPage(PropertySheet *sheet, RoughConductorBsdf *bsdf);
-    void buildBsdfPage(PropertySheet *sheet, RoughPlasticBsdf *bsdf);
-    void buildBsdfPage(PropertySheet *sheet, TransparencyBsdf *bsdf);
-    void buildBsdfPage(PropertySheet *sheet, SmoothCoatBsdf *bsdf);
-    void buildBsdfPage(PropertySheet *sheet, DielectricBsdf *bsdf);
-    void buildBsdfPage(PropertySheet *sheet, ConductorBsdf *bsdf);
-    void buildBsdfPage(PropertySheet *sheet, OrenNayarBsdf *bsdf);
-    void buildBsdfPage(PropertySheet *sheet, RoughCoatBsdf *bsdf);
-    void buildBsdfPage(PropertySheet *sheet, ThinSheetBsdf *bsdf);
-    void buildBsdfPage(PropertySheet *sheet, ForwardBsdf *bsdf);
-    void buildBsdfPage(PropertySheet *sheet, LambertBsdf *bsdf);
-    void buildBsdfPage(PropertySheet *sheet, PlasticBsdf *bsdf);
-    void buildBsdfPage(PropertySheet *sheet, MirrorBsdf *bsdf);
-    void buildBsdfPage(PropertySheet *sheet, ErrorBsdf *bsdf);
-    void buildBsdfPage(PropertySheet *sheet, MixedBsdf *bsdf);
-    void buildBsdfPage(PropertySheet *sheet, PhongBsdf *bsdf);
-    void buildBsdfPage(PropertySheet *sheet, NullBsdf *bsdf);
+    void buildBsdfPage(PropertyForm *sheet);
+    void buildBsdfPage(PropertyForm *sheet, RoughDielectricBsdf *bsdf);
+    void buildBsdfPage(PropertyForm *sheet, RoughConductorBsdf *bsdf);
+    void buildBsdfPage(PropertyForm *sheet, RoughPlasticBsdf *bsdf);
+    void buildBsdfPage(PropertyForm *sheet, TransparencyBsdf *bsdf);
+    void buildBsdfPage(PropertyForm *sheet, SmoothCoatBsdf *bsdf);
+    void buildBsdfPage(PropertyForm *sheet, DielectricBsdf *bsdf);
+    void buildBsdfPage(PropertyForm *sheet, ConductorBsdf *bsdf);
+    void buildBsdfPage(PropertyForm *sheet, OrenNayarBsdf *bsdf);
+    void buildBsdfPage(PropertyForm *sheet, RoughCoatBsdf *bsdf);
+    void buildBsdfPage(PropertyForm *sheet, ThinSheetBsdf *bsdf);
+    void buildBsdfPage(PropertyForm *sheet, ForwardBsdf *bsdf);
+    void buildBsdfPage(PropertyForm *sheet, LambertBsdf *bsdf);
+    void buildBsdfPage(PropertyForm *sheet, PlasticBsdf *bsdf);
+    void buildBsdfPage(PropertyForm *sheet, MirrorBsdf *bsdf);
+    void buildBsdfPage(PropertyForm *sheet, ErrorBsdf *bsdf);
+    void buildBsdfPage(PropertyForm *sheet, MixedBsdf *bsdf);
+    void buildBsdfPage(PropertyForm *sheet, PhongBsdf *bsdf);
+    void buildBsdfPage(PropertyForm *sheet, NullBsdf *bsdf);
 
 private slots:
     void updateBsdfDisplay();
@@ -116,7 +116,7 @@ private slots:
     void newBsdf();
 
 public:
-    BsdfProperty(QWidget *parent, PropertySheet &sheet, std::string name, std::shared_ptr<Bsdf> value, bool nested,
+    BsdfProperty(QWidget *parent, PropertyForm &sheet, std::string name, std::shared_ptr<Bsdf> value, bool nested,
             std::function<bool(std::shared_ptr<Bsdf> &)> setter, Scene *scene);
 
     virtual void setVisible(bool visible) override;

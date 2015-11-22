@@ -1,11 +1,11 @@
 #include "BsdfProperties.hpp"
-#include "PropertySheet.hpp"
+#include "PropertyForm.hpp"
 
 #include "primitives/Primitive.hpp"
 
 namespace Tungsten {
 
-void BsdfProperties::fillPropertySheet(PropertySheet *sheet, Primitive *p)
+void BsdfProperties::fillPropertySheet(PropertyForm *sheet, Primitive *p)
 {
     if (p->numBsdfs()) {
         sheet->addBsdfProperty(p->bsdf(0), "BSDF", false, _scene, [this, p](std::shared_ptr<Bsdf> &b) {
@@ -22,7 +22,7 @@ BsdfProperties::BsdfProperties(QWidget *proxyParent, Scene *scene, std::unordere
   _scene(scene),
   _selection(selection)
 {
-    PropertySheet *sheet = new PropertySheet(this);
+    PropertyForm *sheet = new PropertyForm(this);
     setLayout(sheet);
     if (!_selection.empty())
         fillPropertySheet(sheet, *_selection.begin());

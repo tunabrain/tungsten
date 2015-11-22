@@ -13,7 +13,7 @@ class QLabel;
 namespace Tungsten {
 
 class ColorPickButton;
-class PropertySheet;
+class PropertyForm;
 
 class VectorProperty : public Property
 {
@@ -32,7 +32,7 @@ private slots:
     void changeRgb();
 
 public:
-    VectorProperty(QWidget *parent, PropertySheet &sheet, std::string name, Vec3f value,
+    VectorProperty(QWidget *parent, PropertyForm &sheet, std::string name, Vec3f value,
             bool isAbsorption, std::function<bool(Vec3f)> setter);
 
     virtual void setVisible(bool visible) override;
