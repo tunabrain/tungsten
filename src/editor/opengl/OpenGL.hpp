@@ -7,7 +7,7 @@ namespace Tungsten {
 
 namespace GL {
 
-extern QOpenGLFunctions_3_2_Core* glf;
+extern QOpenGLFunctions_3_2_Core *glf;
 
 void initOpenGL();
 
