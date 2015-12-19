@@ -132,7 +132,7 @@ public:
         case Dirac:
             return 0.0f;
         case Box:
-            return (x >= -0.5f && x <= -0.5f) ? 1.0f : 0.0f;
+            return (x >= -0.5f && x <= 0.5f) ? 1.0f : 0.0f;
         case Tent:
             return 1.0f - std::abs(x);
         case Gaussian: {
