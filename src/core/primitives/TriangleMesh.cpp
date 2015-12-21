@@ -136,7 +136,7 @@ rapidjson::Value TriangleMesh::toJson(Allocator &allocator) const
     rapidjson::Value v = Primitive::toJson(allocator);
     v.AddMember("type", "mesh", allocator);
     if (_path)
-        v.AddMember("file", JsonUtils::toJsonValue(*_path, allocator), allocator);
+        v.AddMember("file", JsonUtils::toJson(*_path, allocator), allocator);
     v.AddMember("smooth", _smoothed, allocator);
     v.AddMember("backface_culling", _backfaceCulling, allocator);
     v.AddMember("recompute_normals", _recomputeNormals, allocator);

@@ -48,7 +48,7 @@ rapidjson::Value RoughDielectricBsdf::toJson(Allocator &allocator) const
     rapidjson::Value v = Bsdf::toJson(allocator);
     v.AddMember("type", "rough_dielectric", allocator);
     v.AddMember("ior", _ior, allocator);
-    v.AddMember("distribution", JsonUtils::toJsonValue(_distributionName, allocator), allocator);
+    v.AddMember("distribution", JsonUtils::toJson(_distributionName, allocator), allocator);
     v.AddMember("enable_refraction", _enableT, allocator);
     JsonUtils::addObjectMember(v, "roughness", *_roughness, allocator);
     return std::move(v);

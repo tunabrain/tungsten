@@ -35,7 +35,7 @@ void Primitive::fromJson(const rapidjson::Value &v, const Scene &scene)
 rapidjson::Value Primitive::toJson(Allocator &allocator) const
 {
     rapidjson::Value v = JsonSerializable::toJson(allocator);
-    v.AddMember("transform", JsonUtils::toJsonValue(_transform, allocator), allocator);
+    v.AddMember("transform", JsonUtils::toJson(_transform, allocator), allocator);
     if (_power)
         JsonUtils::addObjectMember(v, "power", *_power, allocator);
     else if (_emission)

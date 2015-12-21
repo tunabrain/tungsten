@@ -141,7 +141,7 @@ rapidjson::Value CubemapCamera::toJson(Allocator &allocator) const
 {
     rapidjson::Value v = Camera::toJson(allocator);
     v.AddMember("type", "cubemap", allocator);
-    v.AddMember("mode", JsonUtils::toJsonValue(_modeString, allocator), allocator);
+    v.AddMember("mode", JsonUtils::toJson(_modeString, allocator), allocator);
     return std::move(v);
 }
 

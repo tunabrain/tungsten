@@ -221,24 +221,24 @@ bool fromJson(const rapidjson::Value &v, Path &dst)
     return result;
 }
 
-rapidjson::Value toJsonValue(const std::string &value, rapidjson::Document::AllocatorType &allocator)
+rapidjson::Value toJson(const std::string &value, rapidjson::Document::AllocatorType &allocator)
 {
     rapidjson::Value result;
     result.SetString(value.c_str(), value.size(), allocator);
     return std::move(result);
 }
 
-rapidjson::Value toJsonValue(const Path &value, rapidjson::Document::AllocatorType &allocator)
+rapidjson::Value toJson(const Path &value, rapidjson::Document::AllocatorType &allocator)
 {
-    return toJsonValue(value.asString(), allocator);
+    return toJson(value.asString(), allocator);
 }
 
-rapidjson::Value toJsonValue(double value, rapidjson::Document::AllocatorType &/*allocator*/)
+rapidjson::Value toJson(double value, rapidjson::Document::AllocatorType &/*allocator*/)
 {
     return std::move(rapidjson::Value(value));
 }
 
-rapidjson::Value toJsonValue(const Mat4f &value, rapidjson::Document::AllocatorType &allocator)
+rapidjson::Value toJson(const Mat4f &value, rapidjson::Document::AllocatorType &allocator)
 {
     Vec3f   rot = prettifyVector(value.extractRotationVec());
     Vec3f scale = prettifyVector(value.extractScaleVec());
@@ -246,11 +246,11 @@ rapidjson::Value toJsonValue(const Mat4f &value, rapidjson::Document::AllocatorT
 
     rapidjson::Value a(rapidjson::kObjectType);
     if (pos != 0.0f)
-        a.AddMember("position", toJsonValue(pos, allocator), allocator);
+        a.AddMember("position", toJson(pos, allocator), allocator);
     if (scale != 1.0f)
-        a.AddMember("scale", toJsonValue(scale, allocator), allocator);
+        a.AddMember("scale", toJson(scale, allocator), allocator);
     if (rot != 0.0f)
-        a.AddMember("rotation", toJsonValue(rot, allocator), allocator);
+        a.AddMember("rotation", toJson(rot, allocator), allocator);
 
     return std::move(a);
 }
@@ -261,7 +261,7 @@ void addObjectMember(rapidjson::Value &v, const char *name, const JsonSerializab
     if (o.unnamed())
         v.AddMember(rapidjson::StringRef(name), o.toJson(allocator), allocator);
     else
-        v.AddMember(rapidjson::StringRef(name), toJsonValue(o.name(), allocator), allocator);
+        v.AddMember(rapidjson::StringRef(name), toJson(o.name(), allocator), allocator);
 }
 
 struct JsonStringWriter {

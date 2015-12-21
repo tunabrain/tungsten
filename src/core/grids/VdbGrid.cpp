@@ -147,15 +147,15 @@ rapidjson::Value VdbGrid::toJson(Allocator &allocator) const
     rapidjson::Value v = Grid::toJson(allocator);
 
     v.AddMember("type", "vdb", allocator);
-    v.AddMember("file", JsonUtils::toJsonValue(*_path, allocator), allocator);
-    v.AddMember("grid_name", JsonUtils::toJsonValue(_gridName, allocator), allocator);
-    v.AddMember("integration_method", JsonUtils::toJsonValue(_integrationString, allocator), allocator);
-    v.AddMember("sampling_method", JsonUtils::toJsonValue(_sampleString, allocator), allocator);
+    v.AddMember("file", JsonUtils::toJson(*_path, allocator), allocator);
+    v.AddMember("grid_name", JsonUtils::toJson(_gridName, allocator), allocator);
+    v.AddMember("integration_method", JsonUtils::toJson(_integrationString, allocator), allocator);
+    v.AddMember("sampling_method", JsonUtils::toJson(_sampleString, allocator), allocator);
     if (_integrationMethod == IntegrationMethod::ResidualRatio)
         v.AddMember("supergrid_subsample", _supergridSubsample, allocator);
     if (_integrationMethod == IntegrationMethod::Raymarching || _sampleMethod == SampleMethod::Raymarching)
         v.AddMember("step_size", _stepSize, allocator);
-    v.AddMember("transform", JsonUtils::toJsonValue(_configTransform, allocator), allocator);
+    v.AddMember("transform", JsonUtils::toJson(_configTransform, allocator), allocator);
 
     return std::move(v);
 }

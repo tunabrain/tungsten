@@ -31,7 +31,7 @@ rapidjson::Value SmoothCoatBsdf::toJson(Allocator &allocator) const
     v.AddMember("type", "smooth_coat", allocator);
     v.AddMember("ior", _ior, allocator);
     v.AddMember("thickness", _thickness, allocator);
-    v.AddMember("sigma_a", JsonUtils::toJsonValue(_sigmaA, allocator), allocator);
+    v.AddMember("sigma_a", JsonUtils::toJson(_sigmaA, allocator), allocator);
     JsonUtils::addObjectMember(v, "substrate", *_substrate, allocator);
     return std::move(v);
 }

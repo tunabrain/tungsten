@@ -109,10 +109,10 @@ rapidjson::Value RoughWireBcsdf::toJson(Allocator &allocator) const
     v.AddMember("type", "rough_wire", allocator);
     v.AddMember("roughness", _roughness, allocator);
     if (_materialName.empty()) {
-        v.AddMember("eta", JsonUtils::toJsonValue(_eta, allocator), allocator);
-        v.AddMember("k", JsonUtils::toJsonValue(_k, allocator), allocator);
+        v.AddMember("eta", JsonUtils::toJson(_eta, allocator), allocator);
+        v.AddMember("k", JsonUtils::toJson(_k, allocator), allocator);
     } else {
-        v.AddMember("material", JsonUtils::toJsonValue(_materialName, allocator), allocator);
+        v.AddMember("material", JsonUtils::toJson(_materialName, allocator), allocator);
     }
     return std::move(v);
 }

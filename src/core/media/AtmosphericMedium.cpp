@@ -39,15 +39,15 @@ rapidjson::Value AtmosphericMedium::toJson(Allocator &allocator) const
 {
     rapidjson::Value v(Medium::toJson(allocator));
     v.AddMember("type", "atmosphere", allocator);
-    v.AddMember("sigma_a", JsonUtils::toJsonValue(_materialSigmaA, allocator), allocator);
-    v.AddMember("sigma_s", JsonUtils::toJsonValue(_materialSigmaS, allocator), allocator);
-    v.AddMember("density", JsonUtils::toJsonValue(_density, allocator), allocator);
-    v.AddMember("falloff_scale", JsonUtils::toJsonValue(_falloffScale, allocator), allocator);
-    v.AddMember("radius", JsonUtils::toJsonValue(_radius, allocator), allocator);
+    v.AddMember("sigma_a", JsonUtils::toJson(_materialSigmaA, allocator), allocator);
+    v.AddMember("sigma_s", JsonUtils::toJson(_materialSigmaS, allocator), allocator);
+    v.AddMember("density", JsonUtils::toJson(_density, allocator), allocator);
+    v.AddMember("falloff_scale", JsonUtils::toJson(_falloffScale, allocator), allocator);
+    v.AddMember("radius", JsonUtils::toJson(_radius, allocator), allocator);
     if (!_primName.empty())
-        v.AddMember("pivot", JsonUtils::toJsonValue(_primName, allocator), allocator);
+        v.AddMember("pivot", JsonUtils::toJson(_primName, allocator), allocator);
     else
-        v.AddMember("center", JsonUtils::toJsonValue(_center, allocator), allocator);
+        v.AddMember("center", JsonUtils::toJson(_center, allocator), allocator);
 
     return std::move(v);
 }

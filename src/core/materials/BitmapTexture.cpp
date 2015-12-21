@@ -223,14 +223,14 @@ rapidjson::Value BitmapTexture::toJson(Allocator &allocator) const
         rapidjson::Value v = Texture::toJson(allocator);
         v.AddMember("type", "bitmap", allocator);
         if (_path)
-            v.AddMember("file", JsonUtils::toJsonValue(*_path, allocator), allocator);
+            v.AddMember("file", JsonUtils::toJson(*_path, allocator), allocator);
         v.AddMember("gamma_correct", _gammaCorrect, allocator);
         v.AddMember("interpolate", _linear, allocator);
         v.AddMember("clamp", _clamp, allocator);
         v.AddMember("scale", _scale, allocator);
         return std::move(v);
     } else {
-        return JsonUtils::toJsonValue(*_path, allocator);
+        return JsonUtils::toJson(*_path, allocator);
     }
 }
 

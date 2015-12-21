@@ -169,7 +169,7 @@ rapidjson::Value HairBcsdf::toJson(Allocator &allocator) const
     v.AddMember("type", "hair", allocator);
     v.AddMember("scale_angle", _scaleAngleDeg, allocator);
     if (_overridesSigmaA) {
-        v.AddMember("sigma_a", JsonUtils::toJsonValue(_sigmaA, allocator), allocator);
+        v.AddMember("sigma_a", JsonUtils::toJson(_sigmaA, allocator), allocator);
     } else {
         v.AddMember("melanin_ratio", _melaninRatio, allocator);
         v.AddMember("melanin_concentration", _melaninConcentration, allocator);

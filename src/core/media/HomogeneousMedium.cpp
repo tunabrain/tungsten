@@ -28,9 +28,9 @@ rapidjson::Value HomogeneousMedium::toJson(Allocator &allocator) const
 {
     rapidjson::Value v(Medium::toJson(allocator));
     v.AddMember("type", "homogeneous", allocator);
-    v.AddMember("sigma_a", JsonUtils::toJsonValue(_materialSigmaA, allocator), allocator);
-    v.AddMember("sigma_s", JsonUtils::toJsonValue(_materialSigmaS, allocator), allocator);
-    v.AddMember("density", JsonUtils::toJsonValue(_density, allocator), allocator);
+    v.AddMember("sigma_a", JsonUtils::toJson(_materialSigmaA, allocator), allocator);
+    v.AddMember("sigma_s", JsonUtils::toJson(_materialSigmaS, allocator), allocator);
+    v.AddMember("density", JsonUtils::toJson(_density, allocator), allocator);
 
     return std::move(v);
 }

@@ -28,8 +28,8 @@ rapidjson::Value VoxelMedium::toJson(Allocator &allocator) const
 {
     rapidjson::Value v(Medium::toJson(allocator));
     v.AddMember("type", "voxel", allocator);
-    v.AddMember("sigma_a", JsonUtils::toJsonValue(_sigmaA, allocator), allocator);
-    v.AddMember("sigma_s", JsonUtils::toJsonValue(_sigmaS, allocator), allocator);
+    v.AddMember("sigma_a", JsonUtils::toJson(_sigmaA, allocator), allocator);
+    v.AddMember("sigma_s", JsonUtils::toJson(_sigmaS, allocator), allocator);
     JsonUtils::addObjectMember(v, "grid", *_grid,  allocator);
 
     return std::move(v);

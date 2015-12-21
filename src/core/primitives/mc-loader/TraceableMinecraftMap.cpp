@@ -579,13 +579,13 @@ rapidjson::Value TraceableMinecraftMap::toJson(Allocator &allocator) const
     rapidjson::Value v = Primitive::toJson(allocator);
     v.AddMember("type", "minecraft_map", allocator);
     if (_mapPath)
-        v.AddMember("map_path", JsonUtils::toJsonValue(*_mapPath, allocator), allocator);
+        v.AddMember("map_path", JsonUtils::toJson(*_mapPath, allocator), allocator);
     if (_packPaths.size() == 1) {
-        v.AddMember("resource_packs", JsonUtils::toJsonValue(*_packPaths[0], allocator), allocator);
+        v.AddMember("resource_packs", JsonUtils::toJson(*_packPaths[0], allocator), allocator);
     } else if (!_packPaths.empty()) {
         rapidjson::Value a(rapidjson::kArrayType);
         for (const PathPtr &p : _packPaths)
-            a.PushBack(JsonUtils::toJsonValue(*p, allocator), allocator);
+            a.PushBack(JsonUtils::toJson(*p, allocator), allocator);
         v.AddMember("resource_packs", std::move(a), allocator);
     }
     return std::move(v);

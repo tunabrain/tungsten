@@ -76,16 +76,16 @@ void Camera::fromJson(const rapidjson::Value &v, const Scene &scene)
 rapidjson::Value Camera::toJson(Allocator &allocator) const
 {
     rapidjson::Value v = JsonSerializable::toJson(allocator);
-    v.AddMember("tonemap", JsonUtils::toJsonValue(_tonemapString, allocator), allocator);
-    v.AddMember("resolution", JsonUtils::toJsonValue<uint32, 2>(_res, allocator), allocator);
+    v.AddMember("tonemap", JsonUtils::toJson(_tonemapString, allocator), allocator);
+    v.AddMember("resolution", JsonUtils::toJson<uint32, 2>(_res, allocator), allocator);
     if (_medium)
         JsonUtils::addObjectMember(v, "medium", *_medium,  allocator);
-    v.AddMember("reconstruction_filter", JsonUtils::toJsonValue(_filter.name(), allocator), allocator);
+    v.AddMember("reconstruction_filter", JsonUtils::toJson(_filter.name(), allocator), allocator);
 
     rapidjson::Value tform(rapidjson::kObjectType);
-    tform.AddMember("position", JsonUtils::toJsonValue<float, 3>(_pos,    allocator), allocator);
-    tform.AddMember("look_at",  JsonUtils::toJsonValue<float, 3>(_lookAt, allocator), allocator);
-    tform.AddMember("up",       JsonUtils::toJsonValue<float, 3>(_up,     allocator), allocator);
+    tform.AddMember("position", JsonUtils::toJson<float, 3>(_pos,    allocator), allocator);
+    tform.AddMember("look_at",  JsonUtils::toJson<float, 3>(_lookAt, allocator), allocator);
+    tform.AddMember("up",       JsonUtils::toJson<float, 3>(_up,     allocator), allocator);
     v.AddMember("transform", std::move(tform), allocator);
 
     return std::move(v);

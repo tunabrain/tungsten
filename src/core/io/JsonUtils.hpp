@@ -78,16 +78,16 @@ inline bool fromJson(const rapidjson::Value &v, const char *field, T &dst)
     return fromJson(member->value, dst);
 }
 
-rapidjson::Value toJsonValue(const std::string &value, rapidjson::Document::AllocatorType &allocator);
-rapidjson::Value toJsonValue(const Path &value, rapidjson::Document::AllocatorType &allocator);
-rapidjson::Value toJsonValue(double value, rapidjson::Document::AllocatorType &allocator);
-rapidjson::Value toJsonValue(const Mat4f &value, rapidjson::Document::AllocatorType &allocator);
+rapidjson::Value toJson(const std::string &value, rapidjson::Document::AllocatorType &allocator);
+rapidjson::Value toJson(const Path &value, rapidjson::Document::AllocatorType &allocator);
+rapidjson::Value toJson(double value, rapidjson::Document::AllocatorType &allocator);
+rapidjson::Value toJson(const Mat4f &value, rapidjson::Document::AllocatorType &allocator);
 
 template<typename ElementType, unsigned Size>
-rapidjson::Value toJsonValue(const Vec<ElementType, Size> &value, rapidjson::Document::AllocatorType &allocator)
+rapidjson::Value toJson(const Vec<ElementType, Size> &value, rapidjson::Document::AllocatorType &allocator)
 {
     if (value == value[0]) {
-        return toJsonValue(double(value[0]), allocator);
+        return toJson(double(value[0]), allocator);
     } else {
         rapidjson::Value a(rapidjson::kArrayType);
         for (unsigned i = 0; i < Size; ++i)

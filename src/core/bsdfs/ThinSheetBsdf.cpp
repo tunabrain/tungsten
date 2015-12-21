@@ -44,7 +44,7 @@ rapidjson::Value ThinSheetBsdf::toJson(Allocator &allocator) const
     v.AddMember("ior", _ior, allocator);
     v.AddMember("enable_interference", _enableInterference, allocator);
     JsonUtils::addObjectMember(v, "thickness", *_thickness, allocator);
-    v.AddMember("sigma_a", JsonUtils::toJsonValue(_sigmaA, allocator), allocator);
+    v.AddMember("sigma_a", JsonUtils::toJson(_sigmaA, allocator), allocator);
     return std::move(v);
 }
 

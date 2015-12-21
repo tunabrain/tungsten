@@ -394,12 +394,12 @@ rapidjson::Value Curves::toJson(Allocator &allocator) const
     rapidjson::Value v = Primitive::toJson(allocator);
     v.AddMember("type", "curves", allocator);
     if (_path)
-        v.AddMember("file", JsonUtils::toJsonValue(*_path, allocator), allocator);
+        v.AddMember("file", JsonUtils::toJson(*_path, allocator), allocator);
     if (_overrideThickness)
         v.AddMember("curve_thickness", _curveThickness, allocator);
     v.AddMember("curve_taper", _taperThickness, allocator);
     v.AddMember("subsample", _subsample, allocator);
-    v.AddMember("mode", JsonUtils::toJsonValue(_modeString, allocator), allocator);
+    v.AddMember("mode", JsonUtils::toJson(_modeString, allocator), allocator);
     JsonUtils::addObjectMember(v, "bsdf", *_bsdf, allocator);
     return std::move(v);
 }
