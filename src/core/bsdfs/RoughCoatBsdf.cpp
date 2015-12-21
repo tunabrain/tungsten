@@ -43,7 +43,7 @@ rapidjson::Value RoughCoatBsdf::toJson(Allocator &allocator) const
     v.AddMember("thickness", _thickness, allocator);
     v.AddMember("sigma_a", JsonUtils::toJsonValue(_sigmaA, allocator), allocator);
     JsonUtils::addObjectMember(v, "substrate", *_substrate, allocator);
-    v.AddMember("distribution", _distributionName.c_str(), allocator);
+    v.AddMember("distribution", JsonUtils::toJsonValue(_distributionName, allocator), allocator);
     JsonUtils::addObjectMember(v, "roughness", *_roughness, allocator);
     return std::move(v);
 }

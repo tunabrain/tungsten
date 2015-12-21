@@ -17,8 +17,8 @@ void Medium::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     JsonSerializable::fromJson(v, scene);
 
-    const rapidjson::Value::Member *phase = v.FindMember("phase_function");
-    if (phase)
+    auto phase = v.FindMember("phase_function");
+    if (phase != v.MemberEnd())
         _phaseFunction = scene.fetchPhase(phase->value);
 
     JsonUtils::fromJson(v, "max_bounces", _maxBounce);

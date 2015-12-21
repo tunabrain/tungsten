@@ -67,8 +67,8 @@ public:
         JsonUtils::fromJson(v, "checkpoint_interval", _checkpointInterval);
         JsonUtils::fromJson(v, "timeout", _timeout);
 
-        const rapidjson::Value::Member *outputs = v.FindMember("output_buffers");
-        if (outputs && outputs->value.IsArray()) {
+        auto outputs = v.FindMember("output_buffers");
+        if (outputs != v.MemberEnd() && outputs->value.IsArray()) {
             for (rapidjson::SizeType i = 0; i < outputs->value.Size(); ++i) {
                 _outputs.emplace_back();
                 _outputs.back().fromJson(outputs->value[i], scene);
@@ -80,13 +80,13 @@ public:
     {
         rapidjson::Value v(JsonSerializable::toJson(allocator));
         if (!_outputFile.empty())
-            v.AddMember("output_file", _outputFile.asString().c_str(), allocator);
+            v.AddMember("output_file", JsonUtils::toJsonValue(_outputFile, allocator), allocator);
         if (!_hdrOutputFile.empty())
-            v.AddMember("hdr_output_file", _hdrOutputFile.asString().c_str(), allocator);
+            v.AddMember("hdr_output_file", JsonUtils::toJsonValue(_hdrOutputFile, allocator), allocator);
         if (!_varianceOutputFile.empty())
-            v.AddMember("variance_output_file", _varianceOutputFile.asString().c_str(), allocator);
+            v.AddMember("variance_output_file", JsonUtils::toJsonValue(_varianceOutputFile, allocator), allocator);
         if (!_resumeRenderFile.empty())
-            v.AddMember("resume_render_file", _resumeRenderFile.asString().c_str(), allocator);
+            v.AddMember("resume_render_file", JsonUtils::toJsonValue(_resumeRenderFile, allocator), allocator);
         v.AddMember("overwrite_output_files", _overwriteOutputFiles, allocator);
         v.AddMember("adaptive_sampling", _useAdaptiveSampling, allocator);
         v.AddMember("enable_resume_render", _enableResumeRender, allocator);
@@ -94,8 +94,8 @@ public:
         v.AddMember("scene_bvh", _useSceneBvh, allocator);
         v.AddMember("spp", _spp, allocator);
         v.AddMember("spp_step", _sppStep, allocator);
-        v.AddMember("checkpoint_interval", _checkpointInterval.c_str(), allocator);
-        v.AddMember("timeout", _timeout.c_str(), allocator);
+        v.AddMember("checkpoint_interval", JsonUtils::toJsonValue(_checkpointInterval, allocator), allocator);
+        v.AddMember("timeout", JsonUtils::toJsonValue(_timeout, allocator), allocator);
         if (!_outputs.empty()) {
             rapidjson::Value outputs(rapidjson::kArrayType);
             for (const auto &b : _outputs)

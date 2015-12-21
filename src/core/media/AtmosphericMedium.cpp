@@ -45,7 +45,7 @@ rapidjson::Value AtmosphericMedium::toJson(Allocator &allocator) const
     v.AddMember("falloff_scale", JsonUtils::toJsonValue(_falloffScale, allocator), allocator);
     v.AddMember("radius", JsonUtils::toJsonValue(_radius, allocator), allocator);
     if (!_primName.empty())
-        v.AddMember("pivot", _primName.c_str(), allocator);
+        v.AddMember("pivot", JsonUtils::toJsonValue(_primName, allocator), allocator);
     else
         v.AddMember("center", JsonUtils::toJsonValue(_center, allocator), allocator);
 

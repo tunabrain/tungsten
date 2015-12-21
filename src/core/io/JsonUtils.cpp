@@ -10,8 +10,8 @@ namespace JsonUtils {
 
 const rapidjson::Value &fetchMember(const rapidjson::Value &v, const char *name)
 {
-    const rapidjson::Value::Member *member = v.FindMember(name);
-    ASSERT(member != nullptr, "Json value is missing mandatory member '%s'", name);
+    auto member = v.FindMember(name);
+    ASSERT(member != v.MemberEnd(), "Json value is missing mandatory member '%s'", name);
     return member->value;
 }
 
@@ -221,6 +221,18 @@ bool fromJson(const rapidjson::Value &v, Path &dst)
     return result;
 }
 
+rapidjson::Value toJsonValue(const std::string &value, rapidjson::Document::AllocatorType &allocator)
+{
+    rapidjson::Value result;
+    result.SetString(value.c_str(), value.size(), allocator);
+    return std::move(result);
+}
+
+rapidjson::Value toJsonValue(const Path &value, rapidjson::Document::AllocatorType &allocator)
+{
+    return toJsonValue(value.asString(), allocator);
+}
+
 rapidjson::Value toJsonValue(double value, rapidjson::Document::AllocatorType &/*allocator*/)
 {
     return std::move(rapidjson::Value(value));
@@ -247,9 +259,9 @@ void addObjectMember(rapidjson::Value &v, const char *name, const JsonSerializab
         rapidjson::Document::AllocatorType &allocator)
 {
     if (o.unnamed())
-        v.AddMember(name, o.toJson(allocator), allocator);
+        v.AddMember(rapidjson::StringRef(name), o.toJson(allocator), allocator);
     else
-        v.AddMember(name, o.name().c_str(), allocator);
+        v.AddMember(rapidjson::StringRef(name), toJsonValue(o.name(), allocator), allocator);
 }
 
 struct JsonStringWriter {

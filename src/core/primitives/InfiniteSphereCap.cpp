@@ -50,7 +50,7 @@ rapidjson::Value InfiniteSphereCap::toJson(Allocator &allocator) const
     v.AddMember("type", "infinite_sphere_cap", allocator);
     v.AddMember("sample", _doSample, allocator);
     if (!_domeName.empty())
-        v.AddMember("skydome", _domeName.c_str(), allocator);
+        v.AddMember("skydome", JsonUtils::toJsonValue(_domeName, allocator), allocator);
     v.AddMember("cap_angle", _capAngleDeg, allocator);
     return std::move(v);
 }

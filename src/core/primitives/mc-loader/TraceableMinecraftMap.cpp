@@ -73,10 +73,10 @@ void TraceableMinecraftMap::getTexProperties(const Path &path, int w, int h,
     if (document.HasParseError() || !document.IsObject())
         return;
 
-    const rapidjson::Value::Member *animation = document.FindMember("animation");
-    const rapidjson::Value::Member *texture   = document.FindMember("texture");
+    auto animation = document.FindMember("animation");
+    auto texture   = document.FindMember("texture");
 
-    if (animation) {
+    if (animation != document.MemberEnd()) {
         int numTilesX, numTilesY;
         if (JsonUtils::fromJson(animation->value, "width", numTilesX))
             tileW = w/numTilesX;
@@ -84,7 +84,7 @@ void TraceableMinecraftMap::getTexProperties(const Path &path, int w, int h,
             tileH = h/numTilesY;
     }
 
-    if (texture) {
+    if (texture != document.MemberEnd()) {
         JsonUtils::fromJson(texture->value, "blur", linear);
         JsonUtils::fromJson(texture->value, "clamp", clamp);
     }
@@ -563,8 +563,8 @@ void TraceableMinecraftMap::fromJson(const rapidjson::Value &v, const Scene &sce
 
     _mapPath = scene.fetchResource(v, "map_path");
 
-    const rapidjson::Value::Member *packs = v.FindMember("resource_packs");
-    if (packs) {
+    auto packs = v.FindMember("resource_packs");
+    if (packs != v.MemberEnd()) {
         if (packs->value.IsArray()) {
             for (size_t i = 0; i < packs->value.Size(); ++i)
                 _packPaths.emplace_back(scene.fetchResource(packs->value[i]));
@@ -579,13 +579,13 @@ rapidjson::Value TraceableMinecraftMap::toJson(Allocator &allocator) const
     rapidjson::Value v = Primitive::toJson(allocator);
     v.AddMember("type", "minecraft_map", allocator);
     if (_mapPath)
-        v.AddMember("map_path", _mapPath->asString().c_str(), allocator);
+        v.AddMember("map_path", JsonUtils::toJsonValue(*_mapPath, allocator), allocator);
     if (_packPaths.size() == 1) {
-        v.AddMember("resource_packs", _packPaths[0]->asString().c_str(), allocator);
+        v.AddMember("resource_packs", JsonUtils::toJsonValue(*_packPaths[0], allocator), allocator);
     } else if (!_packPaths.empty()) {
         rapidjson::Value a(rapidjson::kArrayType);
         for (const PathPtr &p : _packPaths)
-            a.PushBack(p->asString().c_str(), allocator);
+            a.PushBack(JsonUtils::toJsonValue(*p, allocator), allocator);
         v.AddMember("resource_packs", std::move(a), allocator);
     }
     return std::move(v);

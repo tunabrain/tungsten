@@ -71,14 +71,16 @@ bool fromJson(const rapidjson::Value &v, Vec<ElementType, Size> &dst)
 template<typename T>
 inline bool fromJson(const rapidjson::Value &v, const char *field, T &dst)
 {
-    const rapidjson::Value::Member *member = v.FindMember(field);
-    if (!member)
+    auto member = v.FindMember(field);
+    if (member == v.MemberEnd())
         return false;
 
     return fromJson(member->value, dst);
 }
 
-rapidjson::Value toJsonValue(double value, rapidjson::Document::AllocatorType &/*allocator*/);
+rapidjson::Value toJsonValue(const std::string &value, rapidjson::Document::AllocatorType &allocator);
+rapidjson::Value toJsonValue(const Path &value, rapidjson::Document::AllocatorType &allocator);
+rapidjson::Value toJsonValue(double value, rapidjson::Document::AllocatorType &allocator);
 rapidjson::Value toJsonValue(const Mat4f &value, rapidjson::Document::AllocatorType &allocator);
 
 template<typename ElementType, unsigned Size>

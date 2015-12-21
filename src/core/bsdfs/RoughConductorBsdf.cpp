@@ -53,9 +53,9 @@ rapidjson::Value RoughConductorBsdf::toJson(Allocator &allocator) const
         v.AddMember("eta", JsonUtils::toJsonValue(_eta, allocator), allocator);
         v.AddMember("k", JsonUtils::toJsonValue(_k, allocator), allocator);
     } else {
-        v.AddMember("material", _materialName.c_str(), allocator);
+        v.AddMember("material", JsonUtils::toJsonValue(_materialName, allocator), allocator);
     }
-    v.AddMember("distribution", _distributionName.c_str(), allocator);
+    v.AddMember("distribution", JsonUtils::toJsonValue(_distributionName, allocator), allocator);
     JsonUtils::addObjectMember(v, "roughness", *_roughness, allocator);
     return std::move(v);
 }

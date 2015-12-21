@@ -400,8 +400,8 @@ std::shared_ptr<Texture> Scene::fetchTexture(const rapidjson::Value &v, TexelCon
 bool Scene::textureFromJsonMember(const rapidjson::Value &v, const char *field, TexelConversion conversion,
         std::shared_ptr<Texture> &dst) const
 {
-    const rapidjson::Value::Member *member = v.FindMember(field);
-    if (!member)
+    auto member = v.FindMember(field);
+    if (member == v.MemberEnd())
         return false;
 
     std::shared_ptr<Texture> tex = fetchTexture(member->value, conversion);
@@ -440,8 +440,8 @@ PathPtr Scene::fetchResource(const rapidjson::Value &v) const
 
 PathPtr Scene::fetchResource(const rapidjson::Value &v, const char *field) const
 {
-    const rapidjson::Value::Member *member = v.FindMember(field);
-    if (!member)
+    auto member = v.FindMember(field);
+    if (member == v.MemberEnd())
         return nullptr;
     return fetchResource(member->value);
 }
@@ -510,38 +510,38 @@ void Scene::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
     JsonSerializable::fromJson(v, scene);
 
-    const rapidjson::Value::Member *media      = v.FindMember("media");
-    const rapidjson::Value::Member *bsdfs      = v.FindMember("bsdfs");
-    const rapidjson::Value::Member *primitives = v.FindMember("primitives");
-    const rapidjson::Value::Member *camera     = v.FindMember("camera");
-    const rapidjson::Value::Member *integrator = v.FindMember("integrator");
-    const rapidjson::Value::Member *renderer   = v.FindMember("renderer");
+    auto media      = v.FindMember("media");
+    auto bsdfs      = v.FindMember("bsdfs");
+    auto primitives = v.FindMember("primitives");
+    auto camera     = v.FindMember("camera");
+    auto integrator = v.FindMember("integrator");
+    auto renderer   = v.FindMember("renderer");
 
-    if (media && media->value.IsArray())
+    if (media != v.MemberEnd() && media->value.IsArray())
         loadObjectList(media->value, std::bind(&Scene::instantiateMedium, this,
                 std::placeholders::_1, std::placeholders::_2), _media);
 
-    if (bsdfs && bsdfs->value.IsArray())
+    if (bsdfs != v.MemberEnd() && bsdfs->value.IsArray())
         loadObjectList(bsdfs->value, std::bind(&Scene::instantiateBsdf, this,
                 std::placeholders::_1, std::placeholders::_2), _bsdfs);
 
-    if (primitives && primitives->value.IsArray())
+    if (primitives != v.MemberEnd() && primitives->value.IsArray())
         loadObjectList(primitives->value, std::bind(&Scene::instantiatePrimitive, this,
                 std::placeholders::_1, std::placeholders::_2), _primitives);
 
-    if (camera && camera->value.IsObject()) {
+    if (camera != v.MemberEnd() && camera->value.IsObject()) {
         auto result = instantiateCamera(JsonUtils::as<std::string>(camera->value, "type"), camera->value);
         if (result)
             _camera = std::move(result);
     }
 
-    if (integrator && integrator->value.IsObject()) {
+    if (integrator != v.MemberEnd() && integrator->value.IsObject()) {
         auto result = instantiateIntegrator(JsonUtils::as<std::string>(integrator->value, "type"), integrator->value);
         if (result)
             _integrator = std::move(result);
     }
 
-    if (renderer && renderer->value.IsObject())
+    if (renderer != v.MemberEnd() && renderer->value.IsObject())
         _rendererSettings.fromJson(renderer->value, *this);
 }
 

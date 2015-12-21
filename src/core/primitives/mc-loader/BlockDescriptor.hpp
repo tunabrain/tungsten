@@ -22,11 +22,11 @@ public:
     BlockDescriptor(const std::string &name, const rapidjson::Value &v, ModelResolver &resolver)
     : _name(name)
     {
-        const rapidjson::Value::Member *variants = v.FindMember("variants");
+        auto variants = v.FindMember("variants");
 
-        if (variants && variants->value.IsObject()) {
-            const rapidjson::Value::Member *begin = variants->value.MemberBegin();
-            const rapidjson::Value::Member *end   = variants->value.MemberEnd();
+        if (variants != v.MemberEnd() && variants->value.IsObject()) {
+            auto begin = variants->value.MemberBegin();
+            auto end   = variants->value.MemberEnd();
 
             for (auto i = begin; i < end; ++i) {
                 if (i->value.IsObject() || i->value.IsArray())

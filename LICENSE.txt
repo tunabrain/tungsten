@@ -89,7 +89,7 @@ src/thirdparty/sobol is a Sobol sequence generator, which may be obtained at htt
 
 src/thirdparty/rapidjson is a fast JSON read/write library, and may be obtained at https://github.com/miloyip/rapidjson
 
-    Copyright (C) 2011 Milo Yip
+    Copyright (C) 2015 THL A29 Limited, a Tencent company, and Milo Yip.  All rights reserved.
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal

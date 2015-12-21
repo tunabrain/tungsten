@@ -112,7 +112,7 @@ rapidjson::Value RoughWireBcsdf::toJson(Allocator &allocator) const
         v.AddMember("eta", JsonUtils::toJsonValue(_eta, allocator), allocator);
         v.AddMember("k", JsonUtils::toJsonValue(_k, allocator), allocator);
     } else {
-        v.AddMember("material", _materialName.c_str(), allocator);
+        v.AddMember("material", JsonUtils::toJsonValue(_materialName, allocator), allocator);
     }
     return std::move(v);
 }

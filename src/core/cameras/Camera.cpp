@@ -44,15 +44,19 @@ void Camera::precompute()
 
 void Camera::fromJson(const rapidjson::Value &v, const Scene &scene)
 {
+    auto medium    = v.FindMember("medium");
+    auto filter    = v.FindMember("reconstruction_filter");
+    auto transform = v.FindMember("transform");
+
     JsonUtils::fromJson(v, "tonemap", _tonemapString);
     JsonUtils::fromJson(v, "resolution", _res);
-    if (const rapidjson::Value::Member *medium = v.FindMember("medium"))
+    if (medium != v.MemberEnd())
         _medium = scene.fetchMedium(medium->value);
-    if (const rapidjson::Value::Member *filter = v.FindMember("reconstruction_filter"))
+    if (filter != v.MemberEnd())
         if (filter->value.IsString())
             _filter = ReconstructionFilter(filter->value.GetString());
 
-    if (const rapidjson::Value::Member *transform = v.FindMember("transform")) {
+    if (transform != v.MemberEnd()) {
         JsonUtils::fromJson(transform->value, _transform);
         _pos    = _transform.extractTranslationVec();
         _lookAt = _transform.fwd() + _pos;
@@ -72,11 +76,11 @@ void Camera::fromJson(const rapidjson::Value &v, const Scene &scene)
 rapidjson::Value Camera::toJson(Allocator &allocator) const
 {
     rapidjson::Value v = JsonSerializable::toJson(allocator);
-    v.AddMember("tonemap", _tonemapString.c_str(), allocator);
+    v.AddMember("tonemap", JsonUtils::toJsonValue(_tonemapString, allocator), allocator);
     v.AddMember("resolution", JsonUtils::toJsonValue<uint32, 2>(_res, allocator), allocator);
     if (_medium)
         JsonUtils::addObjectMember(v, "medium", *_medium,  allocator);
-    v.AddMember("reconstruction_filter", _filter.name().c_str(), allocator);
+    v.AddMember("reconstruction_filter", JsonUtils::toJsonValue(_filter.name(), allocator), allocator);
 
     rapidjson::Value tform(rapidjson::kObjectType);
     tform.AddMember("position", JsonUtils::toJsonValue<float, 3>(_pos,    allocator), allocator);

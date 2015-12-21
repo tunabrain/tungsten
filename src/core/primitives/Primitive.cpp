@@ -23,12 +23,12 @@ void Primitive::fromJson(const rapidjson::Value &v, const Scene &scene)
     scene.textureFromJsonMember(v, "emission", TexelConversion::REQUEST_RGB, _emission);
     scene.textureFromJsonMember(v, "power", TexelConversion::REQUEST_RGB, _power);
 
-    const rapidjson::Value::Member *intMedium = v.FindMember("int_medium");
-    const rapidjson::Value::Member *extMedium = v.FindMember("ext_medium");
+    auto intMedium = v.FindMember("int_medium");
+    auto extMedium = v.FindMember("ext_medium");
 
-    if (intMedium)
+    if (intMedium != v.MemberEnd())
         _intMedium = scene.fetchMedium(intMedium->value);
-    if (extMedium)
+    if (extMedium != v.MemberEnd())
         _extMedium = scene.fetchMedium(extMedium->value);
 }
 

@@ -72,7 +72,7 @@ rapidjson::Value ThinlensCamera::toJson(Allocator &allocator) const
     v.AddMember("aperture_size", _apertureSize, allocator);
     v.AddMember("cateye", _catEye, allocator);
     if (!_focusPivot.empty())
-        v.AddMember("focus_pivot", _focusPivot.c_str(), allocator);
+        v.AddMember("focus_pivot", JsonUtils::toJsonValue(_focusPivot, allocator), allocator);
     JsonUtils::addObjectMember(v, "aperture", *_aperture, allocator);
     return std::move(v);
 }

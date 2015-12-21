@@ -70,19 +70,19 @@ struct RendererStatus
         rapidjson::Value result(rapidjson::kObjectType);
         result.SetObject();
 
-        result.AddMember("state", renderStateToString(state), allocator);
+        result.AddMember("state", rapidjson::StringRef(renderStateToString(state)), allocator);
         result.AddMember("start_spp", startSpp, allocator);
         result.AddMember("current_spp", currentSpp, allocator);
         result.AddMember("next_spp", nextSpp, allocator);
         result.AddMember("total_spp", totalSpp, allocator);
-        result.AddMember("current_scene", currentScene.asString().c_str(), allocator);
+        result.AddMember("current_scene", JsonUtils::toJsonValue(currentScene, allocator), allocator);
         rapidjson::Value completedValue(rapidjson::kArrayType);
         for (const Path &p : completedScenes)
-            completedValue.PushBack(p.asString().c_str(), allocator);
+            completedValue.PushBack(JsonUtils::toJsonValue(p, allocator), allocator);
         result.AddMember("completed_scenes", std::move(completedValue), allocator);
         rapidjson::Value queuedValue(rapidjson::kArrayType);
         for (const Path &p : queuedScenes)
-            queuedValue.PushBack(p.asString().c_str(), allocator);
+            queuedValue.PushBack(JsonUtils::toJsonValue(p, allocator), allocator);
         result.AddMember("queued_scenes", std::move(queuedValue), allocator);
 
         return std::move(result);

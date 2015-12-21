@@ -39,9 +39,9 @@ class CubicElement
     void loadFaces(const rapidjson::Value &faces)
     {
         for (int i = 0; i < 6; ++i) {
-            const rapidjson::Value::Member *face = faces.FindMember(cubeFaceToString(NamedFace(i)));
+            auto face = faces.FindMember(cubeFaceToString(NamedFace(i)));
 
-            if (face && face->value.IsObject()) {
+            if (face != faces.MemberEnd() && face->value.IsObject()) {
                 _faces[i].filled = true;
                 _faces[i].face = CubeFace(face->value);
             }
@@ -62,13 +62,13 @@ public:
         JsonUtils::fromJson(v, "to", _to);
         JsonUtils::fromJson(v, "shade", _shade);
 
-        const rapidjson::Value::Member *rotation = v.FindMember("rotation");
-        const rapidjson::Value::Member *faces = v.FindMember("faces");
+        auto rotation = v.FindMember("rotation");
+        auto faces    = v.FindMember("faces");
 
-        if (faces && faces->value.IsObject())
+        if (faces != v.MemberEnd() && faces->value.IsObject())
             loadFaces(faces->value);
 
-        if (rotation && rotation->value.IsObject()) {
+        if (rotation != v.MemberEnd() && rotation->value.IsObject()) {
             JsonUtils::fromJson(rotation->value, "origin", _rotOrigin);
             JsonUtils::fromJson(rotation->value, "angle", _rotAngle);
             JsonUtils::fromJson(rotation->value, "rescale", _rotRescale);

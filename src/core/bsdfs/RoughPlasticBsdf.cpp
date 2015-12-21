@@ -50,7 +50,7 @@ rapidjson::Value RoughPlasticBsdf::toJson(Allocator &allocator) const
     v.AddMember("ior", _ior, allocator);
     v.AddMember("thickness", _thickness, allocator);
     v.AddMember("sigma_a", JsonUtils::toJsonValue(_sigmaA, allocator), allocator);
-    v.AddMember("distribution", _distributionName.c_str(), allocator);
+    v.AddMember("distribution", JsonUtils::toJsonValue(_distributionName, allocator), allocator);
     JsonUtils::addObjectMember(v, "roughness", *_roughness, allocator);
     return std::move(v);
 }

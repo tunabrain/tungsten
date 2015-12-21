@@ -80,11 +80,11 @@ public:
     {
         rapidjson::Value v(JsonSerializable::toJson(allocator));
         if (_typeString.empty())
-            v.AddMember("type", _typeString.c_str(), allocator);
+            v.AddMember("type", JsonUtils::toJsonValue(_typeString, allocator), allocator);
         if (!_ldrOutputFile.empty())
-            v.AddMember("output_file", _ldrOutputFile.asString().c_str(), allocator);
+            v.AddMember("output_file", JsonUtils::toJsonValue(_ldrOutputFile, allocator), allocator);
         if (!_hdrOutputFile.empty())
-            v.AddMember("hdr_output_file", _hdrOutputFile.asString().c_str(), allocator);
+            v.AddMember("hdr_output_file", JsonUtils::toJsonValue(_hdrOutputFile, allocator), allocator);
         v.AddMember("two_buffer_variance", _twoBufferVariance, allocator);
         v.AddMember("sample_variance", _sampleVariance, allocator);
         return std::move(v);

@@ -120,8 +120,8 @@ void TriangleMesh::fromJson(const rapidjson::Value &v, const Scene &scene)
     JsonUtils::fromJson(v, "backface_culling", _backfaceCulling);
     JsonUtils::fromJson(v, "recompute_normals", _recomputeNormals);
 
-    const rapidjson::Value::Member *bsdf = v.FindMember("bsdf");
-    if (bsdf && bsdf->value.IsArray()) {
+    auto bsdf = v.FindMember("bsdf");
+    if (bsdf != v.MemberEnd() && bsdf->value.IsArray()) {
         if (bsdf->value.Size() == 0)
             FAIL("Empty BSDF array for triangle mesh");
         for (int i = 0; i < int(bsdf->value.Size()); ++i)
@@ -136,7 +136,7 @@ rapidjson::Value TriangleMesh::toJson(Allocator &allocator) const
     rapidjson::Value v = Primitive::toJson(allocator);
     v.AddMember("type", "mesh", allocator);
     if (_path)
-        v.AddMember("file", _path->asString().c_str(), allocator);
+        v.AddMember("file", JsonUtils::toJsonValue(*_path, allocator), allocator);
     v.AddMember("smooth", _smoothed, allocator);
     v.AddMember("backface_culling", _backfaceCulling, allocator);
     v.AddMember("recompute_normals", _recomputeNormals, allocator);

@@ -18,7 +18,7 @@ rapidjson::Value JsonSerializable::toJson(Allocator &allocator) const
 {
     rapidjson::Value v(rapidjson::kObjectType);
     if (!unnamed())
-        v.AddMember("name", _name.c_str(), allocator);
+        v.AddMember("name", JsonUtils::toJsonValue(_name, allocator), allocator);
     return std::move(v);
 }
 

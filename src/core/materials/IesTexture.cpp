@@ -34,7 +34,7 @@ rapidjson::Value IesTexture::toJson(Allocator &allocator) const
     rapidjson::Value v = Texture::toJson(allocator);
     v.AddMember("type", "ies", allocator);
     if (_path)
-        v.AddMember("file", _path->asString().c_str(), allocator);
+        v.AddMember("file", JsonUtils::toJsonValue(*_path, allocator), allocator);
     v.AddMember("resolution", _resolution, allocator);
     return std::move(v);
 }

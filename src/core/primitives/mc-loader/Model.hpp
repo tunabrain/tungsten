@@ -46,12 +46,12 @@ public:
         JsonUtils::fromJson(v, "parent", _parent);
         JsonUtils::fromJson(v, "ambientocclusion", _ambientOcclusion);
 
-        const rapidjson::Value::Member *textures = v.FindMember("textures");
-        const rapidjson::Value::Member *elements = v.FindMember("elements");
+        auto textures = v.FindMember("textures");
+        auto elements = v.FindMember("elements");
 
-        if (textures && textures->value.IsObject())
+        if (textures != v.MemberEnd() && textures->value.IsObject())
             loadTextures(textures->value);
-        if (elements && elements->value.IsArray())
+        if (elements != v.MemberEnd() && elements->value.IsArray())
             loadElements(elements->value);
     }
 
