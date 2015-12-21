@@ -59,7 +59,7 @@ bool PathVertex::sampleRootVertex(TraceState &state)
 }
 
 bool PathVertex::sampleNextVertex(const TraceableScene &scene, TraceBase &tracer, TraceState &state, bool adjoint,
-        PathVertex *prev, PathEdge *prevEdge, PathVertex &next, PathEdge &nextEdge)
+        PathVertex *prev, PathEdge */*prevEdge*/, PathVertex &next, PathEdge &nextEdge)
 {
     Vec3f weight;
     float pdf;

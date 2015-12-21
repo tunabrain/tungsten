@@ -410,7 +410,7 @@ static bool saveFiber(const Path &path, const CurveData &data)
     writeFiberAttributeDescriptor(out, "num_vertices", numCurves*sizeof(uint16), true, FIBER_UINT16, 1);
     const std::vector<uint32> &curveEnds = *data.curveEnds;
     for (size_t i = 0; i < size_t(numCurves); ++i)
-        FileUtils::streamWrite(out, uint16((*data.curveEnds)[i] - (i ? (*data.curveEnds)[i - 1] : 0)));
+        FileUtils::streamWrite(out, uint16(curveEnds[i] - (i ? curveEnds[i - 1] : 0)));
     writeFiberAttributeDescriptor(out, "position", numVertices*sizeof(Vec3f), false, FIBER_FLOAT, 3);
     for (const Vec4f &v : *data.nodeData)
         FileUtils::streamWrite(out, v.xyz());
