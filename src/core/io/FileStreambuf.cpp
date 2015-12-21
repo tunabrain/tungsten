@@ -99,6 +99,9 @@ std::streambuf::int_type FileOutputStreambuf::overflow(int_type ch)
 int FileOutputStreambuf::sync()
 {
     std::ptrdiff_t n = pptr() - pbase();
+    if (n == 0)
+        return 0;
+
     pbump(int(-n));
 
     return std::fwrite(_buffer.get(), 1, n, _file.get()) != size_t(n) ? -1 : 0;
@@ -123,8 +126,7 @@ std::streampos FileOutputStreambuf::seekoff(std::streamoff off, std::ios_base::s
         way == std::ios_base::beg ? SEEK_SET :
         way == std::ios_base::cur ? SEEK_CUR :
                                     SEEK_END;
-    if (way != std::ios_base::cur || off != 0)
-        sync();
+    sync();
 
 #if _WIN32
     return _fseeki64(_file.get(), off, whence) == 0 ? _ftelli64(_file.get()) : -1;
