@@ -5,7 +5,7 @@
 #include "math/TangentFrame.hpp"
 #include "math/Ray.hpp"
 
-#include "io/JsonUtils.hpp"
+#include "io/JsonObject.hpp"
 
 namespace Tungsten {
 
@@ -32,16 +32,15 @@ void ExponentialMedium::fromJson(const rapidjson::Value &v, const Scene &scene)
 
 rapidjson::Value ExponentialMedium::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v(Medium::toJson(allocator));
-    v.AddMember("type", "exponential", allocator);
-    v.AddMember("sigma_a", JsonUtils::toJson(_materialSigmaA, allocator), allocator);
-    v.AddMember("sigma_s", JsonUtils::toJson(_materialSigmaS, allocator), allocator);
-    v.AddMember("density", JsonUtils::toJson(_density, allocator), allocator);
-    v.AddMember("falloff_scale", JsonUtils::toJson(_falloffScale, allocator), allocator);
-    v.AddMember("unit_point", JsonUtils::toJson(_unitPoint, allocator), allocator);
-    v.AddMember("falloff_direction", JsonUtils::toJson(_falloffDirection, allocator), allocator);
-
-    return std::move(v);
+    return JsonObject{Medium::toJson(allocator), allocator,
+        "type", "exponential",
+        "sigma_a", _materialSigmaA,
+        "sigma_s", _materialSigmaS,
+        "density", _density,
+        "falloff_scale", _falloffScale,
+        "unit_point", _unitPoint,
+        "falloff_direction", _falloffDirection
+    };
 }
 
 bool ExponentialMedium::isHomogeneous() const

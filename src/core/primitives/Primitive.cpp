@@ -2,6 +2,7 @@
 
 #include "bsdfs/Bsdf.hpp"
 
+#include "io/JsonObject.hpp"
 #include "io/Scene.hpp"
 
 namespace Tungsten {
@@ -34,17 +35,19 @@ void Primitive::fromJson(const rapidjson::Value &v, const Scene &scene)
 
 rapidjson::Value Primitive::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = JsonSerializable::toJson(allocator);
-    v.AddMember("transform", JsonUtils::toJson(_transform, allocator), allocator);
+    JsonObject result{JsonSerializable::toJson(allocator), allocator,
+        "transform", _transform
+    };
     if (_power)
-        JsonUtils::addObjectMember(v, "power", *_power, allocator);
+        result.add("power", *_power);
     else if (_emission)
-        JsonUtils::addObjectMember(v, "emission", *_emission, allocator);
+        result.add("emission", *_emission);
     if (_intMedium)
-        JsonUtils::addObjectMember(v, "int_medium", *_intMedium,  allocator);
+        result.add("int_medium", *_intMedium);
     if (_extMedium)
-        JsonUtils::addObjectMember(v, "ext_medium", *_extMedium, allocator);
-    return std::move(v);
+        result.add("ext_medium", *_extMedium);
+
+    return result;
 }
 
 bool Primitive::samplePosition(PathSampleGenerator &/*sampler*/, PositionSample &/*sample*/) const

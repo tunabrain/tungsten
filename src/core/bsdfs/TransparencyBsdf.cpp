@@ -5,6 +5,7 @@
 
 #include "materials/ConstantTexture.hpp"
 
+#include "io/JsonObject.hpp"
 #include "io/Scene.hpp"
 
 namespace Tungsten {
@@ -31,13 +32,11 @@ void TransparencyBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
 
 rapidjson::Value TransparencyBsdf::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v(JsonSerializable::toJson(allocator));
-
-    v.AddMember("type", "transparency", allocator);
-    JsonUtils::addObjectMember(v, "base", *_base,  allocator);
-    JsonUtils::addObjectMember(v, "alpha", *_opacity,  allocator);
-
-    return std::move(v);
+    return JsonObject{Bsdf::toJson(allocator), allocator,
+        "type", "transparency",
+        "base", *_base,
+        "alpha", *_opacity
+    };
 }
 
 bool TransparencyBsdf::sample(SurfaceScatterEvent &event) const

@@ -8,6 +8,8 @@
 
 #include "math/Angle.hpp"
 
+#include "io/JsonObject.hpp"
+
 namespace Tungsten {
 
 RoughWireBcsdf::RoughWireBcsdf()
@@ -105,16 +107,16 @@ void RoughWireBcsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
 
 rapidjson::Value RoughWireBcsdf::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Bsdf::toJson(allocator);
-    v.AddMember("type", "rough_wire", allocator);
-    v.AddMember("roughness", _roughness, allocator);
-    if (_materialName.empty()) {
-        v.AddMember("eta", JsonUtils::toJson(_eta, allocator), allocator);
-        v.AddMember("k", JsonUtils::toJson(_k, allocator), allocator);
-    } else {
-        v.AddMember("material", JsonUtils::toJson(_materialName, allocator), allocator);
-    }
-    return std::move(v);
+    JsonObject result{Bsdf::toJson(allocator), allocator,
+        "type", "rough_wire",
+        "roughness", _roughness
+    };
+    if (_materialName.empty())
+        result.add("eta", _eta, "k", _k);
+    else
+        result.add("material", _materialName);
+
+    return result;
 }
 
 Vec3f RoughWireBcsdf::eval(const SurfaceScatterEvent &event) const

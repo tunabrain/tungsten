@@ -8,6 +8,7 @@
 #include "math/BSpline.hpp"
 #include "math/Vec.hpp"
 
+#include "io/JsonObject.hpp"
 #include "io/FileUtils.hpp"
 #include "io/CurveIO.hpp"
 #include "io/Scene.hpp"
@@ -391,17 +392,19 @@ void Curves::fromJson(const rapidjson::Value &v, const Scene &scene)
 
 rapidjson::Value Curves::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Primitive::toJson(allocator);
-    v.AddMember("type", "curves", allocator);
+    JsonObject result{Primitive::toJson(allocator), allocator,
+        "type", "curves",
+        "curve_taper", _taperThickness,
+        "subsample", _subsample,
+        "mode", _modeString,
+        "bsdf", *_bsdf
+    };
     if (_path)
-        v.AddMember("file", JsonUtils::toJson(*_path, allocator), allocator);
+        result.add("file", *_path);
     if (_overrideThickness)
-        v.AddMember("curve_thickness", _curveThickness, allocator);
-    v.AddMember("curve_taper", _taperThickness, allocator);
-    v.AddMember("subsample", _subsample, allocator);
-    v.AddMember("mode", JsonUtils::toJson(_modeString, allocator), allocator);
-    JsonUtils::addObjectMember(v, "bsdf", *_bsdf, allocator);
-    return std::move(v);
+        result.add("curve_thickness", _curveThickness);
+
+    return result;
 }
 
 void Curves::loadResources()

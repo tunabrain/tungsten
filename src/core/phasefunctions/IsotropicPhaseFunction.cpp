@@ -3,13 +3,15 @@
 #include "sampling/PathSampleGenerator.hpp"
 #include "sampling/SampleWarp.hpp"
 
+#include "io/JsonObject.hpp"
+
 namespace Tungsten {
 
 rapidjson::Value IsotropicPhaseFunction::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = PhaseFunction::toJson(allocator);
-    v.AddMember("type", "isotropic", allocator);
-    return std::move(v);
+    return JsonObject{PhaseFunction::toJson(allocator), allocator,
+        "type", "isotropic"
+    };
 }
 
 Vec3f IsotropicPhaseFunction::eval(const Vec3f &/*wi*/, const Vec3f &/*wo*/) const

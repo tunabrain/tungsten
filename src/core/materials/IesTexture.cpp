@@ -3,6 +3,7 @@
 #include "math/MathUtil.hpp"
 #include "math/Angle.hpp"
 
+#include "io/JsonObject.hpp"
 #include "io/Scene.hpp"
 
 #include "Debug.hpp"
@@ -31,12 +32,13 @@ void IesTexture::fromJson(const rapidjson::Value &v, const Scene &scene)
 
 rapidjson::Value IesTexture::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Texture::toJson(allocator);
-    v.AddMember("type", "ies", allocator);
+    JsonObject result{Texture::toJson(allocator), allocator,
+        "type", "ies",
+        "resolution", _resolution
+    };
     if (_path)
-        v.AddMember("file", JsonUtils::toJson(*_path, allocator), allocator);
-    v.AddMember("resolution", _resolution, allocator);
-    return std::move(v);
+        result.add("file", *_path);
+    return result;
 }
 
 void wrapHorzAngles(int type, std::vector<float> &angles, std::vector<int> &indices)

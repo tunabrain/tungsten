@@ -6,7 +6,7 @@
 
 #include "math/GaussLegendre.hpp"
 
-#include "io/JsonUtils.hpp"
+#include "io/JsonObject.hpp"
 
 namespace Tungsten {
 
@@ -165,17 +165,19 @@ void HairBcsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
 
 rapidjson::Value HairBcsdf::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Bsdf::toJson(allocator);
-    v.AddMember("type", "hair", allocator);
-    v.AddMember("scale_angle", _scaleAngleDeg, allocator);
-    if (_overridesSigmaA) {
-        v.AddMember("sigma_a", JsonUtils::toJson(_sigmaA, allocator), allocator);
-    } else {
-        v.AddMember("melanin_ratio", _melaninRatio, allocator);
-        v.AddMember("melanin_concentration", _melaninConcentration, allocator);
-    }
-    v.AddMember("roughness", _roughness, allocator);
-    return std::move(v);
+    JsonObject result{Bsdf::toJson(allocator), allocator,
+        "type", "hair",
+        "scale_angle", _scaleAngleDeg,
+        "roughness", _roughness
+    };
+
+    if (_overridesSigmaA)
+        result.add("sigma_a", _sigmaA);
+    else
+        result.add("melanin_ratio", _melaninRatio,
+                   "melanin_concentration", _melaninConcentration);
+
+    return result;
 }
 
 Vec3f HairBcsdf::eval(const SurfaceScatterEvent &event) const

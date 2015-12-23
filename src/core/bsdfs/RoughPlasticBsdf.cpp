@@ -13,10 +13,8 @@
 #include "math/Angle.hpp"
 #include "math/Vec.hpp"
 
-#include "io/JsonUtils.hpp"
+#include "io/JsonObject.hpp"
 #include "io/Scene.hpp"
-
-#include <rapidjson/document.h>
 
 namespace Tungsten {
 
@@ -45,14 +43,14 @@ void RoughPlasticBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
 
 rapidjson::Value RoughPlasticBsdf::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Bsdf::toJson(allocator);
-    v.AddMember("type", "rough_plastic", allocator);
-    v.AddMember("ior", _ior, allocator);
-    v.AddMember("thickness", _thickness, allocator);
-    v.AddMember("sigma_a", JsonUtils::toJson(_sigmaA, allocator), allocator);
-    v.AddMember("distribution", JsonUtils::toJson(_distributionName, allocator), allocator);
-    JsonUtils::addObjectMember(v, "roughness", *_roughness, allocator);
-    return std::move(v);
+    return JsonObject{Bsdf::toJson(allocator), allocator,
+        "type", "rough_plastic",
+        "ior", _ior,
+        "thickness", _thickness,
+        "sigma_a", _sigmaA,
+        "distribution", _distributionName,
+        "roughness", *_roughness
+    };
 }
 
 bool RoughPlasticBsdf::sample(SurfaceScatterEvent &event) const

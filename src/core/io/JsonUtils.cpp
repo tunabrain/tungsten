@@ -221,10 +221,27 @@ bool fromJson(const rapidjson::Value &v, Path &dst)
     return result;
 }
 
+rapidjson::Value toJson(rapidjson::Value v, rapidjson::Document::AllocatorType &/*allocator*/)
+{
+    return std::move(v);
+}
+
+rapidjson::Value toJson(const JsonSerializable &o, rapidjson::Document::AllocatorType &allocator)
+{
+    return o.unnamed() ? o.toJson(allocator) : toJson(o.name(), allocator);
+}
+
 rapidjson::Value toJson(const std::string &value, rapidjson::Document::AllocatorType &allocator)
 {
     rapidjson::Value result;
     result.SetString(value.c_str(), value.size(), allocator);
+    return std::move(result);
+}
+
+rapidjson::Value toJson(const char *value, rapidjson::Document::AllocatorType &allocator)
+{
+    rapidjson::Value result;
+    result.SetString(value, allocator);
     return std::move(result);
 }
 
@@ -233,9 +250,29 @@ rapidjson::Value toJson(const Path &value, rapidjson::Document::AllocatorType &a
     return toJson(value.asString(), allocator);
 }
 
+rapidjson::Value toJson(uint32 value, rapidjson::Document::AllocatorType &/*allocator*/)
+{
+    return rapidjson::Value(value);
+}
+
+rapidjson::Value toJson(int32 value, rapidjson::Document::AllocatorType &/*allocator*/)
+{
+    return rapidjson::Value(value);
+}
+
+rapidjson::Value toJson(uint64_t value, rapidjson::Document::AllocatorType &/*allocator*/)
+{
+    return rapidjson::Value(value);
+}
+
+rapidjson::Value toJson(float value, rapidjson::Document::AllocatorType &/*allocator*/)
+{
+    return rapidjson::Value(value);
+}
+
 rapidjson::Value toJson(double value, rapidjson::Document::AllocatorType &/*allocator*/)
 {
-    return std::move(rapidjson::Value(value));
+    return rapidjson::Value(value);
 }
 
 rapidjson::Value toJson(const Mat4f &value, rapidjson::Document::AllocatorType &allocator)

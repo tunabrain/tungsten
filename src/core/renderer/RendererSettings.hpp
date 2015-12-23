@@ -5,7 +5,7 @@
 
 #include "io/JsonSerializable.hpp"
 #include "io/DirectoryChange.hpp"
-#include "io/JsonUtils.hpp"
+#include "io/JsonObject.hpp"
 #include "io/FileUtils.hpp"
 
 namespace Tungsten {
@@ -78,31 +78,33 @@ public:
 
     virtual rapidjson::Value toJson(Allocator &allocator) const
     {
-        rapidjson::Value v(JsonSerializable::toJson(allocator));
+        JsonObject result{JsonSerializable::toJson(allocator), allocator,
+            "overwrite_output_files", _overwriteOutputFiles,
+            "adaptive_sampling", _useAdaptiveSampling,
+            "enable_resume_render", _enableResumeRender,
+            "stratified_sampler", _useSobol,
+            "scene_bvh", _useSceneBvh,
+            "spp", _spp,
+            "spp_step", _sppStep,
+            "checkpoint_interval", _checkpointInterval,
+            "timeout", _timeout
+        };
         if (!_outputFile.empty())
-            v.AddMember("output_file", JsonUtils::toJson(_outputFile, allocator), allocator);
+            result.add("output_file", _outputFile);
         if (!_hdrOutputFile.empty())
-            v.AddMember("hdr_output_file", JsonUtils::toJson(_hdrOutputFile, allocator), allocator);
+            result.add("hdr_output_file", _hdrOutputFile);
         if (!_varianceOutputFile.empty())
-            v.AddMember("variance_output_file", JsonUtils::toJson(_varianceOutputFile, allocator), allocator);
+            result.add("variance_output_file", _varianceOutputFile);
         if (!_resumeRenderFile.empty())
-            v.AddMember("resume_render_file", JsonUtils::toJson(_resumeRenderFile, allocator), allocator);
-        v.AddMember("overwrite_output_files", _overwriteOutputFiles, allocator);
-        v.AddMember("adaptive_sampling", _useAdaptiveSampling, allocator);
-        v.AddMember("enable_resume_render", _enableResumeRender, allocator);
-        v.AddMember("stratified_sampler", _useSobol, allocator);
-        v.AddMember("scene_bvh", _useSceneBvh, allocator);
-        v.AddMember("spp", _spp, allocator);
-        v.AddMember("spp_step", _sppStep, allocator);
-        v.AddMember("checkpoint_interval", JsonUtils::toJson(_checkpointInterval, allocator), allocator);
-        v.AddMember("timeout", JsonUtils::toJson(_timeout, allocator), allocator);
+            result.add("resume_render_file", _resumeRenderFile);
         if (!_outputs.empty()) {
             rapidjson::Value outputs(rapidjson::kArrayType);
             for (const auto &b : _outputs)
                 outputs.PushBack(b.toJson(allocator), allocator);
-            v.AddMember("output_buffers", outputs, allocator);
+            result.add("output_buffers", std::move(outputs));
         }
-        return std::move(v);
+
+        return result;
     }
 
     const Path &outputDirectory() const

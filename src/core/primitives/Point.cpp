@@ -4,6 +4,8 @@
 #include "sampling/PathSampleGenerator.hpp"
 #include "sampling/SampleWarp.hpp"
 
+#include "io/JsonObject.hpp"
+
 #include "Debug.hpp"
 
 namespace Tungsten {
@@ -31,9 +33,9 @@ void Point::fromJson(const rapidjson::Value &v, const Scene &scene)
 
 rapidjson::Value Point::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Primitive::toJson(allocator);
-    v.AddMember("type", "point", allocator);
-    return std::move(v);
+    return JsonObject{Primitive::toJson(allocator), allocator,
+        "type", "point"
+    };
 }
 
 bool Point::intersect(Ray &/*ray*/, IntersectionTemporary &/*data*/) const

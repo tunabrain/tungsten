@@ -7,6 +7,7 @@
 #include "math/MathUtil.hpp"
 #include "math/Angle.hpp"
 
+#include "io/JsonObject.hpp"
 #include "io/Scene.hpp"
 
 namespace Tungsten {
@@ -220,15 +221,16 @@ rapidjson::Value BitmapTexture::toJson(Allocator &allocator) const
 {
     bool writeFullStruct = !_gammaCorrect || !_linear || _clamp || _scale != 1.0f;
     if (writeFullStruct) {
-        rapidjson::Value v = Texture::toJson(allocator);
-        v.AddMember("type", "bitmap", allocator);
+        JsonObject result{Texture::toJson(allocator), allocator,
+            "type", "bitmap",
+            "gamma_correct", _gammaCorrect,
+            "interpolate", _linear,
+            "clamp", _clamp,
+            "scale", _scale
+        };
         if (_path)
-            v.AddMember("file", JsonUtils::toJson(*_path, allocator), allocator);
-        v.AddMember("gamma_correct", _gammaCorrect, allocator);
-        v.AddMember("interpolate", _linear, allocator);
-        v.AddMember("clamp", _clamp, allocator);
-        v.AddMember("scale", _scale, allocator);
-        return std::move(v);
+            result.add("file", *_path);
+        return result;
     } else {
         return JsonUtils::toJson(*_path, allocator);
     }

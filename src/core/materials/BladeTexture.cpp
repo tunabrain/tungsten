@@ -7,7 +7,7 @@
 #include "math/MathUtil.hpp"
 #include "math/Angle.hpp"
 
-#include "io/JsonUtils.hpp"
+#include "io/JsonObject.hpp"
 
 namespace Tungsten {
 
@@ -42,12 +42,12 @@ void BladeTexture::fromJson(const rapidjson::Value &v, const Scene &scene)
 
 rapidjson::Value BladeTexture::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Texture::toJson(allocator);
-    v.AddMember("type", "blade", allocator);
-    v.AddMember("blades", _numBlades, allocator);
-    v.AddMember("angle", _angle, allocator);
-    v.AddMember("value",  scalarOrVecToJson( _value, allocator), allocator);
-    return std::move(v);
+    return JsonObject{Texture::toJson(allocator), allocator,
+        "type", "blade",
+        "blades", _numBlades,
+        "angle", _angle,
+        "value",  scalarOrVecToJson( _value, allocator)
+    };
 }
 
 bool BladeTexture::isConstant() const

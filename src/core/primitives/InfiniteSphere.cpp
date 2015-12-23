@@ -8,6 +8,7 @@
 
 #include "math/Angle.hpp"
 
+#include "io/JsonObject.hpp"
 #include "io/Scene.hpp"
 
 namespace Tungsten {
@@ -67,10 +68,10 @@ void InfiniteSphere::fromJson(const rapidjson::Value &v, const Scene &scene)
 }
 rapidjson::Value InfiniteSphere::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Primitive::toJson(allocator);
-    v.AddMember("type", "infinite_sphere", allocator);
-    v.AddMember("sample", _doSample, allocator);
-    return std::move(v);
+    return JsonObject{Primitive::toJson(allocator), allocator,
+        "type", "infinite_sphere",
+        "sample", _doSample
+    };
 }
 
 bool InfiniteSphere::intersect(Ray &ray, IntersectionTemporary &data) const

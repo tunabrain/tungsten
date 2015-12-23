@@ -4,6 +4,7 @@
 #include "sampling/PathSampleGenerator.hpp"
 #include "sampling/SampleWarp.hpp"
 
+#include "io/JsonObject.hpp"
 #include "io/Scene.hpp"
 
 namespace Tungsten {
@@ -54,10 +55,10 @@ void Quad::fromJson(const rapidjson::Value &v, const Scene &scene)
 
 rapidjson::Value Quad::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Primitive::toJson(allocator);
-    v.AddMember("type", "quad", allocator);
-    JsonUtils::addObjectMember(v, "bsdf", *_bsdf, allocator);
-    return std::move(v);
+    return JsonObject{Primitive::toJson(allocator), allocator,
+        "type", "quad",
+        "bsdf", *_bsdf
+    };
 }
 
 bool Quad::intersect(Ray &ray, IntersectionTemporary &data) const

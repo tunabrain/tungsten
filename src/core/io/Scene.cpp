@@ -68,6 +68,8 @@
 
 #include "grids/VdbGrid.hpp"
 
+#include "io/JsonObject.hpp"
+
 #include "Debug.hpp"
 
 #include <rapidjson/document.h>
@@ -547,7 +549,6 @@ void Scene::fromJson(const rapidjson::Value &v, const Scene &scene)
 
 rapidjson::Value Scene::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = JsonSerializable::toJson(allocator);
 
     rapidjson::Value media(rapidjson::kArrayType);
     for (const std::shared_ptr<Medium> &b : _media)
@@ -562,14 +563,14 @@ rapidjson::Value Scene::toJson(Allocator &allocator) const
         if (!_helperPrimitives.count(t.get()))
             primitives.PushBack(t->toJson(allocator), allocator);
 
-    v.AddMember("media", media, allocator);
-    v.AddMember("bsdfs", bsdfs, allocator);
-    v.AddMember("primitives", primitives, allocator);
-    v.AddMember("camera", _camera->toJson(allocator), allocator);
-    v.AddMember("integrator", _integrator->toJson(allocator), allocator);
-    v.AddMember("renderer", _rendererSettings.toJson(allocator), allocator);
-
-    return std::move(v);
+    return JsonObject{JsonSerializable::toJson(allocator), allocator,
+        "media", media,
+        "bsdfs", bsdfs,
+        "primitives", primitives,
+        "camera", *_camera,
+        "integrator", *_integrator,
+        "renderer", _rendererSettings
+    };
 }
 
 void Scene::loadResources()

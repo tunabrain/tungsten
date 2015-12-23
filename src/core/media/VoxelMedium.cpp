@@ -5,7 +5,7 @@
 #include "math/TangentFrame.hpp"
 #include "math/Ray.hpp"
 
-#include "io/JsonUtils.hpp"
+#include "io/JsonObject.hpp"
 #include "io/Scene.hpp"
 
 namespace Tungsten {
@@ -26,13 +26,12 @@ void VoxelMedium::fromJson(const rapidjson::Value &v, const Scene &scene)
 
 rapidjson::Value VoxelMedium::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v(Medium::toJson(allocator));
-    v.AddMember("type", "voxel", allocator);
-    v.AddMember("sigma_a", JsonUtils::toJson(_sigmaA, allocator), allocator);
-    v.AddMember("sigma_s", JsonUtils::toJson(_sigmaS, allocator), allocator);
-    JsonUtils::addObjectMember(v, "grid", *_grid,  allocator);
-
-    return std::move(v);
+    return JsonObject{Medium::toJson(allocator), allocator,
+        "type", "voxel",
+        "sigma_a", _sigmaA,
+        "sigma_s", _sigmaS,
+        "grid", *_grid
+    };
 }
 
 void VoxelMedium::loadResources()

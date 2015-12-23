@@ -2,7 +2,7 @@
 
 #include "phasefunctions/IsotropicPhaseFunction.hpp"
 
-#include "io/JsonUtils.hpp"
+#include "io/JsonObject.hpp"
 #include "io/Scene.hpp"
 
 namespace Tungsten {
@@ -26,11 +26,10 @@ void Medium::fromJson(const rapidjson::Value &v, const Scene &scene)
 
 rapidjson::Value Medium::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v(JsonSerializable::toJson(allocator));
-    JsonUtils::addObjectMember(v, "phase_function", *_phaseFunction, allocator);
-    v.AddMember("max_bounces", _maxBounce, allocator);
-
-    return std::move(v);
+    return JsonObject{JsonSerializable::toJson(allocator), allocator,
+        "phase_function", *_phaseFunction,
+        "max_bounces", _maxBounce
+    };
 }
 
 Vec3f Medium::transmittanceAndPdfs(PathSampleGenerator &sampler, const Ray &ray, bool startOnSurface,

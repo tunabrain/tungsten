@@ -2,9 +2,7 @@
 
 #include "samplerecords/SurfaceScatterEvent.hpp"
 
-#include "io/JsonUtils.hpp"
-
-#include <rapidjson/document.h>
+#include "io/JsonObject.hpp"
 
 namespace Tungsten {
 
@@ -15,9 +13,9 @@ ForwardBsdf::ForwardBsdf()
 
 rapidjson::Value ForwardBsdf::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Bsdf::toJson(allocator);
-    v.AddMember("type", "forward", allocator);
-    return std::move(v);
+    return JsonObject{Bsdf::toJson(allocator), allocator,
+        "type", "forward"
+    };
 }
 
 bool ForwardBsdf::sample(SurfaceScatterEvent &/*event*/) const

@@ -16,6 +16,7 @@
 
 #include "math/Mat4f.hpp"
 
+#include "io/JsonObject.hpp"
 #include "io/ImageIO.hpp"
 #include "io/MeshIO.hpp"
 #include "io/Scene.hpp"
@@ -576,19 +577,21 @@ void TraceableMinecraftMap::fromJson(const rapidjson::Value &v, const Scene &sce
 
 rapidjson::Value TraceableMinecraftMap::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Primitive::toJson(allocator);
-    v.AddMember("type", "minecraft_map", allocator);
+    JsonObject result{Primitive::toJson(allocator), allocator,
+        "type", "minecraft_map"
+    };
     if (_mapPath)
-        v.AddMember("map_path", JsonUtils::toJson(*_mapPath, allocator), allocator);
+        result.add("map_path", *_mapPath);
     if (_packPaths.size() == 1) {
-        v.AddMember("resource_packs", JsonUtils::toJson(*_packPaths[0], allocator), allocator);
+        result.add("resource_packs", *_packPaths[0]);
     } else if (!_packPaths.empty()) {
         rapidjson::Value a(rapidjson::kArrayType);
         for (const PathPtr &p : _packPaths)
             a.PushBack(JsonUtils::toJson(*p, allocator), allocator);
-        v.AddMember("resource_packs", std::move(a), allocator);
+        result.add("resource_packs", std::move(a));
     }
-    return std::move(v);
+
+    return result;
 }
 
 void TraceableMinecraftMap::loadResources()

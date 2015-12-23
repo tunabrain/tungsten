@@ -4,7 +4,7 @@
 
 #include "math/MathUtil.hpp"
 
-#include "io/JsonUtils.hpp"
+#include "io/JsonObject.hpp"
 
 namespace Tungsten {
 
@@ -31,13 +31,13 @@ void CheckerTexture::fromJson(const rapidjson::Value &v, const Scene &scene)
 
 rapidjson::Value CheckerTexture::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Texture::toJson(allocator);
-    v.AddMember("type", "checker", allocator);
-    v.AddMember("on_color",  scalarOrVecToJson( _onColor, allocator), allocator);
-    v.AddMember("off_color", scalarOrVecToJson(_offColor, allocator), allocator);
-    v.AddMember("res_u", _resU, allocator);
-    v.AddMember("res_v", _resV, allocator);
-    return std::move(v);
+    return JsonObject{Texture::toJson(allocator), allocator,
+        "type", "checker",
+        "on_color",  scalarOrVecToJson( _onColor, allocator),
+        "off_color", scalarOrVecToJson(_offColor, allocator),
+        "res_u", _resU,
+        "res_v", _resV
+    };
 }
 
 bool CheckerTexture::isConstant() const

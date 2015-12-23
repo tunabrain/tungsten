@@ -5,7 +5,7 @@
 #include "math/Angle.hpp"
 #include "math/Ray.hpp"
 
-#include "io/JsonUtils.hpp"
+#include "io/JsonObject.hpp"
 
 #include <cmath>
 
@@ -42,9 +42,9 @@ Vec3f EquirectangularCamera::uvToDirection(Vec2f uv, float &sinTheta) const
 
 rapidjson::Value EquirectangularCamera::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Camera::toJson(allocator);
-    v.AddMember("type", "equirectangular", allocator);
-    return std::move(v);
+    return JsonObject{Camera::toJson(allocator), allocator,
+        "type", "equirectangular"
+    };
 }
 
 bool EquirectangularCamera::samplePosition(PathSampleGenerator &/*sampler*/, PositionSample &sample) const

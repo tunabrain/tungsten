@@ -5,7 +5,7 @@
 #include "math/TangentFrame.hpp"
 #include "math/Ray.hpp"
 
-#include "io/JsonUtils.hpp"
+#include "io/JsonObject.hpp"
 
 namespace Tungsten {
 
@@ -26,13 +26,12 @@ void HomogeneousMedium::fromJson(const rapidjson::Value &v, const Scene &scene)
 
 rapidjson::Value HomogeneousMedium::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v(Medium::toJson(allocator));
-    v.AddMember("type", "homogeneous", allocator);
-    v.AddMember("sigma_a", JsonUtils::toJson(_materialSigmaA, allocator), allocator);
-    v.AddMember("sigma_s", JsonUtils::toJson(_materialSigmaS, allocator), allocator);
-    v.AddMember("density", JsonUtils::toJson(_density, allocator), allocator);
-
-    return std::move(v);
+    return JsonObject{Medium::toJson(allocator), allocator,
+        "type", "homogeneous",
+        "sigma_a", _materialSigmaA,
+        "sigma_s", _materialSigmaS,
+        "density", _density
+    };
 }
 
 bool HomogeneousMedium::isHomogeneous() const

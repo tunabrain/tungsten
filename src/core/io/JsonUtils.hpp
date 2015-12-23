@@ -78,8 +78,15 @@ inline bool fromJson(const rapidjson::Value &v, const char *field, T &dst)
     return fromJson(member->value, dst);
 }
 
+rapidjson::Value toJson(rapidjson::Value v, rapidjson::Document::AllocatorType &allocator);
+rapidjson::Value toJson(const JsonSerializable &o, rapidjson::Document::AllocatorType &allocator);
 rapidjson::Value toJson(const std::string &value, rapidjson::Document::AllocatorType &allocator);
+rapidjson::Value toJson(const char *value, rapidjson::Document::AllocatorType &allocator);
 rapidjson::Value toJson(const Path &value, rapidjson::Document::AllocatorType &allocator);
+rapidjson::Value toJson(uint32 value, rapidjson::Document::AllocatorType &allocator);
+rapidjson::Value toJson(int32 value, rapidjson::Document::AllocatorType &allocator);
+rapidjson::Value toJson(uint64 value, rapidjson::Document::AllocatorType &allocator);
+rapidjson::Value toJson(float value, rapidjson::Document::AllocatorType &allocator);
 rapidjson::Value toJson(double value, rapidjson::Document::AllocatorType &allocator);
 rapidjson::Value toJson(const Mat4f &value, rapidjson::Document::AllocatorType &allocator);
 

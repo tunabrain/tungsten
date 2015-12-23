@@ -24,7 +24,7 @@ void ConstantTexture::fromJson(const rapidjson::Value &v, const Scene &/*scene*/
 
 rapidjson::Value ConstantTexture::toJson(Allocator &allocator) const
 {
-    return std::move(scalarOrVecToJson(_value, allocator));
+    return scalarOrVecToJson(_value, allocator);
 }
 
 bool ConstantTexture::isConstant() const

@@ -10,11 +10,10 @@
 #include "math/Box.hpp"
 
 #include "io/JsonSerializable.hpp"
-#include "io/JsonUtils.hpp"
+#include "io/JsonObject.hpp"
 #include "io/MeshIO.hpp"
 #include "io/Scene.hpp"
 
-#include <rapidjson/document.h>
 #include <unordered_map>
 #include <iostream>
 
@@ -133,22 +132,24 @@ void TriangleMesh::fromJson(const rapidjson::Value &v, const Scene &scene)
 
 rapidjson::Value TriangleMesh::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Primitive::toJson(allocator);
-    v.AddMember("type", "mesh", allocator);
+    JsonObject result{Primitive::toJson(allocator), allocator,
+        "type", "mesh",
+        "smooth", _smoothed,
+        "backface_culling", _backfaceCulling,
+        "recompute_normals", _recomputeNormals
+    };
     if (_path)
-        v.AddMember("file", JsonUtils::toJson(*_path, allocator), allocator);
-    v.AddMember("smooth", _smoothed, allocator);
-    v.AddMember("backface_culling", _backfaceCulling, allocator);
-    v.AddMember("recompute_normals", _recomputeNormals, allocator);
+        result.add("file", *_path);
     if (_bsdfs.size() == 1) {
-        JsonUtils::addObjectMember(v, "bsdf", *_bsdfs[0], allocator);
+        result.add("bsdf", *_bsdfs[0]);
     } else {
         rapidjson::Value a(rapidjson::kArrayType);
         for (const auto &bsdf : _bsdfs)
             a.PushBack(bsdf->toJson(allocator), allocator);
-        v.AddMember("bsdf", std::move(a), allocator);
+        result.add("bsdf", std::move(a));
     }
-    return std::move(v);
+
+    return result;
 }
 
 void TriangleMesh::loadResources()

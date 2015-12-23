@@ -3,6 +3,7 @@
 #include "sampling/PathSampleGenerator.hpp"
 #include "sampling/SampleWarp.hpp"
 
+#include "io/JsonObject.hpp"
 #include "io/Scene.hpp"
 
 namespace Tungsten {
@@ -40,11 +41,11 @@ void Disk::fromJson(const rapidjson::Value &v, const Scene &scene)
 
 rapidjson::Value Disk::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Primitive::toJson(allocator);
-    v.AddMember("type", "disk", allocator);
-    v.AddMember("cone_angle", _coneAngle, allocator);
-    JsonUtils::addObjectMember(v, "bsdf", *_bsdf, allocator);
-    return std::move(v);
+    return JsonObject{Primitive::toJson(allocator), allocator,
+        "type", "disk",
+        "cone_angle", _coneAngle,
+        "bsdf", *_bsdf
+    };
 }
 
 bool Disk::intersect(Ray &ray, IntersectionTemporary &data) const

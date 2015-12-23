@@ -5,7 +5,7 @@
 #include "math/Angle.hpp"
 #include "math/Ray.hpp"
 
-#include "io/JsonUtils.hpp"
+#include "io/JsonObject.hpp"
 
 #include <cmath>
 
@@ -44,10 +44,10 @@ void PinholeCamera::fromJson(const rapidjson::Value &v, const Scene &scene)
 
 rapidjson::Value PinholeCamera::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Camera::toJson(allocator);
-    v.AddMember("type", "pinhole", allocator);
-    v.AddMember("fov", _fovDeg, allocator);
-    return std::move(v);
+    return JsonObject{Camera::toJson(allocator), allocator,
+        "type", "pinhole",
+        "fov", _fovDeg
+    };
 }
 
 bool PinholeCamera::samplePosition(PathSampleGenerator &/*sampler*/, PositionSample &sample) const

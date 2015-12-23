@@ -6,6 +6,8 @@
 #include "math/MathUtil.hpp"
 #include "math/Angle.hpp"
 
+#include "io/JsonObject.hpp"
+
 namespace Tungsten {
 
 inline float RayleighPhaseFunction::rayleigh(float cosTheta)
@@ -15,9 +17,9 @@ inline float RayleighPhaseFunction::rayleigh(float cosTheta)
 
 rapidjson::Value RayleighPhaseFunction::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = PhaseFunction::toJson(allocator);
-    v.AddMember("type", "rayleigh", allocator);
-    return std::move(v);
+    return JsonObject{PhaseFunction::toJson(allocator), allocator,
+        "type", "rayleigh"
+    };
 }
 
 Vec3f RayleighPhaseFunction::eval(const Vec3f &wi, const Vec3f &wo) const

@@ -9,9 +9,7 @@
 #include "math/Angle.hpp"
 #include "math/Vec.hpp"
 
-#include "io/JsonUtils.hpp"
-
-#include <rapidjson/document.h>
+#include "io/JsonObject.hpp"
 
 namespace Tungsten {
 
@@ -30,11 +28,11 @@ void PhongBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
 
 rapidjson::Value PhongBsdf::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Bsdf::toJson(allocator);
-    v.AddMember("type", "phong", allocator);
-    v.AddMember("exponent", _exponent, allocator);
-    v.AddMember("diffuse_ratio", _diffuseRatio, allocator);
-    return std::move(v);
+    return JsonObject{Bsdf::toJson(allocator), allocator,
+        "type", "phong",
+        "exponent", _exponent,
+        "diffuse_ratio", _diffuseRatio
+    };
 }
 
 bool PhongBsdf::sample(SurfaceScatterEvent &event) const

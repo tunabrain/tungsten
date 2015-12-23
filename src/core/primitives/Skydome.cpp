@@ -9,6 +9,7 @@
 #include "math/Spectral.hpp"
 #include "math/Angle.hpp"
 
+#include "io/JsonObject.hpp"
 #include "io/Scene.hpp"
 
 #include <skylight/ArHosekSkyModel.h>
@@ -81,15 +82,14 @@ void Skydome::fromJson(const rapidjson::Value &v, const Scene &scene)
 }
 rapidjson::Value Skydome::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Primitive::toJson(allocator);
-    v.AddMember("type", "skydome", allocator);
-    v.AddMember("temperature", _temperature, allocator);
-    v.AddMember("gamma_scale", _gammaScale, allocator);
-    v.AddMember("turbidity", _turbidity, allocator);
-    v.AddMember("intensity", _intensity, allocator);
-    v.AddMember("sample", _doSample, allocator);
-
-    return std::move(v);
+    return JsonObject{Primitive::toJson(allocator), allocator,
+        "type", "skydome",
+        "temperature", _temperature,
+        "gamma_scale", _gammaScale,
+        "turbidity", _turbidity,
+        "intensity", _intensity,
+        "sample", _doSample
+    };
 }
 
 bool Skydome::intersect(Ray &ray, IntersectionTemporary &data) const

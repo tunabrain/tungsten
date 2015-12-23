@@ -10,10 +10,8 @@
 #include "math/Angle.hpp"
 #include "math/Vec.hpp"
 
-#include "io/JsonUtils.hpp"
+#include "io/JsonObject.hpp"
 #include "io/Scene.hpp"
-
-#include <rapidjson/document.h>
 
 namespace Tungsten {
 
@@ -32,10 +30,10 @@ void OrenNayarBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
 
 rapidjson::Value OrenNayarBsdf::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Bsdf::toJson(allocator);
-    v.AddMember("type", "oren_nayar", allocator);
-    JsonUtils::addObjectMember(v, "roughness", *_roughness, allocator);
-    return std::move(v);
+    return JsonObject{Bsdf::toJson(allocator), allocator,
+        "type", "oren_nayar",
+        "roughness", *_roughness
+    };
 }
 
 

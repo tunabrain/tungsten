@@ -3,7 +3,7 @@
 
 #include "integrators/photon_map/PhotonMapSettings.hpp"
 
-#include "io/JsonUtils.hpp"
+#include "io/JsonObject.hpp"
 
 namespace Tungsten {
 
@@ -33,11 +33,13 @@ struct ProgressivePhotonMapSettings : public PhotonMapSettings
     {
         rapidjson::Value v = PhotonMapSettings::toJson(allocator);
         v.RemoveMember("type");
-        v.AddMember("type", "progressive_photon_map", allocator);
-        v.AddMember("alpha", alpha, allocator);
-        v.AddMember("fixed_volume_radius", fixedVolumeRadius, allocator);
-        v.AddMember("volume_gather_radius", volumeGatherRadius, allocator);
-        return std::move(v);
+
+        return JsonObject{std::move(v), allocator,
+            "type", "progressive_photon_map",
+            "alpha", alpha,
+            "fixed_volume_radius", fixedVolumeRadius,
+            "volume_gather_radius", volumeGatherRadius
+        };
     }
 };
 

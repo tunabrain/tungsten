@@ -3,7 +3,7 @@
 
 #include "integrators/TraceSettings.hpp"
 
-#include "io/JsonUtils.hpp"
+#include "io/JsonObject.hpp"
 
 namespace Tungsten {
 
@@ -33,13 +33,13 @@ struct PhotonMapSettings : public TraceSettings
 
     rapidjson::Value toJson(rapidjson::Document::AllocatorType &allocator) const
     {
-        rapidjson::Value v = TraceSettings::toJson(allocator);
-        v.AddMember("type", "photon_map", allocator);
-        v.AddMember("photon_count", photonCount, allocator);
-        v.AddMember("volume_photon_count", volumePhotonCount, allocator);
-        v.AddMember("gather_photon_count", gatherCount, allocator);
-        v.AddMember("gather_radius", gatherRadius, allocator);
-        return std::move(v);
+        return JsonObject{TraceSettings::toJson(allocator), allocator,
+            "type", "photon_map",
+            "photon_count", photonCount,
+            "volume_photon_count", volumePhotonCount,
+            "gather_photon_count", gatherCount,
+            "gather_radius", gatherRadius
+        };
     }
 };
 

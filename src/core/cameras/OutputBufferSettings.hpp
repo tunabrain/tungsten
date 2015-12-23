@@ -2,7 +2,7 @@
 #define OUTPUTBUFFERSETTINGS_HPP_
 
 #include "io/JsonSerializable.hpp"
-#include "io/JsonUtils.hpp"
+#include "io/JsonObject.hpp"
 #include "io/FileUtils.hpp"
 
 namespace Tungsten {
@@ -78,16 +78,18 @@ public:
 
     virtual rapidjson::Value toJson(Allocator &allocator) const override
     {
-        rapidjson::Value v(JsonSerializable::toJson(allocator));
-        if (_typeString.empty())
-            v.AddMember("type", JsonUtils::toJson(_typeString, allocator), allocator);
+        JsonObject result{JsonSerializable::toJson(allocator), allocator,
+            "two_buffer_variance", _twoBufferVariance,
+            "sample_variance", _sampleVariance
+        };
+        if (!_typeString.empty())
+            result.add("type", _typeString);
         if (!_ldrOutputFile.empty())
-            v.AddMember("output_file", JsonUtils::toJson(_ldrOutputFile, allocator), allocator);
+            result.add("output_file", _ldrOutputFile);
         if (!_hdrOutputFile.empty())
-            v.AddMember("hdr_output_file", JsonUtils::toJson(_hdrOutputFile, allocator), allocator);
-        v.AddMember("two_buffer_variance", _twoBufferVariance, allocator);
-        v.AddMember("sample_variance", _sampleVariance, allocator);
-        return std::move(v);
+            result.add("hdr_output_file", _hdrOutputFile);
+
+        return result;
     }
 
     void setType(OutputBufferType type)

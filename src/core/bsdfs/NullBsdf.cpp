@@ -1,8 +1,6 @@
 #include "NullBsdf.hpp"
 
-#include "io/JsonUtils.hpp"
-
-#include <rapidjson/document.h>
+#include "io/JsonObject.hpp"
 
 namespace Tungsten {
 
@@ -13,9 +11,9 @@ NullBsdf::NullBsdf()
 
 rapidjson::Value NullBsdf::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Bsdf::toJson(allocator);
-    v.AddMember("type", "null", allocator);
-    return std::move(v);
+    return JsonObject{Bsdf::toJson(allocator), allocator,
+        "type", "null"
+    };
 }
 
 bool NullBsdf::sample(SurfaceScatterEvent &/*event*/) const

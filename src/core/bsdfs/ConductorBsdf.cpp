@@ -11,7 +11,7 @@
 #include "math/Angle.hpp"
 #include "math/Vec.hpp"
 
-#include "io/JsonUtils.hpp"
+#include "io/JsonObject.hpp"
 
 #include <rapidjson/document.h>
 
@@ -44,15 +44,15 @@ void ConductorBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
 
 rapidjson::Value ConductorBsdf::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Bsdf::toJson(allocator);
-    v.AddMember("type", "conductor", allocator);
-    if (_materialName.empty()) {
-        v.AddMember("eta", JsonUtils::toJson(_eta, allocator), allocator);
-        v.AddMember("k", JsonUtils::toJson(_k, allocator), allocator);
-    } else {
-        v.AddMember("material", JsonUtils::toJson(_materialName, allocator), allocator);
-    }
-    return std::move(v);
+    JsonObject result{Bsdf::toJson(allocator), allocator,
+        "type", "conductor"
+    };
+    if (_materialName.empty())
+        result.add("eta", _eta, "k", _k);
+    else
+        result.add("material", _materialName);
+
+    return result;
 }
 
 bool ConductorBsdf::sample(SurfaceScatterEvent &event) const

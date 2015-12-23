@@ -5,7 +5,7 @@
 #include "math/Angle.hpp"
 #include "math/Ray.hpp"
 
-#include "io/JsonUtils.hpp"
+#include "io/JsonObject.hpp"
 
 #include <cmath>
 
@@ -139,10 +139,10 @@ void CubemapCamera::fromJson(const rapidjson::Value &v, const Scene &scene)
 
 rapidjson::Value CubemapCamera::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Camera::toJson(allocator);
-    v.AddMember("type", "cubemap", allocator);
-    v.AddMember("mode", JsonUtils::toJson(_modeString, allocator), allocator);
-    return std::move(v);
+    return JsonObject{Camera::toJson(allocator), allocator,
+        "type", "cubemap",
+        "mode", _modeString
+    };
 }
 
 bool CubemapCamera::samplePosition(PathSampleGenerator &/*sampler*/, PositionSample &sample) const

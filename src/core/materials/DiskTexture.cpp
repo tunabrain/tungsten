@@ -6,6 +6,8 @@
 
 #include "math/MathUtil.hpp"
 
+#include "io/JsonObject.hpp"
+
 namespace Tungsten {
 
 DiskTexture::DiskTexture()
@@ -20,10 +22,10 @@ void DiskTexture::fromJson(const rapidjson::Value &v, const Scene &/*scene*/)
 
 rapidjson::Value DiskTexture::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Texture::toJson(allocator);
-    v.AddMember("type", "disk", allocator);
-    v.AddMember("value",  scalarOrVecToJson( _value, allocator), allocator);
-    return std::move(v);
+    return JsonObject{Texture::toJson(allocator), allocator,
+        "type", "disk",
+        "value",  scalarOrVecToJson( _value, allocator)
+    };
 }
 
 bool DiskTexture::isConstant() const

@@ -4,6 +4,7 @@
 
 #include "media/Medium.hpp"
 
+#include "io/JsonObject.hpp"
 #include "io/Scene.hpp"
 
 namespace Tungsten {
@@ -23,13 +24,13 @@ void Bsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
 
 rapidjson::Value Bsdf::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v(JsonSerializable::toJson(allocator));
-
-    JsonUtils::addObjectMember(v, "albedo", *_albedo,  allocator);
+    JsonObject result{JsonSerializable::toJson(allocator), allocator,
+        "albedo", *_albedo
+    };
     if (_bump)
-        JsonUtils::addObjectMember(v, "bump", *_bump,  allocator);
+        result.add("bump", *_bump);
 
-    return std::move(v);
+    return result;
 }
 
 }

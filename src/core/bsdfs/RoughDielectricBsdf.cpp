@@ -5,7 +5,7 @@
 
 #include "sampling/PathSampleGenerator.hpp"
 
-#include "io/JsonUtils.hpp"
+#include "io/JsonObject.hpp"
 #include "io/Scene.hpp"
 
 namespace Tungsten {
@@ -45,13 +45,13 @@ void RoughDielectricBsdf::fromJson(const rapidjson::Value &v, const Scene &scene
 
 rapidjson::Value RoughDielectricBsdf::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Bsdf::toJson(allocator);
-    v.AddMember("type", "rough_dielectric", allocator);
-    v.AddMember("ior", _ior, allocator);
-    v.AddMember("distribution", JsonUtils::toJson(_distributionName, allocator), allocator);
-    v.AddMember("enable_refraction", _enableT, allocator);
-    JsonUtils::addObjectMember(v, "roughness", *_roughness, allocator);
-    return std::move(v);
+    return JsonObject{Bsdf::toJson(allocator), allocator,
+        "type", "rough_dielectric",
+        "ior", _ior,
+        "distribution", _distributionName,
+        "enable_refraction", _enableT,
+        "roughness", *_roughness
+    };
 }
 
 bool RoughDielectricBsdf::sampleBase(SurfaceScatterEvent &event, bool sampleR, bool sampleT,

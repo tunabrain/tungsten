@@ -10,7 +10,7 @@
 #include "math/Angle.hpp"
 #include "math/Vec.hpp"
 
-#include "io/JsonUtils.hpp"
+#include "io/JsonObject.hpp"
 
 #include <rapidjson/document.h>
 
@@ -39,11 +39,11 @@ void DielectricBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
 
 rapidjson::Value DielectricBsdf::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Bsdf::toJson(allocator);
-    v.AddMember("type", "dielectric", allocator);
-    v.AddMember("ior", _ior, allocator);
-    v.AddMember("enable_refraction", _enableT, allocator);
-    return std::move(v);
+    return JsonObject{Bsdf::toJson(allocator), allocator,
+        "type", "dielectric",
+        "ior", _ior,
+        "enable_refraction", _enableT
+    };
 }
 
 bool DielectricBsdf::sample(SurfaceScatterEvent &event) const

@@ -6,6 +6,7 @@
 
 #include "math/Angle.hpp"
 
+#include "io/JsonObject.hpp"
 #include "io/Scene.hpp"
 
 #include <cmath>
@@ -65,16 +66,18 @@ void ThinlensCamera::fromJson(const rapidjson::Value &v, const Scene &scene)
 
 rapidjson::Value ThinlensCamera::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Camera::toJson(allocator);
-    v.AddMember("type", "thinlens", allocator);
-    v.AddMember("fov", _fovDeg, allocator);
-    v.AddMember("focus_distance", _focusDist, allocator);
-    v.AddMember("aperture_size", _apertureSize, allocator);
-    v.AddMember("cateye", _catEye, allocator);
+    JsonObject result{Camera::toJson(allocator), allocator,
+        "type", "thinlens",
+        "fov", _fovDeg,
+        "focus_distance", _focusDist,
+        "aperture_size", _apertureSize,
+        "cateye", _catEye,
+        "aperture", *_aperture
+    };
     if (!_focusPivot.empty())
-        v.AddMember("focus_pivot", JsonUtils::toJson(_focusPivot, allocator), allocator);
-    JsonUtils::addObjectMember(v, "aperture", *_aperture, allocator);
-    return std::move(v);
+        result.add("focus_pivot", _focusPivot);
+
+    return result;
 }
 
 bool ThinlensCamera::samplePosition(PathSampleGenerator &sampler, PositionSample &sample) const

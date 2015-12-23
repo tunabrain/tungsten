@@ -4,6 +4,7 @@
 
 #include "sampling/PathSampleGenerator.hpp"
 
+#include "io/JsonObject.hpp"
 #include "io/Scene.hpp"
 
 namespace Tungsten {
@@ -27,13 +28,13 @@ void SmoothCoatBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
 
 rapidjson::Value SmoothCoatBsdf::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Bsdf::toJson(allocator);
-    v.AddMember("type", "smooth_coat", allocator);
-    v.AddMember("ior", _ior, allocator);
-    v.AddMember("thickness", _thickness, allocator);
-    v.AddMember("sigma_a", JsonUtils::toJson(_sigmaA, allocator), allocator);
-    JsonUtils::addObjectMember(v, "substrate", *_substrate, allocator);
-    return std::move(v);
+    return JsonObject{Bsdf::toJson(allocator), allocator,
+        "type", "smooth_coat",
+        "ior", _ior,
+        "thickness", _thickness,
+        "sigma_a", _sigmaA,
+        "substrate", *_substrate
+    };
 }
 
 bool SmoothCoatBsdf::sample(SurfaceScatterEvent &event) const

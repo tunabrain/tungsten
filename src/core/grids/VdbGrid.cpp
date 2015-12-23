@@ -8,7 +8,7 @@
 
 #include "math/BitManip.hpp"
 
-#include "io/JsonUtils.hpp"
+#include "io/JsonObject.hpp"
 #include "io/Scene.hpp"
 
 #include "Debug.hpp"
@@ -144,20 +144,20 @@ void VdbGrid::fromJson(const rapidjson::Value &v, const Scene &scene)
 
 rapidjson::Value VdbGrid::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Grid::toJson(allocator);
-
-    v.AddMember("type", "vdb", allocator);
-    v.AddMember("file", JsonUtils::toJson(*_path, allocator), allocator);
-    v.AddMember("grid_name", JsonUtils::toJson(_gridName, allocator), allocator);
-    v.AddMember("integration_method", JsonUtils::toJson(_integrationString, allocator), allocator);
-    v.AddMember("sampling_method", JsonUtils::toJson(_sampleString, allocator), allocator);
+    JsonObject result{Grid::toJson(allocator), allocator,
+        "type", "vdb",
+        "file", *_path,
+        "grid_name", _gridName,
+        "integration_method", _integrationString,
+        "sampling_method", _sampleString,
+        "transform", _configTransform
+    };
     if (_integrationMethod == IntegrationMethod::ResidualRatio)
-        v.AddMember("supergrid_subsample", _supergridSubsample, allocator);
+        result.add("supergrid_subsample", _supergridSubsample);
     if (_integrationMethod == IntegrationMethod::Raymarching || _sampleMethod == SampleMethod::Raymarching)
-        v.AddMember("step_size", _stepSize, allocator);
-    v.AddMember("transform", JsonUtils::toJson(_configTransform, allocator), allocator);
+        result.add("step_size", _stepSize);
 
-    return std::move(v);
+    return result;
 }
 
 void VdbGrid::loadResources()

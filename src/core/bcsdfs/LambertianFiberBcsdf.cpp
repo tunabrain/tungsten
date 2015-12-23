@@ -5,6 +5,8 @@
 
 #include "math/Angle.hpp"
 
+#include "io/JsonObject.hpp"
+
 namespace Tungsten {
 
 LambertianFiberBcsdf::LambertianFiberBcsdf()
@@ -27,9 +29,9 @@ inline float LambertianFiberBcsdf::lambertianCylinder(const Vec3f &wo) const
 
 rapidjson::Value LambertianFiberBcsdf::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Bsdf::toJson(allocator);
-    v.AddMember("type", "lambertian_fiber", allocator);
-    return std::move(v);
+    return JsonObject{Bsdf::toJson(allocator), allocator,
+        "type", "lambertian_fiber"
+    };
 }
 
 Vec3f LambertianFiberBcsdf::eval(const SurfaceScatterEvent &event) const

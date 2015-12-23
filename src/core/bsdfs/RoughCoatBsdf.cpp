@@ -7,6 +7,7 @@
 
 #include "sampling/PathSampleGenerator.hpp"
 
+#include "io/JsonObject.hpp"
 #include "io/Scene.hpp"
 
 namespace Tungsten {
@@ -37,15 +38,15 @@ void RoughCoatBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
 
 rapidjson::Value RoughCoatBsdf::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Bsdf::toJson(allocator);
-    v.AddMember("type", "rough_coat", allocator);
-    v.AddMember("ior", _ior, allocator);
-    v.AddMember("thickness", _thickness, allocator);
-    v.AddMember("sigma_a", JsonUtils::toJson(_sigmaA, allocator), allocator);
-    JsonUtils::addObjectMember(v, "substrate", *_substrate, allocator);
-    v.AddMember("distribution", JsonUtils::toJson(_distributionName, allocator), allocator);
-    JsonUtils::addObjectMember(v, "roughness", *_roughness, allocator);
-    return std::move(v);
+    return JsonObject{Bsdf::toJson(allocator), allocator,
+        "type", "rough_coat",
+        "ior", _ior,
+        "thickness", _thickness,
+        "sigma_a", _sigmaA,
+        "substrate", *_substrate,
+        "distribution", _distributionName,
+        "roughness", *_roughness
+    };
 }
 
 void RoughCoatBsdf::substrateEvalAndPdf(const SurfaceScatterEvent &event, float eta,

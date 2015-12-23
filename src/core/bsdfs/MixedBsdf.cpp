@@ -9,10 +9,8 @@
 
 #include "math/Vec.hpp"
 
-#include "io/JsonUtils.hpp"
+#include "io/JsonObject.hpp"
 #include "io/Scene.hpp"
-
-#include <rapidjson/document.h>
 
 namespace Tungsten {
 
@@ -63,12 +61,12 @@ void MixedBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
 
 rapidjson::Value MixedBsdf::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Bsdf::toJson(allocator);
-    v.AddMember("type", "mixed", allocator);
-    JsonUtils::addObjectMember(v, "bsdf0", *_bsdf0, allocator);
-    JsonUtils::addObjectMember(v, "bsdf1", *_bsdf1, allocator);
-    JsonUtils::addObjectMember(v, "ratio", *_ratio, allocator);
-    return std::move(v);
+    return JsonObject{Bsdf::toJson(allocator), allocator,
+        "type", "mixed",
+        "bsdf0", *_bsdf0,
+        "bsdf1", *_bsdf1,
+        "ratio", *_ratio
+    };
 }
 
 bool MixedBsdf::sample(SurfaceScatterEvent &event) const

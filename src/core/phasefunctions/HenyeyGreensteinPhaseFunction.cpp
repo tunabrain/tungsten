@@ -7,7 +7,7 @@
 #include "math/MathUtil.hpp"
 #include "math/Angle.hpp"
 
-#include "io/JsonUtils.hpp"
+#include "io/JsonObject.hpp"
 
 namespace Tungsten {
 
@@ -30,10 +30,10 @@ void HenyeyGreensteinPhaseFunction::fromJson(const rapidjson::Value &v, const Sc
 
 rapidjson::Value HenyeyGreensteinPhaseFunction::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = PhaseFunction::toJson(allocator);
-    v.AddMember("type", "henyey_greenstein", allocator);
-    v.AddMember("g", _g, allocator);
-    return std::move(v);
+    return JsonObject{PhaseFunction::toJson(allocator), allocator,
+        "type", "henyey_greenstein",
+        "g", _g
+    };
 }
 
 Vec3f HenyeyGreensteinPhaseFunction::eval(const Vec3f &wi, const Vec3f &wo) const

@@ -12,10 +12,8 @@
 #include "math/Angle.hpp"
 #include "math/Vec.hpp"
 
-#include "io/JsonUtils.hpp"
+#include "io/JsonObject.hpp"
 #include "io/Scene.hpp"
-
-#include <rapidjson/document.h>
 
 namespace Tungsten {
 
@@ -39,13 +37,13 @@ void ThinSheetBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
 
 rapidjson::Value ThinSheetBsdf::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Bsdf::toJson(allocator);
-    v.AddMember("type", "thinsheet", allocator);
-    v.AddMember("ior", _ior, allocator);
-    v.AddMember("enable_interference", _enableInterference, allocator);
-    JsonUtils::addObjectMember(v, "thickness", *_thickness, allocator);
-    v.AddMember("sigma_a", JsonUtils::toJson(_sigmaA, allocator), allocator);
-    return std::move(v);
+    return JsonObject{Bsdf::toJson(allocator), allocator,
+        "type", "thinsheet",
+        "ior", _ior,
+        "enable_interference", _enableInterference,
+        "thickness", *_thickness,
+        "sigma_a", _sigmaA
+    };
 }
 
 bool ThinSheetBsdf::sample(SurfaceScatterEvent &event) const

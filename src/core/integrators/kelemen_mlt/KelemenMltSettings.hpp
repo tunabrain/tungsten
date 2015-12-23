@@ -3,7 +3,7 @@
 
 #include "integrators/path_tracer/PathTracerSettings.hpp"
 
-#include "io/JsonUtils.hpp"
+#include "io/JsonObject.hpp"
 
 namespace Tungsten {
 
@@ -32,11 +32,13 @@ struct KelemenMltSettings : public PathTracerSettings
     {
         rapidjson::Value v = PathTracerSettings::toJson(allocator);
         v.RemoveMember("type");
-        v.AddMember("type", "kelemen_mlt", allocator);
-        v.AddMember("initial_sample_pool", initialSamplePool, allocator);
-        v.AddMember("bidirectional", bidirectional, allocator);
-        v.AddMember("large_step_probability", largeStepProbability, allocator);
-        return std::move(v);
+
+        return JsonObject{std::move(v), allocator,
+            "type", "kelemen_mlt",
+            "initial_sample_pool", initialSamplePool,
+            "bidirectional", bidirectional,
+            "large_step_probability", largeStepProbability
+        };
     }
 };
 

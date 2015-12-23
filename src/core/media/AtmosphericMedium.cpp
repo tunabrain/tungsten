@@ -6,6 +6,7 @@
 
 #include "math/Erf.hpp"
 
+#include "io/JsonObject.hpp"
 #include "io/Scene.hpp"
 
 namespace Tungsten {
@@ -37,19 +38,20 @@ void AtmosphericMedium::fromJson(const rapidjson::Value &v, const Scene &scene)
 
 rapidjson::Value AtmosphericMedium::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v(Medium::toJson(allocator));
-    v.AddMember("type", "atmosphere", allocator);
-    v.AddMember("sigma_a", JsonUtils::toJson(_materialSigmaA, allocator), allocator);
-    v.AddMember("sigma_s", JsonUtils::toJson(_materialSigmaS, allocator), allocator);
-    v.AddMember("density", JsonUtils::toJson(_density, allocator), allocator);
-    v.AddMember("falloff_scale", JsonUtils::toJson(_falloffScale, allocator), allocator);
-    v.AddMember("radius", JsonUtils::toJson(_radius, allocator), allocator);
+    JsonObject result{Medium::toJson(allocator), allocator,
+        "type", "atmosphere",
+        "sigma_a", _materialSigmaA,
+        "sigma_s", _materialSigmaS,
+        "density", _density,
+        "falloff_scale", _falloffScale,
+        "radius", _radius
+    };
     if (!_primName.empty())
-        v.AddMember("pivot", JsonUtils::toJson(_primName, allocator), allocator);
+        result.add("pivot", _primName);
     else
-        v.AddMember("center", JsonUtils::toJson(_center, allocator), allocator);
+        result.add("center", _center);
 
-    return std::move(v);
+    return result;
 }
 
 bool AtmosphericMedium::isHomogeneous() const

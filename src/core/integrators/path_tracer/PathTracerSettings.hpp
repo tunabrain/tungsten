@@ -3,7 +3,7 @@
 
 #include "integrators/TraceSettings.hpp"
 
-#include "io/JsonUtils.hpp"
+#include "io/JsonObject.hpp"
 
 namespace Tungsten {
 
@@ -27,11 +27,11 @@ struct PathTracerSettings : public TraceSettings
 
     rapidjson::Value toJson(rapidjson::Document::AllocatorType &allocator) const
     {
-        rapidjson::Value v = TraceSettings::toJson(allocator);
-        v.AddMember("type", "path_tracer", allocator);
-        v.AddMember("enable_light_sampling", enableLightSampling, allocator);
-        v.AddMember("enable_volume_light_sampling", enableVolumeLightSampling, allocator);
-        return std::move(v);
+        return JsonObject{TraceSettings::toJson(allocator), allocator,
+            "type", "path_tracer",
+            "enable_light_sampling", enableLightSampling,
+            "enable_volume_light_sampling", enableVolumeLightSampling
+        };
     }
 };
 

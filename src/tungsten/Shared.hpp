@@ -7,8 +7,8 @@
 
 #include "io/DirectoryChange.hpp"
 #include "io/StringUtils.hpp"
+#include "io/JsonObject.hpp"
 #include "io/FileUtils.hpp"
-#include "io/JsonUtils.hpp"
 #include "io/CliParser.hpp"
 #include "io/Scene.hpp"
 
@@ -67,25 +67,26 @@ struct RendererStatus
 
     rapidjson::Value toJson(rapidjson::Document::AllocatorType &allocator) const
     {
-        rapidjson::Value result(rapidjson::kObjectType);
-        result.SetObject();
-
-        result.AddMember("state", rapidjson::StringRef(renderStateToString(state)), allocator);
-        result.AddMember("start_spp", startSpp, allocator);
-        result.AddMember("current_spp", currentSpp, allocator);
-        result.AddMember("next_spp", nextSpp, allocator);
-        result.AddMember("total_spp", totalSpp, allocator);
-        result.AddMember("current_scene", JsonUtils::toJson(currentScene, allocator), allocator);
+        JsonObject result{allocator,
+            "state", renderStateToString(state),
+            "start_spp", startSpp,
+            "current_spp", currentSpp,
+            "next_spp", nextSpp,
+            "total_spp", totalSpp,
+            "current_scene", currentScene
+        };
         rapidjson::Value completedValue(rapidjson::kArrayType);
+        rapidjson::Value queuedValue(rapidjson::kArrayType);
+
         for (const Path &p : completedScenes)
             completedValue.PushBack(JsonUtils::toJson(p, allocator), allocator);
-        result.AddMember("completed_scenes", std::move(completedValue), allocator);
-        rapidjson::Value queuedValue(rapidjson::kArrayType);
         for (const Path &p : queuedScenes)
             queuedValue.PushBack(JsonUtils::toJson(p, allocator), allocator);
-        result.AddMember("queued_scenes", std::move(queuedValue), allocator);
 
-        return std::move(result);
+        result.add("completed_scenes", std::move(completedValue),
+                   "queued_scenes", std::move(queuedValue));
+
+        return result;
     }
 };
 

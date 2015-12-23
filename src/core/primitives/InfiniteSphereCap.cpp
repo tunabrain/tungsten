@@ -6,6 +6,7 @@
 
 #include "bsdfs/NullBsdf.hpp"
 
+#include "io/JsonObject.hpp"
 #include "io/Scene.hpp"
 
 namespace Tungsten {
@@ -46,13 +47,15 @@ void InfiniteSphereCap::fromJson(const rapidjson::Value &v, const Scene &scene)
 }
 rapidjson::Value InfiniteSphereCap::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Primitive::toJson(allocator);
-    v.AddMember("type", "infinite_sphere_cap", allocator);
-    v.AddMember("sample", _doSample, allocator);
+    JsonObject result{Primitive::toJson(allocator), allocator,
+        "type", "infinite_sphere_cap",
+        "sample", _doSample,
+        "cap_angle", _capAngleDeg
+    };
     if (!_domeName.empty())
-        v.AddMember("skydome", JsonUtils::toJson(_domeName, allocator), allocator);
-    v.AddMember("cap_angle", _capAngleDeg, allocator);
-    return std::move(v);
+        result.add("skydome", _domeName);
+
+    return result;
 }
 
 bool InfiniteSphereCap::intersect(Ray &ray, IntersectionTemporary &data) const
