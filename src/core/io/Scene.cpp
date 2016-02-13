@@ -564,9 +564,9 @@ rapidjson::Value Scene::toJson(Allocator &allocator) const
             primitives.PushBack(t->toJson(allocator), allocator);
 
     return JsonObject{JsonSerializable::toJson(allocator), allocator,
-        "media", media,
-        "bsdfs", bsdfs,
-        "primitives", primitives,
+        "media", std::move(media),
+        "bsdfs", std::move(bsdfs),
+        "primitives", std::move(primitives),
         "camera", *_camera,
         "integrator", *_integrator,
         "renderer", _rendererSettings

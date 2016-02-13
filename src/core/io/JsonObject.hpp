@@ -35,10 +35,23 @@ public:
         return std::move(_value);
     }
 
-    template<size_t N, typename T, typename... Ts>
-    void add(const char (&key)[N], T &&value, Ts &&... ts)
+    template<size_t N, typename... Ts>
+    void add(const char (&key)[N], rapidjson::Value &&value, Ts &&... ts)
     {
         _value.AddMember(rapidjson::StringRef(key, N - 1), JsonUtils::toJson(std::move(value), _allocator), _allocator);
+        add(std::forward<Ts>(ts)...);
+    }
+    
+    template<size_t N, typename... Ts>
+    void add(const char (&key)[N], JsonObject &&value, Ts &&... ts)
+    {
+        add(key, rapidjson::Value(std::move(value)), std::forward<Ts>(ts)...);
+    }
+
+    template<size_t N, typename T, typename... Ts>
+    void add(const char (&key)[N], const T &value, Ts &&... ts)
+    {
+        _value.AddMember(rapidjson::StringRef(key, N - 1), JsonUtils::toJson(value, _allocator), _allocator);
         add(std::forward<Ts>(ts)...);
     }
 };

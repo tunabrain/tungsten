@@ -84,7 +84,7 @@ std::unique_ptr<Vec3f[]> nlMeansFilter(std::unique_ptr<Vec3f[]> img, float *var,
     };
 
     std::unique_ptr<Vec3f[]> result(new Vec3f[w*h]);
-    ThreadUtils::parallelFor(0, h, 20, [&](uint32 y) {
+    ThreadUtils::parallelFor(0, h, 20, [&](Tungsten::uint32 y) {
         for (int x = 0; x < w; ++x) {
             float weightSum = 0.0f;
             Vec3f filtered(0.0f);
