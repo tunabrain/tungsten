@@ -1,4 +1,4 @@
-#include <QtGui>
+#include <QtWidgets>
 #include <iostream>
 
 #include "MainWindow.hpp"
@@ -17,28 +17,11 @@ MainWindow::MainWindow()
 {
     _scene.reset();
 
-    if (!QGLFormat::hasOpenGL()) {
-        QMessageBox::critical(this,
-                "No OpenGL Support",
-                "This system does not appear to support OpenGL.\n\n"
-                "The Tungsten scene editor requires OpenGL "
-                "to work properly. The editor will now terminate.\n\n"
-                "Please install any available updates for your graphics card driver and try again");
-        std::exit(0);
-    }
-
-    QGLFormat qglFormat;
-    qglFormat.setVersion(3, 2);
-    qglFormat.setProfile(QGLFormat::CoreProfile);
-    qglFormat.setAlpha(true);
-    qglFormat.setSampleBuffers(true);
-    qglFormat.setSamples(16);
-
     _windowSplit = new QSplitter(this);
     _stackWidget = new QStackedWidget(_windowSplit);
 
       _renderWindow = new   RenderWindow(_stackWidget, this);
-     _previewWindow = new  PreviewWindow(_stackWidget, this, qglFormat);
+     _previewWindow = new  PreviewWindow(_stackWidget, this);
     _propertyWindow = new PropertyWindow(_windowSplit, this);
 
     _stackWidget->addWidget(_renderWindow);

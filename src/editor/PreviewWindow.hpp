@@ -14,7 +14,7 @@
 
 #include <unordered_map>
 #include <unordered_set>
-#include <QGLWidget>
+#include <QOpenGLWidget>
 #include <memory>
 
 class QStatusBar;
@@ -57,7 +57,7 @@ enum MouseConsumers
     SelectionConsumer = (1 << 2),
 };
 
-class PreviewWindow : public QGLWidget
+class PreviewWindow : public QOpenGLWidget
 {
     Q_OBJECT
 
@@ -152,7 +152,7 @@ signals:
     void primitiveListChanged();
 
 public:
-    PreviewWindow(QWidget *proxyParent, MainWindow *parent, const QGLFormat &format);
+    PreviewWindow(QWidget *proxyParent, MainWindow *parent);
 
     void addStatusWidgets(QStatusBar *statusBar);
     void saveSceneData();

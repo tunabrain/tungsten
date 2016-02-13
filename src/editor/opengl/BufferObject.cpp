@@ -21,7 +21,7 @@ BufferObject::BufferObject(BufferType type)
 {
     _glType = bufferTypes[type];
 
-    glGenBuffers(1, &_glName);
+    glf->glGenBuffers(1, &_glName);
 }
 
 BufferObject::BufferObject(BufferType type, GLsizei size)
@@ -30,14 +30,14 @@ BufferObject::BufferObject(BufferType type, GLsizei size)
 {
     _glType = bufferTypes[type];
 
-    glGenBuffers(1, &_glName);
+    glf->glGenBuffers(1, &_glName);
     init(size);
 }
 
 BufferObject::~BufferObject()
 {
     if (_glName)
-        glDeleteBuffers(1, &_glName);
+        glf->glDeleteBuffers(1, &_glName);
 }
 
 BufferObject::BufferObject(BufferObject &&o)
@@ -68,7 +68,7 @@ void BufferObject::init(GLsizei size)
 {
     _size = size;
     bind();
-    glBufferData(_glType, _size, nullptr, GL_STATIC_DRAW);
+    glf->glBufferData(_glType, _size, nullptr, GL_STATIC_DRAW);
     unbind();
 }
 
@@ -79,33 +79,33 @@ void BufferObject::map(int flags)
 
     GLuint flag = (flags & MAP_READ) ? ((flags & MAP_WRITE) ? GL_READ_WRITE : GL_READ_ONLY) : GL_WRITE_ONLY;
 
-    _data = glMapBuffer(_glType, flag);
+    _data = glf->glMapBuffer(_glType, flag);
 }
 
 void BufferObject::unmap()
 {
     _data = nullptr;
-    glUnmapBuffer(_glType);
+    glf->glUnmapBuffer(_glType);
 }
 
 void BufferObject::copyData(void *data, GLsizei size)
 {
-    glBufferData(_glType, size, data, GL_STATIC_DRAW);
+    glf->glBufferData(_glType, size, data, GL_STATIC_DRAW);
 }
 
 void BufferObject::bind()
 {
-    glBindBuffer(_glType, _glName);
+    glf->glBindBuffer(_glType, _glName);
 }
 
 void BufferObject::unbind()
 {
-    glBindBuffer(_glType, 0);
+    glf->glBindBuffer(_glType, 0);
 }
 
 void BufferObject::invalidate()
 {
-    glBufferData(_glType, _size, nullptr, GL_STATIC_DRAW);
+    glf->glBufferData(_glType, _size, nullptr, GL_STATIC_DRAW);
 }
 
 }

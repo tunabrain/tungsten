@@ -17,7 +17,7 @@
 #include "io/FileUtils.hpp"
 #include "io/Scene.hpp"
 
-#include <QtGui>
+#include <QtWidgets>
 
 namespace Tungsten {
 

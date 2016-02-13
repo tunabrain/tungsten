@@ -4,7 +4,7 @@
 #include "editor/ColorPickButton.hpp"
 #include "editor/QtUtils.hpp"
 
-#include <QtGui>
+#include <QtWidgets>
 
 namespace Tungsten {
 

@@ -1,6 +1,6 @@
 #include "VerticalScrollArea.hpp"
 
-#include <QtGui>
+#include <QtWidgets>
 
 namespace Tungsten {
 

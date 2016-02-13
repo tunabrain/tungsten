@@ -1,15 +1,13 @@
 #ifndef OPENGL_HPP_
 #define OPENGL_HPP_
 
-#ifdef __APPLE__
-# include <OpenGL/gl3.h>
-#else
-# include <GL/glew.h>
-#endif
+#include <QOpenGLFunctions_3_2_Core>
 
 namespace Tungsten {
 
 namespace GL {
+
+extern QOpenGLFunctions_3_2_Core *glf;
 
 void initOpenGL();
 

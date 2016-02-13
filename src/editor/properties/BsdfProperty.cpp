@@ -29,7 +29,7 @@
 
 #include "io/Scene.hpp"
 
-#include <QtGui>
+#include <QtWidgets>
 
 namespace Tungsten {
 

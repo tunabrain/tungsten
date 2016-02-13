@@ -16,13 +16,13 @@ int RenderTarget::_viewportH = -1;
 
 RenderTarget::RenderTarget()
 {
-    glGenFramebuffers(1, &_glName);
+    glf->glGenFramebuffers(1, &_glName);
 }
 
 RenderTarget::~RenderTarget()
 {
     if (_glName)
-        glDeleteFramebuffers(1, &_glName);
+        glf->glDeleteFramebuffers(1, &_glName);
 }
 
 RenderTarget::RenderTarget(RenderTarget &&o)
@@ -43,19 +43,19 @@ void RenderTarget::selectAttachments(int num)
 {
     if (num == 0) {
         GLenum target = GL_NONE;
-        glDrawBuffers(1, &target);
+        glf->glDrawBuffers(1, &target);
     } else {
         GLenum selected[RT_ATTACHMENT_COUNT];
         for (int i = 0; i < num; ++i)
             selected[i] = GL_COLOR_ATTACHMENT0 + i;
 
-        glDrawBuffers(num, selected);
+        glf->glDrawBuffers(num, selected);
     }
 }
 
 void RenderTarget::setReadBuffer(RtAttachment buf)
 {
-    glReadBuffer(GL_COLOR_ATTACHMENT0 + static_cast<int>(buf));
+    glf->glReadBuffer(GL_COLOR_ATTACHMENT0 + static_cast<int>(buf));
 }
 
 void RenderTarget::attachTexture(const Texture &tex, int index, int level)
@@ -65,58 +65,58 @@ void RenderTarget::attachTexture(const Texture &tex, int index, int level)
         FAIL("Cannot attach texture buffer to FBO\n");
         break;
     case TEXTURE_1D:
-        glFramebufferTexture1D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, GL_TEXTURE_1D, tex.glName(), level);
+        glf->glFramebufferTexture1D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, GL_TEXTURE_1D, tex.glName(), level);
         break;
     case TEXTURE_2D:
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0  + index, GL_TEXTURE_2D, tex.glName(), level);
+        glf->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0  + index, GL_TEXTURE_2D, tex.glName(), level);
         break;
     case TEXTURE_CUBE:
     case TEXTURE_3D:
-        glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, tex.glName(), level);
+        glf->glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, tex.glName(), level);
         break;
     }
 }
 
 void RenderTarget::detachTexture(int index)
 {
-    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, 0, 0);
+    glf->glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, 0, 0);
 }
 
 void RenderTarget::attachDepthBuffer(const Texture &tex)
 {
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, tex.glName(), 0);
+    glf->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, tex.glName(), 0);
 }
 
 void RenderTarget::attachDepthStencilBuffer(const Texture &tex)
 {
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, tex.glName(), 0);
+    glf->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, tex.glName(), 0);
 }
 
 void RenderTarget::detachDepthBuffer()
 {
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
+    glf->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
 }
 
 void RenderTarget::detachDepthStencilBuffer()
 {
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
+    glf->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
 }
 
 void RenderTarget::bind()
 {
-    glBindFramebuffer(GL_FRAMEBUFFER, _glName);
+    glf->glBindFramebuffer(GL_FRAMEBUFFER, _glName);
 }
 
 void RenderTarget::unbind()
 {
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glf->glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 
 void RenderTarget::resetViewport()
 {
     int viewport[4];
-    glGetIntegerv(GL_VIEWPORT, viewport);
+    glf->glGetIntegerv(GL_VIEWPORT, viewport);
 
     _viewportX = viewport[0];
     _viewportY = viewport[1];
@@ -127,7 +127,7 @@ void RenderTarget::resetViewport()
 void RenderTarget::setViewport(int x, int y, int w, int h)
 {
     if (_viewportX != x || _viewportY != y || _viewportW != w || _viewportH != h) {
-        glViewport(x, y, w, h);
+        glf->glViewport(x, y, w, h);
 
         _viewportX = x;
         _viewportY = y;

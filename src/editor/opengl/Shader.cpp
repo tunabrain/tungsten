@@ -52,7 +52,7 @@ Shader::Shader(const Path &folder, const Path &preamble, const Path &vertex, con
 Shader::~Shader()
 {
     if (_program)
-        glDeleteProgram(_program);
+        glf->glDeleteProgram(_program);
 }
 
 Shader::Shader(Shader &&o)
@@ -95,44 +95,44 @@ void Shader::addOutput(std::string name)
 void Shader::link()
 {
     if (_program)
-        glDeleteProgram(_program);
+        glf->glDeleteProgram(_program);
 
-    _program = glCreateProgram();
+    _program = glf->glCreateProgram();
 
     for (const ShaderObject &o : _shaders)
-        glAttachShader(_program, o.glName());
+        glf->glAttachShader(_program, o.glName());
 
     for (size_t i = 0; i < _outputs.size(); i++)
-        glBindFragDataLocation(_program, i, _outputs[i].c_str());
+        glf->glBindFragDataLocation(_program, i, _outputs[i].c_str());
 
-    glLinkProgram(_program);
+    glf->glLinkProgram(_program);
 
     check();
 }
 
 void Shader::bind()
 {
-    glUseProgram(_program);
+    glf->glUseProgram(_program);
 }
 
 GLint Shader::uniform(const std::string &name)
 {
     auto iter = _uniformLocations.find(name);
     if (iter == _uniformLocations.end())
-        iter = _uniformLocations.insert(std::make_pair(name, glGetUniformLocation(_program, name.c_str()))).first;
+        iter = _uniformLocations.insert(std::make_pair(name, glf->glGetUniformLocation(_program, name.c_str()))).first;
     return iter->second;
 }
 
 void Shader::check()
 {
     int status, length;
-    glGetProgramiv(_program, GL_LINK_STATUS, &status);
-    glGetProgramiv(_program, GL_INFO_LOG_LENGTH, &length);
+    glf->glGetProgramiv(_program, GL_LINK_STATUS, &status);
+    glf->glGetProgramiv(_program, GL_INFO_LOG_LENGTH, &length);
 
     std::unique_ptr<GLchar[]> log;
     if (length > 1) {
         log.reset(new GLchar[length]);
-        glGetProgramInfoLog(_program, length, nullptr, log.get());
+        glf->glGetProgramInfoLog(_program, length, nullptr, log.get());
     }
 
     if (status != GL_TRUE) {
@@ -146,56 +146,56 @@ void Shader::check()
 
 void Shader::uniformI(const std::string &name, int i)
 {
-    glUniform1i(uniform(name), i);
+    glf->glUniform1i(uniform(name), i);
 }
 
 void Shader::uniformI(const std::string &name, int i1, int i2)
 {
-    glUniform2i(uniform(name), i1, i2);
+    glf->glUniform2i(uniform(name), i1, i2);
 }
 
 void Shader::uniformI(const std::string &name, int i1, int i2, int i3)
 {
-    glUniform3i(uniform(name), i1, i2, i3);
+    glf->glUniform3i(uniform(name), i1, i2, i3);
 }
 
 void Shader::uniformI(const std::string &name, int i1, int i2, int i3, int i4)
 {
-    glUniform4i(uniform(name), i1, i2, i3, i4);
+    glf->glUniform4i(uniform(name), i1, i2, i3, i4);
 }
 
 void Shader::uniformF(const std::string &name, float f)
 {
-    glUniform1f(uniform(name), f);
+    glf->glUniform1f(uniform(name), f);
 }
 void Shader::uniformF(const std::string &name, float f1, float f2)
 {
-    glUniform2f(uniform(name), f1, f2);
+    glf->glUniform2f(uniform(name), f1, f2);
 }
 
 void Shader::uniformF(const std::string &name, float f1, float f2, float f3)
 {
-    glUniform3f(uniform(name), f1, f2, f3);
+    glf->glUniform3f(uniform(name), f1, f2, f3);
 }
 
 void Shader::uniformF(const std::string &name, float f1, float f2, float f3, float f4)
 {
-    glUniform4f(uniform(name), f1, f2, f3, f4);
+    glf->glUniform4f(uniform(name), f1, f2, f3, f4);
 }
 
 void Shader::uniformF(const std::string &name, const Vec3f &v)
 {
-    glUniform3f(uniform(name), v.x(), v.y(), v.z());
+    glf->glUniform3f(uniform(name), v.x(), v.y(), v.z());
 }
 
 void Shader::uniformF(const std::string &name, const Vec4f &v)
 {
-    glUniform4f(uniform(name), v.x(), v.y(), v.z(), v.w());
+    glf->glUniform4f(uniform(name), v.x(), v.y(), v.z(), v.w());
 }
 
 void Shader::uniformMat(const std::string &name, const Mat4f &m, bool transpose)
 {
-    glUniformMatrix4fv(uniform(name), 1, transpose, m.data());
+    glf->glUniformMatrix4fv(uniform(name), 1, transpose, m.data());
 }
 
 }

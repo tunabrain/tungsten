@@ -4,7 +4,7 @@
 #include "Platform.hpp"
 
 #include <string.h>
-#include <QtGui>
+#include <QtWidgets>
 
 namespace Tungsten {
 
