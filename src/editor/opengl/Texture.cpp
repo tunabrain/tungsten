@@ -272,20 +272,20 @@ void Texture::copy(void *data, int level)
         break;
     case TEXTURE_CUBE:
         for (int i = 0; i < 6; i++) {
-            glTexSubImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, level, 0, 0,
-                w, h, _glChanType, _elementType, data);
+            glf->glTexSubImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, level, 0, 0,
+                                 w, h, _glChanType, _elementType, data);
 
             if (data)
                 data = (char *)data + w*h*_elementSize;
         }
         break;
     case TEXTURE_2D:
-        glTexSubImage2D(GL_TEXTURE_2D, level, 0, 0, w, h,
-                _glChanType, _elementType, data);
+        glf->glTexSubImage2D(GL_TEXTURE_2D, level, 0, 0, w, h,
+                             _glChanType, _elementType, data);
         break;
     case TEXTURE_3D:
-        glTexSubImage3D(GL_TEXTURE_3D, level, 0, 0, 0, w, h, d,
-                _glChanType, _elementType, data);
+        glf->glTexSubImage3D(GL_TEXTURE_3D, level, 0, 0, 0, w, h, d,
+                             _glChanType, _elementType, data);
         break;
     }
 }

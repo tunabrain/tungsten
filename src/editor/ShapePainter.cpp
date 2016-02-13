@@ -44,7 +44,7 @@ ShapePainter::ShapePainter(DrawMode mode)
 
     _defaultShader->bind();
     Vec4i viewport;
-    glGetIntegerv(GL_VIEWPORT, viewport.data());
+    glf->glGetIntegerv(GL_VIEWPORT, viewport.data());
     Mat4f proj(Mat4f::ortho(0.0f, float(viewport.z()), float(viewport.w()), 0.0f, -1.0f, 1.0f));
     _defaultShader->uniformMat("ModelViewProjection", proj, true);
 }
