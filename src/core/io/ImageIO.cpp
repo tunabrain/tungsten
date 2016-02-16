@@ -255,7 +255,7 @@ static std::unique_ptr<float[]> loadExr(const Path &path, TexelConversion reques
             }
         }
     } else {
-        return false;
+        return nullptr;
     }
 
     file.setFrameBuffer(frameBuffer);
