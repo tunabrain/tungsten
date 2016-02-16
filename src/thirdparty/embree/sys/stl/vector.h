@@ -52,7 +52,10 @@ namespace embree
       }
       
       ~vector_t() {
-        if (t) alignedFree(t); t = NULL;
+        if (t) {
+            alignedFree(t);
+            t = NULL;
+        }
       }
 
       inline bool empty() const { return m_size == 0; }
