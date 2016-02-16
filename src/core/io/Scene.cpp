@@ -488,13 +488,14 @@ bool Scene::addUnique(const std::shared_ptr<T> &o, std::vector<std::shared_ptr<T
 
 void Scene::addPrimitive(const std::shared_ptr<Primitive> &mesh)
 {
-    if (addUnique(mesh, _primitives))
+    if (addUnique(mesh, _primitives)) {
         for (int i = 0; i < mesh->numBsdfs(); ++i)
             addBsdf(mesh->bsdf(i));
         if (mesh->intMedium())
             addUnique(mesh->intMedium(), _media);
         if (mesh->extMedium())
             addUnique(mesh->extMedium(), _media);
+    }
 }
 
 void Scene::addBsdf(const std::shared_ptr<Bsdf> &bsdf)
