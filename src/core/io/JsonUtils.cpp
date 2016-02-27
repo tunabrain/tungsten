@@ -3,6 +3,8 @@
 
 #include <rapidjson/prettywriter.h>
 #include <sstream>
+#include <cstdlib>
+#include <cstdio>
 
 namespace Tungsten {
 
@@ -118,6 +120,39 @@ static float prettifyFloat(float f)
     if (f == 0.0f)
         f = 0.0f;
     return f;
+}
+
+// Ok so this is super evil
+//
+// The basic problem is that rapidjson doesn't have a float type, only double.
+// However, internally Tungsten uses mostly floats.
+// Although not immediately obvious, this is a usability problem.
+//
+// Imagine the user specifies a value of 0.1 in the JSON file. Tungsten will internally
+// convert this into a float representation that's very close to this value
+// (because 0.1 cannot be represented exactly in binary)
+// When you print the float, this would give you back a string representation corresponding to 0.1
+// (which is what the user entered)
+// However, if you convert the float representation of 0.1 to double first and then print it, you will
+// get a different string representation (namely 0.09999999776482582). This is because doubles
+// are printed with higher precision.
+//
+// This is a problem, because if a user specifies 0.1 in the JSON, and tungsten writes the JSON
+// back out, the value will now read 0.09999999776482582. This is because it converts to float
+// internally on load and then converts back to double when passing it to rapidjson on save.
+// This is terrible!
+//
+// So instead of converting float to double using the native conversion, we instead use a conversion
+// that preserves the same string representation - in other words, we print the float to a string,
+// and convert that string to a double. This ensures the user gets back exactly what they entered.
+//
+// This is really really bad from a performance perspective, so if this becomes a bottleneck,
+// we need a better way of doing this.
+static double prettifyFloatToDouble(float f)
+{
+    char tmp[1024];
+    std::sprintf(tmp, "%f", f);
+    return std::atof(tmp);
 }
 
 static Vec3f prettifyVector(const Vec3f &p)
@@ -272,7 +307,7 @@ rapidjson::Value toJson(uint64_t value, rapidjson::Document::AllocatorType &/*al
 
 rapidjson::Value toJson(float value, rapidjson::Document::AllocatorType &/*allocator*/)
 {
-    return rapidjson::Value(value);
+    return rapidjson::Value(prettifyFloatToDouble(value));
 }
 
 rapidjson::Value toJson(double value, rapidjson::Document::AllocatorType &/*allocator*/)
