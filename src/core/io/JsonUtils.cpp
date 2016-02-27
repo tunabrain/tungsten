@@ -250,6 +250,11 @@ rapidjson::Value toJson(const Path &value, rapidjson::Document::AllocatorType &a
     return toJson(value.asString(), allocator);
 }
 
+rapidjson::Value toJson(bool value, rapidjson::Document::AllocatorType &/*allocator*/)
+{
+    return rapidjson::Value(value);
+}
+
 rapidjson::Value toJson(uint32 value, rapidjson::Document::AllocatorType &/*allocator*/)
 {
     return rapidjson::Value(value);
