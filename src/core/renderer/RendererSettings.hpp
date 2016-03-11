@@ -119,7 +119,10 @@ public:
         _outputFile        .setWorkingDirectory(_outputDirectory);
         _hdrOutputFile     .setWorkingDirectory(_outputDirectory);
         _varianceOutputFile.setWorkingDirectory(_outputDirectory);
-        _resumeRenderFile.setWorkingDirectory(_outputDirectory);
+        _resumeRenderFile  .setWorkingDirectory(_outputDirectory);
+
+        for (auto &b : _outputs)
+            b.setOutputDirectory(_outputDirectory);
     }
 
     const Path &outputFile() const

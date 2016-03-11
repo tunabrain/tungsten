@@ -23,6 +23,7 @@ class OutputBufferSettings : public JsonSerializable
     OutputBufferType _type;
     Path _ldrOutputFile;
     Path _hdrOutputFile;
+    Path _outputDirectory;
     bool _twoBufferVariance;
     bool _sampleVariance;
 
@@ -92,6 +93,14 @@ public:
         return result;
     }
 
+    void setOutputDirectory(const Path &directory)
+    {
+        _outputDirectory = directory;
+
+        _ldrOutputFile.setWorkingDirectory(_outputDirectory);
+        _hdrOutputFile.setWorkingDirectory(_outputDirectory);
+    }
+
     void setType(OutputBufferType type)
     {
         _type = type;
@@ -126,6 +135,7 @@ public:
     {
         return _ldrOutputFile;
     }
+
 };
 
 }
