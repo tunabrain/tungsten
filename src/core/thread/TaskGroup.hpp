@@ -8,6 +8,7 @@
 #include <exception>
 #include <stdexcept>
 #include <atomic>
+#include <thread>
 #include <mutex>
 
 namespace Tungsten {
@@ -34,6 +35,7 @@ class TaskGroup
         if (_finisher && !_abort)
             _finisher();
 
+        std::unique_lock<std::mutex> lock(_waitMutex);
         _done = true;
         _waitCond.notify_all();
     }
@@ -74,8 +76,10 @@ public:
 
     void abort()
     {
+        std::unique_lock<std::mutex> lock(_waitMutex);
         _abort = true;
         _done = _done || _startedSubTasks == 0;
+        _waitCond.notify_all();
     }
 
     bool isAborting() const
