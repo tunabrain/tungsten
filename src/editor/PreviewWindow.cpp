@@ -84,6 +84,7 @@ PreviewWindow::PreviewWindow(QWidget *proxyParent, MainWindow *parent)
     new QShortcut(QKeySequence("Ctrl+A"), this, SLOT(addModel()));
     new QShortcut(QKeySequence("Delete"), this, SLOT(deleteSelection()));
     new QShortcut(QKeySequence("Ctrl+Tab"), this, SLOT(togglePreview()));
+    new QShortcut(QKeySequence("["), this, SLOT(resetCamera()));
 
     QShortcut *tShortcut = new QShortcut(QKeySequence("W"), this);
     QShortcut *rShortcut = new QShortcut(QKeySequence("E"), this);
@@ -526,6 +527,14 @@ void PreviewWindow::togglePreview()
         _parent.togglePreview();
 }
 
+void PreviewWindow::resetCamera()
+{
+    _controls.set(_initialPos, _initialTarget, _initialUp);
+    _scene->camera()->setTransform(_controls.globalPos(), _controls.lookAt(), _controls.up());
+    _gizmo.setView(_scene->camera()->transform());
+    update();
+}
+
 void PreviewWindow::initializeGL()
 {
     GL::initOpenGL();
@@ -785,6 +794,9 @@ void PreviewWindow::sceneChanged()
     _scene = _parent.scene();
 
     if (_scene) {
+        _initialPos = _scene->camera()->pos();
+        _initialTarget = _scene->camera()->lookAt();
+        _initialUp = _scene->camera()->up();
         _controls.set(_scene->camera()->pos(), _scene->camera()->lookAt(), _scene->camera()->up());
         _rebuildMeshes = true;
     }

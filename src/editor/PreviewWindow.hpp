@@ -82,6 +82,7 @@ class PreviewWindow : public QOpenGLWidget
     MainWindow &_parent;
 
     CameraControls _controls;
+    Vec3f _initialPos, _initialTarget, _initialUp;
     TransformGizmo _gizmo;
 
     Scene *_scene;
@@ -129,6 +130,7 @@ private slots:
     void addModel();
     void deleteSelection();
     void togglePreview();
+    void resetCamera();
     void showContextMenu();
 
 protected:
