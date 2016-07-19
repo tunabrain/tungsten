@@ -102,6 +102,9 @@ public:
 
     void addSample(Vec2u pixel, T c)
     {
+        if (std::isnan(c))
+            return;
+
         int idx = pixel.x() + pixel.y()*_res.x();
         uint32 sampleIdx = _sampleCount[idx]++;
         if (_variance) {

@@ -643,6 +643,15 @@ Tungsten::Vec<ElementType, Size> trunc(const Tungsten::Vec<ElementType, Size> &t
     return result;
 }
 
+template<typename ElementType, unsigned Size>
+bool isnan(const Tungsten::Vec<ElementType, Size> &t)
+{
+    for (unsigned i = 0; i < Size; ++i)
+        if (std::isnan(t[i]))
+            return true;
+    return false;
+}
+
 }
 
 #endif /* VEC_HPP_ */
