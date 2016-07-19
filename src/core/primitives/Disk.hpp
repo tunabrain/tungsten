@@ -29,6 +29,7 @@ protected:
 
 public:
     Disk();
+    Disk(const Vec3f &pos, const Vec3f &n, float r, const std::string &name, std::shared_ptr<Bsdf> bsdf);
 
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;

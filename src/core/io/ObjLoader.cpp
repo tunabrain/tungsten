@@ -8,6 +8,7 @@
 #include "primitives/Curves.hpp"
 #include "primitives/Cube.hpp"
 #include "primitives/Quad.hpp"
+#include "primitives/Disk.hpp"
 
 #include "materials/ConstantTexture.hpp"
 
@@ -452,6 +453,28 @@ std::shared_ptr<Primitive> ObjLoader::tryInstantiateCube(const std::string &name
     return std::make_shared<Cube>(pos, scale, rot, name, bsdf);
 }
 
+std::shared_ptr<Primitive> ObjLoader::tryInstantiateDisk(const std::string &name, std::shared_ptr<Bsdf> &bsdf)
+{
+    Vec3f n(0.0f);
+    for (size_t i = 0; i < _tris.size(); ++i) {
+        Vec3f p0 = _verts[_tris[i].v0].pos();
+        Vec3f p1 = _verts[_tris[i].v1].pos();
+        Vec3f p2 = _verts[_tris[i].v2].pos();
+        n += (p1 - p0).cross(p2 - p0);
+    }
+    n.normalize();
+
+    Vec3f center(0.0f);
+    for (size_t i = 0; i < _verts.size(); ++i)
+        center += _verts[i].pos()*(1.0f/_verts.size());
+
+    float r = 0.0f;
+    for (size_t i = 0; i < _verts.size(); ++i)
+        r = max(r, (_verts[i].pos() - center).length());
+
+    return std::make_shared<Disk>(center, n, r, name, bsdf);
+}
+
 std::shared_ptr<Primitive> ObjLoader::finalizeMesh()
 {
     std::shared_ptr<Texture> emission;
@@ -475,6 +498,8 @@ std::shared_ptr<Primitive> ObjLoader::finalizeMesh()
         prim = tryInstantiateQuad(name, bsdf);
     else if (name.find("AnalyticCube") != std::string::npos)
         prim = tryInstantiateCube(name, bsdf);
+    else if (name.find("AnalyticDisk") != std::string::npos)
+        prim = tryInstantiateDisk(name, bsdf);
 
     if (!prim && !_segments.empty() && _tris.empty()) {
         std::vector<uint32> curveEnds;

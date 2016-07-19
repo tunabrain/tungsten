@@ -20,6 +20,17 @@ Disk::Disk()
 {
 }
 
+Disk::Disk(const Vec3f &pos, const Vec3f &n, float r, const std::string &name, std::shared_ptr<Bsdf> bsdf)
+: Primitive(name),
+  _coneAngle(90.0f),
+  _center(pos),
+  _r(r),
+  _frame(n),
+  _bsdf(std::move(bsdf))
+{
+    _transform = Mat4f::translate(_center)*Mat4f(_frame.tangent, _frame.normal, -_frame.bitangent)*Mat4f::scale(Vec3f(r));
+}
+
 void Disk::buildProxy()
 {
     _proxy = std::make_shared<TriangleMesh>(std::vector<Vertex>(), std::vector<TriangleI>(), _bsdf, "Cone", false, false);

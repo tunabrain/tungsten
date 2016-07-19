@@ -79,6 +79,7 @@ class ObjLoader
     std::shared_ptr<Primitive> tryInstantiateSphere(const std::string &name, std::shared_ptr<Bsdf> &bsdf);
     std::shared_ptr<Primitive> tryInstantiateQuad(const std::string &name, std::shared_ptr<Bsdf> &bsdf);
     std::shared_ptr<Primitive> tryInstantiateCube(const std::string &name, std::shared_ptr<Bsdf> &bsdf);
+    std::shared_ptr<Primitive> tryInstantiateDisk(const std::string &name, std::shared_ptr<Bsdf> &bsdf);
     std::shared_ptr<Primitive> finalizeMesh();
 
     ObjLoader(std::istream &in, const Path &path, std::shared_ptr<TextureCache> cache);
