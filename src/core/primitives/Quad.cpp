@@ -22,7 +22,8 @@ Quad::Quad(const Vec3f &base, const Vec3f &edge0, const Vec3f &edge1,
 : Primitive(name),
   _bsdf(std::move(bsdf))
 {
-    _transform = Mat4f::translate(base + edge0*0.5f + edge1*0.5f)*Mat4f(edge0, edge0.cross(edge1), edge1);
+
+    _transform = Mat4f::translate(base + edge0*0.5f + edge1*0.5f)*Mat4f(edge0, edge1.cross(edge0), edge1);
 }
 
 void Quad::buildProxy()
