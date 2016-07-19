@@ -69,6 +69,7 @@ public:
 
     virtual void loadResources() override;
     virtual void saveResources() override;
+    void saveAs(const Path &path);
 
     virtual bool intersect(Ray &ray, IntersectionTemporary &data) const override;
     virtual bool occluded(const Ray &ray) const override;
@@ -98,6 +99,11 @@ public:
     virtual void setBsdf(int index, std::shared_ptr<Bsdf> &bsdf) override;
 
     virtual Primitive *clone() override;
+    
+    const PathPtr& path() const
+    {
+        return _path;
+    }
 };
 
 }

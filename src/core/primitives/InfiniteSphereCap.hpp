@@ -69,6 +69,16 @@ public:
     virtual int numBsdfs() const override;
     virtual std::shared_ptr<Bsdf> &bsdf(int index) override;
     virtual void setBsdf(int index, std::shared_ptr<Bsdf> &bsdf) override;
+        
+    Vec3f lightDirection() const
+    {
+        return _transform.transformVector(Vec3f(0.0f, 1.0f, 0.0f)).normalized();
+    }
+    
+    float capAngleDeg() const
+    {
+        return _capAngleDeg;
+    }
 
     virtual Primitive *clone() override;
 };

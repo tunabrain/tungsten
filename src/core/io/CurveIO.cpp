@@ -250,6 +250,32 @@ bool saveHair(const Path &path, const CurveData &data)
     return true;
 }
 
+bool saveMitsubaHair(const Path &path, const CurveData &data)
+{
+    if (!data.nodeData || !data.curveEnds)
+        return false;
+    
+    OutputStreamHandle out = FileUtils::openOutputStream(path);
+    if (!out)
+        return false;
+    
+    out->write("BINARY_HAIR", 11);
+    FileUtils::streamWrite(out, uint32(data.nodeData->size()));
+    
+    const std::vector<uint32> &curveEnds = *data.curveEnds;
+    const std::vector<Vec4f> &nodeData = *data.nodeData;
+    size_t curveIdx = 0;
+    for (size_t i = 0; i < nodeData.size(); ++i) {
+        FileUtils::streamWrite(out, nodeData[i].xyz());
+        if (i + 1 == curveEnds[curveIdx]) {
+            FileUtils::streamWrite(out, std::numeric_limits<float>::infinity());
+            curveIdx++;
+        }
+    }
+    
+    return true;
+}
+
 namespace Fiber {
 
 static const std::array<uint8, 8> FiberMagic{0x80, 0xBF, 0x80, 0x46, 0x49, 0x42, 0x45, 0x52};
@@ -440,6 +466,8 @@ bool save(const Path &path, const CurveData &data)
 {
     if (path.testExtension("hair"))
         return saveHair(path, data);
+    else if (path.testExtension("mitshair"))
+        return saveMitsubaHair(path, data);
     else if (path.testExtension("fiber"))
         return Fiber::saveFiber(path, data);
     return false;

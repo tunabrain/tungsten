@@ -80,6 +80,21 @@ public:
     virtual int numBsdfs() const override;
     virtual std::shared_ptr<Bsdf> &bsdf(int index) override;
     virtual void setBsdf(int index, std::shared_ptr<Bsdf> &bsdf) override;
+    
+    float turbidity() const
+    {
+        return _turbidity;
+    }
+    
+    float intensity() const
+    {
+        return _intensity;
+    }
+    
+    Vec3f sunDirection() const
+    {
+        return _transform.transformVector(Vec3f(0.0f, 1.0f, 0.0f)).normalized();
+    }
 
     virtual Primitive *clone() override;
 };

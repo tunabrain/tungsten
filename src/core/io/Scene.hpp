@@ -177,6 +177,11 @@ public:
     {
         return _rendererSettings;
     }
+    
+    Integrator *integrator()
+    {
+        return _integrator.get();
+    }
 
     std::unordered_map<Path, PathPtr> &resources()
     {

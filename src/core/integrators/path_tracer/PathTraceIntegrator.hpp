@@ -67,6 +67,11 @@ public:
     virtual void startRender(std::function<void()> completionCallback) override;
     virtual void waitForCompletion() override;
     virtual void abortRender() override;
+    
+    const PathTracerSettings &settings() const
+    {
+        return _settings;
+    }
 };
 
 }

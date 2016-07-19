@@ -62,8 +62,8 @@ public:
 
     virtual void loadResources() override;
     virtual void saveResources() override;
+    void saveAs(const Path &path) const;
 
-    void saveAsObj(const Path &path) const;
     void calcSmoothVertexNormals();
     void computeBounds();
 

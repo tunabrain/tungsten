@@ -163,10 +163,10 @@ void TriangleMesh::loadResources()
 void TriangleMesh::saveResources()
 {
     if (_path)
-        MeshIO::save(*_path, _verts, _tris);
+        saveAs(*_path);
 }
 
-void TriangleMesh::saveAsObj(const Path &path) const
+void TriangleMesh::saveAs(const Path &path) const
 {
     MeshIO::save(path, _verts, _tris);
 }

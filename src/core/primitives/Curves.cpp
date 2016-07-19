@@ -414,13 +414,18 @@ void Curves::loadResources()
 
 void Curves::saveResources()
 {
+    if (_path)
+        saveAs(*_path);
+}
+
+void Curves::saveAs(const Path &path)
+{
     CurveIO::CurveData data;
     data.curveEnds = &_curveEnds;
     data.nodeData  = &_nodeData;
     data.nodeColor = &_nodeColor;
 
-    if (_path)
-        CurveIO::save(*_path, data);
+    CurveIO::save(path, data);
 }
 
 bool Curves::intersect(Ray &ray, IntersectionTemporary &data) const
