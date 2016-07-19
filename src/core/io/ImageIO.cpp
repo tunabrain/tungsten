@@ -18,6 +18,11 @@
 #include <half.h>
 #endif
 
+#if JPEG_AVAILABLE
+#include <jpeglib.h>
+#include <csetjmp>
+#endif
+
 static const int GammaCorrection[] = {
       0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
       0,   0,   0,   0,   0,   1,   1,   1,   1,   1,   1,   1,   1,   2,   2,   2,
@@ -401,6 +406,80 @@ DeletablePixels loadPng(const Path &path, int &w, int &h, int &channels)
     return DeletablePixels(dst, free);
 }
 
+#if JPEG_AVAILABLE
+DeletablePixels loadJpg(const Path &path, int &w, int &h, int &channels)
+{
+    struct jpeg_decompress_struct cinfo;
+    struct CustomJerr : jpeg_error_mgr {
+        std::string fileName;
+        std::jmp_buf env;
+    } jerr;
+    jerr.fileName = path.fileName().asString();
+    if (setjmp(jerr.env))
+        return makeVoidPixels();
+
+    cinfo.err = jpeg_std_error(&jerr);
+    jerr.output_message = [](j_common_ptr cinfo) {
+        char buffer[JMSG_LENGTH_MAX];
+        (*cinfo->err->format_message) (cinfo, buffer);
+        std::cout << tfm::format("Jpg decoding issue for file '%s': %s\n",
+                static_cast<CustomJerr *>(cinfo->err)->fileName, buffer);
+        std::cout.flush();
+    };
+    jerr.error_exit = [](j_common_ptr cinfo) {
+        (*cinfo->err->output_message)(cinfo);
+        std::longjmp(static_cast<CustomJerr *>(cinfo->err)->env, 1);
+    };
+
+    jpeg_create_decompress(&cinfo);
+
+    uint64 fileSize = FileUtils::fileSize(path);
+    InputStreamHandle in = FileUtils::openInputStream(path);
+    if (!in)
+        return makeVoidPixels();
+
+    // Could use more sophisticated JPEG input handler here, but they are a pain to implement
+    // For now, just read the file straight to memory
+    std::unique_ptr<uint8[]> fileBuf(new uint8[fileSize]);
+    FileUtils::streamRead(in, fileBuf.get(), fileSize);
+    jpeg_mem_src(&cinfo, fileBuf.get(), fileSize);
+
+    jpeg_read_header(&cinfo, TRUE);
+    cinfo.out_color_space = JCS_RGB;
+    jpeg_start_decompress(&cinfo);
+
+    w = cinfo.output_width;
+    h = cinfo.output_height;
+    channels = 4;
+
+    cinfo.out_color_space = JCS_RGB;
+
+    DeletablePixels result(new uint8[cinfo.output_width*cinfo.output_height*4], [](void *p) {
+        delete[] reinterpret_cast<uint8 *>(p);
+    });
+
+    std::unique_ptr<unsigned char *[]> scanlines(new unsigned char *[cinfo.output_height]);
+    for (unsigned i = 0; i < cinfo.output_height; ++i)
+        scanlines[i] = &result[i*cinfo.output_width*4];
+    while (cinfo.output_scanline < cinfo.output_height)
+        jpeg_read_scanlines(&cinfo, &scanlines[cinfo.output_scanline], cinfo.output_height - cinfo.output_scanline);
+
+    jpeg_finish_decompress(&cinfo);
+    jpeg_destroy_decompress(&cinfo);
+
+    for (int y = 0; y < h; ++y) {
+        for (int x = w - 1; x >= 0; --x) {
+            result[y*w*4 + x*4 + 3] = 0xFF;
+            result[y*w*4 + x*4 + 2] = result[y*w*4 + x*3 + 2];
+            result[y*w*4 + x*4 + 1] = result[y*w*4 + x*3 + 1];
+            result[y*w*4 + x*4 + 0] = result[y*w*4 + x*3 + 0];
+        }
+    }
+
+    return std::move(result);
+}
+#endif
+
 DeletablePixels loadStbi(const Path &path, int &w, int &h, int &channels)
 {
     InputStreamHandle in = FileUtils::openInputStream(path);
@@ -417,6 +496,10 @@ std::unique_ptr<uint8[]> loadLdr(const Path &path, TexelConversion request, int 
     DeletablePixels img(makeVoidPixels());
     if (path.testExtension("png"))
         img = loadPng(path, w, h, channels);
+#if JPEG_AVAILABLE
+    else if (path.testExtension("jpg") || path.testExtension("jpeg"))
+        img = loadJpg(path, w, h, channels);
+#endif
     else
         img = loadStbi(path, w, h, channels);
 
