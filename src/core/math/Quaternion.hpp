@@ -3,6 +3,7 @@
 
 #include "Vec.hpp"
 #include "Mat4f.hpp"
+#include "Angle.hpp"
 
 #include <cmath>
 
@@ -72,6 +73,15 @@ public:
                   two*x*y + two*w*z, one - two*x*x - two*z*z,       two*y*z - two*w*x, 0.0f,
                   two*x*z - two*w*y,       two*y*z + two*w*x, one - two*x*x - two*y*y, 0.0f,
                                0.0f,                    0.0f,                    0.0f, 1.0f
+        );
+    }
+
+    inline Vec3f toEuler() const
+    {
+        return Vec3f(
+            Angle::radToDeg(std::atan2(2.0f*(_v[0]*_v[1] + _v[2]*_v[3]), 1.0f - 2.0f*(_v[1]*_v[1] + _v[2]*_v[2]))),
+            Angle::radToDeg(std::asin(2.0f*(_v[0]*_v[2] - _v[3]*_v[1]))),
+            Angle::radToDeg(std::atan2(2.0f*(_v[0]*_v[3] + _v[1]*_v[2]), 1.0f - 2.0f*(_v[2]*_v[2] + _v[3]*_v[3])))
         );
     }
 
