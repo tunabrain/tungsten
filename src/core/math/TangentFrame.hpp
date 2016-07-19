@@ -3,6 +3,7 @@
 
 #include <cmath>
 
+#include "Mat4f.hpp"
 #include "Vec.hpp"
 
 namespace Tungsten {
@@ -41,6 +42,11 @@ struct TangentFrame
     Vec3f toGlobal(const Vec3f &p) const
     {
         return tangent*p.x() + bitangent*p.y() + normal*p.z();
+    }
+
+    Mat4f toMatrix() const
+    {
+        return Mat4f(tangent, bitangent, normal);
     }
 };
 
