@@ -321,6 +321,11 @@ rapidjson::Value toJson(const Mat4f &value, rapidjson::Document::AllocatorType &
     Vec3f scale = prettifyVector(value.extractScaleVec());
     Vec3f   pos = prettifyVector(value.extractTranslationVec());
 
+    if (value.right().cross(value.up()).dot(value.fwd()) < 0.0f) {
+        rot = prettifyVector((value*Mat4f::scale(Vec3f(1.0f, 1.0f, -1.0f))).extractRotationVec());
+        scale.z() *= -1.0f;
+    }
+
     rapidjson::Value a(rapidjson::kObjectType);
     if (pos != 0.0f)
         a.AddMember("position", toJson(pos, allocator), allocator);

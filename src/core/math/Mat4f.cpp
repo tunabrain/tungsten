@@ -1,4 +1,6 @@
 #include "Mat4f.hpp"
+
+#include "Quaternion.hpp"
 #include "Angle.hpp"
 
 #include <cmath>
@@ -12,19 +14,27 @@ Mat4f Mat4f::toNormalMatrix() const
 
 Vec3f Mat4f::extractRotationVec() const
 {
-    Vec3f x = right().normalized();
-    Vec3f y = up().normalized();
-    Vec3f z = fwd().normalized();
-
-    float pitch = std::atan2(-z.y(), std::sqrt(z.x()*z.x() + z.z()*z.z()));
-    float yaw   = std::atan2(-z.x(), z.z());
-    float roll  = std::atan2(x.y(), y.y());
-
-    return Vec3f(
-        Angle::radToDeg(pitch),
-        Angle::radToDeg(yaw),
-        Angle::radToDeg(roll)
+    Mat4f m = extractRotation();
+    float theta, phi, psi;
+    if (m.a23 <= -1.0f) {
+        theta = PI_HALF;
+        phi = std::atan2(m.a31, m.a32);
+        psi = 0.0f;
+    } else if (m.a23 >= 1.0f) {
+        theta = -PI_HALF;
+        phi = std::atan2(-m.a31, -m.a32);
+        psi = 0.0f;
+    } else {
+        theta = std::asin(m.a23);
+        phi = std::atan2(m.a21, m.a22);
+        psi = std::atan2(m.a13, m.a33);
+    }
+    Vec3f v = Vec3f(
+        Angle::radToDeg(-theta),
+        Angle::radToDeg(-psi),
+        Angle::radToDeg(phi)
     );
+    return v;
 }
 
 Mat4f Mat4f::extractRotation() const
