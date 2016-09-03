@@ -88,7 +88,7 @@ public:
             DirectionSample &sample) const override final;
     virtual bool sampleDirect(uint32 threadIndex, const Vec3f &p, PathSampleGenerator &sampler,
             LightSample &sample) const override;
-    virtual float positionalPdf(const PositionSample &point) const;
+    virtual float positionalPdf(const PositionSample &point) const override;
     virtual float directionalPdf(const PositionSample &point, const DirectionSample &sample) const override;
     virtual float directPdf(uint32 threadIndex, const IntersectionTemporary &data,
             const IntersectionInfo &info, const Vec3f &p) const override;

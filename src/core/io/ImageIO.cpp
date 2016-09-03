@@ -96,12 +96,12 @@ public:
         _in->seekg(0, std::ios_base::beg);
     }
 
-    virtual bool isMemoryMapped() const
+    virtual bool isMemoryMapped() const override
     {
         return false;
     }
 
-    virtual bool read(char c[/*n*/], int n)
+    virtual bool read(char c[/*n*/], int n) override
     {
         _in->read(c, n);
         if (!_in->good())
