@@ -85,8 +85,8 @@ public:
           std::shared_ptr<TextureCache> cache,
           std::shared_ptr<Camera> camera);
 
-    virtual void fromJson(const rapidjson::Value &v, const Scene &scene);
-    virtual rapidjson::Value toJson(Allocator &allocator) const;
+    virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
+    virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
     virtual void loadResources() override;
     virtual void saveResources() override;

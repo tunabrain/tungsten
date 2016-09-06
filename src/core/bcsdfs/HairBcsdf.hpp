@@ -53,9 +53,9 @@ public:
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
     rapidjson::Value toJson(Allocator &allocator) const override;
 
-    virtual Vec3f eval(const SurfaceScatterEvent &event) const;
-    virtual bool sample(SurfaceScatterEvent &event) const;
-    virtual float pdf(const SurfaceScatterEvent &event) const;
+    virtual Vec3f eval(const SurfaceScatterEvent &event) const override;
+    virtual bool sample(SurfaceScatterEvent &event) const override;
+    virtual float pdf(const SurfaceScatterEvent &event) const override;
 
     virtual void prepareForRender() override;
 };

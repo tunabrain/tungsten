@@ -20,15 +20,15 @@ public:
     {
     }
 
-    virtual void startPath(uint32 /*pixelId*/, uint32 /*sample*/)
+    virtual void startPath(uint32 /*pixelId*/, uint32 /*sample*/) override
     {
     }
 
-    virtual void saveState(OutputStreamHandle &out)
+    virtual void saveState(OutputStreamHandle &out) override
     {
         _sampler.saveState(out);
     }
-    virtual void loadState(InputStreamHandle &in)
+    virtual void loadState(InputStreamHandle &in) override
     {
         _sampler.loadState(in);
     }
