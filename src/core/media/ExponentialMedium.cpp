@@ -57,6 +57,26 @@ void ExponentialMedium::prepareForRender()
     _absorptionOnly = _sigmaS == 0.0f;
 }
 
+Vec3f ExponentialMedium::sigmaA(Vec3f p) const
+{
+    return density(p)*_sigmaA;
+}
+
+Vec3f ExponentialMedium::sigmaS(Vec3f p) const
+{
+    return density(p)*_sigmaS;
+}
+
+Vec3f ExponentialMedium::sigmaT(Vec3f p) const
+{
+    return density(p)*_sigmaT;
+}
+
+inline float ExponentialMedium::density(Vec3f p) const
+{
+    return std::exp(-_falloffScale*(p - _unitPoint).dot(_unitFalloffDirection));
+}
+
 inline float ExponentialMedium::density(float x, float dx, float t) const
 {
     return std::exp(-(x + dx*t));

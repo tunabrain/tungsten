@@ -25,6 +25,7 @@ class AtmosphericMedium : public Medium
     Vec3f _sigmaT;
     bool _absorptionOnly;
 
+    inline float density(Vec3f p) const;
     inline float density(float h, float t0) const;
     inline float densityIntegral(float h, float t0, float t1) const;
     inline float inverseOpticalDepth(double h, double t0, double sigmaT, double xi) const;
@@ -38,6 +39,10 @@ public:
     virtual bool isHomogeneous() const override;
 
     virtual void prepareForRender() override;
+
+    virtual Vec3f sigmaA(Vec3f p) const override;
+    virtual Vec3f sigmaS(Vec3f p) const override;
+    virtual Vec3f sigmaT(Vec3f p) const override;
 
     virtual bool sampleDistance(PathSampleGenerator &sampler, const Ray &ray,
             MediumState &state, MediumSample &sample) const override;

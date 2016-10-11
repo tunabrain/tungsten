@@ -51,6 +51,10 @@ public:
     virtual void prepareForRender() {}
     virtual void teardownAfterRender() {}
 
+    virtual Vec3f sigmaA(Vec3f p) const = 0;
+    virtual Vec3f sigmaS(Vec3f p) const = 0;
+    virtual Vec3f sigmaT(Vec3f p) const = 0;
+
     virtual bool sampleDistance(PathSampleGenerator &sampler, const Ray &ray,
             MediumState &state, MediumSample &sample) const = 0;
     virtual Vec3f transmittance(PathSampleGenerator &sampler, const Ray &ray) const = 0;

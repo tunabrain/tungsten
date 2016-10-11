@@ -18,6 +18,7 @@ class ExponentialMedium : public Medium
     Vec3f _sigmaT;
     bool _absorptionOnly;
 
+    inline float density(Vec3f p) const;
     inline float density(float x, float dx, float t) const;
     inline float densityIntegral(float x, float dx, float tMax) const;
     inline float inverseOpticalDepth(float x, float dx, float sigmaT, float logXi) const;
@@ -31,6 +32,10 @@ public:
     virtual bool isHomogeneous() const override;
 
     virtual void prepareForRender() override;
+
+    virtual Vec3f sigmaA(Vec3f p) const override;
+    virtual Vec3f sigmaS(Vec3f p) const override;
+    virtual Vec3f sigmaT(Vec3f p) const override;
 
     virtual bool sampleDistance(PathSampleGenerator &sampler, const Ray &ray,
             MediumState &state, MediumSample &sample) const override;

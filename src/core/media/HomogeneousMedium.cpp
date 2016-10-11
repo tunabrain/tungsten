@@ -47,6 +47,21 @@ void HomogeneousMedium::prepareForRender()
     _absorptionOnly = _sigmaS == 0.0f;
 }
 
+Vec3f HomogeneousMedium::sigmaA(Vec3f /*p*/) const
+{
+    return _sigmaA;
+}
+
+Vec3f HomogeneousMedium::sigmaS(Vec3f /*p*/) const
+{
+    return _sigmaS;
+}
+
+Vec3f HomogeneousMedium::sigmaT(Vec3f /*p*/) const
+{
+    return _sigmaT;
+}
+
 bool HomogeneousMedium::sampleDistance(PathSampleGenerator &sampler, const Ray &ray,
         MediumState &state, MediumSample &sample) const
 {

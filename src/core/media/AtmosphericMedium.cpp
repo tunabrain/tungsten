@@ -76,6 +76,26 @@ void AtmosphericMedium::prepareForRender()
     _absorptionOnly = _sigmaS == 0.0f;
 }
 
+Vec3f AtmosphericMedium::sigmaA(Vec3f p) const
+{
+    return density(p)*_sigmaA;
+}
+
+Vec3f AtmosphericMedium::sigmaS(Vec3f p) const
+{
+    return density(p)*_sigmaS;
+}
+
+Vec3f AtmosphericMedium::sigmaT(Vec3f p) const
+{
+    return density(p)*_sigmaT;
+}
+
+inline float AtmosphericMedium::density(Vec3f p) const
+{
+    return std::exp(-sqr(_effectiveFalloffScale)*((p - _center).lengthSq() - _radius*_radius));
+}
+
 inline float AtmosphericMedium::density(float h, float t0) const
 {
     return std::exp(-sqr(_effectiveFalloffScale)*(h*h - _radius*_radius + t0*t0));

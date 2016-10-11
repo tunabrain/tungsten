@@ -84,6 +84,21 @@ static inline bool bboxIntersection(const Box3f &box, const Vec3f &o, const Vec3
     return false;
 }
 
+Vec3f VoxelMedium::sigmaA(Vec3f p) const
+{
+    return _grid->density(p)*_sigmaA;
+}
+
+Vec3f VoxelMedium::sigmaS(Vec3f p) const
+{
+    return _grid->density(p)*_sigmaS;
+}
+
+Vec3f VoxelMedium::sigmaT(Vec3f p) const
+{
+    return _grid->density(p)*_sigmaT;
+}
+
 bool VoxelMedium::sampleDistance(PathSampleGenerator &sampler, const Ray &ray,
         MediumState &state, MediumSample &sample) const
 {

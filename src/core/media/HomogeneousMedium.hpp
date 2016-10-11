@@ -24,6 +24,10 @@ public:
 
     virtual void prepareForRender() override;
 
+    virtual Vec3f sigmaA(Vec3f p) const override;
+    virtual Vec3f sigmaS(Vec3f p) const override;
+    virtual Vec3f sigmaT(Vec3f p) const override;
+
     virtual bool sampleDistance(PathSampleGenerator &sampler, const Ray &ray,
             MediumState &state, MediumSample &sample) const override;
     virtual Vec3f transmittance(PathSampleGenerator &sampler, const Ray &ray) const override;
