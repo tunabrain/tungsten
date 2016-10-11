@@ -453,7 +453,7 @@ bool Curves::intersectTemplate(Ray &ray, IntersectionTemporary &data) const
     bool didIntersect = false;
     CurveIntersection &isect = *data.as<CurveIntersection>();
 
-    _bvh->trace(ray, [&](Ray &ray, uint32 id, float /*tMin*/) {
+    _bvh->trace(ray, [&](Ray &ray, uint32 id, float /*tMin*/, const Vec3pf &/*bounds*/) {
         Vec4f q0(project(o, lx, ly, lz, _nodeData[id - 2]));
         Vec4f q1(project(o, lx, ly, lz, _nodeData[id - 1]));
         Vec4f q2(project(o, lx, ly, lz, _nodeData[id - 0]));

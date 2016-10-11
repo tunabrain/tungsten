@@ -13,13 +13,14 @@ namespace Tungsten {
 
 #include "AlignedAllocator.hpp"
 
+typedef Vec<float4, 3> Vec3pf;
+
 namespace Bvh {
 
 class BinaryBvh
 {
     template<typename T> using aligned_vector = std::vector<T, AlignedAllocator<T, 64>>;
 
-    typedef Vec<float4, 3> Vec3pf;
 
     Vec3pf transpose(const Vec3f &p) const
     {
@@ -117,6 +118,7 @@ class BinaryBvh
             std::vector<uint32> &primIndices, uint32 maxPrimsPerLeaf)
     {
         if (node->isLeaf()) {
+            _nodes[head].setJointBbox(node->bbox(), node->bbox());
             _nodes[head].setPrimIndex(1, primIndex);
             _nodes[head].setRchild(nullptr);
             primIndices[primIndex++] = node->id();
@@ -266,7 +268,7 @@ public:
             start = node->primIndex();
             count = node->childCount();
             for (uint32 i = start; i < start + count; ++i)
-            intersector(ray, _primIndices[i], tMin);
+                intersector(ray, _primIndices[i], tMin, node->bbox());
             tMax = min(tMax, ray.farT());
             nearFar[2] = nearFar[3] = -tMax;
 

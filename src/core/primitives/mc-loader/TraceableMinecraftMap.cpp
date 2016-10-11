@@ -645,7 +645,7 @@ bool TraceableMinecraftMap::intersect(Ray &ray, IntersectionTemporary &data) con
     float farT = ray.farT();
     Vec3f dT = std::abs(1.0f/ray.dir());
 
-    _chunkBvh->trace(ray, [&](Ray &ray, uint32 id, float tMin) {
+    _chunkBvh->trace(ray, [&](Ray &ray, uint32 id, float tMin, const Vec3pf &/*bounds*/) {
         _grids[id]->trace(ray, dT, tMin, [&](uint32 idx, const Vec3f &offset, float /*t*/) {
             Vec3f oldPos = ray.pos();
             ray.setPos(oldPos - offset);

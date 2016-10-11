@@ -141,7 +141,7 @@ bool MultiQuadLight::intersect(Ray &ray, IntersectionTemporary &data) const
 
     float farT = ray.farT();
 
-    _bvh->trace(ray, [&](Ray &ray, uint32 idx, float /*tMin*/) {
+    _bvh->trace(ray, [&](Ray &ray, uint32 idx, float /*tMin*/, const Vec3pf &/*bounds*/) {
         _geometry.intersect(ray, idx, isect->isect);
     });
 
