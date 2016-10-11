@@ -52,7 +52,7 @@ void GlMesh::draw(Shader &shader)
     _vertexBuffer.drawIndexed(_indexBuffer, shader, GL_TRIANGLES);
 }
 
-PreviewWindow::PreviewWindow(QWidget *proxyParent, MainWindow *parent)
+PreviewWindow::PreviewWindow(QWidget */*proxyParent*/, MainWindow *parent)
 : QOpenGLWidget(parent),
   _parent(*parent),
   _scene(parent->scene()),
