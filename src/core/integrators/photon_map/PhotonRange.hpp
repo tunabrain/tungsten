@@ -70,6 +70,7 @@ public:
 
 typedef PhotonRange<Photon> SurfacePhotonRange;
 typedef PhotonRange<VolumePhoton> VolumePhotonRange;
+typedef PhotonRange<PathPhoton> PathPhotonRange;
 
 }
 

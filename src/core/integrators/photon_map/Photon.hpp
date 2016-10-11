@@ -47,8 +47,30 @@ struct VolumePhoton : public Photon
     float radiusSq;
 };
 
+struct PathPhoton
+{
+    Vec3f pos;
+    Vec3f power;
+    Vec3f dir;
+    float length;
+    uint32 data;
+
+    void setPathInfo(uint32 bounce, bool hitSurface)
+    {
+        data = bounce;
+        if (hitSurface)
+            data |= (1u << 31u);
+    }
+    bool hitSurface() const
+    {
+        return (data & (1u << 31u)) != 0;
+    }
+    uint32 bounce() const
+    {
+        return data & ~(1u << 31u);
+    }
+};
+
 }
-
-
 
 #endif /* PHOTON_HPP_ */

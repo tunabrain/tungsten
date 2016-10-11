@@ -55,6 +55,8 @@ void ProgressivePhotonMapIntegrator::tracePhotons(uint32 taskId, uint32 numSubTa
     uint32 photonBase    = intLerp(0, _settings.photonCount, taskId + 0, numSubTasks);
     uint32 photonsToCast = intLerp(0, _settings.photonCount, taskId + 1, numSubTasks) - photonBase;
 
+    PathPhotonRange pathRange;
+
     uint32 totalSurfaceCast = 0;
     uint32 totalVolumeCast = 0;
     for (uint32 i = 0; i < photonsToCast; ++i) {
@@ -62,6 +64,7 @@ void ProgressivePhotonMapIntegrator::tracePhotons(uint32 taskId, uint32 numSubTa
         _tracers[threadId]->tracePhoton(
             data.surfaceRange,
             data.volumeRange,
+            pathRange,
             sampler
         );
         if (!data.surfaceRange.full())
@@ -96,6 +99,8 @@ void ProgressivePhotonMapIntegrator::tracePixels(uint32 tileId, uint32 threadId)
                 Vec3f c = _tracers[threadId]->traceSample(pixel,
                     *_surfaceTree,
                     _volumeTree.get(),
+                    nullptr,
+                    nullptr,
                     *tile.sampler,
                     radius
                 );

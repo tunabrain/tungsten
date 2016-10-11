@@ -1,5 +1,7 @@
 #include "PhotonTracer.hpp"
 
+#include "bvh/BinaryBvh.hpp"
+
 namespace Tungsten {
 
 PhotonTracer::PhotonTracer(TraceableScene *scene, const PhotonMapSettings &settings, uint32 threadId)
@@ -11,7 +13,7 @@ PhotonTracer::PhotonTracer(TraceableScene *scene, const PhotonMapSettings &setti
 }
 
 void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRange &volumeRange,
-        PathSampleGenerator &sampler)
+        PathPhotonRange &pathRange, PathSampleGenerator &sampler)
 {
     float lightPdf;
     const Primitive *light = chooseLightAdjoint(sampler, lightPdf);
@@ -34,11 +36,20 @@ void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRan
     state.reset();
     Vec3f emission(0.0f);
 
+    if (!pathRange.full()) {
+        PathPhoton &p = pathRange.addPhoton();
+        p.pos = point.p;
+        p.power = throughput;
+        p.setPathInfo(0, false);
+    }
+
     int bounce = 0;
     bool wasSpecular = true;
     bool hitSurface = true;
     bool didHit = _scene->intersect(ray, data, info);
     while ((didHit || medium) && bounce < _settings.maxBounces - 1) {
+        bounce++;
+
         if (medium) {
             MediumSample mediumSample;
             if (!medium->sampleDistance(sampler, ray, state, mediumSample))
@@ -53,6 +64,12 @@ void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRan
                     p.dir = ray.dir();
                     p.power = throughput;
                     p.bounce = bounce;
+                }
+                if (!pathRange.full()) {
+                    PathPhoton &p = pathRange.addPhoton();
+                    p.pos = mediumSample.p;
+                    p.power = throughput;
+                    p.setPathInfo(bounce, false);
                 }
 
                 PhaseSample phaseSample;
@@ -72,9 +89,15 @@ void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRan
                 p.power = throughput*std::abs(info.Ns.dot(ray.dir())/info.Ng.dot(ray.dir()));
                 p.bounce = bounce;
             }
+            if (!pathRange.full()) {
+                PathPhoton &p = pathRange.addPhoton();
+                p.pos = info.p;
+                p.power = throughput;
+                p.setPathInfo(bounce, false);
+            }
         }
 
-        if (volumeRange.full() && surfaceRange.full())
+        if (volumeRange.full() && surfaceRange.full() && pathRange.full())
             break;
 
         if (hitSurface) {
@@ -92,15 +115,14 @@ void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRan
         if (std::isnan(throughput.sum()))
             break;
 
-        bounce++;
         if (bounce < _settings.maxBounces)
             didHit = _scene->intersect(ray, data, info);
     }
 }
 
 Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
-        const KdTree<VolumePhoton> *mediumTree, PathSampleGenerator &sampler,
-        float gatherRadius)
+        const KdTree<VolumePhoton> *mediumTree, const Bvh::BinaryBvh *beamBvh,
+        const PathPhoton *pathPhotons, PathSampleGenerator &sampler, float gatherRadius)
 {
     PositionSample point;
     if (!_scene->cam().samplePosition(sampler, point))
@@ -127,7 +149,7 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
             if (mediumTree) {
                 Vec3f beamEstimate(0.0f);
                 mediumTree->beamQuery(ray.pos(), ray.dir(), ray.farT(), [&](const VolumePhoton &p, float t, float distSq) {
-                    int fullPathBounce = bounce + p.bounce;
+                    int fullPathBounce = bounce + p.bounce - 1;
                     if (fullPathBounce < _settings.minBounces || fullPathBounce >= _settings.maxBounces)
                         return;
 
@@ -136,6 +158,44 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
                     beamEstimate += (3.0f*INV_PI*sqr(1.0f - distSq/p.radiusSq))/p.radiusSq
                             *medium->phaseFunction(p.pos)->eval(ray.dir(), -p.dir)
                             *medium->transmittance(sampler, mediumQuery)*p.power;
+                });
+                result += throughput*beamEstimate;
+            } else if (beamBvh) {
+                Vec3f beamEstimate(0.0f);
+                beamBvh->trace(ray, [&](Ray &ray, uint32 photonIndex, float /*tMin*/, const Vec3pf &bounds) {
+                    const PathPhoton &p0 = pathPhotons[photonIndex + 0];
+                    const PathPhoton &p1 = pathPhotons[photonIndex + 1];
+                    int fullPathBounce = bounce + p0.bounce();
+                    if (fullPathBounce < _settings.minBounces || fullPathBounce >= _settings.maxBounces)
+                        return;
+
+                    Vec3f u = ray.dir().cross(p0.dir);
+                    float invSinTheta = 1.0f/u.length();
+
+                    Vec3f l = p0.pos - ray.pos();
+                    float d = invSinTheta*(u.dot(l));
+                    if (std::abs(d) > gatherRadius)
+                        return;
+
+                    Vec3f n = p0.dir.cross(u);
+                    float t = n.dot(l)/n.dot(ray.dir());
+
+                    int majorAxis = std::abs(p0.dir).maxDim();
+                    float intervalMin = min(bounds[majorAxis][0], bounds[majorAxis][1]);
+                    float intervalMax = max(bounds[majorAxis][2], bounds[majorAxis][3]);
+
+                    Vec3f hitPoint = ray.pos() + ray.dir()*t;
+                    if (hitPoint[majorAxis] < intervalMin || hitPoint[majorAxis] > intervalMax)
+                        return;
+
+                    float s = p0.dir.dot(hitPoint - p0.pos);
+                    if (t >= ray.nearT() && t <= ray.farT() && s >= 0.0f && s <= p0.length) {
+                        Ray mediumQuery(ray);
+                        mediumQuery.setFarT(t);
+                        beamEstimate += medium->sigmaT(hitPoint)*invSinTheta/(2.0f*gatherRadius)
+                                *medium->phaseFunction(hitPoint)->eval(ray.dir(), -p0.dir)
+                                *medium->transmittance(sampler, mediumQuery)*p1.power;
+                    }
                 });
                 result += throughput*beamEstimate;
             }
@@ -197,7 +257,7 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
 
     Vec3f surfaceEstimate(0.0f);
     for (int i = 0; i < count; ++i) {
-        int fullPathBounce = bounce + _photonQuery[i]->bounce;
+        int fullPathBounce = bounce + _photonQuery[i]->bounce - 1;
         if (fullPathBounce < _settings.minBounces || fullPathBounce >= _settings.maxBounces)
             continue;
 

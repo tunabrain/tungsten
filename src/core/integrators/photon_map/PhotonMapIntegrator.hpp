@@ -21,6 +21,10 @@
 
 namespace Tungsten {
 
+namespace Bvh {
+class BinaryBvh;
+}
+
 class PhotonTracer;
 
 class PhotonMapIntegrator : public Integrator
@@ -31,6 +35,7 @@ class PhotonMapIntegrator : public Integrator
     {
         SurfacePhotonRange surfaceRange;
         VolumePhotonRange volumeRange;
+        PathPhotonRange pathRange;
     };
 
     std::vector<ImageTile> _tiles;
@@ -45,12 +50,15 @@ class PhotonMapIntegrator : public Integrator
 
     std::atomic<uint32> _totalTracedSurfacePhotons;
     std::atomic<uint32> _totalTracedVolumePhotons;
+    std::atomic<uint32> _totalTracedPathPhotons;
 
     std::vector<Photon> _surfacePhotons;
     std::vector<VolumePhoton> _volumePhotons;
+    std::vector<PathPhoton> _pathPhotons;
 
     std::unique_ptr<KdTree<Photon>> _surfaceTree;
     std::unique_ptr<KdTree<VolumePhoton>> _volumeTree;
+    std::unique_ptr<Bvh::BinaryBvh> _beamBvh;
 
     std::vector<std::unique_ptr<PhotonTracer>> _tracers;
     std::vector<SubTaskData> _taskData;
@@ -64,6 +72,7 @@ class PhotonMapIntegrator : public Integrator
     void tracePhotons(uint32 taskId, uint32 numSubTasks, uint32 threadId);
     void tracePixels(uint32 tileId, uint32 threadId);
 
+    void buildBeamBvh(std::vector<PathPhotonRange> pathRanges);
     void buildPhotonDataStructures();
 
 public:
