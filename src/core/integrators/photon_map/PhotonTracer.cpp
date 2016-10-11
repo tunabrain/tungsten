@@ -122,7 +122,8 @@ void PhotonTracer::tracePhoton(SurfacePhotonRange &surfaceRange, VolumePhotonRan
 
 Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
         const KdTree<VolumePhoton> *mediumTree, const Bvh::BinaryBvh *beamBvh,
-        const PathPhoton *pathPhotons, PathSampleGenerator &sampler, float gatherRadius)
+        const PathPhoton *pathPhotons, PathSampleGenerator &sampler,
+        float gatherRadius, float volumeGatherRadius)
 {
     PositionSample point;
     if (!_scene->cam().samplePosition(sampler, point))
@@ -174,7 +175,7 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
 
                     Vec3f l = p0.pos - ray.pos();
                     float d = invSinTheta*(u.dot(l));
-                    if (std::abs(d) > gatherRadius)
+                    if (std::abs(d) > volumeGatherRadius)
                         return;
 
                     Vec3f n = p0.dir.cross(u);
@@ -192,7 +193,7 @@ Vec3f PhotonTracer::traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
                     if (t >= ray.nearT() && t <= ray.farT() && s >= 0.0f && s <= p0.length) {
                         Ray mediumQuery(ray);
                         mediumQuery.setFarT(t);
-                        beamEstimate += medium->sigmaT(hitPoint)*invSinTheta/(2.0f*gatherRadius)
+                        beamEstimate += medium->sigmaT(hitPoint)*invSinTheta/(2.0f*volumeGatherRadius)
                                 *medium->phaseFunction(hitPoint)->eval(ray.dir(), -p0.dir)
                                 *medium->transmittance(sampler, mediumQuery)*p1.power;
                     }

@@ -27,11 +27,10 @@ public:
             PathPhotonRange &pathRange, PathSampleGenerator &sampler);
     Vec3f traceSample(Vec2u pixel, const KdTree<Photon> &surfaceTree,
             const KdTree<VolumePhoton> *mediumTree, const Bvh::BinaryBvh *beamBvh,
-            const PathPhoton *pathPhotons, PathSampleGenerator &sampler, float gatherRadius);
+            const PathPhoton *pathPhotons, PathSampleGenerator &sampler,
+            float gatherRadius, float volumeGatherRadius);
 };
 
 }
-
-
 
 #endif /* PHOTONTRACER_HPP_ */

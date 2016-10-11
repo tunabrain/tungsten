@@ -21,6 +21,7 @@ struct PhotonMapSettings : public TraceSettings
     uint32 volumePhotonCount;
     uint32 gatherCount;
     float gatherRadius;
+    float volumeGatherRadius;
     VolumePhotonType volumePhotonType;
     std::string volumePhotonTypeString;
 
@@ -29,6 +30,7 @@ struct PhotonMapSettings : public TraceSettings
       volumePhotonCount(1000000),
       gatherCount(20),
       gatherRadius(1e30f),
+      volumeGatherRadius(gatherRadius),
       volumePhotonType(VOLUME_POINTS),
       volumePhotonTypeString("points")
     {
@@ -40,16 +42,20 @@ struct PhotonMapSettings : public TraceSettings
         JsonUtils::fromJson(v, "photon_count", photonCount);
         JsonUtils::fromJson(v, "volume_photon_count", volumePhotonCount);
         JsonUtils::fromJson(v, "gather_photon_count", gatherCount);
-        JsonUtils::fromJson(v, "gather_radius", gatherRadius);
         JsonUtils::fromJson(v, "volume_photon_type", volumePhotonTypeString);
         if (volumePhotonTypeString == "points") {
             volumePhotonType = VOLUME_POINTS;
         } else if (volumePhotonTypeString == "beams") {
             volumePhotonType = VOLUME_BEAMS;
+            // Set default value to something more sensible for photon beams
+            volumeGatherRadius = 0.01f;
         } else {
             DBG("Unknown volume photon type '%s'", volumePhotonTypeString);
             volumePhotonType = VOLUME_POINTS;
         }
+        bool gatherRadiusSet = JsonUtils::fromJson(v, "gather_radius", gatherRadius);
+        if (!JsonUtils::fromJson(v, "volume_gather_radius", volumeGatherRadius) && gatherRadiusSet)
+            volumeGatherRadius = gatherRadius;
     }
 
     rapidjson::Value toJson(rapidjson::Document::AllocatorType &allocator) const
@@ -60,6 +66,7 @@ struct PhotonMapSettings : public TraceSettings
             "volume_photon_count", volumePhotonCount,
             "gather_photon_count", gatherCount,
             "gather_radius", gatherRadius,
+            "volume_gather_radius", volumeGatherRadius,
             "volume_photon_type", volumePhotonTypeString
         };
     }

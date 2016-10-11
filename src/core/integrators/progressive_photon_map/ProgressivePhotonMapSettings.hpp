@@ -11,12 +11,10 @@ struct ProgressivePhotonMapSettings : public PhotonMapSettings
 {
     float alpha;
     bool fixedVolumeRadius;
-    float volumeGatherRadius;
 
     ProgressivePhotonMapSettings()
     : alpha(0.3f),
-      fixedVolumeRadius(false),
-      volumeGatherRadius(gatherRadius)
+      fixedVolumeRadius(false)
     {
     }
 
@@ -25,8 +23,6 @@ struct ProgressivePhotonMapSettings : public PhotonMapSettings
         PhotonMapSettings::fromJson(v);
         JsonUtils::fromJson(v, "alpha", alpha);
         JsonUtils::fromJson(v, "fixed_volume_radius", fixedVolumeRadius);
-        if (!JsonUtils::fromJson(v, "volume_gather_radius", volumeGatherRadius))
-            volumeGatherRadius = gatherRadius;
     }
 
     rapidjson::Value toJson(rapidjson::Document::AllocatorType &allocator) const
@@ -37,8 +33,7 @@ struct ProgressivePhotonMapSettings : public PhotonMapSettings
         return JsonObject{std::move(v), allocator,
             "type", "progressive_photon_map",
             "alpha", alpha,
-            "fixed_volume_radius", fixedVolumeRadius,
-            "volume_gather_radius", volumeGatherRadius
+            "fixed_volume_radius", fixedVolumeRadius
         };
     }
 };

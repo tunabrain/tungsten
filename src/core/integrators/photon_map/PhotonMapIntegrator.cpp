@@ -99,7 +99,8 @@ void PhotonMapIntegrator::tracePixels(uint32 tileId, uint32 threadId)
                     _beamBvh.get(),
                     &_pathPhotons[0],
                     *tile.sampler,
-                    _settings.gatherRadius
+                    _settings.gatherRadius,
+                    _settings.volumeGatherRadius
                 );
                 _scene->cam().colorBuffer()->addSample(pixel, c);
             }
@@ -159,7 +160,7 @@ void PhotonMapIntegrator::buildBeamBvh(std::vector<PathPhotonRange> pathRanges)
             continue;
 
         Vec3f dir = _pathPhotons[i].pos - _pathPhotons[i - 1].pos;
-        Vec3f minExtend = Vec3f(_settings.gatherRadius);
+        Vec3f minExtend = Vec3f(_settings.volumeGatherRadius);
         for (int j = 0; j < 3; ++j)
             minExtend[j] = std::copysign(minExtend[j], dir[j]);
 

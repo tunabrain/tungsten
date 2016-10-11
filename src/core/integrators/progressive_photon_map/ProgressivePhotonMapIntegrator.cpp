@@ -102,7 +102,8 @@ void ProgressivePhotonMapIntegrator::tracePixels(uint32 tileId, uint32 threadId)
                     nullptr,
                     nullptr,
                     *tile.sampler,
-                    radius
+                    radius,
+                    _settings.volumeGatherRadius
                 );
                 _scene->cam().colorBuffer()->addSample(pixel, c);
             }
