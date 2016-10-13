@@ -201,7 +201,7 @@ void PhotonMapIntegrator::buildPhotonDataStructures()
     _surfaceTree = streamCompactAndBuild(surfaceRanges, _surfacePhotons, _totalTracedSurfacePhotons);
     if (!_volumePhotons.empty()) {
         _volumeTree = streamCompactAndBuild(volumeRanges, _volumePhotons, _totalTracedVolumePhotons);
-        _volumeTree->buildVolumeHierarchy(false, 1.0f);
+        _volumeTree->buildVolumeHierarchy(_settings.fixedVolumeRadius, _settings.fixedVolumeRadius ? _settings.volumeGatherRadius : 1.0f);
     } else if (!_pathPhotons.empty()) {
         buildBeamBvh(std::move(pathRanges));
     }

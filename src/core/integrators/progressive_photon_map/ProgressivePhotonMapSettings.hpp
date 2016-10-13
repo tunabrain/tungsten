@@ -10,11 +10,9 @@ namespace Tungsten {
 struct ProgressivePhotonMapSettings : public PhotonMapSettings
 {
     float alpha;
-    bool fixedVolumeRadius;
 
     ProgressivePhotonMapSettings()
-    : alpha(0.3f),
-      fixedVolumeRadius(false)
+    : alpha(0.3f)
     {
     }
 
@@ -22,7 +20,6 @@ struct ProgressivePhotonMapSettings : public PhotonMapSettings
     {
         PhotonMapSettings::fromJson(v);
         JsonUtils::fromJson(v, "alpha", alpha);
-        JsonUtils::fromJson(v, "fixed_volume_radius", fixedVolumeRadius);
     }
 
     rapidjson::Value toJson(rapidjson::Document::AllocatorType &allocator) const
@@ -32,8 +29,7 @@ struct ProgressivePhotonMapSettings : public PhotonMapSettings
 
         return JsonObject{std::move(v), allocator,
             "type", "progressive_photon_map",
-            "alpha", alpha,
-            "fixed_volume_radius", fixedVolumeRadius
+            "alpha", alpha
         };
     }
 };

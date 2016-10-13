@@ -24,6 +24,7 @@ struct PhotonMapSettings : public TraceSettings
     float volumeGatherRadius;
     VolumePhotonType volumePhotonType;
     std::string volumePhotonTypeString;
+    bool fixedVolumeRadius;
 
     PhotonMapSettings()
     : photonCount(1000000),
@@ -32,7 +33,8 @@ struct PhotonMapSettings : public TraceSettings
       gatherRadius(1e30f),
       volumeGatherRadius(gatherRadius),
       volumePhotonType(VOLUME_POINTS),
-      volumePhotonTypeString("points")
+      volumePhotonTypeString("points"),
+      fixedVolumeRadius(false)
     {
     }
 
@@ -56,6 +58,7 @@ struct PhotonMapSettings : public TraceSettings
         bool gatherRadiusSet = JsonUtils::fromJson(v, "gather_radius", gatherRadius);
         if (!JsonUtils::fromJson(v, "volume_gather_radius", volumeGatherRadius) && gatherRadiusSet)
             volumeGatherRadius = gatherRadius;
+        JsonUtils::fromJson(v, "fixed_volume_radius", fixedVolumeRadius);
     }
 
     rapidjson::Value toJson(rapidjson::Document::AllocatorType &allocator) const
@@ -67,7 +70,8 @@ struct PhotonMapSettings : public TraceSettings
             "gather_photon_count", gatherCount,
             "gather_radius", gatherRadius,
             "volume_gather_radius", volumeGatherRadius,
-            "volume_photon_type", volumePhotonTypeString
+            "volume_photon_type", volumePhotonTypeString,
+            "fixed_volume_radius", fixedVolumeRadius
         };
     }
 };
