@@ -8,11 +8,13 @@
 #include "sampling/Distribution1D.hpp"
 
 #include "io/Path.hpp"
-
-#include <embree/include/embree.h>
 #include <memory>
 #include <vector>
 #include <string>
+
+#include <embree2/rtcore.h>
+#include <embree2/rtcore_scene.h>
+#include <embree2/rtcore_geometry.h>
 
 namespace Tungsten {
 
@@ -37,8 +39,8 @@ class TriangleMesh : public Primitive
 
     Box3f _bounds;
 
-    embree::RTCGeometry *_geom = nullptr;
-    embree::RTCIntersector1 *_intersector = nullptr;
+    RTCScene _scene;
+    unsigned _geomId;
 
     Vec3f unnormalizedGeometricNormalAt(int triangle) const;
     Vec3f normalAt(int triangle, float u, float v) const;

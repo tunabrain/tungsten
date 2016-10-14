@@ -24,15 +24,15 @@ struct MeshIntersection
     Vec3f Ng;
     float u;
     float v;
-    int id0;
-    int id1;
+    int primId;
     bool backSide;
 };
 
 TriangleMesh::TriangleMesh()
 : _smoothed(false),
   _backfaceCulling(false),
-  _recomputeNormals(false)
+  _recomputeNormals(false),
+  _scene(nullptr)
 {
 }
 
@@ -298,18 +298,17 @@ void TriangleMesh::makeCone(float radius, float height)
 
 bool TriangleMesh::intersect(Ray &ray, IntersectionTemporary &data) const
 {
-    embree::Ray eRay(EmbreeUtil::convert(ray));
-    _intersector->intersect(eRay);
-    if (eRay && eRay.tfar < ray.farT()) {
+    RTCRay eRay(EmbreeUtil::convert(ray));
+    rtcIntersect(_scene, eRay);
+    if (eRay.geomID != RTC_INVALID_GEOMETRY_ID) {
         ray.setFarT(eRay.tfar);
 
         data.primitive = this;
         MeshIntersection *isect = data.as<MeshIntersection>();
-        isect->Ng = unnormalizedGeometricNormalAt(eRay.id0);
+        isect->Ng = unnormalizedGeometricNormalAt(eRay.primID);
         isect->u = eRay.u;
         isect->v = eRay.v;
-        isect->id0 = eRay.id0;
-        isect->id1 = eRay.id1;
+        isect->primId = eRay.primID;
         isect->backSide = isect->Ng.dot(ray.dir()) > 0.0f;
 
         return true;
@@ -319,8 +318,9 @@ bool TriangleMesh::intersect(Ray &ray, IntersectionTemporary &data) const
 
 bool TriangleMesh::occluded(const Ray &ray) const
 {
-    embree::Ray eRay(EmbreeUtil::convert(ray));
-    return _intersector->occluded(eRay);
+    RTCRay eRay(EmbreeUtil::convert(ray));
+    rtcOccluded(_scene, eRay);
+    return eRay.geomID != RTC_INVALID_GEOMETRY_ID;
 }
 
 void TriangleMesh::intersectionInfo(const IntersectionTemporary &data, IntersectionInfo &info) const
@@ -328,12 +328,12 @@ void TriangleMesh::intersectionInfo(const IntersectionTemporary &data, Intersect
     const MeshIntersection *isect = data.as<MeshIntersection>();
     info.Ng = isect->Ng.normalized();
     if (_smoothed)
-        info.Ns = normalAt(isect->id0, isect->u, isect->v);
+        info.Ns = normalAt(isect->primId, isect->u, isect->v);
     else
         info.Ns = info.Ng;
-    info.uv = uvAt(isect->id0, isect->u, isect->v);
+    info.uv = uvAt(isect->primId, isect->u, isect->v);
     info.primitive = this;
-    info.bsdf = _bsdfs[_tris[isect->id0].material].get();
+    info.bsdf = _bsdfs[_tris[isect->primId].material].get();
 }
 
 bool TriangleMesh::hitBackside(const IntersectionTemporary &data) const
@@ -345,7 +345,7 @@ bool TriangleMesh::tangentSpace(const IntersectionTemporary &data, const Interse
         Vec3f &T, Vec3f &B) const
 {
     const MeshIntersection *isect = data.as<MeshIntersection>();
-    const TriangleI &t = _tris[isect->id0];
+    const TriangleI &t = _tris[isect->primId];
     Vec3f p0 = _tfVerts[t.v0].pos();
     Vec3f p1 = _tfVerts[t.v1].pos();
     Vec3f p2 = _tfVerts[t.v2].pos();
@@ -510,14 +510,15 @@ void TriangleMesh::prepareForRender()
     if (_verts.empty() || _tris.empty())
         return;
 
-    _geom = embree::rtcNewTriangleMesh(_tris.size(), _verts.size(), "bvh2");
-    embree::RTCVertex   *vs = embree::rtcMapPositionBuffer(_geom);
-    embree::RTCTriangle *ts = embree::rtcMapTriangleBuffer(_geom);
+    _scene = rtcDeviceNewScene(EmbreeUtil::getDevice(), RTC_SCENE_STATIC | RTC_SCENE_INCOHERENT, RTC_INTERSECT1);
+    _geomId = rtcNewTriangleMesh(_scene, RTC_GEOMETRY_STATIC, _tris.size(), _verts.size(), 1);
+    Vec4f *vs = static_cast<Vec4f *>(rtcMapBuffer(_scene, _geomId, RTC_VERTEX_BUFFER));
+    Vec3u *ts = static_cast<Vec3u *>(rtcMapBuffer(_scene, _geomId, RTC_INDEX_BUFFER));
 
     for (size_t i = 0; i < _tris.size(); ++i) {
         const TriangleI &t = _tris[i];
         _tris[i].material = clamp(_tris[i].material, 0, int(_bsdfs.size()) - 1);
-        ts[i] = embree::RTCTriangle(t.v0, t.v1, t.v2, i, 0);
+        ts[i] = Vec3u(t.v0, t.v1, t.v2);
     }
 
     _tfVerts.resize(_verts.size());
@@ -529,7 +530,7 @@ void TriangleMesh::prepareForRender()
             _verts[i].uv()
         );
         const Vec3f &p = _tfVerts[i].pos();
-        vs[i] = embree::RTCVertex(p.x(), p.y(), p.z());
+        vs[i] = Vec4f(p.x(), p.y(), p.z(), 0.0f);
     }
 
     _totalArea = 0.0f;
@@ -541,24 +542,24 @@ void TriangleMesh::prepareForRender()
     }
     _invArea = 1.0f/_totalArea;
 
-    embree::rtcUnmapPositionBuffer(_geom);
-    embree::rtcUnmapTriangleBuffer(_geom);
+    rtcUnmapBuffer(_scene, _geomId, RTC_VERTEX_BUFFER);
+    rtcUnmapBuffer(_scene, _geomId, RTC_INDEX_BUFFER);
 
-    embree::rtcBuildAccel(_geom, "objectsplit");
-    if (_backfaceCulling)
-        _intersector = embree::rtcQueryIntersector1(_geom, "fast.moeller_cull");
-    else
-        _intersector = embree::rtcQueryIntersector1(_geom, "fast.moeller");
+    rtcCommit(_scene);
+
+    //if (_backfaceCulling)
+    // TODO
 
     Primitive::prepareForRender();
 }
 
 void TriangleMesh::teardownAfterRender()
 {
-    if (_geom)
-        embree::rtcDeleteGeometry(_geom);
-    _geom = nullptr;
-    _intersector = nullptr;
+    if (_scene)  {
+        rtcDeleteGeometry(_scene, _geomId);
+        rtcDeleteScene(_scene);
+        _scene = nullptr;
+    }
     _tfVerts.clear();
 
     Primitive::teardownAfterRender();

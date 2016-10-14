@@ -1,6 +1,8 @@
 #ifndef SHARED_HPP_
 #define SHARED_HPP_
 
+#include "primitives/EmbreeUtil.hpp"
+
 #include "renderer/TraceableScene.hpp"
 
 #include "thread/ThreadUtils.hpp"
@@ -15,7 +17,6 @@
 #include "Timer.hpp"
 
 #include <tinyformat/tinyformat.hpp>
-#include <embree/include/embree.h>
 #include <rapidjson/document.h>
 #include <cstdlib>
 #include <vector>
@@ -157,8 +158,7 @@ public:
         if (_parser.isPresent(OPT_TIMEOUT))
             _timeout = StringUtils::parseDuration(_parser.param(OPT_TIMEOUT));
 
-        embree::rtcInit();
-        embree::rtcStartThreads(_threadCount);
+        EmbreeUtil::initDevice();
 
 #ifdef OPENVDB_AVAILABLE
         openvdb::initialize();

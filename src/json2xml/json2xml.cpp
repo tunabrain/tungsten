@@ -1,11 +1,12 @@
 #include "JsonXmlConverter.hpp"
 #include "Version.hpp"
 
+#include "primitives/EmbreeUtil.hpp"
+
 #include "io/CliParser.hpp"
 #include "io/FileUtils.hpp"
 #include "io/Scene.hpp"
 
-#include <embree/include/embree.h>
 #include <iostream>
 
 using namespace Tungsten;
@@ -58,8 +59,7 @@ int main(int argc, const char *argv[])
         return 0;
     }
 
-    embree::rtcInit();
-    embree::rtcStartThreads(8);
+    EmbreeUtil::initDevice();
 
     convert(parser, Path(parser.operands()[0]), Path(parser.operands()[1]));
 

@@ -14,6 +14,7 @@ endif()
 
 # AVX does not do much benefit at the moment, but breaks compilation on some platforms.
 # Disabled for now until AVX becomes important enough to reconsider.
+SET(EMBREE_MAX_ISA "SSE4.2" CACHE STRING "Selects highest ISA to support.")
 set(USE_AVX FALSE CACHE BOOL "Use AVX.")
 set(USE_AVX2 FALSE CACHE BOOL "Use AVX2.")
 
@@ -42,9 +43,26 @@ else()
     add_definitions(-DCONSTEXPR=constexpr)
 endif()
 
+IF(COMMAND cmake_policy)
+  if (POLICY CMP0043)
+    cmake_policy(SET CMP0043 NEW)
+  endif()
+ENDIF(COMMAND cmake_policy)
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Vc_ARCHITECTURE_FLAGS}")
 
+set(EMBREE_STATIC_LIB ON CACHE BOOL "Build Embree as a static library." FORCE)
+set(EMBREE_ISPC_SUPPORT OFF CACHE BOOL "Build Embree with support for ISPC applications." FORCE)
+set(EMBREE_TUTORIALS OFF CACHE BOOL "Enable to build Embree tutorials" FORCE)
+set(EMBREE_STAT_COUNTERS OFF CACHE BOOL "Enables statistic counters." FORCE)
+set(EMBREE_RAY_MASK OFF CACHE BOOL "Enables ray mask support." FORCE)
+set(EMBREE_BACKFACE_CULLING OFF CACHE BOOL "Enables backface culling." FORCE)
+set(EMBREE_INTERSECTION_FILTER ON CACHE BOOL "Enables intersection filter callback." FORCE)
+set(EMBREE_INTERSECTION_FILTER_RESTORE ON CACHE BOOL "Restores previous hit when hit is filtered out." FORCE)
+set(EMBREE_TASKING_SYSTEM "INTERNAL" CACHE STRING "Selects tasking system" FORCE)
 add_subdirectory(src/thirdparty/embree)
+add_definitions(-DEMBREE_STATIC_LIB=1)
+
 add_definitions(-DRAPIDJSON_HAS_STDSTRING=1)
 add_definitions(-DSTBI_NO_STDIO=1)
 add_definitions(-DLODEPNG_NO_COMPILE_DISK=1)
@@ -58,12 +76,12 @@ add_library(thirdparty STATIC
 		src/thirdparty/skylight/ArHosekSkyModel.cpp)
 
 if (CMAKE_COMPILER_IS_GNUCXX)
-    set(CXX_WARNINGS "-Wall -Wextra -Wpointer-arith -Wcast-align -fstrict-aliasing -Wno-unused-local-typedefs")
+    set(CXX_WARNINGS "-Wall -Wextra -Wpointer-arith -Wcast-align -fstrict-aliasing -Wno-unused-local-typedefs -Wno-misleading-indentation")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_WARNINGS} -fvisibility-inlines-hidden")
 endif()
 set(core_libs core thirdparty embree)
 
-include_directories(src/core src/thirdparty src/thirdparty/embree src)
+include_directories(src/core src/thirdparty src/thirdparty/embree/include src)
 
 find_package(OpenEXR)
 if (OPENEXR_FOUND)

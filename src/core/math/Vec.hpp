@@ -29,6 +29,12 @@ public:
             _v[i] = a;
     }
 
+    explicit Vec(const ElementType *a)
+    {
+        for (unsigned i = 0; i < Size; ++i)
+            _v[i] = a[i];
+    }
+
     template<typename... Ts>
     Vec(const ElementType &a, const ElementType &b, const Ts &... ts)
     : _v({{a, b, ts...}})

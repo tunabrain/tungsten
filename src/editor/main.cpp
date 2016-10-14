@@ -1,8 +1,9 @@
-#include <embree/include/embree.h>
 #include <QDesktopWidget>
 #include <QApplication>
 #include <QGLWidget>
 #include <QDir>
+
+#include "primitives/EmbreeUtil.hpp"
 
 #include "thread/ThreadUtils.hpp"
 
@@ -22,8 +23,7 @@ int main(int argc, char *argv[])
     int threadCount = max(ThreadUtils::idealThreadCount() - 1, 1u);
     ThreadUtils::startThreads(threadCount);
 
-    embree::rtcInit();
-    embree::rtcStartThreads(threadCount);
+    EmbreeUtil::initDevice();
 
 #ifdef OPENVDB_AVAILABLE
         openvdb::initialize();

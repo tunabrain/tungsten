@@ -14,36 +14,33 @@
 #include "media/Medium.hpp"
 
 #include "RendererSettings.hpp"
-
-#include <embree/include/intersector1.h>
-#include <embree/geometry/virtual_scene.h>
-#include <embree/common/ray.h>
 #include <vector>
 #include <memory>
+
+#include <embree2/rtcore.h>
+#include <embree2/rtcore_ray.h>
 
 namespace Tungsten {
 
 class TraceableScene
 {
-    struct PerRayData
+    struct IntersectionRay : RTCRay
     {
         IntersectionTemporary &data;
         Ray &ray;
+        unsigned userGeomId;
+
+        IntersectionRay(RTCRay eRay, IntersectionTemporary &data_, Ray &ray_, unsigned userGeomId_)
+        : RTCRay(eRay), data(data_), ray(ray_), userGeomId(userGeomId_) {}
     };
-
-    static void intersect(const void *userData, embree::Ray &eRay)
+    struct OcclusionRay : RTCRay
     {
-        const Primitive *primitive = reinterpret_cast<const Primitive *>(userData);
-        PerRayData *data = reinterpret_cast<PerRayData *>(eRay.userData);
-        if (primitive->intersect(data->ray, data->data))
-            eRay.tfar = data->ray.farT();
-    }
+        const Ray &ray;
+        unsigned userGeomId;
 
-    static bool occluded(const void *userData, embree::Ray &eRay)
-    {
-        const Primitive *primitive = reinterpret_cast<const Primitive *>(userData);
-        return primitive->occluded(EmbreeUtil::convert(eRay));
-    }
+        OcclusionRay(RTCRay eRay, const Ray &ray_, unsigned userGeomId_)
+        : RTCRay(eRay), ray(ray_), userGeomId(userGeomId_) {}
+    };
 
     const float DefaultEpsilon = 5e-4f;
 
@@ -57,9 +54,8 @@ class TraceableScene
     std::vector<const Primitive *> _finites;
     RendererSettings _settings;
 
-    embree::VirtualScene *_scene = nullptr;
-    embree::Intersector1 *_intersector = nullptr;
-    embree::Intersector1 _virtualIntersector;
+    RTCScene _scene = nullptr;
+    unsigned _userGeomId;
 
     Box3f _sceneBounds;
 
@@ -77,9 +73,6 @@ public:
       _media(media),
       _settings(settings)
     {
-        _virtualIntersector.intersectPtr = &TraceableScene::intersect;
-        _virtualIntersector.occludedPtr = &TraceableScene::occluded;
-
         _cam.prepareForRender();
         _cam.requestOutputBuffers(_settings.renderOutputs());
 
@@ -114,32 +107,37 @@ public:
             _infiniteLights.push_back(defaultLight);
         }
 
+        for (std::shared_ptr<Primitive> &m : _primitives) {
+            if (m->isInfinite() || m->isDirac())
+                continue;
+
+            _sceneBounds.grow(m->bounds());
+            _finites.push_back(m.get());
+        }
+
         if (_settings.useSceneBvh()) {
-            _scene = new embree::VirtualScene(finiteCount, "bvh2");
-            embree::VirtualScene::Object *objects = _scene->objects;
-            for (std::shared_ptr<Primitive> &m : _primitives) {
-                if (m->isInfinite() || m->isDirac())
-                    continue;
+            _scene = rtcDeviceNewScene(EmbreeUtil::getDevice(), RTC_SCENE_STATIC | RTC_SCENE_INCOHERENT, RTC_INTERSECT1);
+            _userGeomId = rtcNewUserGeometry(_scene, _finites.size());
+            rtcSetUserData(_scene, _userGeomId, this);
 
-                Box3f primBounds = m->bounds();
-                _sceneBounds.grow(primBounds);
-
-                objects->hasTransform = false;
-                objects->localBounds = objects->worldBounds = EmbreeUtil::convert(primBounds);
-                objects->userData = m.get();
-                objects->intersector1 = &_virtualIntersector;
-                objects++;
-            }
-
-            embree::rtcBuildAccel(_scene, "objectsplit");
-            _intersector = embree::rtcQueryIntersector1(_scene, "fast");
-        } else {
-            for (std::shared_ptr<Primitive> &m : _primitives) {
-                if (!m->isInfinite() && !m->isDirac()) {
-                    _sceneBounds.grow(m->bounds());
-                    _finites.push_back(m.get());
+            rtcSetBoundsFunction(_scene, _userGeomId, [](void *ptr, size_t i, RTCBounds &bounds) {
+                bounds = EmbreeUtil::convert(static_cast<TraceableScene *>(ptr)->finites()[i]->bounds());
+            });
+            rtcSetIntersectFunction(_scene, _userGeomId, [](void *ptr, RTCRay &embreeRay, size_t i) {
+                IntersectionRay &ray = *static_cast<IntersectionRay *>(&embreeRay);
+                if (static_cast<TraceableScene *>(ptr)->finites()[i]->intersect(ray.ray, ray.data)) {
+                    embreeRay.tfar = ray.ray.farT();
+                    embreeRay.geomID = ray.userGeomId;
+                    embreeRay.primID = i;
                 }
-            }
+            });
+            rtcSetOccludedFunction(_scene, _userGeomId, [](void *ptr, RTCRay &embreeRay, size_t i) {
+                OcclusionRay &ray = *static_cast<OcclusionRay *>(&embreeRay);
+                if (static_cast<TraceableScene *>(ptr)->finites()[i]->occluded(ray.ray))
+                    embreeRay.geomID = 0;
+            });
+
+            rtcCommit(_scene);
         }
 
         _integrator.prepareForRender(*this, seed);
@@ -163,9 +161,8 @@ public:
                     m->bsdf(i)->teardownAfterRender();
         }
 
-        embree::rtcDeleteGeometry(_scene);
+        rtcDeleteScene(_scene);
         _scene = nullptr;
-        _intersector = nullptr;
     }
 
     bool intersect(Ray &ray, IntersectionTemporary &data, IntersectionInfo &info) const
@@ -174,11 +171,8 @@ public:
         data.primitive = nullptr;
 
         if (_settings.useSceneBvh()) {
-            PerRayData rayData{data, ray};
-            embree::Ray eRay(EmbreeUtil::convert(ray));
-            eRay.userData = &rayData;
-
-            _intersector->intersect(eRay);
+            IntersectionRay eRay(EmbreeUtil::convert(ray), data, ray, _userGeomId);
+            rtcIntersect(_scene, eRay);
         } else {
             for (const Primitive *prim : _finites)
                 prim->intersect(ray, data);
@@ -214,8 +208,9 @@ public:
 
     bool occluded(const Ray &ray) const
     {
-        embree::Ray eRay(EmbreeUtil::convert(ray));
-        return _intersector->occluded(eRay);
+        OcclusionRay eRay(EmbreeUtil::convert(ray), ray, _userGeomId);
+        rtcOccluded(_scene, eRay);
+        return eRay.geomID != RTC_INVALID_GEOMETRY_ID;
     }
 
     const Box3f &bounds() const
@@ -246,6 +241,11 @@ public:
     const std::vector<std::shared_ptr<Primitive>> &lights() const
     {
         return _lights;
+    }
+
+    const std::vector<const Primitive *> &finites() const
+    {
+        return _finites;
     }
 
     const std::vector<std::shared_ptr<Medium>> &media() const

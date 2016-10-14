@@ -5,57 +5,51 @@
 #include "math/Box.hpp"
 #include "math/Mat4f.hpp"
 
-#include <embree/common/ray.h>
+#include <embree2/rtcore.h>
+#include <embree2/rtcore_ray.h>
 
 namespace Tungsten {
 
 namespace EmbreeUtil {
 
-inline embree::Vec3fa convert(const Vec3f &v)
+void initDevice();
+RTCDevice getDevice();
+
+inline RTCBounds convert(const Box3f &b)
 {
-    return embree::Vec3fa(v.x(), v.y(), v.z());
+    return RTCBounds{
+        b.min().x(), b.min().y(), b.min().z(), 0.0f,
+        b.max().x(), b.max().y(), b.max().z(), 0.0f
+    };
 }
 
-inline Vec3f convert(const embree::Vec3fa v)
+inline Box3f convert(const RTCBounds &b)
 {
-    return Vec3f(v.x, v.y, v.z);
-}
-
-inline Vec3f convert(const embree::Vector3f v)
-{
-    return Vec3f(v.x, v.y, v.z);
-}
-
-inline embree::BBox3f convert(const Box3f &b)
-{
-    return embree::BBox3f(convert(b.min()), convert(b.max()));
-}
-
-inline embree::AffineSpace3f convert(const Mat4f &m)
-{
-    return embree::AffineSpace3f(
-        embree::LinearSpace3f(
-            embree::Vector3f(m[0], m[4], m[ 8]),
-            embree::Vector3f(m[1], m[5], m[ 9]),
-            embree::Vector3f(m[2], m[6], m[10])
-        ),
-        embree::Vector3f(m[3], m[7], m[11])
+    return Box3f(
+        Vec3f(b.lower_x, b.lower_y, b.lower_z),
+        Vec3f(b.upper_x, b.upper_y, b.upper_z)
     );
 }
 
-inline Box3f convert(const embree::BBox3f &b)
+inline Ray convert(const RTCRay &r)
 {
-    return Box3f(convert(b.lower), convert(b.upper));
+    return Ray(Vec3f(r.org), Vec3f(r.dir), r.tnear, r.tfar);
 }
 
-inline Ray convert(const embree::Ray &r)
+inline RTCRay convert(const Ray &r)
 {
-    return Ray(convert(r.org), convert(r.dir), r.tnear, r.tfar);//, r.time);
-}
-
-inline embree::Ray convert(const Ray &r)
-{
-    return embree::Ray(convert(r.pos()), convert(r.dir()), r.nearT(), r.farT());//, r.time(), r.flags());
+    RTCRay ray;
+    ray.org[0] = r.pos().x();
+    ray.org[1] = r.pos().y();
+    ray.org[2] = r.pos().z();
+    ray.dir[0] = r.dir().x();
+    ray.dir[1] = r.dir().y();
+    ray.dir[2] = r.dir().z();
+    ray.tnear = r.nearT();
+    ray.tfar  = r.farT();
+    ray.geomID = RTC_INVALID_GEOMETRY_ID;
+    ray.primID = RTC_INVALID_GEOMETRY_ID;
+    return ray;
 }
 
 }
