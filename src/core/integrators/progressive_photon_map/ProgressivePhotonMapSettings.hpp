@@ -7,7 +7,7 @@
 
 namespace Tungsten {
 
-struct ProgressivePhotonMapSettings : public PhotonMapSettings
+struct ProgressivePhotonMapSettings
 {
     float alpha;
 
@@ -18,13 +18,12 @@ struct ProgressivePhotonMapSettings : public PhotonMapSettings
 
     void fromJson(const rapidjson::Value &v)
     {
-        PhotonMapSettings::fromJson(v);
         JsonUtils::fromJson(v, "alpha", alpha);
     }
 
-    rapidjson::Value toJson(rapidjson::Document::AllocatorType &allocator) const
+    rapidjson::Value toJson(const PhotonMapSettings &settings, rapidjson::Document::AllocatorType &allocator) const
     {
-        rapidjson::Value v = PhotonMapSettings::toJson(allocator);
+        rapidjson::Value v = settings.toJson(allocator);
         v.RemoveMember("type");
 
         return JsonObject{std::move(v), allocator,

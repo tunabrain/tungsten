@@ -29,6 +29,7 @@ class PhotonTracer;
 
 class PhotonMapIntegrator : public Integrator
 {
+protected:
     static CONSTEXPR uint32 TileSize = 16;
 
     struct SubTaskData
@@ -69,14 +70,15 @@ class PhotonMapIntegrator : public Integrator
     virtual void saveState(OutputStreamHandle &out) override;
     virtual void loadState(InputStreamHandle &in) override;
 
-    void tracePhotons(uint32 taskId, uint32 numSubTasks, uint32 threadId);
-    void tracePixels(uint32 tileId, uint32 threadId);
+    void tracePhotons(uint32 taskId, uint32 numSubTasks, uint32 threadId, uint32 sampleBase);
+    void tracePixels(uint32 tileId, uint32 threadId, float surfaceRadius, float volumeRadius);
 
     void buildBeamBvh(std::vector<PathPhotonRange> pathRanges);
-    void buildPhotonDataStructures();
+    void buildPhotonDataStructures(float volumeRadiusScale);
 
 public:
     PhotonMapIntegrator();
+    ~PhotonMapIntegrator();
 
     virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
@@ -90,7 +92,5 @@ public:
 };
 
 }
-
-
 
 #endif /* PHOTONMAPINTEGRATOR_HPP_ */
