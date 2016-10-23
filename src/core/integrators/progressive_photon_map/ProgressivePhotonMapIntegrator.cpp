@@ -10,6 +10,8 @@
 #include "thread/ThreadUtils.hpp"
 #include "thread/ThreadPool.hpp"
 
+#include "bvh/BinaryBvh.hpp"
+
 namespace Tungsten {
 
 ProgressivePhotonMapIntegrator::ProgressivePhotonMapIntegrator()
@@ -57,7 +59,11 @@ void ProgressivePhotonMapIntegrator::renderSegment(std::function<void()> complet
     float gamma3D = std::cbrt(gamma);
 
     float surfaceRadius = _settings.gatherRadius*gamma2D;
-    float volumeRadius = _settings.volumeGatherRadius*gamma3D;
+    float volumeRadius = _settings.volumeGatherRadius;
+    if (_settings.volumePhotonType == PhotonMapSettings::VOLUME_POINTS)
+        volumeRadius *= gamma3D;
+    else
+        volumeRadius *= gamma1D;
 
     buildPhotonDataStructures(gamma3D);
 
@@ -72,9 +78,12 @@ void ProgressivePhotonMapIntegrator::renderSegment(std::function<void()> complet
     _iteration++;
 
     _surfaceTree.reset();
+    _volumeTree.reset();
+    _beamBvh.reset();
     for (SubTaskData &data : _taskData) {
         data.surfaceRange.reset();
         data.volumeRange.reset();
+        data.pathRange.reset();
     }
 
     completionCallback();

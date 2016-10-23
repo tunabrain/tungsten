@@ -73,7 +73,7 @@ protected:
     void tracePhotons(uint32 taskId, uint32 numSubTasks, uint32 threadId, uint32 sampleBase);
     void tracePixels(uint32 tileId, uint32 threadId, float surfaceRadius, float volumeRadius);
 
-    void buildBeamBvh(std::vector<PathPhotonRange> pathRanges);
+    void buildBeamBvh(std::vector<PathPhotonRange> pathRanges, float volumeRadiusScale);
     void buildPhotonDataStructures(float volumeRadiusScale);
 
 public:

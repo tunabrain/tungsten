@@ -154,8 +154,10 @@ std::unique_ptr<KdTree<PhotonType>> streamCompactAndBuild(std::vector<PhotonRang
     return std::unique_ptr<KdTree<PhotonType>>(new KdTree<PhotonType>(&photons[0], tail));
 }
 
-void PhotonMapIntegrator::buildBeamBvh(std::vector<PathPhotonRange> pathRanges)
+void PhotonMapIntegrator::buildBeamBvh(std::vector<PathPhotonRange> pathRanges, float volumeRadiusScale)
 {
+    float radius = _settings.volumeGatherRadius*volumeRadiusScale;
+
     Bvh::PrimVector beams;
     uint32 tail = streamCompact(pathRanges);
     for (uint32 i = 0; i < tail; ++i) {
@@ -164,7 +166,7 @@ void PhotonMapIntegrator::buildBeamBvh(std::vector<PathPhotonRange> pathRanges)
             continue;
 
         Vec3f dir = _pathPhotons[i].pos - _pathPhotons[i - 1].pos;
-        Vec3f minExtend = Vec3f(_settings.volumeGatherRadius);
+        Vec3f minExtend = Vec3f(radius);
         for (int j = 0; j < 3; ++j)
             minExtend[j] = std::copysign(minExtend[j], dir[j]);
 
@@ -208,7 +210,7 @@ void PhotonMapIntegrator::buildPhotonDataStructures(float volumeRadiusScale)
         float volumeRadius = _settings.fixedVolumeRadius ? _settings.volumeGatherRadius : 1.0f;
         _volumeTree->buildVolumeHierarchy(_settings.fixedVolumeRadius, volumeRadius*volumeRadiusScale);
     } else if (!_pathPhotons.empty()) {
-        buildBeamBvh(std::move(pathRanges));
+        buildBeamBvh(std::move(pathRanges), volumeRadiusScale);
     }
 }
 
