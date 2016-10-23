@@ -58,14 +58,16 @@ void ProgressivePhotonMapIntegrator::renderSegment(std::function<void()> complet
     float gamma2D = std::sqrt(gamma);
     float gamma3D = std::cbrt(gamma);
 
-    float surfaceRadius = _settings.gatherRadius*gamma2D;
-    float volumeRadius = _settings.volumeGatherRadius;
+    float volumeScale;
     if (_settings.volumePhotonType == PhotonMapSettings::VOLUME_POINTS)
-        volumeRadius *= gamma3D;
+        volumeScale = gamma3D;
     else
-        volumeRadius *= gamma1D;
+        volumeScale = gamma1D;
 
-    buildPhotonDataStructures(gamma3D);
+    float surfaceRadius = _settings.gatherRadius*gamma2D;
+    float volumeRadius = _settings.volumeGatherRadius*volumeScale;
+
+    buildPhotonDataStructures(volumeScale);
 
     ThreadUtils::pool->yield(*ThreadUtils::pool->enqueue(
         std::bind(&ProgressivePhotonMapIntegrator::tracePixels, this, _1, _3, surfaceRadius, volumeRadius),
