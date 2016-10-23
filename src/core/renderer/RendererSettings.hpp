@@ -130,9 +130,19 @@ public:
         return _outputFile;
     }
 
+    void setOutputFile(const Path &file)
+    {
+        _outputFile = file;
+    }
+
     const Path &hdrOutputFile() const
     {
         return _hdrOutputFile;
+    }
+
+    void setHdrOutputFile(const Path &file)
+    {
+        _hdrOutputFile = file;
     }
 
     const Path &varianceOutputFile() const

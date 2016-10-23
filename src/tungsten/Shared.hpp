@@ -37,6 +37,8 @@ static const int OPT_OUTPUT_DIRECTORY  = 5;
 static const int OPT_SPP               = 6;
 static const int OPT_SEED              = 7;
 static const int OPT_TIMEOUT           = 8;
+static const int OPT_OUTPUT_FILE       = 9;
+static const int OPT_HDR_OUTPUT_FILE   = 10;
 
 enum RenderState
 {
@@ -130,10 +132,12 @@ public:
         parser.addOption('t', "threads", "Specifies number of threads to use (default: number of cores minus one)", true, OPT_THREADS);
         parser.addOption('r', "restart", "Ignores saved render checkpoints and starts fresh from 0 spp", false, OPT_RESTART);
         parser.addOption('c', "checkpoint", "Specifies render time before saving a checkpoint. A value of 0 (default) disables checkpoints. Overrides the setting in the scene file", true, OPT_CHECKPOINTS);
-        parser.addOption('o', "output-directory", "Specifies the output directory. Overrides the setting in the scene file", true, OPT_OUTPUT_DIRECTORY);
+        parser.addOption('d', "output-directory", "Specifies the output directory. Overrides the setting in the scene file", true, OPT_OUTPUT_DIRECTORY);
         parser.addOption('\0', "spp", "Sets the number of samples per pixel to render at. Overrides the setting in the scene file", true, OPT_SPP);
         parser.addOption('\0', "timeout", "Specifies the maximum render time. A value of 0 (default) means unlimited. Overrides the setting in the scene file", true, OPT_TIMEOUT);
         parser.addOption('s', "seed", "Specifies the random seed to use", true, OPT_SEED);
+        parser.addOption('o', "output-file", "Specifies the output file name. Overrides the setting in the scene file", true, OPT_OUTPUT_FILE);
+        parser.addOption('e', "hdr-output-file", "Specifies the hdr output file name. Overrides the setting in the scene file", true, OPT_HDR_OUTPUT_FILE);
     }
 
     void setup()
@@ -206,6 +210,17 @@ public:
 
         if (_parser.isPresent(OPT_SPP))
             _scene->rendererSettings().setSpp(std::atoi(_parser.param(OPT_SPP).c_str()));
+
+        if (_parser.isPresent(OPT_OUTPUT_FILE)) {
+            Path p(_parser.param(OPT_OUTPUT_FILE));
+            p.freezeWorkingDirectory();
+            _scene->rendererSettings().setOutputFile(p);
+        }
+        if (_parser.isPresent(OPT_HDR_OUTPUT_FILE)) {
+            Path p(_parser.param(OPT_HDR_OUTPUT_FILE));
+            p.freezeWorkingDirectory();
+            _scene->rendererSettings().setHdrOutputFile(p);
+        }
 
         {
             std::unique_lock<std::mutex> lock(_statusMutex);
