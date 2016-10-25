@@ -45,7 +45,7 @@ void ProgressivePhotonMapIntegrator::renderSegment(std::function<void()> complet
     using namespace std::placeholders;
 
     ThreadUtils::pool->yield(*ThreadUtils::pool->enqueue(
-        std::bind(&tracePhotons, this, _1, _2, _3, _iteration*_settings.photonCount),
+        std::bind(&ProgressivePhotonMapIntegrator::tracePhotons, this, _1, _2, _3, _iteration*_settings.photonCount),
         _tracers.size(),
         [](){}
     ));
