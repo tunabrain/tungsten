@@ -29,6 +29,14 @@ RAPIDJSON_DIAG_PUSH
 #ifdef _MSC_VER
 RAPIDJSON_DIAG_OFF(4127) // conditional expression is constant
 RAPIDJSON_DIAG_OFF(4244) // conversion from kXxxFlags to 'uint16_t', possible loss of data
+#ifdef _MINWINDEF_       // see: http://stackoverflow.com/questions/22744262/cant-call-stdmax-because-minwindef-h-defines-max
+#ifndef NOMINMAX
+#pragma push_macro("min")
+#pragma push_macro("max")
+#undef min
+#undef max
+#endif
+#endif
 #endif
 
 #ifdef __clang__
@@ -316,8 +324,6 @@ struct GenericStringRef {
 
     GenericStringRef(const GenericStringRef& rhs) : s(rhs.s), length(rhs.length) {}
 
-    GenericStringRef& operator=(const GenericStringRef& rhs) { s = rhs.s; length = rhs.length; }
-
     //! implicit conversion to plain CharType pointer
     operator const Ch *() const { return s; }
 
@@ -328,6 +334,8 @@ private:
     //! Disallow construction from non-const array
     template<SizeType N>
     GenericStringRef(CharType (&str)[N]) /* = delete */;
+    //! Copy assignment operator not permitted - immutable type
+    GenericStringRef& operator=(const GenericStringRef& rhs) /* = delete */;
 };
 
 //! Mark a character pointer as constant string
@@ -609,8 +617,47 @@ public:
         \param allocator Allocator for allocating copied elements and buffers. Commonly use GenericDocument::GetAllocator().
         \see CopyFrom()
     */
-    template< typename SourceAllocator >
-    GenericValue(const GenericValue<Encoding, SourceAllocator>& rhs, Allocator & allocator);
+    template <typename SourceAllocator>
+    GenericValue(const GenericValue<Encoding,SourceAllocator>& rhs, Allocator& allocator) {
+        switch (rhs.GetType()) {
+        case kObjectType: {
+                SizeType count = rhs.data_.o.size;
+                Member* lm = reinterpret_cast<Member*>(allocator.Malloc(count * sizeof(Member)));
+                const typename GenericValue<Encoding,SourceAllocator>::Member* rm = rhs.GetMembersPointer();
+                for (SizeType i = 0; i < count; i++) {
+                    new (&lm[i].name) GenericValue(rm[i].name, allocator);
+                    new (&lm[i].value) GenericValue(rm[i].value, allocator);
+                }
+                data_.f.flags = kObjectFlag;
+                data_.o.size = data_.o.capacity = count;
+                SetMembersPointer(lm);
+            }
+            break;
+        case kArrayType: {
+                SizeType count = rhs.data_.a.size;
+                GenericValue* le = reinterpret_cast<GenericValue*>(allocator.Malloc(count * sizeof(GenericValue)));
+                const GenericValue<Encoding,SourceAllocator>* re = rhs.GetElementsPointer();
+                for (SizeType i = 0; i < count; i++)
+                    new (&le[i]) GenericValue(re[i], allocator);
+                data_.f.flags = kArrayFlag;
+                data_.a.size = data_.a.capacity = count;
+                SetElementsPointer(le);
+            }
+            break;
+        case kStringType:
+            if (rhs.data_.f.flags == kConstStringFlag) {
+                data_.f.flags = rhs.data_.f.flags;
+                data_  = *reinterpret_cast<const Data*>(&rhs.data_);
+            }
+            else
+                SetStringRaw(StringRef(rhs.GetString(), rhs.GetStringLength()), allocator);
+            break;
+        default:
+            data_.f.flags = rhs.data_.f.flags;
+            data_  = *reinterpret_cast<const Data*>(&rhs.data_);
+            break;
+        }
+    }
 
     //! Constructor for boolean value.
     /*! \param b Boolean value
@@ -671,6 +718,9 @@ public:
 
     //! Constructor for double value.
     explicit GenericValue(double d) RAPIDJSON_NOEXCEPT : data_() { data_.n.d = d; data_.f.flags = kNumberDoubleFlag; }
+
+    //! Constructor for float value.
+    explicit GenericValue(float f) RAPIDJSON_NOEXCEPT : data_() { data_.n.d = static_cast<double>(f); data_.f.flags = kNumberDoubleFlag; }
 
     //! Constructor for constant string (i.e. do not make a copy of string)
     GenericValue(const Ch* s, SizeType length) RAPIDJSON_NOEXCEPT : data_() { SetStringRaw(StringRef(s, length)); }
@@ -1671,7 +1721,7 @@ public:
     GenericValue& SetInt64(int64_t i64)     { this->~GenericValue(); new (this) GenericValue(i64);  return *this; }
     GenericValue& SetUint64(uint64_t u64)   { this->~GenericValue(); new (this) GenericValue(u64);  return *this; }
     GenericValue& SetDouble(double d)       { this->~GenericValue(); new (this) GenericValue(d);    return *this; }
-    GenericValue& SetFloat(float f)         { this->~GenericValue(); new (this) GenericValue(f);    return *this; }
+    GenericValue& SetFloat(float f)         { this->~GenericValue(); new (this) GenericValue(static_cast<double>(f)); return *this; }
 
     //@}
 
@@ -2401,35 +2451,6 @@ private:
 //! GenericDocument with UTF8 encoding
 typedef GenericDocument<UTF8<> > Document;
 
-// defined here due to the dependency on GenericDocument
-template <typename Encoding, typename Allocator>
-template <typename SourceAllocator>
-inline
-GenericValue<Encoding,Allocator>::GenericValue(const GenericValue<Encoding,SourceAllocator>& rhs, Allocator& allocator)
-{
-    switch (rhs.GetType()) {
-    case kObjectType:
-    case kArrayType: { // perform deep copy via SAX Handler
-            GenericDocument<Encoding,Allocator> d(&allocator);
-            rhs.Accept(d);
-            RawAssign(*d.stack_.template Pop<GenericValue>(1));
-        }
-        break;
-    case kStringType:
-        if (rhs.data_.f.flags == kConstStringFlag) {
-            data_.f.flags = rhs.data_.f.flags;
-            data_  = *reinterpret_cast<const Data*>(&rhs.data_);
-        } else {
-            SetStringRaw(StringRef(rhs.GetString(), rhs.GetStringLength()), allocator);
-        }
-        break;
-    default:
-        data_.f.flags = rhs.data_.f.flags;
-        data_  = *reinterpret_cast<const Data*>(&rhs.data_);
-        break;
-    }
-}
-
 //! Helper class for accessing Value of array type.
 /*!
     Instance of this helper class is obtained by \c GenericValue::GetArray().
@@ -2570,6 +2591,12 @@ private:
 };
 
 RAPIDJSON_NAMESPACE_END
+#ifdef _MINWINDEF_       // see: http://stackoverflow.com/questions/22744262/cant-call-stdmax-because-minwindef-h-defines-max
+#ifndef NOMINMAX
+#pragma pop_macro("min")
+#pragma pop_macro("max")
+#endif
+#endif
 RAPIDJSON_DIAG_POP
 
 #endif // RAPIDJSON_DOCUMENT_H_

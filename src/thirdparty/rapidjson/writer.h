@@ -42,6 +42,7 @@ RAPIDJSON_DIAG_OFF(4127) // conditional expression is constant
 RAPIDJSON_DIAG_PUSH
 RAPIDJSON_DIAG_OFF(padded)
 RAPIDJSON_DIAG_OFF(unreachable-code)
+RAPIDJSON_DIAG_OFF(c++98-compat)
 #endif
 
 RAPIDJSON_NAMESPACE_BEGIN
@@ -102,6 +103,13 @@ public:
     explicit
     Writer(StackAllocator* allocator = 0, size_t levelDepth = kDefaultLevelDepth) :
         os_(0), level_stack_(allocator, levelDepth * sizeof(Level)), maxDecimalPlaces_(kDefaultMaxDecimalPlaces), hasRoot_(false) {}
+
+#if RAPIDJSON_HAS_CXX11_RVALUE_REFS
+    Writer(Writer&& rhs) :
+        os_(rhs.os_), level_stack_(std::move(rhs.level_stack_)), maxDecimalPlaces_(rhs.maxDecimalPlaces_), hasRoot_(rhs.hasRoot_) {
+        rhs.os_ = 0;
+    }
+#endif
 
     //! Reset the writer with a new stream.
     /*!
@@ -184,12 +192,14 @@ public:
     bool Double(double d)       { Prefix(kNumberType); return EndValue(WriteDouble(d)); }
 
     bool RawNumber(const Ch* str, SizeType length, bool copy = false) {
+        RAPIDJSON_ASSERT(str != 0);
         (void)copy;
         Prefix(kNumberType);
         return EndValue(WriteString(str, length));
     }
 
     bool String(const Ch* str, SizeType length, bool copy = false) {
+        RAPIDJSON_ASSERT(str != 0);
         (void)copy;
         Prefix(kStringType);
         return EndValue(WriteString(str, length));
@@ -249,7 +259,11 @@ public:
         \param length Length of the json.
         \param type Type of the root of json.
     */
-    bool RawValue(const Ch* json, size_t length, Type type) { Prefix(type); return EndValue(WriteRawValue(json, length)); }
+    bool RawValue(const Ch* json, size_t length, Type type) {
+        RAPIDJSON_ASSERT(json != 0);
+        Prefix(type);
+        return EndValue(WriteRawValue(json, length));
+    }
 
 protected:
     //! Information for each nested level

@@ -22,6 +22,11 @@ RAPIDJSON_DIAG_PUSH
 RAPIDJSON_DIAG_OFF(effc++)
 #endif
 
+#if defined(__clang__)
+RAPIDJSON_DIAG_PUSH
+RAPIDJSON_DIAG_OFF(c++98-compat)
+#endif
+
 RAPIDJSON_NAMESPACE_BEGIN
 
 //! Combination of PrettyWriter format flags.
@@ -57,6 +62,11 @@ public:
     explicit PrettyWriter(StackAllocator* allocator = 0, size_t levelDepth = Base::kDefaultLevelDepth) : 
         Base(allocator, levelDepth), indentChar_(' '), indentCharCount_(4) {}
 
+#if RAPIDJSON_HAS_CXX11_RVALUE_REFS
+    PrettyWriter(PrettyWriter&& rhs) :
+        Base(std::forward<PrettyWriter>(rhs)), indentChar_(rhs.indentChar_), indentCharCount_(rhs.indentCharCount_), formatOptions_(rhs.formatOptions_) {}
+#endif
+
     //! Set custom indentation.
     /*! \param indentChar       Character for indentation. Must be whitespace character (' ', '\\t', '\\n', '\\r').
         \param indentCharCount  Number of indent characters for each indentation level.
@@ -91,12 +101,14 @@ public:
     bool Double(double d)       { PrettyPrefix(kNumberType); return Base::WriteDouble(d); }
 
     bool RawNumber(const Ch* str, SizeType length, bool copy = false) {
+        RAPIDJSON_ASSERT(str != 0);
         (void)copy;
         PrettyPrefix(kNumberType);
         return Base::WriteString(str, length);
     }
 
     bool String(const Ch* str, SizeType length, bool copy = false) {
+        RAPIDJSON_ASSERT(str != 0);
         (void)copy;
         PrettyPrefix(kStringType);
         return Base::WriteString(str, length);
@@ -184,7 +196,11 @@ public:
         \param type Type of the root of json.
         \note When using PrettyWriter::RawValue(), the result json may not be indented correctly.
     */
-    bool RawValue(const Ch* json, size_t length, Type type) { PrettyPrefix(type); return Base::WriteRawValue(json, length); }
+    bool RawValue(const Ch* json, size_t length, Type type) {
+        RAPIDJSON_ASSERT(json != 0);
+        PrettyPrefix(type);
+        return Base::WriteRawValue(json, length);
+    }
 
 protected:
     void PrettyPrefix(Type type) {
@@ -247,6 +263,10 @@ private:
 };
 
 RAPIDJSON_NAMESPACE_END
+
+#if defined(__clang__)
+RAPIDJSON_DIAG_POP
+#endif
 
 #ifdef __GNUC__
 RAPIDJSON_DIAG_POP
