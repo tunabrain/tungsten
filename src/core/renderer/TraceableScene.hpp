@@ -208,9 +208,16 @@ public:
 
     bool occluded(const Ray &ray) const
     {
-        OcclusionRay eRay(EmbreeUtil::convert(ray), ray, _userGeomId);
-        rtcOccluded(_scene, eRay);
-        return eRay.geomID != RTC_INVALID_GEOMETRY_ID;
+        if (_settings.useSceneBvh()) {
+            OcclusionRay eRay(EmbreeUtil::convert(ray), ray, _userGeomId);
+            rtcOccluded(_scene, eRay);
+            return eRay.geomID != RTC_INVALID_GEOMETRY_ID;
+        } else {
+            for (const Primitive *prim : _finites)
+                if (prim->occluded(ray))
+                    return true;
+            return false;
+        }
     }
 
     const Box3f &bounds() const
