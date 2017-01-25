@@ -5,6 +5,7 @@
 #include "PropertyWindow.hpp"
 #include "PreviewWindow.hpp"
 #include "RenderWindow.hpp"
+#include "LoadErrorDialog.hpp"
 
 #include "io/FileUtils.hpp"
 
@@ -108,17 +109,15 @@ void MainWindow::reloadScene()
         openScene(QString::fromStdString(_scene->path().absolute().asString()));
 }
 
+
 void MainWindow::openScene(const QString &path)
 {
     Scene *newScene = nullptr;
     try {
         newScene = Scene::load(Path(path.toUtf8().data()));
-    } catch (const std::runtime_error &e) {
-        QMessageBox::warning(
-            this,
-            "Loading scene failed",
-            QString::fromStdString(tfm::format("Encountered an error while loading scene file:\n\n%s", e.what()))
-        );
+    } catch (const JsonLoadException &e) {
+        LoadErrorDialog *error = new LoadErrorDialog(this, e);
+        error->exec();
     }
 
     if (newScene) {

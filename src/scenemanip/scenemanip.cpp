@@ -1,5 +1,6 @@
 #include "Version.hpp"
 
+#include "io/JsonLoadException.hpp"
 #include "io/FileIterables.hpp"
 #include "io/ZipWriter.hpp"
 #include "io/CliParser.hpp"
@@ -173,8 +174,8 @@ int main(int argc, const char *argv[])
     Scene *scene;
     try {
         scene = Scene::load(Path(parser.operands()[0]));
-    } catch (std::runtime_error &e) {
-        parser.fail("Scene loader encountered an unrecoverable error: \n%s", e.what());
+    } catch (const JsonLoadException &e) {
+        std::cerr << e.what() << std::endl;
     }
 
     if (parser.isPresent(OPT_RESOURCES))

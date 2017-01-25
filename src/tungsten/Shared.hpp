@@ -7,6 +7,7 @@
 
 #include "thread/ThreadUtils.hpp"
 
+#include "io/JsonLoadException.hpp"
 #include "io/DirectoryChange.hpp"
 #include "io/StringUtils.hpp"
 #include "io/JsonObject.hpp"
@@ -198,9 +199,8 @@ public:
             std::unique_lock<std::mutex> lock(_sceneMutex);
             _scene.reset(Scene::load(Path(currentScene)));
             _scene->loadResources();
-        } catch (std::runtime_error &e) {
-            writeLogLine(tfm::format("Scene loader for file '%s' encountered an unrecoverable error: \n%s",
-                    currentScene, e.what()));
+        } catch (const JsonLoadException &e) {
+            std::cerr << e.what() << std::endl;
 
             std::unique_lock<std::mutex> lock(_sceneMutex);
             _scene.reset();

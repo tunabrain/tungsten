@@ -2,6 +2,7 @@
 
 #include "thread/ThreadUtils.hpp"
 
+#include "io/JsonLoadException.hpp"
 #include "io/CliParser.hpp"
 #include "io/ImageIO.hpp"
 #include "io/Scene.hpp"
@@ -133,10 +134,8 @@ int main(int argc, const char *argv[])
      std::unique_ptr<Scene> scene;
      try {
          scene.reset(Scene::load(sceneFile));
-     } catch (std::runtime_error &e) {
-         std::cerr << tfm::format("Scene loader for file '%s' encountered an unrecoverable error: \n%s",
-                 sceneFile, e.what()) << std::endl;
-
+     } catch (const JsonLoadException &e) {
+         std::cerr << e.what() << std::endl;
          return 1;
      }
 

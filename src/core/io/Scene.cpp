@@ -68,7 +68,8 @@
 
 #include "grids/VdbGrid.hpp"
 
-#include "io/JsonObject.hpp"
+#include "JsonDocument.hpp"
+#include "JsonObject.hpp"
 
 #include "Debug.hpp"
 
@@ -673,23 +674,16 @@ TraceableScene *Scene::makeTraceable(uint32 seed)
 
 Scene *Scene::load(const Path &path, std::shared_ptr<TextureCache> cache)
 {
-    std::string json = FileUtils::loadText(path);
-    if (json.empty())
-        throw std::runtime_error(tfm::format("Unable to open file at '%s'", path));
+    Scene *scene = nullptr;
+    JsonDocument document(path, [&](const rapidjson::Document &document) {
+        DirectoryChange context(path.parent());
+        if (!cache)
+            cache = std::make_shared<TextureCache>();
 
-    rapidjson::Document document;
-    document.Parse<0>(json.c_str());
-    if (document.HasParseError())
-        throw std::runtime_error(tfm::format("JSON parse error: %s", document.GetParseError()));
-
-    DirectoryChange context(path.parent());
-
-    if (!cache)
-        cache = std::make_shared<TextureCache>();
-
-    Scene *scene = new Scene(path.parent(), std::move(cache));
-    scene->fromJson(document, *scene);
-    scene->setPath(path);
+        scene = new Scene(path.parent(), std::move(cache));
+        scene->fromJson(document, *scene);
+        scene->setPath(path);
+    });
 
     return scene;
 }

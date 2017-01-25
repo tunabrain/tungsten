@@ -3,6 +3,7 @@
 
 #include "primitives/EmbreeUtil.hpp"
 
+#include "io/JsonLoadException.hpp"
 #include "io/CliParser.hpp"
 #include "io/FileUtils.hpp"
 #include "io/Scene.hpp"
@@ -21,8 +22,8 @@ void convert(CliParser &parser, const Path &src, const Path &dst)
     try {
         scene = Scene::load(src);
         scene->loadResources();
-    } catch (std::runtime_error &e) {
-        parser.fail("Scene loader encountered an unrecoverable error: '%s'", e.what());
+    } catch (const JsonLoadException &e) {
+        std::cerr << e.what() << std::endl;
     }
 
     if (!scene)
