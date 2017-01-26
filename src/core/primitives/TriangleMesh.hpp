@@ -59,7 +59,7 @@ public:
                  std::vector<std::shared_ptr<Bsdf>> bsdf,
                  const std::string &name, bool smoothed, bool backfaceCull);
 
-    virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
+    virtual void fromJson(JsonValue value, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
     virtual void loadResources() override;

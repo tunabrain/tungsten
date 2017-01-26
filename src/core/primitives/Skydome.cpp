@@ -69,16 +69,16 @@ float Skydome::powerToRadianceFactor() const
     return INV_FOUR_PI;
 }
 
-void Skydome::fromJson(const rapidjson::Value &v, const Scene &scene)
+void Skydome::fromJson(JsonValue value, const Scene &scene)
 {
     _scene = &scene;
 
-    Primitive::fromJson(v, scene);
-    JsonUtils::fromJson(v, "temperature", _temperature);
-    JsonUtils::fromJson(v, "gamma_scale", _gammaScale);
-    JsonUtils::fromJson(v, "turbidity", _turbidity);
-    JsonUtils::fromJson(v, "intensity", _intensity);
-    JsonUtils::fromJson(v, "sample", _doSample);
+    Primitive::fromJson(value, scene);
+    value.getField("temperature", _temperature);
+    value.getField("gamma_scale", _gammaScale);
+    value.getField("turbidity", _turbidity);
+    value.getField("intensity", _intensity);
+    value.getField("sample", _doSample);
 }
 rapidjson::Value Skydome::toJson(Allocator &allocator) const
 {

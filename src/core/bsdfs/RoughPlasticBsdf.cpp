@@ -28,14 +28,15 @@ RoughPlasticBsdf::RoughPlasticBsdf()
     _lobes = BsdfLobes(BsdfLobes::GlossyReflectionLobe | BsdfLobes::DiffuseReflectionLobe);
 }
 
-void RoughPlasticBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
+void RoughPlasticBsdf::fromJson(JsonValue value, const Scene &scene)
 {
-    Bsdf::fromJson(v, scene);
-    JsonUtils::fromJson(v, "ior", _ior);
-    JsonUtils::fromJson(v, "distribution", _distributionName);
-    JsonUtils::fromJson(v, "thickness", _thickness);
-    JsonUtils::fromJson(v, "sigma_a", _sigmaA);
-    scene.textureFromJsonMember(v, "roughness", TexelConversion::REQUEST_AVERAGE, _roughness);
+    Bsdf::fromJson(value, scene);
+    value.getField("ior", _ior);
+    value.getField("distribution", _distributionName);
+    value.getField("thickness", _thickness);
+    value.getField("sigma_a", _sigmaA);
+    if (auto roughness = value["roughness"])
+        _roughness = scene.fetchTexture(roughness, TexelConversion::REQUEST_AVERAGE);
 
     // Fail early in case of invalid distribution name
     prepareForRender();

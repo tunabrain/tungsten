@@ -23,19 +23,19 @@ class ModelRef
     const std::vector<TexturedQuad> *_builtModel;
 
 public:
-    ModelRef(const rapidjson::Value &v, ModelResolver &resolver)
+    ModelRef(JsonValue value, ModelResolver &resolver)
     : _xRot(0),
       _yRot(0),
       _zRot(0),
       _uvLock(false),
       _weight(1.0f)
     {
-        JsonUtils::fromJson(v, "model", _modelPath);
-        JsonUtils::fromJson(v, "x", _xRot);
-        JsonUtils::fromJson(v, "y", _yRot);
-        JsonUtils::fromJson(v, "z", _zRot);
-        JsonUtils::fromJson(v, "uvlock", _uvLock);
-        JsonUtils::fromJson(v, "weight", _weight);
+        value.getField("model", _modelPath);
+        value.getField("x", _xRot);
+        value.getField("y", _yRot);
+        value.getField("z", _zRot);
+        value.getField("uvlock", _uvLock);
+        value.getField("weight", _weight);
 
         _builtModel = resolver.resolveModel("block/" + _modelPath);
     }

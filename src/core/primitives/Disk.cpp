@@ -16,7 +16,8 @@ struct DiskIntersection
 };
 
 Disk::Disk()
-: _coneAngle(90.0f)
+: _coneAngle(90.0f),
+  _bsdf(_defaultBsdf)
 {
 }
 
@@ -42,12 +43,13 @@ float Disk::powerToRadianceFactor() const
     return INV_PI*_invArea;
 }
 
-void Disk::fromJson(const rapidjson::Value &v, const Scene &scene)
+void Disk::fromJson(JsonValue value, const Scene &scene)
 {
-    Primitive::fromJson(v, scene);
-    JsonUtils::fromJson(v, "cone_angle", _coneAngle);
+    Primitive::fromJson(value, scene);
+    value.getField("cone_angle", _coneAngle);
 
-    _bsdf = scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf"));
+    if (auto bsdf = value["bsdf"])
+        _bsdf = scene.fetchBsdf(bsdf);
 }
 
 rapidjson::Value Disk::toJson(Allocator &allocator) const

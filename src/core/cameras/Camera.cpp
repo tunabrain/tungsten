@@ -42,30 +42,26 @@ void Camera::precompute()
     _invTransform = _transform.pseudoInvert();
 }
 
-void Camera::fromJson(const rapidjson::Value &v, const Scene &scene)
+void Camera::fromJson(JsonValue value, const Scene &scene)
 {
-    auto medium    = v.FindMember("medium");
-    auto filter    = v.FindMember("reconstruction_filter");
-    auto transform = v.FindMember("transform");
+    value.getField("tonemap", _tonemapString);
+    value.getField("resolution", _res);
 
-    JsonUtils::fromJson(v, "tonemap", _tonemapString);
-    JsonUtils::fromJson(v, "resolution", _res);
-    if (medium != v.MemberEnd())
-        _medium = scene.fetchMedium(medium->value);
-    if (filter != v.MemberEnd())
-        if (filter->value.IsString())
-            _filter = ReconstructionFilter(filter->value.GetString());
+    if (auto medium = value["medium"])
+        _medium = scene.fetchMedium(medium);
 
-    if (transform != v.MemberEnd()) {
-        JsonUtils::fromJson(transform->value, _transform);
+    std::string filter;
+    if (value.getField("reconstruction_filter", filter))
+        _filter = ReconstructionFilter(filter);
+
+    if (auto transform = value["transform"]) {
+        transform.get(_transform);
         _pos    = _transform.extractTranslationVec();
         _lookAt = _transform.fwd() + _pos;
         _up     = _transform.up();
 
-        if (transform->value.IsObject()) {
-            JsonUtils::fromJson(transform->value, "up", _up);
-            JsonUtils::fromJson(transform->value, "look_at", _lookAt);
-        }
+        transform.getField("up", _up);
+        transform.getField("look_at", _lookAt);
 
         _transform.setRight(-_transform.right());
     }

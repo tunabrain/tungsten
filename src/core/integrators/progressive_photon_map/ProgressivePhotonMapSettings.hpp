@@ -16,9 +16,9 @@ struct ProgressivePhotonMapSettings
     {
     }
 
-    void fromJson(const rapidjson::Value &v)
+    void fromJson(JsonValue value)
     {
-        JsonUtils::fromJson(v, "alpha", alpha);
+        value.getField("alpha", alpha);
     }
 
     rapidjson::Value toJson(const PhotonMapSettings &settings, rapidjson::Document::AllocatorType &allocator) const

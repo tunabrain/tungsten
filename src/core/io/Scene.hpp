@@ -53,23 +53,20 @@ class Scene : public JsonSerializable
 
     RendererSettings _rendererSettings;
 
-    std::shared_ptr<PhaseFunction> instantiatePhase     (std::string type, const rapidjson::Value &value) const;
-    std::shared_ptr<Medium>        instantiateMedium    (std::string type, const rapidjson::Value &value) const;
-    std::shared_ptr<Grid>          instantiateGrid      (std::string type, const rapidjson::Value &value) const;
-    std::shared_ptr<Bsdf>          instantiateBsdf      (std::string type, const rapidjson::Value &value) const;
-    std::shared_ptr<Primitive>     instantiatePrimitive (std::string type, const rapidjson::Value &value) const;
-    std::shared_ptr<Camera>        instantiateCamera    (std::string type, const rapidjson::Value &value) const;
-    std::shared_ptr<Integrator>    instantiateIntegrator(std::string type, const rapidjson::Value &value) const;
-    std::shared_ptr<Texture>       instantiateTexture   (std::string type, const rapidjson::Value &value, TexelConversion conversion) const;
-
-    template<typename Instantiator, typename Element>
-    void loadObjectList(const rapidjson::Value &container, Instantiator instantiator, std::vector<std::shared_ptr<Element>> &result);
+    std::shared_ptr<PhaseFunction> instantiatePhase     (JsonValue value) const;
+    std::shared_ptr<Medium>        instantiateMedium    (JsonValue value) const;
+    std::shared_ptr<Grid>          instantiateGrid      (JsonValue value) const;
+    std::shared_ptr<Bsdf>          instantiateBsdf      (JsonValue value) const;
+    std::shared_ptr<Primitive>     instantiatePrimitive (JsonValue value) const;
+    std::shared_ptr<Camera>        instantiateCamera    (JsonValue value) const;
+    std::shared_ptr<Integrator>    instantiateIntegrator(JsonValue value) const;
+    std::shared_ptr<Texture>       instantiateTexture   (JsonValue value, TexelConversion conversion) const;
 
     template<typename T>
     std::shared_ptr<T> findObject(const std::vector<std::shared_ptr<T>> &list, std::string name) const;
 
     template<typename T, typename Instantiator>
-    std::shared_ptr<T> fetchObject(const std::vector<std::shared_ptr<T>> &list, const rapidjson::Value &v, Instantiator instantiator) const;
+    std::shared_ptr<T> fetchObject(const std::vector<std::shared_ptr<T>> &list, JsonValue value, Instantiator instantiator) const;
 
     template<typename T>
     bool addUnique(const std::shared_ptr<T> &o, std::vector<std::shared_ptr<T>> &list);
@@ -85,22 +82,19 @@ public:
           std::shared_ptr<TextureCache> cache,
           std::shared_ptr<Camera> camera);
 
-    virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
+    virtual void fromJson(JsonValue value, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
     virtual void loadResources() override;
     virtual void saveResources() override;
 
-    std::shared_ptr<PhaseFunction> fetchPhase(const rapidjson::Value &v) const;
-    std::shared_ptr<Medium> fetchMedium(const rapidjson::Value &v) const;
-    std::shared_ptr<Grid> fetchGrid(const rapidjson::Value &v) const;
-    std::shared_ptr<Bsdf> fetchBsdf(const rapidjson::Value &v) const;
-    std::shared_ptr<Texture> fetchTexture(const rapidjson::Value &v, TexelConversion conversion) const;
-    bool textureFromJsonMember(const rapidjson::Value &v, const char *field, TexelConversion conversion,
-            std::shared_ptr<Texture> &dst) const;
+    std::shared_ptr<PhaseFunction> fetchPhase(JsonValue value) const;
+    std::shared_ptr<Medium> fetchMedium(JsonValue value) const;
+    std::shared_ptr<Grid> fetchGrid(JsonValue value) const;
+    std::shared_ptr<Bsdf> fetchBsdf(JsonValue value) const;
+    std::shared_ptr<Texture> fetchTexture(JsonValue value, TexelConversion conversion) const;
     PathPtr fetchResource(const std::string &path) const;
-    PathPtr fetchResource(const rapidjson::Value &v) const;
-    PathPtr fetchResource(const rapidjson::Value &v, const char *field) const;
+    PathPtr fetchResource(JsonValue v) const;
 
     const Primitive *findPrimitive(const std::string &name) const;
 

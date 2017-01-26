@@ -20,12 +20,12 @@ struct TraceSettings
     {
     }
 
-    void fromJson(const rapidjson::Value &v)
+    void fromJson(JsonValue value)
     {
-        JsonUtils::fromJson(v, "min_bounces", minBounces);
-        JsonUtils::fromJson(v, "max_bounces", maxBounces);
-        JsonUtils::fromJson(v, "enable_consistency_checks", enableConsistencyChecks);
-        JsonUtils::fromJson(v, "enable_two_sided_shading", enableTwoSidedShading);
+        value.getField("min_bounces", minBounces);
+        value.getField("max_bounces", maxBounces);
+        value.getField("enable_consistency_checks", enableConsistencyChecks);
+        value.getField("enable_two_sided_shading", enableTwoSidedShading);
     }
 
     rapidjson::Value toJson(rapidjson::Document::AllocatorType &allocator) const

@@ -17,9 +17,9 @@ ConstantTexture::ConstantTexture(const Vec3f &value)
 {
 }
 
-void ConstantTexture::fromJson(const rapidjson::Value &v, const Scene &/*scene*/)
+void ConstantTexture::fromJson(JsonValue value, const Scene &/*scene*/)
 {
-    scalarOrVecFromJson(v, "value", _value);
+    value.getField("value", _value);
 }
 
 rapidjson::Value ConstantTexture::toJson(Allocator &allocator) const

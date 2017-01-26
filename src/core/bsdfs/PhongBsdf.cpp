@@ -20,11 +20,11 @@ PhongBsdf::PhongBsdf(float exponent, float diffuseRatio)
     _lobes = BsdfLobes(BsdfLobes::GlossyReflectionLobe);
 }
 
-void PhongBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
+void PhongBsdf::fromJson(JsonValue value, const Scene &scene)
 {
-    Bsdf::fromJson(v, scene);
-    JsonUtils::fromJson(v, "exponent", _exponent);
-    JsonUtils::fromJson(v, "diffuse_ratio", _diffuseRatio);
+    Bsdf::fromJson(value, scene);
+    value.getField("exponent", _exponent);
+    value.getField("diffuse_ratio", _diffuseRatio);
 }
 
 rapidjson::Value PhongBsdf::toJson(Allocator &allocator) const

@@ -62,19 +62,19 @@ public:
     {
     }
 
-    virtual void fromJson(const rapidjson::Value &v, const Scene &/*scene*/) override
+    virtual void fromJson(JsonValue value, const Scene &/*scene*/) override
     {
-        if (!JsonUtils::fromJson(v, "type", _typeString)) {
+        if (!value.getField("type", _typeString)) {
             DBG("Warning: Missing output buffer type");
         } else {
             _type = stringToType(_typeString);
             if (_type == OutputUnknown)
                 DBG("Warning: Unknown output buffer type '%s'", _typeString);
         }
-        JsonUtils::fromJson(v, "ldr_output_file", _ldrOutputFile);
-        JsonUtils::fromJson(v, "hdr_output_file", _hdrOutputFile);
-        JsonUtils::fromJson(v, "two_buffer_variance", _twoBufferVariance);
-        JsonUtils::fromJson(v, "sample_variance", _sampleVariance);
+        value.getField("ldr_output_file", _ldrOutputFile);
+        value.getField("hdr_output_file", _hdrOutputFile);
+        value.getField("two_buffer_variance", _twoBufferVariance);
+        value.getField("sample_variance", _sampleVariance);
     }
 
     virtual rapidjson::Value toJson(Allocator &allocator) const override

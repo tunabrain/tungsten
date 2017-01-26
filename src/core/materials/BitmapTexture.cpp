@@ -208,13 +208,14 @@ void BitmapTexture::init(void *texels, int w, int h, TexelType texelType)
     }
 }
 
-void BitmapTexture::fromJson(const rapidjson::Value &v, const Scene &scene)
+void BitmapTexture::fromJson(JsonValue value, const Scene &scene)
 {
-    _path = scene.fetchResource(v, "file");
-    JsonUtils::fromJson(v, "gamma_correct", _gammaCorrect);
-    JsonUtils::fromJson(v, "interpolate", _linear);
-    JsonUtils::fromJson(v, "clamp", _clamp);
-    JsonUtils::fromJson(v, "scale", _scale);
+    if (auto path = value["file"])
+        _path = scene.fetchResource(path);
+    value.getField("gamma_correct", _gammaCorrect);
+    value.getField("interpolate", _linear);
+    value.getField("clamp", _clamp);
+    value.getField("scale", _scale);
 }
 
 rapidjson::Value BitmapTexture::toJson(Allocator &allocator) const

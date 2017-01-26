@@ -61,10 +61,10 @@ float InfiniteSphere::powerToRadianceFactor() const
     return INV_FOUR_PI;
 }
 
-void InfiniteSphere::fromJson(const rapidjson::Value &v, const Scene &scene)
+void InfiniteSphere::fromJson(JsonValue value, const Scene &scene)
 {
-    Primitive::fromJson(v, scene);
-    JsonUtils::fromJson(v, "sample", _doSample);
+    Primitive::fromJson(value, scene);
+    value.getField("sample", _doSample);
 }
 rapidjson::Value InfiniteSphere::toJson(Allocator &allocator) const
 {

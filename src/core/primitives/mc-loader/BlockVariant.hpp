@@ -17,15 +17,15 @@ class BlockVariant
     std::vector<ModelRef> _models;
 
 public:
-    BlockVariant(const std::string &variant, const rapidjson::Value &v, ModelResolver &resolver)
+    BlockVariant(const std::string &variant, JsonValue value, ModelResolver &resolver)
     : _variant(variant)
     {
-        if (v.IsArray()) {
-            for (rapidjson::SizeType i = 0; i < v.Size(); ++i)
-                if (v[i].IsObject())
-                    _models.emplace_back(v[i], resolver);
-        } else if (v.IsObject())
-            _models.emplace_back(v, resolver);
+        if (value.isArray()) {
+            for (unsigned i = 0; i < value.size(); ++i)
+                if (value[i].isObject())
+                    _models.emplace_back(value[i], resolver);
+        } else if (value.isObject())
+            _models.emplace_back(value, resolver);
 
         float weightSum = 0.0f;
         for (const ModelRef &m : _models)

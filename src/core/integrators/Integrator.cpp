@@ -6,6 +6,7 @@
 
 #include "math/BitManip.hpp"
 
+#include "io/JsonDocument.hpp"
 #include "io/FileUtils.hpp"
 #include "io/ImageIO.hpp"
 #include "io/Scene.hpp"
@@ -129,26 +130,27 @@ void Integrator::saveRenderResumeData(Scene &scene)
 
 bool Integrator::resumeRender(Scene &scene)
 {
-    InputStreamHandle in = FileUtils::openInputStream(_scene->rendererSettings().resumeRenderFile());
+    const Path &file = _scene->rendererSettings().resumeRenderFile();
+    InputStreamHandle in = FileUtils::openInputStream(file);
     if (!in)
         return false;
 
-    std::string json = FileUtils::streamRead<std::string>(in);
-    rapidjson::Document document;
-    document.Parse<0>(json.c_str());
-    if (document.HasParseError() || !document.IsObject())
-        return false;
-
     bool adaptiveSampling, stratifiedSampler;
-    if (!JsonUtils::fromJson(document, "adaptive_sampling", adaptiveSampling)
-            || adaptiveSampling != _scene->rendererSettings().useAdaptiveSampling())
-        return false;
-    if (!JsonUtils::fromJson(document, "stratified_sampler", stratifiedSampler)
-            || stratifiedSampler != _scene->rendererSettings().useSobol())
-        return false;
-
     uint32 jsonSpp;
-    if (!JsonUtils::fromJson(document, "current_spp", jsonSpp))
+    bool jsonValid = true;
+
+    std::string json = FileUtils::streamRead<std::string>(in);
+    JsonDocument document(file, json, [&](JsonValue value) {
+        if (!value.getField("adaptive_sampling", adaptiveSampling)
+                || adaptiveSampling != _scene->rendererSettings().useAdaptiveSampling())
+            jsonValid = false;
+        if (!value.getField("stratified_sampler", stratifiedSampler)
+                || stratifiedSampler != _scene->rendererSettings().useSobol())
+            jsonValid = false;
+        if (!value.getField("current_spp", jsonSpp))
+            jsonValid = false;
+    });
+    if (!jsonValid)
         return false;
 
     uint64 jsonHash;

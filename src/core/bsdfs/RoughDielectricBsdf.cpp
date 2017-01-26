@@ -25,14 +25,15 @@ RoughDielectricBsdf::RoughDielectricBsdf()
     _lobes = BsdfLobes(BsdfLobes::GlossyReflectionLobe | BsdfLobes::GlossyTransmissionLobe);
 }
 
-void RoughDielectricBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
+void RoughDielectricBsdf::fromJson(JsonValue value, const Scene &scene)
 {
-    Bsdf::fromJson(v, scene);
-    JsonUtils::fromJson(v, "ior", _ior);
-    JsonUtils::fromJson(v, "distribution", _distributionName);
-    JsonUtils::fromJson(v, "enable_refraction", _enableT);
+    Bsdf::fromJson(value, scene);
+    value.getField("ior", _ior);
+    value.getField("distribution", _distributionName);
+    value.getField("enable_refraction", _enableT);
 
-    scene.textureFromJsonMember(v, "roughness", TexelConversion::REQUEST_AVERAGE, _roughness);
+    if (auto roughness = value["roughness"])
+        _roughness = scene.fetchTexture(roughness, TexelConversion::REQUEST_AVERAGE);
 
     if (_enableT)
         _lobes = BsdfLobes(BsdfLobes::GlossyReflectionLobe | BsdfLobes::GlossyTransmissionLobe);

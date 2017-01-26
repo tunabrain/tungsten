@@ -18,11 +18,11 @@ struct PathTracerSettings : public TraceSettings
     {
     }
 
-    void fromJson(const rapidjson::Value &v)
+    void fromJson(JsonValue value)
     {
-        TraceSettings::fromJson(v);
-        JsonUtils::fromJson(v, "enable_light_sampling", enableLightSampling);
-        JsonUtils::fromJson(v, "enable_volume_light_sampling", enableVolumeLightSampling);
+        TraceSettings::fromJson(value);
+        value.getField("enable_light_sampling", enableLightSampling);
+        value.getField("enable_volume_light_sampling", enableVolumeLightSampling);
     }
 
     rapidjson::Value toJson(rapidjson::Document::AllocatorType &allocator) const

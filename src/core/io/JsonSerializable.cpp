@@ -9,9 +9,9 @@ JsonSerializable::JsonSerializable(const std::string &name)
 {
 }
 
-void JsonSerializable::fromJson(const rapidjson::Value &v, const Scene &/*scene*/)
+void JsonSerializable::fromJson(JsonValue value, const Scene &/*scene*/)
 {
-    JsonUtils::fromJson(v, "name", _name);
+    value.getField("name", _name);
 }
 
 rapidjson::Value JsonSerializable::toJson(Allocator &allocator) const

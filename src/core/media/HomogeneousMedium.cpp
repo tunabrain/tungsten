@@ -16,12 +16,12 @@ HomogeneousMedium::HomogeneousMedium()
 {
 }
 
-void HomogeneousMedium::fromJson(const rapidjson::Value &v, const Scene &scene)
+void HomogeneousMedium::fromJson(JsonValue value, const Scene &scene)
 {
-    Medium::fromJson(v, scene);
-    JsonUtils::fromJson(v, "sigma_a", _materialSigmaA);
-    JsonUtils::fromJson(v, "sigma_s", _materialSigmaS);
-    JsonUtils::fromJson(v, "density", _density);
+    Medium::fromJson(value, scene);
+    value.getField("sigma_a", _materialSigmaA);
+    value.getField("sigma_s", _materialSigmaS);
+    value.getField("density", _density);
 }
 
 rapidjson::Value HomogeneousMedium::toJson(Allocator &allocator) const

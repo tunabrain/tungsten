@@ -45,18 +45,19 @@ MixedBsdf::MixedBsdf(std::shared_ptr<Bsdf> bsdf0, std::shared_ptr<Bsdf> bsdf1, f
     _lobes = BsdfLobes(_bsdf0->lobes(), _bsdf1->lobes());
 }
 
-void MixedBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
+void MixedBsdf::fromJson(JsonValue value, const Scene &scene)
 {
-    Bsdf::fromJson(v, scene);
+    Bsdf::fromJson(value, scene);
 
-    _bsdf0 = scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf0"));
-    _bsdf1 = scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf1"));
+    _bsdf0 = scene.fetchBsdf(value.getRequiredMember("bsdf0"));
+    _bsdf1 = scene.fetchBsdf(value.getRequiredMember("bsdf1"));
     if (_bsdf0.get() == this || _bsdf1.get() == this) {
         DBG("Warning: Recursive mixed BSDF not supported");
         _bsdf0 = scene.errorBsdf();
         _bsdf1 = scene.errorBsdf();
     }
-    scene.textureFromJsonMember(v, "ratio", TexelConversion::REQUEST_AVERAGE, _ratio);
+    if (auto ratio = value["ratio"])
+        _ratio = scene.fetchTexture(ratio, TexelConversion::REQUEST_AVERAGE);
 }
 
 rapidjson::Value MixedBsdf::toJson(Allocator &allocator) const

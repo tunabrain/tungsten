@@ -113,9 +113,11 @@ Scene::Scene(const Path &srcDir,
 {
 }
 
-std::shared_ptr<PhaseFunction> Scene::instantiatePhase(std::string type, const rapidjson::Value &value) const
+std::shared_ptr<PhaseFunction> Scene::instantiatePhase(JsonValue value) const
 {
     std::shared_ptr<PhaseFunction> result;
+
+    std::string type = value.castField<std::string>("type");
     if (type == "isotropic")
         result = std::make_shared<IsotropicPhaseFunction>();
     else if (type == "henyey_greenstein")
@@ -130,9 +132,11 @@ std::shared_ptr<PhaseFunction> Scene::instantiatePhase(std::string type, const r
     return result;
 }
 
-std::shared_ptr<Medium> Scene::instantiateMedium(std::string type, const rapidjson::Value &value) const
+std::shared_ptr<Medium> Scene::instantiateMedium(JsonValue value) const
 {
     std::shared_ptr<Medium> result;
+
+    std::string type = value.castField<std::string>("type");
     if (type == "homogeneous")
         result = std::make_shared<HomogeneousMedium>();
     else if (type == "atmosphere")
@@ -149,9 +153,11 @@ std::shared_ptr<Medium> Scene::instantiateMedium(std::string type, const rapidjs
     return result;
 }
 
-std::shared_ptr<Grid> Scene::instantiateGrid(std::string type, const rapidjson::Value &value) const
+std::shared_ptr<Grid> Scene::instantiateGrid(JsonValue value) const
 {
     std::shared_ptr<Grid> result;
+
+    std::string type = value.castField<std::string>("type");
 #if OPENVDB_AVAILABLE
     if (type == "vdb")
         result = std::make_shared<VdbGrid>();
@@ -165,9 +171,11 @@ std::shared_ptr<Grid> Scene::instantiateGrid(std::string type, const rapidjson::
     return result;
 }
 
-std::shared_ptr<Bsdf> Scene::instantiateBsdf(std::string type, const rapidjson::Value &value) const
+std::shared_ptr<Bsdf> Scene::instantiateBsdf(JsonValue value) const
 {
     std::shared_ptr<Bsdf> result;
+
+    std::string type = value.castField<std::string>("type");
     if (type == "lambert")
         result = std::make_shared<LambertBsdf>();
     else if (type == "phong")
@@ -216,9 +224,11 @@ std::shared_ptr<Bsdf> Scene::instantiateBsdf(std::string type, const rapidjson::
     return result;
 }
 
-std::shared_ptr<Primitive> Scene::instantiatePrimitive(std::string type, const rapidjson::Value &value) const
+std::shared_ptr<Primitive> Scene::instantiatePrimitive(JsonValue value) const
 {
     std::shared_ptr<Primitive> result;
+
+    std::string type = value.castField<std::string>("type");
     if (type == "mesh")
         result = std::make_shared<TriangleMesh>();
     else if (type == "sphere")
@@ -250,9 +260,11 @@ std::shared_ptr<Primitive> Scene::instantiatePrimitive(std::string type, const r
     return result;
 }
 
-std::shared_ptr<Camera> Scene::instantiateCamera(std::string type, const rapidjson::Value &value) const
+std::shared_ptr<Camera> Scene::instantiateCamera(JsonValue value) const
 {
     std::shared_ptr<Camera> result;
+
+    std::string type = value.castField<std::string>("type");
     if (type == "pinhole")
         result = std::make_shared<PinholeCamera>();
     else if (type == "thinlens")
@@ -270,9 +282,11 @@ std::shared_ptr<Camera> Scene::instantiateCamera(std::string type, const rapidjs
     return result;
 }
 
-std::shared_ptr<Integrator> Scene::instantiateIntegrator(std::string type, const rapidjson::Value &value) const
+std::shared_ptr<Integrator> Scene::instantiateIntegrator(JsonValue value) const
 {
     std::shared_ptr<Integrator> result;
+
+    std::string type = value.castField<std::string>("type");
     if (type == "path_tracer")
         result = std::make_shared<PathTraceIntegrator>();
     else if (type == "light_tracer")
@@ -294,9 +308,11 @@ std::shared_ptr<Integrator> Scene::instantiateIntegrator(std::string type, const
     return result;
 }
 
-std::shared_ptr<Texture> Scene::instantiateTexture(std::string type, const rapidjson::Value &value, TexelConversion conversion) const
+std::shared_ptr<Texture> Scene::instantiateTexture(JsonValue value, TexelConversion conversion) const
 {
     std::shared_ptr<Texture> result;
+
+    std::string type = value.castField<std::string>("type");
     if (type == "bitmap")
         return _textureCache->fetchTexture(value, conversion, this);
     else if (type == "constant")
@@ -318,20 +334,6 @@ std::shared_ptr<Texture> Scene::instantiateTexture(std::string type, const rapid
     return result;
 }
 
-template<typename Instantiator, typename Element>
-void Scene::loadObjectList(const rapidjson::Value &container, Instantiator instantiator, std::vector<std::shared_ptr<Element>> &result)
-{
-    for (unsigned i = 0; i < container.Size(); ++i) {
-        if (container[i].IsObject()) {
-            auto element = instantiator(JsonUtils::as<std::string>(container[i], "type"), container[i]);
-            if (element)
-                result.push_back(std::move(element));
-        } else {
-            DBG("Don't know what to do with non-object in object list");
-        }
-    }
-}
-
 template<typename T>
 std::shared_ptr<T> Scene::findObject(const std::vector<std::shared_ptr<T>> &list, std::string name) const
 {
@@ -343,76 +345,59 @@ std::shared_ptr<T> Scene::findObject(const std::vector<std::shared_ptr<T>> &list
 }
 
 template<typename T, typename Instantiator>
-std::shared_ptr<T> Scene::fetchObject(const std::vector<std::shared_ptr<T>> &list, const rapidjson::Value &v, Instantiator instantiator) const
+std::shared_ptr<T> Scene::fetchObject(const std::vector<std::shared_ptr<T>> &list, JsonValue value, Instantiator instantiator) const
 {
-    if (v.IsString()) {
-        return findObject(list, v.GetString());
-    } else if (v.IsObject()) {
-        return instantiator(JsonUtils::as<std::string>(v, "type"), v);
+    if (value.isString()) {
+        return findObject(list, value.cast<std::string>());
+    } else if (value.isObject()) {
+        return instantiator(value);
     } else {
         FAIL("Unkown value type");
         return nullptr;
     }
 }
 
-std::shared_ptr<PhaseFunction> Scene::fetchPhase(const rapidjson::Value &v) const
+std::shared_ptr<PhaseFunction> Scene::fetchPhase(JsonValue value) const
 {
-    return instantiatePhase(JsonUtils::as<std::string>(v, "type"), v);
+    return instantiatePhase(value);
 }
 
-std::shared_ptr<Medium> Scene::fetchMedium(const rapidjson::Value &v) const
+std::shared_ptr<Medium> Scene::fetchMedium(JsonValue value) const
 {
-    return fetchObject(_media, v, std::bind(&Scene::instantiateMedium, this,
-            std::placeholders::_1, std::placeholders::_2));
+    return fetchObject(_media, value, std::bind(&Scene::instantiateMedium, this, std::placeholders::_1));
 }
 
-std::shared_ptr<Grid> Scene::fetchGrid(const rapidjson::Value &v) const
+std::shared_ptr<Grid> Scene::fetchGrid(JsonValue value) const
 {
-    return instantiateGrid(JsonUtils::as<std::string>(v, "type"), v);
+    return instantiateGrid(value);
 }
 
-std::shared_ptr<Bsdf> Scene::fetchBsdf(const rapidjson::Value &v) const
+std::shared_ptr<Bsdf> Scene::fetchBsdf(JsonValue value) const
 {
     using namespace std::placeholders;
-    auto result = fetchObject(_bsdfs, v, std::bind(&Scene::instantiateBsdf, this,
-            std::placeholders::_1, std::placeholders::_2));
+    auto result = fetchObject(_bsdfs, value, std::bind(&Scene::instantiateBsdf, this, std::placeholders::_1));
     if (!result)
         return _errorBsdf;
     return std::move(result);
 }
 
-std::shared_ptr<Texture> Scene::fetchTexture(const rapidjson::Value &v, TexelConversion conversion) const
+std::shared_ptr<Texture> Scene::fetchTexture(JsonValue value, TexelConversion conversion) const
 {
     // Note: TexelConversions are only honored by BitmapTexture.
     // This is inconsistent, but conversions do not really make sense for other textures,
     // unless the user expects e.g. a ConstantTexture with Vec3 argument to select the green
     // channel when used in a TransparencyBsdf.
-    if (v.IsString())
-        return _textureCache->fetchTexture(fetchResource(v), conversion);
-    else if (v.IsNumber())
-        return std::make_shared<ConstantTexture>(JsonUtils::as<float>(v));
-    else if (v.IsArray())
-        return std::make_shared<ConstantTexture>(JsonUtils::as<Vec3f>(v));
-    else if (v.IsObject())
-        return instantiateTexture(JsonUtils::as<std::string>(v, "type"), v, conversion);
+    if (value.isString())
+        return _textureCache->fetchTexture(fetchResource(value), conversion);
+    else if (value.isNumber())
+        return std::make_shared<ConstantTexture>(value.cast<float>());
+    else if (value.isArray())
+        return std::make_shared<ConstantTexture>(value.cast<Vec3f>());
+    else if (value.isObject())
+        return instantiateTexture(value, conversion);
     else
         DBG("Cannot instantiate texture from unknown value type");
     return nullptr;
-}
-
-bool Scene::textureFromJsonMember(const rapidjson::Value &v, const char *field, TexelConversion conversion,
-        std::shared_ptr<Texture> &dst) const
-{
-    auto member = v.FindMember(field);
-    if (member == v.MemberEnd())
-        return false;
-
-    std::shared_ptr<Texture> tex = fetchTexture(member->value, conversion);
-    if (!tex)
-        return false;
-
-    dst = std::move(tex);
-    return true;
 }
 
 PathPtr Scene::fetchResource(const std::string &path) const
@@ -432,21 +417,9 @@ PathPtr Scene::fetchResource(const std::string &path) const
     }
 }
 
-PathPtr Scene::fetchResource(const rapidjson::Value &v) const
+PathPtr Scene::fetchResource(JsonValue value) const
 {
-    std::string value;
-    if (!JsonUtils::fromJson(v, value))
-        return nullptr;
-
-    return fetchResource(value);
-}
-
-PathPtr Scene::fetchResource(const rapidjson::Value &v, const char *field) const
-{
-    auto member = v.FindMember(field);
-    if (member == v.MemberEnd())
-        return nullptr;
-    return fetchResource(member->value);
+    return fetchResource(value.cast<std::string>());
 }
 
 const Primitive *Scene::findPrimitive(const std::string &name) const
@@ -510,43 +483,23 @@ void Scene::merge(Scene scene)
         addPrimitive(m);
 }
 
-void Scene::fromJson(const rapidjson::Value &v, const Scene &scene)
+void Scene::fromJson(JsonValue value, const Scene &scene)
 {
-    JsonSerializable::fromJson(v, scene);
+    JsonSerializable::fromJson(value, scene);
 
-    auto media      = v.FindMember("media");
-    auto bsdfs      = v.FindMember("bsdfs");
-    auto primitives = v.FindMember("primitives");
-    auto camera     = v.FindMember("camera");
-    auto integrator = v.FindMember("integrator");
-    auto renderer   = v.FindMember("renderer");
+    if (auto media = value["media"])
+        for (unsigned i = 0; i < media.size(); ++i)
+            _media.emplace_back(instantiateMedium(media[i]));
+    if (auto bsdfs = value["bsdfs"])
+        for (unsigned i = 0; i < bsdfs.size(); ++i)
+            _bsdfs.emplace_back(instantiateBsdf(bsdfs[i]));
+    if (auto primitives = value["primitives"])
+        for (unsigned i = 0; i < primitives.size(); ++i)
+            _primitives.emplace_back(instantiatePrimitive(primitives[i]));
 
-    if (media != v.MemberEnd() && media->value.IsArray())
-        loadObjectList(media->value, std::bind(&Scene::instantiateMedium, this,
-                std::placeholders::_1, std::placeholders::_2), _media);
-
-    if (bsdfs != v.MemberEnd() && bsdfs->value.IsArray())
-        loadObjectList(bsdfs->value, std::bind(&Scene::instantiateBsdf, this,
-                std::placeholders::_1, std::placeholders::_2), _bsdfs);
-
-    if (primitives != v.MemberEnd() && primitives->value.IsArray())
-        loadObjectList(primitives->value, std::bind(&Scene::instantiatePrimitive, this,
-                std::placeholders::_1, std::placeholders::_2), _primitives);
-
-    if (camera != v.MemberEnd() && camera->value.IsObject()) {
-        auto result = instantiateCamera(JsonUtils::as<std::string>(camera->value, "type"), camera->value);
-        if (result)
-            _camera = std::move(result);
-    }
-
-    if (integrator != v.MemberEnd() && integrator->value.IsObject()) {
-        auto result = instantiateIntegrator(JsonUtils::as<std::string>(integrator->value, "type"), integrator->value);
-        if (result)
-            _integrator = std::move(result);
-    }
-
-    if (renderer != v.MemberEnd() && renderer->value.IsObject())
-        _rendererSettings.fromJson(renderer->value, *this);
+    if (auto camera     = value["camera"    ]) _camera     = instantiateCamera(camera);
+    if (auto integrator = value["integrator"]) _integrator = instantiateIntegrator(integrator);
+    if (auto renderer   = value["renderer"  ]) _rendererSettings.fromJson(renderer, *this);
 }
 
 rapidjson::Value Scene::toJson(Allocator &allocator) const
@@ -675,13 +628,13 @@ TraceableScene *Scene::makeTraceable(uint32 seed)
 Scene *Scene::load(const Path &path, std::shared_ptr<TextureCache> cache)
 {
     Scene *scene = nullptr;
-    JsonDocument document(path, [&](const rapidjson::Document &document) {
+    JsonDocument document(path, [&](JsonValue value) {
         DirectoryChange context(path.parent());
         if (!cache)
             cache = std::make_shared<TextureCache>();
 
         scene = new Scene(path.parent(), std::move(cache));
-        scene->fromJson(document, *scene);
+        scene->fromJson(value, *scene);
         scene->setPath(path);
     });
 

@@ -130,10 +130,10 @@ inline Vec3f CubemapCamera::uvToDirection(int face, Vec2f uv, float &pdf) const
     return _rot*faceToDirection(face, delta/_faceSize);
 }
 
-void CubemapCamera::fromJson(const rapidjson::Value &v, const Scene &scene)
+void CubemapCamera::fromJson(JsonValue value, const Scene &scene)
 {
-    Camera::fromJson(v, scene);
-    JsonUtils::fromJson(v, "mode", _modeString);
+    Camera::fromJson(value, scene);
+    value.getField("mode", _modeString);
     init();
 }
 

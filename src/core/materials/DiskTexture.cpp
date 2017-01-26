@@ -15,9 +15,9 @@ DiskTexture::DiskTexture()
 {
 }
 
-void DiskTexture::fromJson(const rapidjson::Value &v, const Scene &/*scene*/)
+void DiskTexture::fromJson(JsonValue value, const Scene &/*scene*/)
 {
-    scalarOrVecFromJson(v, "value", _value);
+    value.getField("value", _value);
 }
 
 rapidjson::Value DiskTexture::toJson(Allocator &allocator) const

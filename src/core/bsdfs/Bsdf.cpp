@@ -9,17 +9,19 @@
 
 namespace Tungsten {
 
+std::shared_ptr<Texture> Bsdf::_defaultAlbedo = std::make_shared<ConstantTexture>(1.0f);
+
 Bsdf::Bsdf()
-: _albedo(std::make_shared<ConstantTexture>(1.0f))
+: _albedo(_defaultAlbedo)
 {
 }
 
-void Bsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
+void Bsdf::fromJson(JsonValue value, const Scene &scene)
 {
-    JsonSerializable::fromJson(v, scene);
+    JsonSerializable::fromJson(value, scene);
 
-    scene.textureFromJsonMember(v, "albedo", TexelConversion::REQUEST_RGB, _albedo);
-    scene.textureFromJsonMember(v, "bump", TexelConversion::REQUEST_AVERAGE, _bump);
+    if (auto albedo = value["albedo"]) _albedo = scene.fetchTexture(albedo, TexelConversion::REQUEST_RGB);
+    if (auto bump   = value["bump"  ]) _bump   = scene.fetchTexture(bump,   TexelConversion::REQUEST_AVERAGE);
 }
 
 rapidjson::Value Bsdf::toJson(Allocator &allocator) const

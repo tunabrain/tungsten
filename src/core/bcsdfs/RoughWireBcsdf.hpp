@@ -28,7 +28,7 @@ class RoughWireBcsdf : public Bsdf
 public:
     RoughWireBcsdf();
 
-    virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
+    virtual void fromJson(JsonValue value, const Scene &scene) override;
     rapidjson::Value toJson(Allocator &allocator) const override;
 
     virtual Vec3f eval(const SurfaceScatterEvent &event) const override;

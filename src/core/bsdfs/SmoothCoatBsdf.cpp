@@ -17,13 +17,14 @@ SmoothCoatBsdf::SmoothCoatBsdf()
 {
 }
 
-void SmoothCoatBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
+void SmoothCoatBsdf::fromJson(JsonValue value, const Scene &scene)
 {
-    Bsdf::fromJson(v, scene);
-    JsonUtils::fromJson(v, "ior", _ior);
-    JsonUtils::fromJson(v, "thickness", _thickness);
-    JsonUtils::fromJson(v, "sigma_a", _sigmaA);
-    _substrate = scene.fetchBsdf(JsonUtils::fetchMember(v, "substrate"));
+    Bsdf::fromJson(value, scene);
+    value.getField("ior", _ior);
+    value.getField("thickness", _thickness);
+    value.getField("sigma_a", _sigmaA);
+    if (auto substrate = value["substrate"])
+        _substrate = scene.fetchBsdf(substrate);
 }
 
 rapidjson::Value SmoothCoatBsdf::toJson(Allocator &allocator) const

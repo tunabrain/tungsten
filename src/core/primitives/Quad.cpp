@@ -17,6 +17,11 @@ struct QuadIntersection
     bool backSide;
 };
 
+Quad::Quad()
+: _bsdf(_defaultBsdf)
+{
+}
+
 Quad::Quad(const Vec3f &base, const Vec3f &edge0, const Vec3f &edge1,
         const std::string &name, std::shared_ptr<Bsdf> bsdf)
 : Primitive(name),
@@ -47,11 +52,12 @@ float Quad::powerToRadianceFactor() const
     return INV_PI*_invArea;
 }
 
-void Quad::fromJson(const rapidjson::Value &v, const Scene &scene)
+void Quad::fromJson(JsonValue value, const Scene &scene)
 {
-    Primitive::fromJson(v, scene);
+    Primitive::fromJson(value, scene);
 
-    _bsdf = scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf"));
+    if (auto bsdf = value["bsdf"])
+        _bsdf = scene.fetchBsdf(bsdf);
 }
 
 rapidjson::Value Quad::toJson(Allocator &allocator) const

@@ -38,13 +38,13 @@ struct PhotonMapSettings : public TraceSettings
     {
     }
 
-    void fromJson(const rapidjson::Value &v)
+    void fromJson(JsonValue value)
     {
-        TraceSettings::fromJson(v);
-        JsonUtils::fromJson(v, "photon_count", photonCount);
-        JsonUtils::fromJson(v, "volume_photon_count", volumePhotonCount);
-        JsonUtils::fromJson(v, "gather_photon_count", gatherCount);
-        JsonUtils::fromJson(v, "volume_photon_type", volumePhotonTypeString);
+        TraceSettings::fromJson(value);
+        value.getField("photon_count", photonCount);
+        value.getField("volume_photon_count", volumePhotonCount);
+        value.getField("gather_photon_count", gatherCount);
+        value.getField("volume_photon_type", volumePhotonTypeString);
         if (volumePhotonTypeString == "points") {
             volumePhotonType = VOLUME_POINTS;
         } else if (volumePhotonTypeString == "beams") {
@@ -55,10 +55,10 @@ struct PhotonMapSettings : public TraceSettings
             DBG("Unknown volume photon type '%s'", volumePhotonTypeString);
             volumePhotonType = VOLUME_POINTS;
         }
-        bool gatherRadiusSet = JsonUtils::fromJson(v, "gather_radius", gatherRadius);
-        if (!JsonUtils::fromJson(v, "volume_gather_radius", volumeGatherRadius) && gatherRadiusSet)
+        bool gatherRadiusSet = value.getField("gather_radius", gatherRadius);
+        if (!value.getField("volume_gather_radius", volumeGatherRadius) && gatherRadiusSet)
             volumeGatherRadius = gatherRadius;
-        JsonUtils::fromJson(v, "fixed_volume_radius", fixedVolumeRadius);
+        value.getField("fixed_volume_radius", fixedVolumeRadius);
     }
 
     rapidjson::Value toJson(rapidjson::Document::AllocatorType &allocator) const

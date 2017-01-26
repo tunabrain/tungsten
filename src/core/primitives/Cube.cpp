@@ -16,7 +16,8 @@ struct CubeIntersection
 
 Cube::Cube()
 : _pos(0.0f),
-  _scale(0.5f)
+  _scale(0.5f),
+  _bsdf(_defaultBsdf)
 {
 }
 
@@ -58,11 +59,12 @@ float Cube::powerToRadianceFactor() const
     return INV_PI*_invArea;
 }
 
-void Cube::fromJson(const rapidjson::Value &v, const Scene &scene)
+void Cube::fromJson(JsonValue value, const Scene &scene)
 {
-    Primitive::fromJson(v, scene);
+    Primitive::fromJson(value, scene);
 
-    _bsdf = scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf"));
+    if (auto bsdf = value["bsdf"])
+        _bsdf = scene.fetchBsdf(bsdf);
 }
 
 rapidjson::Value Cube::toJson(Allocator &allocator) const

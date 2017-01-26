@@ -30,11 +30,11 @@ DielectricBsdf::DielectricBsdf(float ior)
     _lobes = BsdfLobes(BsdfLobes::SpecularReflectionLobe | BsdfLobes::SpecularTransmissionLobe);
 }
 
-void DielectricBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
+void DielectricBsdf::fromJson(JsonValue value, const Scene &scene)
 {
-    Bsdf::fromJson(v, scene);
-    JsonUtils::fromJson(v, "ior", _ior);
-    JsonUtils::fromJson(v, "enable_refraction", _enableT);
+    Bsdf::fromJson(value, scene);
+    value.getField("ior", _ior);
+    value.getField("enable_refraction", _enableT);
 }
 
 rapidjson::Value DielectricBsdf::toJson(Allocator &allocator) const

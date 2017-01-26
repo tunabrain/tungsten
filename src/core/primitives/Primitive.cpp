@@ -1,11 +1,14 @@
 #include "Primitive.hpp"
 
+#include "bsdfs/LambertBsdf.hpp"
 #include "bsdfs/Bsdf.hpp"
 
 #include "io/JsonObject.hpp"
 #include "io/Scene.hpp"
 
 namespace Tungsten {
+
+std::shared_ptr<Bsdf> Primitive::_defaultBsdf = std::make_shared<LambertBsdf>();
 
 Primitive::Primitive()
 {
@@ -16,21 +19,16 @@ Primitive::Primitive(const std::string &name)
 {
 }
 
-void Primitive::fromJson(const rapidjson::Value &v, const Scene &scene)
+void Primitive::fromJson(JsonValue value, const Scene &scene)
 {
-    JsonSerializable::fromJson(v, scene);
-    JsonUtils::fromJson(v, "transform", _transform);
+    JsonSerializable::fromJson(value, scene);
+    value.getField("transform", _transform);
 
-    scene.textureFromJsonMember(v, "emission", TexelConversion::REQUEST_RGB, _emission);
-    scene.textureFromJsonMember(v, "power", TexelConversion::REQUEST_RGB, _power);
+    if (auto emission = value["emission"]) _emission = scene.fetchTexture(emission, TexelConversion::REQUEST_RGB);
+    if (auto power    = value["power"   ]) _power    = scene.fetchTexture(power,    TexelConversion::REQUEST_RGB);
 
-    auto intMedium = v.FindMember("int_medium");
-    auto extMedium = v.FindMember("ext_medium");
-
-    if (intMedium != v.MemberEnd())
-        _intMedium = scene.fetchMedium(intMedium->value);
-    if (extMedium != v.MemberEnd())
-        _extMedium = scene.fetchMedium(extMedium->value);
+    if (auto intMedium  = value["int_medium"]) _intMedium = scene.fetchMedium(intMedium);
+    if (auto extMedium  = value["ext_medium"]) _extMedium = scene.fetchMedium(extMedium);
 }
 
 rapidjson::Value Primitive::toJson(Allocator &allocator) const

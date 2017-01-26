@@ -32,6 +32,7 @@ TriangleMesh::TriangleMesh()
 : _smoothed(false),
   _backfaceCulling(false),
   _recomputeNormals(false),
+  _bsdfs(1, _defaultBsdf),
   _scene(nullptr)
 {
 }
@@ -110,23 +111,22 @@ float TriangleMesh::powerToRadianceFactor() const
 }
 
 
-void TriangleMesh::fromJson(const rapidjson::Value &v, const Scene &scene)
+void TriangleMesh::fromJson(JsonValue value, const Scene &scene)
 {
-    Primitive::fromJson(v, scene);
+    Primitive::fromJson(value, scene);
 
-    _path = scene.fetchResource(v, "file");
-    JsonUtils::fromJson(v, "smooth", _smoothed);
-    JsonUtils::fromJson(v, "backface_culling", _backfaceCulling);
-    JsonUtils::fromJson(v, "recompute_normals", _recomputeNormals);
+    if (auto path = value["file"]) _path = scene.fetchResource(path);
+    value.getField("smooth", _smoothed);
+    value.getField("backface_culling", _backfaceCulling);
+    value.getField("recompute_normals", _recomputeNormals);
 
-    auto bsdf = v.FindMember("bsdf");
-    if (bsdf != v.MemberEnd() && bsdf->value.IsArray()) {
-        if (bsdf->value.Size() == 0)
-            FAIL("Empty BSDF array for triangle mesh");
-        for (int i = 0; i < int(bsdf->value.Size()); ++i)
-            _bsdfs.emplace_back(scene.fetchBsdf(bsdf->value[i]));
-    } else {
-        _bsdfs.emplace_back(scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf")));
+    if (auto bsdf = value["bsdf"]) {
+        _bsdfs.clear();
+        if (bsdf.isArray())
+            for (unsigned i = 0; i < bsdf.size(); ++i)
+                _bsdfs.emplace_back(scene.fetchBsdf(bsdf[i]));
+        else
+            _bsdfs.emplace_back(scene.fetchBsdf(bsdf));
     }
 }
 

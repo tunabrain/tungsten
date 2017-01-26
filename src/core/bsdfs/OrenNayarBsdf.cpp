@@ -21,11 +21,12 @@ OrenNayarBsdf::OrenNayarBsdf()
     _lobes = BsdfLobes(BsdfLobes::DiffuseReflectionLobe);
 }
 
-void OrenNayarBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
+void OrenNayarBsdf::fromJson(JsonValue value, const Scene &scene)
 {
-    Bsdf::fromJson(v, scene);
+    Bsdf::fromJson(value, scene);
 
-    scene.textureFromJsonMember(v, "roughness", TexelConversion::REQUEST_AVERAGE, _roughness);
+    if (auto roughness = value["roughness"])
+        _roughness = scene.fetchTexture(roughness, TexelConversion::REQUEST_AVERAGE);
 }
 
 rapidjson::Value OrenNayarBsdf::toJson(Allocator &allocator) const

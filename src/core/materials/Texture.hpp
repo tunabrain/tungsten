@@ -18,7 +18,6 @@ enum TextureMapJacobian {
 class Texture : public JsonSerializable
 {
 protected:
-    static bool scalarOrVecFromJson(const rapidjson::Value &v, const char *field, Vec3f &dst);
     static rapidjson::Value scalarOrVecToJson(const Vec3f &src, Allocator &allocator);
 
 public:

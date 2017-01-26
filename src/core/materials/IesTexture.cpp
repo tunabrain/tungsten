@@ -24,10 +24,11 @@ IesTexture::IesTexture(PathPtr path, int resolution)
 {
 }
 
-void IesTexture::fromJson(const rapidjson::Value &v, const Scene &scene)
+void IesTexture::fromJson(JsonValue value, const Scene &scene)
 {
-    _path = scene.fetchResource(v, "file");
-    JsonUtils::fromJson(v, "resolution", _resolution);
+    if (auto path = value["file"])
+        _path = scene.fetchResource(path);
+    value.getField("resolution", _resolution);
 }
 
 rapidjson::Value IesTexture::toJson(Allocator &allocator) const

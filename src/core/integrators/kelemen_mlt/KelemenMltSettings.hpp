@@ -20,12 +20,12 @@ struct KelemenMltSettings : public PathTracerSettings
     {
     }
 
-    void fromJson(const rapidjson::Value &v)
+    void fromJson(JsonValue value)
     {
-        PathTracerSettings::fromJson(v);
-        JsonUtils::fromJson(v, "initial_sample_pool", initialSamplePool);
-        JsonUtils::fromJson(v, "bidirectional", bidirectional);
-        JsonUtils::fromJson(v, "large_step_probability", largeStepProbability);
+        PathTracerSettings::fromJson(value);
+        value.getField("initial_sample_pool", initialSamplePool);
+        value.getField("bidirectional", bidirectional);
+        value.getField("large_step_probability", largeStepProbability);
     }
 
     rapidjson::Value toJson(rapidjson::Document::AllocatorType &allocator) const

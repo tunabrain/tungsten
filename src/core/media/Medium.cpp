@@ -13,15 +13,14 @@ Medium::Medium()
 {
 }
 
-void Medium::fromJson(const rapidjson::Value &v, const Scene &scene)
+void Medium::fromJson(JsonValue value, const Scene &scene)
 {
-    JsonSerializable::fromJson(v, scene);
+    JsonSerializable::fromJson(value, scene);
 
-    auto phase = v.FindMember("phase_function");
-    if (phase != v.MemberEnd())
-        _phaseFunction = scene.fetchPhase(phase->value);
+    if (auto phase = value["phase_function"])
+        _phaseFunction = scene.fetchPhase(phase);
 
-    JsonUtils::fromJson(v, "max_bounces", _maxBounce);
+    value.getField("max_bounces", _maxBounce);
 }
 
 rapidjson::Value Medium::toJson(Allocator &allocator) const

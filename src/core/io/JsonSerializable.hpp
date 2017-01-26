@@ -1,6 +1,8 @@
 #ifndef JSONSERIALIZABLE_HPP_
 #define JSONSERIALIZABLE_HPP_
 
+#include "JsonValue.hpp"
+
 #include <rapidjson/document.h>
 #include <string>
 
@@ -25,7 +27,7 @@ public:
     JsonSerializable() = default;
     JsonSerializable(const std::string &name);
 
-    virtual void fromJson(const rapidjson::Value &v, const Scene &scene);
+    virtual void fromJson(JsonValue value, const Scene &scene);
     virtual rapidjson::Value toJson(Allocator &allocator) const;
 
     // Loads any additional resources referenced by this object, e.g. bitmaps

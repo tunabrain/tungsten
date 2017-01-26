@@ -214,9 +214,9 @@ void PhotonMapIntegrator::buildPhotonDataStructures(float volumeRadiusScale)
     }
 }
 
-void PhotonMapIntegrator::fromJson(const rapidjson::Value &v, const Scene &/*scene*/)
+void PhotonMapIntegrator::fromJson(JsonValue value, const Scene &/*scene*/)
 {
-    _settings.fromJson(v);
+    _settings.fromJson(value);
 }
 
 rapidjson::Value PhotonMapIntegrator::toJson(Allocator &allocator) const

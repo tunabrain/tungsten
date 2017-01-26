@@ -16,7 +16,8 @@ struct SphereIntersection
 
 Sphere::Sphere()
 : _pos(0.0f),
-  _radius(1.0f)
+  _radius(1.0f),
+  _bsdf(_defaultBsdf)
 {
 }
 
@@ -49,11 +50,12 @@ float Sphere::powerToRadianceFactor() const
     return INV_PI*_invArea;
 }
 
-void Sphere::fromJson(const rapidjson::Value &v, const Scene &scene)
+void Sphere::fromJson(JsonValue value, const Scene &scene)
 {
-    Primitive::fromJson(v, scene);
+    Primitive::fromJson(value, scene);
 
-    _bsdf = scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf"));
+    if (auto bsdf = value["bsdf"])
+        _bsdf = scene.fetchBsdf(bsdf);
 }
 
 rapidjson::Value Sphere::toJson(Allocator &allocator) const

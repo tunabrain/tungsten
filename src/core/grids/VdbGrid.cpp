@@ -128,15 +128,15 @@ void VdbGrid::generateSuperGrid()
     }
 }
 
-void VdbGrid::fromJson(const rapidjson::Value &v, const Scene &scene)
+void VdbGrid::fromJson(JsonValue value, const Scene &scene)
 {
-    _path = scene.fetchResource(v, "file");
-    JsonUtils::fromJson(v, "grid_name", _gridName);
-    JsonUtils::fromJson(v, "integration_method", _integrationString);
-    JsonUtils::fromJson(v, "sampling_method", _sampleString);
-    JsonUtils::fromJson(v, "step_size", _stepSize);
-    JsonUtils::fromJson(v, "supergrid_subsample", _supergridSubsample);
-    JsonUtils::fromJson(v, "transform", _configTransform);
+    if (auto path = value["file"]) _path = scene.fetchResource(path);
+    value.getField("grid_name", _gridName);
+    value.getField("integration_method", _integrationString);
+    value.getField("sampling_method", _sampleString);
+    value.getField("step_size", _stepSize);
+    value.getField("supergrid_subsample", _supergridSubsample);
+    value.getField("transform", _configTransform);
 
     _integrationMethod = stringToIntegrationMethod(_integrationString);
     _sampleMethod = stringToSampleMethod(_sampleString);

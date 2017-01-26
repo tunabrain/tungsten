@@ -22,15 +22,15 @@ RoughCoatBsdf::RoughCoatBsdf()
 {
 }
 
-void RoughCoatBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
+void RoughCoatBsdf::fromJson(JsonValue value, const Scene &scene)
 {
-    Bsdf::fromJson(v, scene);
-    JsonUtils::fromJson(v, "ior", _ior);
-    JsonUtils::fromJson(v, "thickness", _thickness);
-    JsonUtils::fromJson(v, "sigma_a", _sigmaA);
-    JsonUtils::fromJson(v, "distribution", _distributionName);
-    scene.textureFromJsonMember(v, "roughness", TexelConversion::REQUEST_AVERAGE, _roughness);
-    _substrate = scene.fetchBsdf(JsonUtils::fetchMember(v, "substrate"));
+    Bsdf::fromJson(value, scene);
+    value.getField("ior", _ior);
+    value.getField("thickness", _thickness);
+    value.getField("sigma_a", _sigmaA);
+    value.getField("distribution", _distributionName);
+    if (auto roughness = value["roughness"]) _roughness = scene.fetchTexture(roughness, TexelConversion::REQUEST_AVERAGE);
+    if (auto substrate = value["substrate"]) _substrate = scene.fetchBsdf(substrate);
 
     // Fail early in case of invalid distribution name
     prepareForRender();

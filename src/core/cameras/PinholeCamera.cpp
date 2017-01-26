@@ -34,10 +34,10 @@ void PinholeCamera::precompute()
     _invPlaneArea = 1.0f/planeArea;
 }
 
-void PinholeCamera::fromJson(const rapidjson::Value &v, const Scene &scene)
+void PinholeCamera::fromJson(JsonValue value, const Scene &scene)
 {
-    Camera::fromJson(v, scene);
-    JsonUtils::fromJson(v, "fov", _fovDeg);
+    Camera::fromJson(value, scene);
+    value.getField("fov", _fovDeg);
 
     precompute();
 }

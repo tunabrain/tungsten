@@ -20,13 +20,13 @@ CheckerTexture::CheckerTexture(Vec3f onColor, Vec3f offColor, int resU, int resV
 {
 }
 
-void CheckerTexture::fromJson(const rapidjson::Value &v, const Scene &scene)
+void CheckerTexture::fromJson(JsonValue value, const Scene &scene)
 {
-    Texture::fromJson(v, scene);
-    scalarOrVecFromJson(v, "on_color",   _onColor);
-    scalarOrVecFromJson(v, "off_color", _offColor);
-    JsonUtils::fromJson(v, "res_u", _resU);
-    JsonUtils::fromJson(v, "res_v", _resV);
+    Texture::fromJson(value, scene);
+    value.getField("on_color",   _onColor);
+    value.getField("off_color", _offColor);
+    value.getField("res_u", _resU);
+    value.getField("res_v", _resV);
 }
 
 rapidjson::Value CheckerTexture::toJson(Allocator &allocator) const

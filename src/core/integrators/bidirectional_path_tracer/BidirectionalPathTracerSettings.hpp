@@ -13,9 +13,9 @@ struct BidirectionalPathTracerSettings : public TraceSettings
     {
     }
 
-    void fromJson(const rapidjson::Value &v)
+    void fromJson(JsonValue value)
     {
-        TraceSettings::fromJson(v);
+        TraceSettings::fromJson(value);
     }
 
     rapidjson::Value toJson(rapidjson::Document::AllocatorType &allocator) const

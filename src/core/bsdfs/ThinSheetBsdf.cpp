@@ -26,13 +26,14 @@ ThinSheetBsdf::ThinSheetBsdf()
     _lobes = BsdfLobes(BsdfLobes::SpecularReflectionLobe | BsdfLobes::ForwardLobe);
 }
 
-void ThinSheetBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
+void ThinSheetBsdf::fromJson(JsonValue value, const Scene &scene)
 {
-    Bsdf::fromJson(v, scene);
-    JsonUtils::fromJson(v, "ior", _ior);
-    JsonUtils::fromJson(v, "enable_interference", _enableInterference);
-    JsonUtils::fromJson(v, "sigma_a", _sigmaA);
-    scene.textureFromJsonMember(v, "thickness", TexelConversion::REQUEST_AVERAGE, _thickness);
+    Bsdf::fromJson(value, scene);
+    value.getField("ior", _ior);
+    value.getField("enable_interference", _enableInterference);
+    value.getField("sigma_a", _sigmaA);
+    if (auto thickness = value["thickness"])
+        _thickness = scene.fetchTexture(thickness, TexelConversion::REQUEST_AVERAGE);
 }
 
 rapidjson::Value ThinSheetBsdf::toJson(Allocator &allocator) const

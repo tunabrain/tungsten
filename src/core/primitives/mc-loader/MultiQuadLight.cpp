@@ -125,7 +125,7 @@ void MultiQuadLight::constructSampleBounds()
     _sampleBvh.reset(new SolidAngleBvh(std::move(samplePrims), std::move(weights)));
 }
 
-void MultiQuadLight::fromJson(const rapidjson::Value &/*v*/, const Scene &/*scene*/)
+void MultiQuadLight::fromJson(JsonValue /*value*/, const Scene &/*scene*/)
 {
 }
 

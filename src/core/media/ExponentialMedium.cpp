@@ -19,15 +19,15 @@ ExponentialMedium::ExponentialMedium()
 {
 }
 
-void ExponentialMedium::fromJson(const rapidjson::Value &v, const Scene &scene)
+void ExponentialMedium::fromJson(JsonValue value, const Scene &scene)
 {
-    Medium::fromJson(v, scene);
-    JsonUtils::fromJson(v, "sigma_a", _materialSigmaA);
-    JsonUtils::fromJson(v, "sigma_s", _materialSigmaS);
-    JsonUtils::fromJson(v, "density", _density);
-    JsonUtils::fromJson(v, "falloff_scale", _falloffScale);
-    JsonUtils::fromJson(v, "unit_point", _unitPoint);
-    JsonUtils::fromJson(v, "falloff_direction", _falloffDirection);
+    Medium::fromJson(value, scene);
+    value.getField("sigma_a", _materialSigmaA);
+    value.getField("sigma_s", _materialSigmaS);
+    value.getField("density", _density);
+    value.getField("falloff_scale", _falloffScale);
+    value.getField("unit_point", _unitPoint);
+    value.getField("falloff_direction", _falloffDirection);
 }
 
 rapidjson::Value ExponentialMedium::toJson(Allocator &allocator) const

@@ -24,35 +24,32 @@ class Model
     std::vector<std::pair<std::string, std::string>> _textures;
     std::vector<CubicElement> _elements;
 
-    void loadTextures(const rapidjson::Value &textures)
+    void loadTextures(JsonValue textures)
     {
-        for (auto i = textures.MemberBegin(); i != textures.MemberEnd(); ++i)
-            if (i->value.IsString())
-                _textures.emplace_back(i->name.GetString(), i->value.GetString());
+        for (auto i : textures)
+            if (i.second.isString())
+                _textures.emplace_back(i.first, i.second.cast<std::string>());
     }
 
-    void loadElements(const rapidjson::Value &elements)
+    void loadElements(JsonValue elements)
     {
-        for (rapidjson::SizeType i = 0; i < elements.Size(); ++i)
-            if (elements[i].IsObject())
+        for (unsigned i = 0; i < elements.size(); ++i)
+            if (elements[i].isObject())
                 _elements.emplace_back(elements[i]);
     }
 
 public:
-    Model(const std::string &name, const rapidjson::Value &v)
+    Model(const std::string &name, JsonValue value)
     : _name(name),
       _ambientOcclusion(true)
     {
-        JsonUtils::fromJson(v, "parent", _parent);
-        JsonUtils::fromJson(v, "ambientocclusion", _ambientOcclusion);
+        value.getField("parent", _parent);
+        value.getField("ambientocclusion", _ambientOcclusion);
 
-        auto textures = v.FindMember("textures");
-        auto elements = v.FindMember("elements");
-
-        if (textures != v.MemberEnd() && textures->value.IsObject())
-            loadTextures(textures->value);
-        if (elements != v.MemberEnd() && elements->value.IsArray())
-            loadElements(elements->value);
+        if (auto textures = value["textures"])
+            loadTextures(textures);
+        if (auto elements = value["elements"])
+            loadElements(elements);
     }
 
     const std::string &name() const

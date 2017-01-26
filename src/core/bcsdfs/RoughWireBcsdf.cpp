@@ -95,13 +95,13 @@ float RoughWireBcsdf::sampleM(float v, float sinThetaI, float cosThetaI, float x
     return -cosTheta*sinThetaI + sinTheta*cosPhi*cosThetaI;
 }
 
-void RoughWireBcsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
+void RoughWireBcsdf::fromJson(JsonValue value, const Scene &scene)
 {
-    Bsdf::fromJson(v, scene);
-    JsonUtils::fromJson(v, "roughness", _roughness);
-    if (JsonUtils::fromJson(v, "eta", _eta) && JsonUtils::fromJson(v, "k", _k))
+    Bsdf::fromJson(value, scene);
+    value.getField("roughness", _roughness);
+    if (value.getField("eta", _eta) && value.getField("k", _k))
         _materialName.clear();
-    if (JsonUtils::fromJson(v, "material", _materialName))
+    if (value.getField("material", _materialName))
         lookupMaterial();
 }
 

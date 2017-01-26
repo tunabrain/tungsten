@@ -1,5 +1,7 @@
 #include "JsonDocument.hpp"
+
 #include "JsonLoadException.hpp"
+#include "JsonValue.hpp"
 #include "FileUtils.hpp"
 
 #include "math/MathUtil.hpp"
@@ -169,7 +171,7 @@ const TrackedValue *findOffset(const Value *root, const TrackedValue *trackedRoo
     return nullptr;
 }
 
-void JsonDocument::load(const Path &file, std::string json, std::function<void(const rapidjson::Document &)> loader)
+void JsonDocument::load(const Path &file, std::string json, std::function<void(JsonValue)> loader)
 {
     rapidjson::Document document;
     document.Parse<JsonParseFlags>(json.c_str());
@@ -183,7 +185,7 @@ void JsonDocument::load(const Path &file, std::string json, std::function<void(c
     }
 
     try {
-        loader(document);
+        loader(JsonValue(this, &document));
     } catch (const JsonParseException &e) {
         OffsetTrackingDocument trackedDocument(json);
         trackedDocument.parse<JsonParseFlags>();
@@ -202,7 +204,7 @@ void JsonDocument::load(const Path &file, std::string json, std::function<void(c
     }
 }
 
-JsonDocument::JsonDocument(const Path &file, std::function<void(const rapidjson::Document &)> loader)
+JsonDocument::JsonDocument(const Path &file, std::function<void(JsonValue)> loader)
 {
     std::string json = FileUtils::loadText(file);
     if (json.empty())
@@ -211,14 +213,14 @@ JsonDocument::JsonDocument(const Path &file, std::function<void(const rapidjson:
     load(file, std::move(json), std::move(loader));
 }
 
-JsonDocument::JsonDocument(const Path &file, std::string json, std::function<void(const rapidjson::Document &)> loader)
+JsonDocument::JsonDocument(const Path &file, std::string json, std::function<void(JsonValue)> loader)
 {
     load(file, std::move(json), std::move(loader));
 }
 
-void JsonDocument::setError(const rapidjson::Value &source, std::string error)
+/*void JsonDocument::setError(const rapidjson::Value &source, std::string error)
 {
     throw JsonParseException{std::move(error), source};
-}
+}*/
 
 }

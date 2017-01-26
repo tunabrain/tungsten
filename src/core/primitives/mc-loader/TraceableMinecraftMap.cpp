@@ -16,6 +16,7 @@
 
 #include "math/Mat4f.hpp"
 
+#include "io/JsonDocument.hpp"
 #include "io/JsonObject.hpp"
 #include "io/ImageIO.hpp"
 #include "io/MeshIO.hpp"
@@ -65,30 +66,20 @@ void TraceableMinecraftMap::getTexProperties(const Path &path, int w, int h,
     if (!meta.exists())
         return;
 
-    std::string json = FileUtils::loadText(meta);
-    if (json.empty())
-        return;
+    JsonDocument document(meta, [&](JsonValue value) {
+        if (auto animation = value["animation"]) {
+            int numTilesX, numTilesY;
+            if (animation.getField("width", numTilesX))
+                tileW = w/numTilesX;
+            if (animation.getField("height", numTilesY))
+                tileH = h/numTilesY;
+        }
 
-    rapidjson::Document document;
-    document.Parse<0>(json.c_str());
-    if (document.HasParseError() || !document.IsObject())
-        return;
-
-    auto animation = document.FindMember("animation");
-    auto texture   = document.FindMember("texture");
-
-    if (animation != document.MemberEnd()) {
-        int numTilesX, numTilesY;
-        if (JsonUtils::fromJson(animation->value, "width", numTilesX))
-            tileW = w/numTilesX;
-        if (JsonUtils::fromJson(animation->value, "height", numTilesY))
-            tileH = h/numTilesY;
-    }
-
-    if (texture != document.MemberEnd()) {
-        JsonUtils::fromJson(texture->value, "blur", linear);
-        JsonUtils::fromJson(texture->value, "clamp", clamp);
-    }
+        if (auto texture = value["texture"]) {
+            texture.getField("blur", linear);
+            texture.getField("clamp", clamp);
+        }
+    });
 }
 
 void TraceableMinecraftMap::loadTexture(ResourcePackLoader &pack, const std::string &name,
@@ -553,25 +544,22 @@ void TraceableMinecraftMap::resolveBlocks(ResourcePackLoader &pack)
         });
     }
 
-    std::cout << emitters.size() << std::endl;
-
     _lights = std::make_shared<MultiQuadLight>(std::move(emitters), _materials);
 }
 
-void TraceableMinecraftMap::fromJson(const rapidjson::Value &v, const Scene &scene)
+void TraceableMinecraftMap::fromJson(JsonValue value, const Scene &scene)
 {
-    Primitive::fromJson(v, scene);
+    Primitive::fromJson(value, scene);
 
-    _mapPath = scene.fetchResource(v, "map_path");
+    if (auto mapPath = value["map_path"])
+        _mapPath = scene.fetchResource(mapPath);
 
-    auto packs = v.FindMember("resource_packs");
-    if (packs != v.MemberEnd()) {
-        if (packs->value.IsArray()) {
-            for (size_t i = 0; i < packs->value.Size(); ++i)
-                _packPaths.emplace_back(scene.fetchResource(packs->value[i]));
-        } else {
-            _packPaths.emplace_back(scene.fetchResource(packs->value));
-        }
+    if (auto packs = value["resource_packs"]) {
+        if (packs.isArray())
+            for (unsigned i = 0; i < packs.size(); ++i)
+                _packPaths.emplace_back(scene.fetchResource(packs[i]));
+        else
+            _packPaths.emplace_back(scene.fetchResource(packs));
     }
 }
 

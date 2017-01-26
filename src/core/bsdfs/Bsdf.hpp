@@ -27,6 +27,8 @@ static CONSTEXPR float DiracAcceptanceThreshold = 1e-3f;
 
 class Bsdf : public JsonSerializable
 {
+    static std::shared_ptr<Texture> _defaultAlbedo;
+
 protected:
 
     BsdfLobes _lobes;
@@ -57,7 +59,7 @@ public:
 
     Bsdf();
 
-    virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
+    virtual void fromJson(JsonValue value, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
     virtual Vec3f eval(const SurfaceScatterEvent &event) const = 0;

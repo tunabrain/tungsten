@@ -42,9 +42,9 @@ void LightTraceIntegrator::loadState(InputStreamHandle &/*in*/)
     FAIL("LightTraceIntegrator::loadState not supported!");
 }
 
-void LightTraceIntegrator::fromJson(const rapidjson::Value &v, const Scene &/*scene*/)
+void LightTraceIntegrator::fromJson(JsonValue value, const Scene &/*scene*/)
 {
-    _settings.fromJson(v);
+    _settings.fromJson(value);
 }
 
 rapidjson::Value LightTraceIntegrator::toJson(Allocator &allocator) const

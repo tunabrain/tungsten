@@ -10,6 +10,7 @@
 #include "math/Angle.hpp"
 #include "math/Vec.hpp"
 
+#include "io/JsonObject.hpp"
 #include "io/JsonUtils.hpp"
 
 #include <rapidjson/document.h>
@@ -24,22 +25,22 @@ PlasticBsdf::PlasticBsdf()
     _lobes = BsdfLobes(BsdfLobes::SpecularReflectionLobe | BsdfLobes::DiffuseReflectionLobe);
 }
 
-void PlasticBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
+void PlasticBsdf::fromJson(JsonValue value, const Scene &scene)
 {
-    Bsdf::fromJson(v, scene);
-    JsonUtils::fromJson(v, "ior", _ior);
-    JsonUtils::fromJson(v, "thickness", _thickness);
-    JsonUtils::fromJson(v, "sigma_a", _sigmaA);
+    Bsdf::fromJson(value, scene);
+    value.getField("ior", _ior);
+    value.getField("thickness", _thickness);
+    value.getField("sigma_a", _sigmaA);
 }
 
 rapidjson::Value PlasticBsdf::toJson(Allocator &allocator) const
 {
-    rapidjson::Value v = Bsdf::toJson(allocator);
-    v.AddMember("type", "plastic", allocator);
-    v.AddMember("ior", _ior, allocator);
-    v.AddMember("thickness", _thickness, allocator);
-    v.AddMember("sigma_a", JsonUtils::toJson(_sigmaA, allocator), allocator);
-    return std::move(v);
+    return JsonObject{Bsdf::toJson(allocator), allocator,
+        "type", "plastic",
+        "ior", _ior,
+        "thickness", _thickness,
+        "sigma_a", _sigmaA
+    };
 }
 
 bool PlasticBsdf::sample(SurfaceScatterEvent &event) const

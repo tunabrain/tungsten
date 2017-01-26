@@ -50,16 +50,17 @@ float ThinlensCamera::evalApertureThroughput(Vec3f planePos, Vec2f aperturePos) 
     return aperture/_aperture->maximum().x();
 }
 
-void ThinlensCamera::fromJson(const rapidjson::Value &v, const Scene &scene)
+void ThinlensCamera::fromJson(JsonValue value, const Scene &scene)
 {
     _scene = &scene;
-    Camera::fromJson(v, scene);
-    JsonUtils::fromJson(v, "fov", _fovDeg);
-    JsonUtils::fromJson(v, "focus_distance", _focusDist);
-    JsonUtils::fromJson(v, "aperture_size", _apertureSize);
-    JsonUtils::fromJson(v, "cateye", _catEye);
-    JsonUtils::fromJson(v, "focus_pivot", _focusPivot);
-    scene.textureFromJsonMember(v, "aperture", TexelConversion::REQUEST_AVERAGE, _aperture);
+    Camera::fromJson(value, scene);
+    value.getField("fov", _fovDeg);
+    value.getField("focus_distance", _focusDist);
+    value.getField("aperture_size", _apertureSize);
+    value.getField("cateye", _catEye);
+    value.getField("focus_pivot", _focusPivot);
+    if (auto aperture = value["aperture"])
+        _aperture = scene.fetchTexture(aperture, TexelConversion::REQUEST_AVERAGE);
 
     precompute();
 }

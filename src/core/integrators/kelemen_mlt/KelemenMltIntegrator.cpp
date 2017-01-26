@@ -28,9 +28,9 @@ void KelemenMltIntegrator::loadState(InputStreamHandle &/*in*/)
     FAIL("KelemenMltIntegrator::loadState not supported!");
 }
 
-void KelemenMltIntegrator::fromJson(const rapidjson::Value &v, const Scene &/*scene*/)
+void KelemenMltIntegrator::fromJson(JsonValue value, const Scene &/*scene*/)
 {
-    _settings.fromJson(v);
+    _settings.fromJson(value);
 }
 
 rapidjson::Value KelemenMltIntegrator::toJson(Allocator &allocator) const

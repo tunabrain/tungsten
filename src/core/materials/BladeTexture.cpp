@@ -30,12 +30,12 @@ void BladeTexture::init()
     _baseNormal = Vec2f(cosAngle, sinAngle);
 }
 
-void BladeTexture::fromJson(const rapidjson::Value &v, const Scene &scene)
+void BladeTexture::fromJson(JsonValue value, const Scene &scene)
 {
-    Texture::fromJson(v, scene);
-    JsonUtils::fromJson(v, "blades", _numBlades);
-    JsonUtils::fromJson(v, "angle", _angle);
-    scalarOrVecFromJson(v, "value", _value);
+    Texture::fromJson(value, scene);
+    value.getField("blades", _numBlades);
+    value.getField("angle", _angle);
+    value.getField("value", _value);
 
     init();
 }

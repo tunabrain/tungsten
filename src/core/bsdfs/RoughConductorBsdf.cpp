@@ -30,16 +30,17 @@ void RoughConductorBsdf::lookupMaterial()
     }
 }
 
-void RoughConductorBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
+void RoughConductorBsdf::fromJson(JsonValue value, const Scene &scene)
 {
-    Bsdf::fromJson(v, scene);
-    if (JsonUtils::fromJson(v, "eta", _eta) && JsonUtils::fromJson(v, "k", _k))
+    Bsdf::fromJson(value, scene);
+    if (value.getField("eta", _eta) && value.getField("k", _k))
         _materialName.clear();
-    JsonUtils::fromJson(v, "distribution", _distributionName);
-    if (JsonUtils::fromJson(v, "material", _materialName))
+    value.getField("distribution", _distributionName);
+    if (value.getField("material", _materialName))
         lookupMaterial();
 
-    scene.textureFromJsonMember(v, "roughness", TexelConversion::REQUEST_AVERAGE, _roughness);
+    if (auto roughness = value["roughness"])
+        _roughness = scene.fetchTexture(roughness, TexelConversion::REQUEST_AVERAGE);
 
     // Fail early in case of invalid distribution name
     prepareForRender();

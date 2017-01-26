@@ -34,6 +34,8 @@ class Primitive : public JsonSerializable
     std::shared_ptr<Medium> _extMedium;
 
 protected:
+    static std::shared_ptr<Bsdf> _defaultBsdf;
+
     std::shared_ptr<Texture> _emission;
     std::shared_ptr<Texture> _power;
 
@@ -52,7 +54,7 @@ public:
     Primitive();
     Primitive(const std::string &name);
 
-    virtual void fromJson(const rapidjson::Value &v, const Scene &scene) override;
+    virtual void fromJson(JsonValue value, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
     virtual bool intersect(Ray &ray, IntersectionTemporary &data) const = 0;

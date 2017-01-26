@@ -4,8 +4,6 @@
 #include "ModelResolver.hpp"
 #include "BlockVariant.hpp"
 
-#include "io/JsonUtils.hpp"
-
 #include <string>
 #include <vector>
 
@@ -19,20 +17,13 @@ class BlockDescriptor
     std::vector<BlockVariant> _variants;
 
 public:
-    BlockDescriptor(const std::string &name, const rapidjson::Value &v, ModelResolver &resolver)
+    BlockDescriptor(const std::string &name, JsonValue value, ModelResolver &resolver)
     : _name(name)
     {
-        auto variants = v.FindMember("variants");
-
-        if (variants != v.MemberEnd() && variants->value.IsObject()) {
-            auto begin = variants->value.MemberBegin();
-            auto end   = variants->value.MemberEnd();
-
-            for (auto i = begin; i < end; ++i) {
-                if (i->value.IsObject() || i->value.IsArray())
-                    _variants.emplace_back(i->name.GetString(), i->value, resolver);
-            }
-        }
+        if (auto variants = value["variants"])
+            for (auto i : variants)
+                if (i.second.isObject() || i.second.isArray())
+                    _variants.emplace_back(i.first, i.second, resolver);
     }
 
     const std::string &name() const

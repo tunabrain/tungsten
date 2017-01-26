@@ -22,10 +22,10 @@ inline float HenyeyGreensteinPhaseFunction::henyeyGreenstein(float cosTheta) con
     return INV_FOUR_PI*(1.0f - _g*_g)/(term*std::sqrt(term));
 }
 
-void HenyeyGreensteinPhaseFunction::fromJson(const rapidjson::Value &v, const Scene &scene)
+void HenyeyGreensteinPhaseFunction::fromJson(JsonValue value, const Scene &scene)
 {
-    PhaseFunction::fromJson(v, scene);
-    JsonUtils::fromJson(v, "g", _g);
+    PhaseFunction::fromJson(value, scene);
+    value.getField("g", _g);
 }
 
 rapidjson::Value HenyeyGreensteinPhaseFunction::toJson(Allocator &allocator) const

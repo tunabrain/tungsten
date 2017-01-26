@@ -16,12 +16,12 @@ VoxelMedium::VoxelMedium()
 {
 }
 
-void VoxelMedium::fromJson(const rapidjson::Value &v, const Scene &scene)
+void VoxelMedium::fromJson(JsonValue value, const Scene &scene)
 {
-    Medium::fromJson(v, scene);
-    JsonUtils::fromJson(v, "sigma_a", _sigmaA);
-    JsonUtils::fromJson(v, "sigma_s", _sigmaS);
-    _grid = scene.fetchGrid(JsonUtils::fetchMember(v, "grid"));
+    Medium::fromJson(value, scene);
+    value.getField("sigma_a", _sigmaA);
+    value.getField("sigma_s", _sigmaS);
+    _grid = scene.fetchGrid(value.getRequiredMember("grid"));
 }
 
 rapidjson::Value VoxelMedium::toJson(Allocator &allocator) const

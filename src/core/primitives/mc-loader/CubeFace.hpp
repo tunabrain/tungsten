@@ -28,16 +28,16 @@ public:
     {
     }
 
-    CubeFace(const rapidjson::Value &v)
+    CubeFace(JsonValue value)
     : _uv(0.0f, 0.0f, 16.0f, 16.0f),
       _rotation(0),
       _tint(-1)
     {
-        JsonUtils::fromJson(v, "uv", _uv);
-        JsonUtils::fromJson(v, "texture", _texture);
-        JsonUtils::fromJson(v, "cullface", _cullFace);
-        JsonUtils::fromJson(v, "rotation", _rotation);
-        JsonUtils::fromJson(v, "tintindex", _tint);
+        value.getField("uv", _uv);
+        value.getField("texture", _texture);
+        value.getField("cullface", _cullFace);
+        value.getField("rotation", _rotation);
+        value.getField("tintindex", _tint);
     }
 
     const std::string &texture() const

@@ -3,6 +3,8 @@
 
 #include "sampling/UniformSampler.hpp"
 
+#include "bcsdfs/HairBcsdf.hpp"
+
 #include "math/TangentFrame.hpp"
 #include "math/MathUtil.hpp"
 #include "math/BSpline.hpp"
@@ -231,7 +233,8 @@ Curves::Curves()
   _curveThickness(0.01f),
   _subsample(0.0f),
   _overrideThickness(false),
-  _taperThickness(false)
+  _taperThickness(false),
+  _bsdf(std::make_shared<HairBcsdf>())
 {
     init();
 }
@@ -377,15 +380,15 @@ void Curves::buildProxy()
     _proxy = std::make_shared<TriangleMesh>(verts, tris, _bsdf, "Curves", false, false);
 }
 
-void Curves::fromJson(const rapidjson::Value &v, const Scene &scene)
+void Curves::fromJson(JsonValue value, const Scene &scene)
 {
-    Primitive::fromJson(v, scene);
-    _path = scene.fetchResource(v, "file");
-    _bsdf = scene.fetchBsdf(JsonUtils::fetchMember(v, "bsdf"));
-    JsonUtils::fromJson(v, "mode", _modeString);
-    JsonUtils::fromJson(v, "curve_taper", _taperThickness);
-    JsonUtils::fromJson(v, "subsample", _subsample);
-    _overrideThickness = JsonUtils::fromJson(v, "curve_thickness", _curveThickness);
+    Primitive::fromJson(value, scene);
+    if (auto path = value["file"]) _path = scene.fetchResource(path);
+    if (auto bsdf = value["bsdf"]) _bsdf = scene.fetchBsdf(bsdf);
+    value.getField("mode", _modeString);
+    value.getField("curve_taper", _taperThickness);
+    value.getField("subsample", _subsample);
+    _overrideThickness = value.getField("curve_thickness", _curveThickness);
 
     init();
 }

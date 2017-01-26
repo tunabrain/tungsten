@@ -36,14 +36,14 @@ float InfiniteSphereCap::powerToRadianceFactor() const
     return INV_TWO_PI/(1.0f - _cosCapAngle);
 }
 
-void InfiniteSphereCap::fromJson(const rapidjson::Value &v, const Scene &scene)
+void InfiniteSphereCap::fromJson(JsonValue value, const Scene &scene)
 {
     _scene = &scene;
 
-    Primitive::fromJson(v, scene);
-    JsonUtils::fromJson(v, "sample", _doSample);
-    JsonUtils::fromJson(v, "skydome", _domeName);
-    JsonUtils::fromJson(v, "cap_angle", _capAngleDeg);
+    Primitive::fromJson(value, scene);
+    value.getField("sample", _doSample);
+    value.getField("skydome", _domeName);
+    value.getField("cap_angle", _capAngleDeg);
 }
 rapidjson::Value InfiniteSphereCap::toJson(Allocator &allocator) const
 {

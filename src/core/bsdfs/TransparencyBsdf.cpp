@@ -22,12 +22,13 @@ TransparencyBsdf::TransparencyBsdf(std::shared_ptr<Texture> opacity, std::shared
 {
 }
 
-void TransparencyBsdf::fromJson(const rapidjson::Value &v, const Scene &scene)
+void TransparencyBsdf::fromJson(JsonValue value, const Scene &scene)
 {
-    Bsdf::fromJson(v, scene);
-    _base = scene.fetchBsdf(JsonUtils::fetchMember(v, "base"));
-
-    scene.textureFromJsonMember(v, "alpha", TexelConversion::REQUEST_AUTO, _opacity);
+    Bsdf::fromJson(value, scene);
+    if (auto base = value["base"])
+        _base = scene.fetchBsdf(base);
+    if (auto alpha = value["alpha"])
+        _opacity = scene.fetchTexture(alpha, TexelConversion::REQUEST_AVERAGE);
 }
 
 rapidjson::Value TransparencyBsdf::toJson(Allocator &allocator) const

@@ -36,20 +36,18 @@ class CubicElement
 
     OptionalFace _faces[6];
 
-    void loadFaces(const rapidjson::Value &faces)
+    void loadFaces(JsonValue faces)
     {
         for (int i = 0; i < 6; ++i) {
-            auto face = faces.FindMember(cubeFaceToString(NamedFace(i)));
-
-            if (face != faces.MemberEnd() && face->value.IsObject()) {
+            if (auto face = faces[cubeFaceToString(NamedFace(i))]) {
                 _faces[i].filled = true;
-                _faces[i].face = CubeFace(face->value);
+                _faces[i].face = CubeFace(face);
             }
         }
     }
 
 public:
-    CubicElement(const rapidjson::Value &v)
+    CubicElement(JsonValue value)
     : _from(0.0f),
       _to(0.0f),
       _rotAxis(-1),
@@ -58,23 +56,20 @@ public:
       _rotRescale(false),
       _shade(true)
     {
-        JsonUtils::fromJson(v, "from", _from);
-        JsonUtils::fromJson(v, "to", _to);
-        JsonUtils::fromJson(v, "shade", _shade);
+        value.getField("from", _from);
+        value.getField("to", _to);
+        value.getField("shade", _shade);
 
-        auto rotation = v.FindMember("rotation");
-        auto faces    = v.FindMember("faces");
+        if (auto faces = value["faces"])
+            loadFaces(faces);
 
-        if (faces != v.MemberEnd() && faces->value.IsObject())
-            loadFaces(faces->value);
-
-        if (rotation != v.MemberEnd() && rotation->value.IsObject()) {
-            JsonUtils::fromJson(rotation->value, "origin", _rotOrigin);
-            JsonUtils::fromJson(rotation->value, "angle", _rotAngle);
-            JsonUtils::fromJson(rotation->value, "rescale", _rotRescale);
+        if (auto rotation = value["rotation"]) {
+            rotation.getField("origin", _rotOrigin);
+            rotation.getField("angle", _rotAngle);
+            rotation.getField("rescale", _rotRescale);
 
             std::string axis;
-            if (JsonUtils::fromJson(rotation->value, "axis", axis)) {
+            if (rotation.getField("axis", axis)) {
                 if (axis == "x")
                     _rotAxis = 0;
                 else if (axis == "y")

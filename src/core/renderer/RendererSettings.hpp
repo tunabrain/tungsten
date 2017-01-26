@@ -46,32 +46,31 @@ public:
     {
     }
 
-    virtual void fromJson(const rapidjson::Value &v, const Scene &scene)
+    virtual void fromJson(JsonValue value, const Scene &scene)
     {
-        JsonUtils::fromJson(v, "output_directory", _outputDirectory);
+        value.getField("output_directory", _outputDirectory);
 
         _outputDirectory.freezeWorkingDirectory();
         DirectoryChange change(_outputDirectory);
 
-        JsonUtils::fromJson(v, "output_file", _outputFile);
-        JsonUtils::fromJson(v, "hdr_output_file", _hdrOutputFile);
-        JsonUtils::fromJson(v, "variance_output_file", _varianceOutputFile);
-        JsonUtils::fromJson(v, "resume_render_file", _resumeRenderFile);
-        JsonUtils::fromJson(v, "overwrite_output_files", _overwriteOutputFiles);
-        JsonUtils::fromJson(v, "adaptive_sampling", _useAdaptiveSampling);
-        JsonUtils::fromJson(v, "enable_resume_render", _enableResumeRender);
-        JsonUtils::fromJson(v, "stratified_sampler", _useSobol);
-        JsonUtils::fromJson(v, "scene_bvh", _useSceneBvh);
-        JsonUtils::fromJson(v, "spp", _spp);
-        JsonUtils::fromJson(v, "spp_step", _sppStep);
-        JsonUtils::fromJson(v, "checkpoint_interval", _checkpointInterval);
-        JsonUtils::fromJson(v, "timeout", _timeout);
+        value.getField("output_file", _outputFile);
+        value.getField("hdr_output_file", _hdrOutputFile);
+        value.getField("variance_output_file", _varianceOutputFile);
+        value.getField("resume_render_file", _resumeRenderFile);
+        value.getField("overwrite_output_files", _overwriteOutputFiles);
+        value.getField("adaptive_sampling", _useAdaptiveSampling);
+        value.getField("enable_resume_render", _enableResumeRender);
+        value.getField("stratified_sampler", _useSobol);
+        value.getField("scene_bvh", _useSceneBvh);
+        value.getField("spp", _spp);
+        value.getField("spp_step", _sppStep);
+        value.getField("checkpoint_interval", _checkpointInterval);
+        value.getField("timeout", _timeout);
 
-        auto outputs = v.FindMember("output_buffers");
-        if (outputs != v.MemberEnd() && outputs->value.IsArray()) {
-            for (rapidjson::SizeType i = 0; i < outputs->value.Size(); ++i) {
+        if (auto outputs = value["output_buffers"]) {
+            for (unsigned i = 0; i < outputs.size(); ++i) {
                 _outputs.emplace_back();
-                _outputs.back().fromJson(outputs->value[i], scene);
+                _outputs.back().fromJson(outputs[i], scene);
             }
         }
     }

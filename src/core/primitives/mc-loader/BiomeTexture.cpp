@@ -5,7 +5,7 @@
 namespace Tungsten {
 namespace MinecraftLoader {
 
-void BiomeTexture::fromJson(const rapidjson::Value &/*v*/, const Scene &/*scene*/)
+void BiomeTexture::fromJson(JsonValue /*value*/, const Scene &/*scene*/)
 {
 }
 
