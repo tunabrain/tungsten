@@ -76,7 +76,7 @@ add_library(thirdparty STATIC
 		src/thirdparty/skylight/ArHosekSkyModel.cpp)
 
 if (CMAKE_COMPILER_IS_GNUCXX)
-    set(CXX_WARNINGS "-Wall -Wextra -Wpointer-arith -Wcast-align -fstrict-aliasing -Wno-unused-local-typedefs -Wno-misleading-indentation")
+    set(CXX_WARNINGS "-Wall -Wextra -Wpointer-arith -Wcast-align -fstrict-aliasing -Wno-unused-local-typedefs -Wno-misleading-indentation -Wno-maybe-uninitialized")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_WARNINGS} -fvisibility-inlines-hidden")
 endif()
 set(core_libs core thirdparty embree)
