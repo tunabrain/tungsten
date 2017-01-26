@@ -1,5 +1,6 @@
 #include "JsonValue.hpp"
 
+#include "JsonDocument.hpp"
 #include "Path.hpp"
 
 namespace Tungsten {
@@ -8,10 +9,12 @@ void JsonValue::get(bool &dst) const
 {
     if (_value->IsBool())
         dst = _value->GetBool();
+    else
+        parseError("Parameter has wrong type: Expecting a boolean value here");
 }
 
 template<typename T>
-bool getJsonNumber(const rapidjson::Value &v, T &dst)
+void getJsonNumber(const rapidjson::Value &v, T &dst, JsonValue source)
 {
     if (v.IsDouble())
         dst = T(v.GetDouble());
@@ -24,44 +27,45 @@ bool getJsonNumber(const rapidjson::Value &v, T &dst)
     else if (v.IsUint64())
         dst = T(v.GetUint64());
     else
-        return false;
-    return true;
+        source.parseError("Parameter has wrong type: Expecting a number here");
 }
 
 void JsonValue::get(float &dst) const
 {
-    getJsonNumber(*_value, dst);
+    getJsonNumber(*_value, dst, *this);
 }
 
 void JsonValue::get(double &dst) const
 {
-    getJsonNumber(*_value, dst);
+    getJsonNumber(*_value, dst, *this);
 }
 
 void JsonValue::get(uint32 &dst) const
 {
-    getJsonNumber(*_value, dst);
+    getJsonNumber(*_value, dst, *this);
 }
 
 void JsonValue::get(int32 &dst) const
 {
-    getJsonNumber(*_value, dst);
+    getJsonNumber(*_value, dst, *this);
 }
 
 void JsonValue::get(uint64 &dst) const
 {
-    getJsonNumber(*_value, dst);
+    getJsonNumber(*_value, dst, *this);
 }
 
 void JsonValue::get(int64 &dst) const
 {
-    getJsonNumber(*_value, dst);
+    getJsonNumber(*_value, dst, *this);
 }
 
 void JsonValue::get(std::string &dst) const
 {
     if (isString())
         dst = _value->GetString();
+    else
+        parseError("Parameter has wrong type: Expecting a string value here");
 }
 
 static Vec3f randomOrtho(const Vec3f &a)
@@ -94,8 +98,9 @@ static void gramSchmidt(Vec3f &a, Vec3f &b, Vec3f &c)
 void JsonValue::get(Mat4f &dst) const
 {
     if (isArray()) {
-        // TODO Error
-        //ASSERT(v.Size() == 16, "Cannot convert Json Array to 4x4 Matrix: Invalid size");
+        if (size() != 16)
+            parseError(tfm::format("Trying to parse a matrix, but this array has the wrong size "
+                "(need 16 elements, received %d)", size()));
         for (unsigned i = 0; i < 16; ++i)
             dst[i] = operator[](i).cast<float>();
     } else if (isObject()) {
@@ -165,14 +170,20 @@ void JsonValue::get(Mat4f &dst) const
             x[2], y[2], z[2], pos[2],
             0.0f, 0.0f, 0.0f,   1.0f
         );
+    } else {
+        parseError("Parameter has wrong type: Expecting a matrix value here");
     }
-    // TODO error
 }
 
 void JsonValue::get(Path &dst) const
 {
     dst = Path(cast<std::string>());
     dst.freezeWorkingDirectory();
+}
+
+void JsonValue::parseError(std::string description) const
+{
+    _document->parseError(*this, std::move(description));
 }
 
 JsonValueIterator JsonValue::begin() const { return JsonValueIterator(*this, _value->MemberBegin()); }

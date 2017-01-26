@@ -4,22 +4,24 @@
 #include "JsonValue.hpp"
 #include "Path.hpp"
 
-#include <functional>
+#include <rapidjson/document.h>
 #include <string>
 
 namespace Tungsten {
 
-class JsonDocument
+class JsonDocument : public JsonValue
 {
-    void load(const Path &file, std::string json, std::function<void(JsonValue)> loader);
+    Path _file;
+    rapidjson::Document _document;
+    std::string _json;
+
+    void load();
 
 public:
-    JsonDocument(const Path &file, std::function<void(JsonValue)> loader);
-    JsonDocument(const Path &file, std::string json, std::function<void(JsonValue)> loader);
+    JsonDocument(const Path &file);
+    JsonDocument(const Path &file, std::string json);
 
-    //void setError(const rapidjson::Value &source, std::string error);
-
-    bool fromJson();
+    [[noreturn]] void parseError(JsonValue source, std::string description) const;
 };
 
 }

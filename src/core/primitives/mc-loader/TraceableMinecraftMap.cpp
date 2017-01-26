@@ -66,20 +66,19 @@ void TraceableMinecraftMap::getTexProperties(const Path &path, int w, int h,
     if (!meta.exists())
         return;
 
-    JsonDocument document(meta, [&](JsonValue value) {
-        if (auto animation = value["animation"]) {
-            int numTilesX, numTilesY;
-            if (animation.getField("width", numTilesX))
-                tileW = w/numTilesX;
-            if (animation.getField("height", numTilesY))
-                tileH = h/numTilesY;
-        }
+    JsonDocument document(meta);
+    if (auto animation = document["animation"]) {
+        int numTilesX, numTilesY;
+        if (animation.getField("width", numTilesX))
+            tileW = w/numTilesX;
+        if (animation.getField("height", numTilesY))
+            tileH = h/numTilesY;
+    }
 
-        if (auto texture = value["texture"]) {
-            texture.getField("blur", linear);
-            texture.getField("clamp", clamp);
-        }
-    });
+    if (auto texture = document["texture"]) {
+        texture.getField("blur", linear);
+        texture.getField("clamp", clamp);
+    }
 }
 
 void TraceableMinecraftMap::loadTexture(ResourcePackLoader &pack, const std::string &name,

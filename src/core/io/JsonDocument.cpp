@@ -26,11 +26,6 @@ struct Excerpt
     std::string excerpt;
     std::string pointer;
 };
-struct JsonParseException
-{
-    std::string description;
-    const Value &source;
-};
 struct TrackedValue
 {
     size_t offset;
@@ -56,7 +51,7 @@ class OffsetTrackingDocument : public rapidjson::Document
     {
         TrackedValue *members =
                 static_cast<TrackedValue *>(GetAllocator().Malloc(memberCount*sizeof(TrackedValue)));
-        for (int i = 0; i < memberCount; ++i) {
+        for (int i = memberCount - 1; i >= 0; --i) {
             members[i] = _stack.top();
             _stack.pop();
         }
@@ -171,56 +166,54 @@ const TrackedValue *findOffset(const Value *root, const TrackedValue *trackedRoo
     return nullptr;
 }
 
-void JsonDocument::load(const Path &file, std::string json, std::function<void(JsonValue)> loader)
+void JsonDocument::load()
 {
-    rapidjson::Document document;
-    document.Parse<JsonParseFlags>(json.c_str());
-    if (document.HasParseError()) {
-        Excerpt excerpt = formatJsonExcerpt(json, document.GetErrorOffset());
+    _document.Parse<JsonParseFlags>(_json.c_str());
+    if (_document.HasParseError()) {
+        Excerpt excerpt = formatJsonExcerpt(_json, _document.GetErrorOffset());
         throw JsonLoadException(
-            tfm::format("Encountered a syntax error in %s:%d:%d:\n%s",
-                    file.fileName(), excerpt.row + 1, excerpt.col + 1, rapidjson::GetParseError_En(document.GetParseError())),
+            tfm::format("Encountered a syntax error at %s:%d:%d:\n    %s",
+                    _file.fileName(), excerpt.row + 1, excerpt.col + 1, rapidjson::GetParseError_En(_document.GetParseError())),
             tfm::format("%s\n%s", excerpt.excerpt, excerpt.pointer)
         );
     }
-
-    try {
-        loader(JsonValue(this, &document));
-    } catch (const JsonParseException &e) {
-        OffsetTrackingDocument trackedDocument(json);
-        trackedDocument.parse<JsonParseFlags>();
-
-        const TrackedValue *value = findOffset(&document, &trackedDocument.root(), &e.source);
-        if (value) {
-            Excerpt excerpt = formatJsonExcerpt(json, value->offset);
-            throw JsonLoadException(
-                tfm::format("Encountered an error in %s:%d:%d:\n    %s",
-                        file.fileName(), excerpt.row + 1, excerpt.col + 1, e.description),
-                tfm::format("%s\n%s", excerpt.excerpt, excerpt.pointer)
-            );
-        } else {
-            throw JsonLoadException(tfm::format("Encountered an error in %s:\n%s", file.fileName(), e.description), "");
-        }
-    }
 }
 
-JsonDocument::JsonDocument(const Path &file, std::function<void(JsonValue)> loader)
+JsonDocument::JsonDocument(const Path &file)
+: JsonValue(this, &_document),
+  _file(file),
+  _json(FileUtils::loadText(file))
 {
-    std::string json = FileUtils::loadText(file);
-    if (json.empty())
+    if (_json.empty())
         throw JsonLoadException(file);
 
-    load(file, std::move(json), std::move(loader));
+    load();
 }
 
-JsonDocument::JsonDocument(const Path &file, std::string json, std::function<void(JsonValue)> loader)
+JsonDocument::JsonDocument(const Path &file, std::string json)
+: JsonValue(this, &_document),
+  _file(file),
+  _json(std::move(json))
 {
-    load(file, std::move(json), std::move(loader));
+    load();
 }
 
-/*void JsonDocument::setError(const rapidjson::Value &source, std::string error)
+void JsonDocument::parseError(JsonValue source, std::string description) const
 {
-    throw JsonParseException{std::move(error), source};
-}*/
+    OffsetTrackingDocument trackedDocument(_json);
+    trackedDocument.parse<JsonParseFlags>();
+
+    const TrackedValue *value = findOffset(&_document, &trackedDocument.root(), source._value);
+    if (value) {
+        Excerpt excerpt = formatJsonExcerpt(_json, value->offset);
+        throw JsonLoadException(
+            tfm::format("Encountered an error at %s:%d:%d:\n    %s",
+                    _file.fileName(), excerpt.row + 1, excerpt.col + 1, description),
+            tfm::format("%s\n%s", excerpt.excerpt, excerpt.pointer)
+        );
+    } else {
+        throw JsonLoadException(tfm::format("Encountered an error at %s:\n    %s", _file.fileName(), description), "");
+    }
+}
 
 }

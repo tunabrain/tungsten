@@ -231,67 +231,66 @@ void ResourcePackLoader::buildBlockMapping()
     _blockFlags.resize(4096, FLAG_OPAQUE | FLAG_CONNECTS_FENCE | FLAG_CONNECTS_PANE);
     _blockFlags[0] = 0;
 
-    JsonDocument document(resolvePath(blockMapPath), [&](JsonValue value) {
-        if (!value.isArray())
-            return;
+    JsonDocument document(resolvePath(blockMapPath));
+    if (!document.isArray())
+        return;
 
-        std::unordered_map<std::string, const BlockVariant *> blockMap;
-        for (const BlockDescriptor &b : _blockDescriptors) {
-            for (const BlockVariant &v : b.variants())
-                blockMap.insert(std::make_pair(b.name() + "." + v.variant(), &v));
-            blockMap.insert(std::make_pair(b.name(), &b.variants().front()));
+    std::unordered_map<std::string, const BlockVariant *> blockMap;
+    for (const BlockDescriptor &b : _blockDescriptors) {
+        for (const BlockVariant &v : b.variants())
+            blockMap.insert(std::make_pair(b.name() + "." + v.variant(), &v));
+        blockMap.insert(std::make_pair(b.name(), &b.variants().front()));
+    }
+
+    for (unsigned i = 0; i < document.size(); ++i) {
+        int id   = document[i].castField<int>("id");
+        int data = document[i].castField<int>("data");
+        std::string variant = "normal";
+        document[i].getField("variant", variant);
+        int mask = 15;
+        document[i].getField("mask", mask);
+        std::string specialCase;
+        document[i].getField("special_case", specialCase);
+
+        bool opaque = true, connectsFence = true, connectsPane = true, connectsRedstone = false, flammable = false;
+        document[i].getField("opaque", opaque);
+        document[i].getField("connects_fence", connectsFence);
+        document[i].getField("connects_pane", connectsPane);
+        document[i].getField("flammable", flammable);
+        document[i].getField("connects_redstone", connectsRedstone);
+
+        _blockFlags[id] =
+            opaque          *FLAG_OPAQUE            |
+            connectsFence   *FLAG_CONNECTS_FENCE    |
+            connectsPane    *FLAG_CONNECTS_PANE     |
+            connectsRedstone*FLAG_CONNECTS_REDSTONE |
+            flammable       *FLAG_FLAMMABLE;
+
+        std::string blockState = document[i].castField<std::string>("blockstate");
+        std::string key = blockState + "." + variant;
+
+        if (!specialCase.empty()) {
+            buildSpecialCase(blockMap, std::move(blockState), std::move(specialCase), id, data, mask);
+            continue;
         }
 
-        for (unsigned i = 0; i < value.size(); ++i) {
-            int id   = value[i].castField<int>("id");
-            int data = value[i].castField<int>("data");
-            std::string variant = "normal";
-            value[i].getField("variant", variant);
-            int mask = 15;
-            value[i].getField("mask", mask);
-            std::string specialCase;
-            value[i].getField("special_case", specialCase);
-
-            bool opaque = true, connectsFence = true, connectsPane = true, connectsRedstone = false, flammable = false;
-            value[i].getField("opaque", opaque);
-            value[i].getField("connects_fence", connectsFence);
-            value[i].getField("connects_pane", connectsPane);
-            value[i].getField("flammable", flammable);
-            value[i].getField("connects_redstone", connectsRedstone);
-
-            _blockFlags[id] =
-                opaque          *FLAG_OPAQUE            |
-                connectsFence   *FLAG_CONNECTS_FENCE    |
-                connectsPane    *FLAG_CONNECTS_PANE     |
-                connectsRedstone*FLAG_CONNECTS_REDSTONE |
-                flammable       *FLAG_FLAMMABLE;
-
-            std::string blockState = value[i].castField<std::string>("blockstate");
-            std::string key = blockState + "." + variant;
-
-            if (!specialCase.empty()) {
-                buildSpecialCase(blockMap, std::move(blockState), std::move(specialCase), id, data, mask);
-                continue;
+        const BlockVariant *ref = nullptr;
+        if (!blockMap.count(key)) {
+            std::cout << "Warning: Could not find block " << blockState << " with variant " << variant;
+            if (blockMap.count(blockState)) {
+                std::cout << " Using variant " << blockMap[blockState]->variant() << " instead";
+                ref = blockMap[blockState];
             }
-
-            const BlockVariant *ref = nullptr;
-            if (!blockMap.count(key)) {
-                std::cout << "Warning: Could not find block " << blockState << " with variant " << variant;
-                if (blockMap.count(blockState)) {
-                    std::cout << " Using variant " << blockMap[blockState]->variant() << " instead";
-                    ref = blockMap[blockState];
-                }
-                std::cout << std::endl;
-            } else {
-                ref = blockMap[key];
-            }
-
-            if (ref)
-                for (int j = 0; j < 16; ++j)
-                    if ((j & mask) == data)
-                        _blockMapping[(id << 4) | j] = ref;
+            std::cout << std::endl;
+        } else {
+            ref = blockMap[key];
         }
-    });
+
+        if (ref)
+            for (int j = 0; j < 16; ++j)
+                if ((j & mask) == data)
+                    _blockMapping[(id << 4) | j] = ref;
+    }
 }
 
 // For instancing reasons, we have to create artificial variants of
@@ -331,16 +330,15 @@ void ResourcePackLoader::duplicateRedstoneLevels(BlockDescriptor &state)
 void ResourcePackLoader::loadStates(const Path &dir, std::unordered_set<std::string> &existing)
 {
     for (const Path &p : (dir/stateBase).files("json")) {
-        JsonDocument document(p, [&](JsonValue value) {
-            std::string name = p.baseName().asString();
-            if (!existing.count(name)) {
-                existing.insert(name);
+        JsonDocument document(p);
+        std::string name = p.baseName().asString();
+        if (!existing.count(name)) {
+            existing.insert(name);
 
-                _blockDescriptors.emplace_back(std::move(name), value, *_resolver);
-                if (_blockDescriptors.back().name() == "redstone_wire")
-                    duplicateRedstoneLevels(_blockDescriptors.back());
-            }
-        });
+            _blockDescriptors.emplace_back(std::move(name), document, *_resolver);
+            if (_blockDescriptors.back().name() == "redstone_wire")
+                duplicateRedstoneLevels(_blockDescriptors.back());
+        }
     }
 }
 
@@ -353,13 +351,12 @@ void ResourcePackLoader::loadModels(const Path &dir, std::unordered_set<std::str
         loadModels(p, existing, base + p.fileName().asString());
 
     for (const Path &p : dir.files("json")) {
-        JsonDocument document(p, [&](JsonValue value) {
-            std::string name = base + p.baseName().asString();
-            if (!existing.count(name)) {
-                existing.insert(name);
-                _models.emplace_back(std::move(name), value);
-            }
-        });
+        JsonDocument document(p);
+        std::string name = base + p.baseName().asString();
+        if (!existing.count(name)) {
+            existing.insert(name);
+            _models.emplace_back(std::move(name), document);
+        }
     }
 }
 
@@ -402,25 +399,24 @@ void ResourcePackLoader::generateBiomeColors()
     if (!grass.isValid() || !foliage.isValid())
         return;
 
-    JsonDocument document(resolvePath(biomePath), [&](JsonValue value) {
-        for (unsigned i = 0; i < value.size(); ++i) {
-            int id = 0;
-            float temperature = 0.0f, rainfall = 0.0f;
+    JsonDocument document(resolvePath(biomePath));
+    for (unsigned i = 0; i < document.size(); ++i) {
+        int id = 0;
+        float temperature = 0.0f, rainfall = 0.0f;
 
-            value[i].getField("id", id);
-            value[i].getField("temperature", temperature);
-            value[i].getField("rainfall", rainfall);
+        document[i].getField("id", id);
+        document[i].getField("temperature", temperature);
+        document[i].getField("rainfall", rainfall);
 
-            float tempBottom = clamp(temperature, 0.0f, 1.0f);
-            float rainfallBottom = clamp(rainfall, 0.0f, 1.0f)*tempBottom;
+        float tempBottom = clamp(temperature, 0.0f, 1.0f);
+        float rainfallBottom = clamp(rainfall, 0.0f, 1.0f)*tempBottom;
 
-            _biomes[id].foliageBottom = foliage[Vec2f(1.0f - tempBottom, rainfallBottom)];
-            _biomes[id].grassBottom   = grass  [Vec2f(1.0f - tempBottom, rainfallBottom)];
-            _biomes[id].foliageTop    = foliage[Vec2f(1.0f, 0.0f)];
-            _biomes[id].grassTop      = grass  [Vec2f(1.0f, 0.0f)];
-            _biomes[id].height        = tempBottom/coolingRate;
-        }
-    });
+        _biomes[id].foliageBottom = foliage[Vec2f(1.0f - tempBottom, rainfallBottom)];
+        _biomes[id].grassBottom   = grass  [Vec2f(1.0f - tempBottom, rainfallBottom)];
+        _biomes[id].foliageTop    = foliage[Vec2f(1.0f, 0.0f)];
+        _biomes[id].grassTop      = grass  [Vec2f(1.0f, 0.0f)];
+        _biomes[id].height        = tempBottom/coolingRate;
+    }
 
     // Swampland. We're not going to do Perlin noise, so constant color will have to do
     _biomes[6].foliageBottom = _biomes[6].foliageTop = Vec3f(0.41f, 0.43f, 0.22f);
@@ -445,24 +441,23 @@ void ResourcePackLoader::generateBiomeColors()
 
 void ResourcePackLoader::loadEmitters()
 {
-    JsonDocument document(resolvePath(emitterPath), [&](JsonValue value) {
-        for (unsigned i = 0; i < value.size(); ++i) {
-            std::string texture, mask;
-            float primaryScale = 1.0f;
-            float secondaryScale = 1.0f;
+    JsonDocument document(resolvePath(emitterPath));
+    for (unsigned i = 0; i < document.size(); ++i) {
+        std::string texture, mask;
+        float primaryScale = 1.0f;
+        float secondaryScale = 1.0f;
 
-            if (!value[i].getField("texture", texture))
-                continue;
+        if (!document[i].getField("texture", texture))
+            continue;
 
-            value[i].getField("mask", mask);
-            value[i].getField("primary_scale", primaryScale);
-            value[i].getField("secondary_scale", secondaryScale);
+        document[i].getField("mask", mask);
+        document[i].getField("primary_scale", primaryScale);
+        document[i].getField("secondary_scale", secondaryScale);
 
-            _emitters.insert(std::make_pair(std::move(texture), EmitterInfo{
-                primaryScale, secondaryScale, mask
-            }));
-        }
-    });
+        _emitters.insert(std::make_pair(std::move(texture), EmitterInfo{
+            primaryScale, secondaryScale, mask
+        }));
+    }
 }
 
 static const ModelRef *selectModel(const std::vector<ModelRef> &models, int idx, const float *randSource)

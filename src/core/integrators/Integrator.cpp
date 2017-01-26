@@ -135,22 +135,16 @@ bool Integrator::resumeRender(Scene &scene)
     if (!in)
         return false;
 
+    JsonDocument document(file, FileUtils::streamRead<std::string>(in));
     bool adaptiveSampling, stratifiedSampler;
+    if (!document.getField("adaptive_sampling", adaptiveSampling)
+            || adaptiveSampling != _scene->rendererSettings().useAdaptiveSampling())
+        return false;
+    if (!document.getField("stratified_sampler", stratifiedSampler)
+            || stratifiedSampler != _scene->rendererSettings().useSobol())
+        return false;
     uint32 jsonSpp;
-    bool jsonValid = true;
-
-    std::string json = FileUtils::streamRead<std::string>(in);
-    JsonDocument document(file, json, [&](JsonValue value) {
-        if (!value.getField("adaptive_sampling", adaptiveSampling)
-                || adaptiveSampling != _scene->rendererSettings().useAdaptiveSampling())
-            jsonValid = false;
-        if (!value.getField("stratified_sampler", stratifiedSampler)
-                || stratifiedSampler != _scene->rendererSettings().useSobol())
-            jsonValid = false;
-        if (!value.getField("current_spp", jsonSpp))
-            jsonValid = false;
-    });
-    if (!jsonValid)
+    if (!document.getField("current_spp", jsonSpp))
         return false;
 
     uint64 jsonHash;

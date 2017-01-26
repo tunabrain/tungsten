@@ -5,6 +5,7 @@
 #include "math/Vec.hpp"
 
 #include <rapidjson/document.h>
+#include <tinyformat/tinyformat.hpp>
 
 namespace Tungsten {
 
@@ -15,19 +16,21 @@ class Path;
 class JsonValue
 {
     friend JsonValueIterator;
+    friend JsonDocument;
 
+protected:
     const JsonDocument *_document;
     const rapidjson::Value *_value;
-
-public:
-    JsonValue()
-    : JsonValue(nullptr, nullptr)
-    {
-    }
 
     JsonValue(const JsonDocument *document, const rapidjson::Value *value)
     : _document(document),
       _value(value)
+    {
+    }
+
+public:
+    JsonValue()
+    : JsonValue(nullptr, nullptr)
     {
     }
 
@@ -48,9 +51,9 @@ public:
         if (!_value->IsArray()) {
             dst = Vec<ElementType, Size>(cast<ElementType>());
         } else {
-            //TODO error
-            //ASSERT(_value->Size() == Size,
-            //    "Cannot convert Json Array to vector: Invalid size. Expected %d, received %d", Size, _value->Size());
+            if (size() != Size)
+                parseError(tfm::format("Trying to parse a Vec%d, but this array has the wrong size "
+                        "(need %d elements, received %d)", Size, Size, size()));
 
             for (unsigned i = 0; i < Size; ++i)
                 dst[i] = (*this)[i].cast<ElementType>();
@@ -103,9 +106,11 @@ public:
 
     JsonValue getRequiredMember(const char *field) const
     {
+        if (!isObject())
+            parseError("Type mismatch: Expecting a JSON object here");
         if (auto result = operator [](field))
             return result;
-        // TODO error
+        parseError(tfm::format("Object is missing required field \"%s\"", field));
     }
 
     unsigned size() const
@@ -114,6 +119,8 @@ public:
             return 0;
         return _value->Size();
     }
+
+    [[noreturn]] void parseError(std::string description) const;
 
     operator bool() const { return _value != nullptr; }
 
