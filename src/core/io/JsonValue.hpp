@@ -124,10 +124,10 @@ public:
 
     operator bool() const { return _value != nullptr; }
 
-    bool isObject() const { return _value->IsObject(); }
-    bool isArray () const { return _value->IsArray (); }
-    bool isString() const { return _value->IsString(); }
-    bool isNumber() const { return _value->IsNumber(); }
+    bool isObject() const { return _value && _value->IsObject(); }
+    bool isArray () const { return _value && _value->IsArray (); }
+    bool isString() const { return _value && _value->IsString(); }
+    bool isNumber() const { return _value && _value->IsNumber(); }
 
     JsonValueIterator begin() const;
     JsonValueIterator   end() const;
