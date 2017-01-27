@@ -42,6 +42,7 @@ public:
     void get(uint64 &dst) const;
     void get(int64 &dst) const;
     void get(std::string &dst) const;
+    void get(const char *&dst) const;
     void get(Mat4f &dst) const;
     void get(Path &dst) const;
 

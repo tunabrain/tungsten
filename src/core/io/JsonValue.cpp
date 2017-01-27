@@ -62,6 +62,11 @@ void JsonValue::get(int64 &dst) const
 
 void JsonValue::get(std::string &dst) const
 {
+    dst = cast<const char *>();
+}
+
+void JsonValue::get(const char *&dst) const
+{
     if (isString())
         dst = _value->GetString();
     else
