@@ -17,7 +17,7 @@ static inline T sgnE(T val) {
 }
 
 RoughDielectricBsdf::RoughDielectricBsdf()
-: _distributionName("ggx"),
+: _distribution("ggx"),
   _roughness(std::make_shared<ConstantTexture>(0.1f)),
   _ior(1.5f),
   _enableT(true)
@@ -29,7 +29,7 @@ void RoughDielectricBsdf::fromJson(JsonValue value, const Scene &scene)
 {
     Bsdf::fromJson(value, scene);
     value.getField("ior", _ior);
-    value.getField("distribution", _distributionName);
+    _distribution = value["distribution"];
     value.getField("enable_refraction", _enableT);
 
     if (auto roughness = value["roughness"])
@@ -39,9 +39,6 @@ void RoughDielectricBsdf::fromJson(JsonValue value, const Scene &scene)
         _lobes = BsdfLobes(BsdfLobes::GlossyReflectionLobe | BsdfLobes::GlossyTransmissionLobe);
     else
         _lobes = BsdfLobes(BsdfLobes::GlossyReflectionLobe);
-
-    // Fail early in case of invalid distribution name
-    prepareForRender();
 }
 
 rapidjson::Value RoughDielectricBsdf::toJson(Allocator &allocator) const
@@ -49,7 +46,7 @@ rapidjson::Value RoughDielectricBsdf::toJson(Allocator &allocator) const
     return JsonObject{Bsdf::toJson(allocator), allocator,
         "type", "rough_dielectric",
         "ior", _ior,
-        "distribution", _distributionName,
+        "distribution", _distribution.toString(),
         "enable_refraction", _enableT,
         "roughness", *_roughness
     };
@@ -243,7 +240,6 @@ float RoughDielectricBsdf::eta(const SurfaceScatterEvent &event) const
 
 void RoughDielectricBsdf::prepareForRender()
 {
-    _distribution = Microfacet::stringToType(_distributionName);
     _invIor = 1.0f/_ior;
 }
 

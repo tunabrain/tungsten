@@ -8,13 +8,12 @@ namespace Tungsten {
 
 class RoughConductorBsdf : public Bsdf
 {
-    std::string _distributionName;
+    Microfacet::Distribution _distribution;
     std::string _materialName;
     std::shared_ptr<Texture> _roughness;
     Vec3f _eta;
     Vec3f _k;
 
-    Microfacet::Distribution _distribution;
 
     void lookupMaterial();
 
@@ -28,11 +27,9 @@ public:
     virtual Vec3f eval(const SurfaceScatterEvent &event) const override;
     virtual float pdf(const SurfaceScatterEvent &event) const override;
 
-    virtual void prepareForRender() override;
-
-    const std::string &distributionName() const
+    const char *distributionName() const
     {
-        return _distributionName;
+        return _distribution.toString();
     }
 
     Vec3f eta() const
@@ -57,7 +54,7 @@ public:
 
     void setDistributionName(const std::string &distributionName)
     {
-        _distributionName = distributionName;
+        _distribution = distributionName;
     }
 
     void setEta(Vec3f eta)

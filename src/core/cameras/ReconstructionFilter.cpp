@@ -4,27 +4,17 @@
 
 namespace Tungsten {
 
-ReconstructionFilter::Type ReconstructionFilter::stringToType(const std::string &s)
-{
-    if (s == "dirac")
-        return Dirac;
-    if (s == "box")
-        return Box;
-    if (s == "tent")
-        return Tent;
-    if (s == "gaussian")
-        return Gaussian;
-    if (s == "mitchell_netravali")
-        return MitchellNetravali;
-    if (s == "catmull_rom")
-        return CatmullRom;
-    if (s == "lanczos")
-        return Lanczos;
-    FAIL("Invalid reconstruction filter: '%s'", s.c_str());
-    return Box;
-}
+DECLARE_STRINGABLE_ENUM(ReconstructionFilter::Type, "reconstruction filter", ({
+    {"dirac", ReconstructionFilter::Dirac},
+    {"box", ReconstructionFilter::Box},
+    {"tent", ReconstructionFilter::Tent},
+    {"gaussian", ReconstructionFilter::Gaussian},
+    {"mitchell_netravali", ReconstructionFilter::MitchellNetravali},
+    {"catmull_rom", ReconstructionFilter::CatmullRom},
+    {"lanczos", ReconstructionFilter::Lanczos}
+}))
 
-float ReconstructionFilter::filterWidth(Type type)
+float ReconstructionFilter::filterWidth(TypeEnum type)
 {
     switch (type) {
     case Dirac:

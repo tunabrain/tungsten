@@ -13,7 +13,7 @@
 namespace Tungsten {
 
 RoughConductorBsdf::RoughConductorBsdf()
-: _distributionName("ggx"),
+: _distribution("ggx"),
   _materialName("Cu"),
   _roughness(std::make_shared<ConstantTexture>(0.1f)),
   _eta(0.200438f, 0.924033f, 1.10221f),
@@ -35,22 +35,19 @@ void RoughConductorBsdf::fromJson(JsonValue value, const Scene &scene)
     Bsdf::fromJson(value, scene);
     if (value.getField("eta", _eta) && value.getField("k", _k))
         _materialName.clear();
-    value.getField("distribution", _distributionName);
+    _distribution = value["distribution"];
     if (value.getField("material", _materialName))
         lookupMaterial();
 
     if (auto roughness = value["roughness"])
         _roughness = scene.fetchTexture(roughness, TexelConversion::REQUEST_AVERAGE);
-
-    // Fail early in case of invalid distribution name
-    prepareForRender();
 }
 
 rapidjson::Value RoughConductorBsdf::toJson(Allocator &allocator) const
 {
     JsonObject result{Bsdf::toJson(allocator), allocator,
         "type", "rough_conductor",
-        "distribution", _distributionName,
+        "distribution", _distribution.toString(),
         "roughness", *_roughness
     };
     if (_materialName.empty())
@@ -128,11 +125,6 @@ float RoughConductorBsdf::pdf(const SurfaceScatterEvent &event) const
 
     Vec3f hr = (event.wi + event.wo).normalized();
     return Microfacet::pdf(_distribution, sampleAlpha, hr)*0.25f/event.wi.dot(hr);
-}
-
-void RoughConductorBsdf::prepareForRender()
-{
-    _distribution = Microfacet::stringToType(_distributionName);
 }
 
 }

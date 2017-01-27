@@ -17,7 +17,7 @@ RoughCoatBsdf::RoughCoatBsdf()
   _thickness(1.0f),
   _sigmaA(0.0f),
   _substrate(std::make_shared<RoughConductorBsdf>()),
-  _distributionName("ggx"),
+  _distribution("ggx"),
   _roughness(std::make_shared<ConstantTexture>(0.02f))
 {
 }
@@ -28,12 +28,9 @@ void RoughCoatBsdf::fromJson(JsonValue value, const Scene &scene)
     value.getField("ior", _ior);
     value.getField("thickness", _thickness);
     value.getField("sigma_a", _sigmaA);
-    value.getField("distribution", _distributionName);
+    _distribution = value["distribution"];
     if (auto roughness = value["roughness"]) _roughness = scene.fetchTexture(roughness, TexelConversion::REQUEST_AVERAGE);
     if (auto substrate = value["substrate"]) _substrate = scene.fetchBsdf(substrate);
-
-    // Fail early in case of invalid distribution name
-    prepareForRender();
 }
 
 rapidjson::Value RoughCoatBsdf::toJson(Allocator &allocator) const
@@ -44,7 +41,7 @@ rapidjson::Value RoughCoatBsdf::toJson(Allocator &allocator) const
         "thickness", _thickness,
         "sigma_a", _sigmaA,
         "substrate", *_substrate,
-        "distribution", _distributionName,
+        "distribution", _distribution.toString(),
         "roughness", *_roughness
     };
 }
@@ -245,7 +242,6 @@ void RoughCoatBsdf::prepareForRender()
 {
     _scaledSigmaA = _thickness*_sigmaA;
     _avgTransmittance = std::exp(-2.0f*_scaledSigmaA.avg());
-    _distribution = Microfacet::stringToType(_distributionName);
     _lobes = BsdfLobes(BsdfLobes::GlossyReflectionLobe, _substrate->lobes());
 }
 

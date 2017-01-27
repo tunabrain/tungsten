@@ -13,13 +13,12 @@ class RoughPlasticBsdf : public Bsdf
     float _ior;
     float _thickness;
     Vec3f _sigmaA;
-    std::string _distributionName;
+    Microfacet::Distribution _distribution;
     std::shared_ptr<Texture> _roughness;
 
     float _diffuseFresnel;
     float _avgTransmittance;
     Vec3f _scaledSigmaA;
-    Microfacet::Distribution _distribution;
 
 public:
     RoughPlasticBsdf();
@@ -33,9 +32,9 @@ public:
 
     virtual void prepareForRender() override;
 
-    const std::string &distributionName() const
+    const char *distributionName() const
     {
-        return _distributionName;
+        return _distribution.toString();
     }
 
     float ior() const
@@ -60,7 +59,7 @@ public:
 
     void setDistributionName(const std::string &distributionName)
     {
-        _distributionName = distributionName;
+        _distribution = distributionName;
     }
 
     void setIor(float ior)

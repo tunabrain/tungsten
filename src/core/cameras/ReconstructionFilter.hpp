@@ -7,7 +7,7 @@
 #include "math/Angle.hpp"
 #include "math/Vec.hpp"
 
-#include "Debug.hpp"
+#include "StringableEnum.hpp"
 
 #include <memory>
 
@@ -17,7 +17,8 @@ namespace Tungsten {
 
 class ReconstructionFilter
 {
-    enum Type {
+    enum TypeEnum
+    {
         Dirac,
         Box,
         Tent,
@@ -27,10 +28,11 @@ class ReconstructionFilter
         Lanczos,
     };
 
-    static Type stringToType(const std::string &s);
-    static float filterWidth(Type type);
+    typedef StringableEnum<TypeEnum> Type;
+    friend Type;
 
-    std::string _typeString;
+    static float filterWidth(TypeEnum type);
+
     Type _type;
 
     float _width;
@@ -100,12 +102,8 @@ class ReconstructionFilter
     }
 
 public:
-    ReconstructionFilter(const std::string &name = "tent")
-    : _typeString(name),
-      _type(stringToType(name))
-    {
-        precompute();
-    }
+    ReconstructionFilter(const std::string &name = "tent") : _type(name ) { precompute(); }
+    ReconstructionFilter(JsonValue value)                  : _type(value) { precompute(); }
 
     inline Vec2f sample(Vec2f uv, float &pdf) const
     {
@@ -159,9 +157,9 @@ public:
         return _width;
     }
 
-    const std::string &name() const
+    const char *name() const
     {
-        return _typeString;
+        return _type.toString();
     }
 
     bool isDirac() const

@@ -12,12 +12,11 @@ class RoughCoatBsdf : public Bsdf
     float _thickness;
     Vec3f _sigmaA;
     std::shared_ptr<Bsdf> _substrate;
-    std::string _distributionName;
+    Microfacet::Distribution _distribution;
     std::shared_ptr<Texture> _roughness;
 
     float _avgTransmittance;
     Vec3f _scaledSigmaA;
-    Microfacet::Distribution _distribution;
 
 public:
     RoughCoatBsdf();
@@ -35,9 +34,9 @@ public:
 
     virtual void prepareForRender() override;
 
-    const std::string &distributionName() const
+    const char *distributionName() const
     {
-        return _distributionName;
+        return _distribution.toString();
     }
 
     float ior() const
@@ -67,7 +66,7 @@ public:
 
     void setDistributionName(const std::string &distributionName)
     {
-        _distributionName = distributionName;
+        _distribution = distributionName;
     }
 
     void setIor(float ior)

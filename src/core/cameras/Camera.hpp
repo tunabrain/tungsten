@@ -32,8 +32,6 @@ class SampleGenerator;
 
 class Camera : public JsonSerializable
 {
-    std::string _tonemapString;
-
     Tonemap::Type _tonemapOp;
 
 protected:
@@ -236,7 +234,7 @@ public:
 
     void setTonemapString(const std::string &name)
     {
-        _tonemapString = name;
+        _tonemapOp = name;
     }
 };
 

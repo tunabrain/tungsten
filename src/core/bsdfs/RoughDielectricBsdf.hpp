@@ -8,14 +8,13 @@ namespace Tungsten {
 
 class RoughDielectricBsdf : public Bsdf
 {
-    std::string _distributionName;
+    Microfacet::Distribution _distribution;
 
     std::shared_ptr<Texture> _roughness;
     float _ior;
     float _invIor;
     bool _enableT;
 
-    Microfacet::Distribution _distribution;
 
 public:
     RoughDielectricBsdf();
@@ -39,9 +38,9 @@ public:
 
     virtual void prepareForRender() override;
 
-    const std::string &distributionName() const
+    const char *distributionName() const
     {
-        return _distributionName;
+        return _distribution.toString();
     }
 
     float ior() const
@@ -61,7 +60,7 @@ public:
 
     void setDistributionName(const std::string &distributionName)
     {
-        _distributionName = distributionName;
+        _distribution = distributionName;
     }
 
     void setIor(float ior)

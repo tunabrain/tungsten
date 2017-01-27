@@ -146,7 +146,7 @@ int main(int argc, const char *argv[])
     Tonemap::Type tonemap = Tonemap::GammaOnly;
     if (parser.isPresent(OPT_TONEMAP)) {
         try {
-            tonemap = Tonemap::stringToType(parser.param(OPT_TONEMAP));
+            tonemap = parser.param(OPT_TONEMAP);
         } catch(const std::runtime_error &) {
             parser.fail("Invalid tonemapping operator: %s", parser.param(OPT_TONEMAP));
         }

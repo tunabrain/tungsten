@@ -19,7 +19,7 @@ Camera::Camera()
 }
 
 Camera::Camera(const Mat4f &transform, const Vec2u &res)
-: _tonemapString("gamma"),
+: _tonemapOp("gamma"),
   _transform(transform),
   _res(res)
 {
@@ -36,7 +36,6 @@ Camera::Camera(const Mat4f &transform, const Vec2u &res)
 
 void Camera::precompute()
 {
-    _tonemapOp = Tonemap::stringToType(_tonemapString);
     _ratio = _res.y()/float(_res.x());
     _pixelSize = Vec2f(1.0f/_res.x(), 1.0f/_res.y());
     _invTransform = _transform.pseudoInvert();
@@ -44,15 +43,14 @@ void Camera::precompute()
 
 void Camera::fromJson(JsonValue value, const Scene &scene)
 {
-    value.getField("tonemap", _tonemapString);
+    _tonemapOp = value["tonemap"];
     value.getField("resolution", _res);
 
     if (auto medium = value["medium"])
         _medium = scene.fetchMedium(medium);
 
-    std::string filter;
-    if (value.getField("reconstruction_filter", filter))
-        _filter = ReconstructionFilter(filter);
+    if (auto filter = value["reconstruction_filter"])
+        _filter = filter;
 
     if (auto transform = value["transform"]) {
         transform.get(_transform);
@@ -72,7 +70,7 @@ void Camera::fromJson(JsonValue value, const Scene &scene)
 rapidjson::Value Camera::toJson(Allocator &allocator) const
 {
     JsonObject result{JsonSerializable::toJson(allocator), allocator,
-        "tonemap", _tonemapString,
+        "tonemap", _tonemapOp.toString(),
         "resolution", _res,
         "reconstruction_filter", _filter.name(),
         "transform", JsonObject{allocator,

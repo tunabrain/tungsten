@@ -5,7 +5,7 @@
 
 #include "io/JsonObject.hpp"
 
-#include "Debug.hpp"
+#include <tinyformat/tinyformat.hpp>
 
 namespace Tungsten {
 
@@ -52,7 +52,7 @@ struct PhotonMapSettings : public TraceSettings
             // Set default value to something more sensible for photon beams
             volumeGatherRadius = 0.01f;
         } else {
-            DBG("Unknown volume photon type '%s'", volumePhotonTypeString);
+            value.parseError(tfm::format("Unknown volume photon type: '%s'", volumePhotonTypeString));
             volumePhotonType = VOLUME_POINTS;
         }
         bool gatherRadiusSet = value.getField("gather_radius", gatherRadius);

@@ -52,32 +52,23 @@ static const int BasisIndexV[][6] = {
     {NegY, NegY, PosZ, NegZ, NegY, NegY},
 };
 
+DECLARE_STRINGABLE_ENUM(CubemapCamera::ProjectionMode, "projection mode", ({
+    {"horizontal_cross", CubemapCamera::MODE_HORIZONTAL_CROSS},
+    {"vertical_cross", CubemapCamera::MODE_VERTICAL_CROSS},
+    {"row", CubemapCamera::MODE_ROW},
+    {"column", CubemapCamera::MODE_COLUMN}
+}))
+
 CubemapCamera::CubemapCamera()
 : Camera(),
-  _modeString("horizontal_cross")
+  _mode("horizontal_cross")
 {
-    init();
 }
 
 CubemapCamera::CubemapCamera(const Mat4f &transform, const Vec2u &res)
 : Camera(transform, res),
-  _modeString("horizontal_cross")
+  _mode("horizontal_cross")
 {
-    init();
-}
-
-void CubemapCamera::init()
-{
-    if (_modeString == "horizontal_cross")
-        _mode = MODE_HORIZONTAL_CROSS;
-    else if (_modeString == "vertical_cross")
-        _mode = MODE_VERTICAL_CROSS;
-    else if (_modeString == "row")
-        _mode = MODE_ROW;
-    else if (_modeString == "column")
-        _mode = MODE_COLUMN;
-    else
-        FAIL("Unkown projection mode '%s'", _modeString);
 }
 
 inline void CubemapCamera::directionToFace(const Vec3f &d, int &face, Vec2f &offset) const
@@ -133,15 +124,14 @@ inline Vec3f CubemapCamera::uvToDirection(int face, Vec2f uv, float &pdf) const
 void CubemapCamera::fromJson(JsonValue value, const Scene &scene)
 {
     Camera::fromJson(value, scene);
-    value.getField("mode", _modeString);
-    init();
+    _mode = value["mode"];
 }
 
 rapidjson::Value CubemapCamera::toJson(Allocator &allocator) const
 {
     return JsonObject{Camera::toJson(allocator), allocator,
         "type", "cubemap",
-        "mode", _modeString
+        "mode", _mode.toString()
     };
 }
 

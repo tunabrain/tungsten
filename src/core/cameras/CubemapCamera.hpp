@@ -3,6 +3,8 @@
 
 #include "Camera.hpp"
 
+#include "StringableEnum.hpp"
+
 #include <array>
 
 namespace Tungsten {
@@ -11,15 +13,15 @@ class Scene;
 
 class CubemapCamera : public Camera
 {
-    enum ProjectionMode
+    enum ProjectionModeEnum
     {
         MODE_HORIZONTAL_CROSS,
         MODE_VERTICAL_CROSS,
         MODE_ROW,
         MODE_COLUMN,
     };
-
-    std::string _modeString;
+    typedef StringableEnum<ProjectionModeEnum> ProjectionMode;
+    friend ProjectionMode;
 
     ProjectionMode _mode;
     Mat4f _rot;
@@ -29,8 +31,6 @@ class CubemapCamera : public Camera
     std::array<Vec2f, 6> _faceOffset;
     float _visibleArea;
     Vec2f _faceSize;
-
-    void init();
 
     inline void directionToFace(const Vec3f &d, int &face, Vec2f &offset) const;
     inline Vec3f faceToDirection(int face, Vec2f offset) const;

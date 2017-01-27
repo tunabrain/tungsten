@@ -4,35 +4,24 @@
 #include "math/MathUtil.hpp"
 #include "math/Vec.hpp"
 
-#include "Debug.hpp"
+#include "StringableEnum.hpp"
 
 namespace Tungsten {
 
 class Tonemap
 {
-public:
-    enum Type {
+    enum TypeEnum {
         LinearOnly,
         GammaOnly,
         Reinhard,
         Filmic
     };
 
-    static Type stringToType(const std::string &s)
-    {
-        if (s == "linear")
-            return LinearOnly;
-        else if (s == "gamma")
-            return GammaOnly;
-        else if (s == "reinhard")
-            return Reinhard;
-        else if (s == "filmic")
-            return Filmic;
-        FAIL("Invalid tonemap operator: '%s'", s.c_str());
-        return GammaOnly;
-    }
+public:
+    typedef StringableEnum<TypeEnum> Type;
+    friend Type;
 
-    static inline Vec3f tonemap(Type type, const Vec3f &c)
+    static inline Vec3f tonemap(TypeEnum type, const Vec3f &c)
     {
         switch (type) {
         case LinearOnly:

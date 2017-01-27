@@ -17,6 +17,13 @@
 
 namespace Tungsten {
 
+DECLARE_STRINGABLE_ENUM(Curves::CurveMode, "curve mode", ({
+    {"cylinder", Curves::MODE_CYLINDER},
+    {"half_cylinder", Curves::MODE_HALF_CYLINDER},
+    {"bcsdf_cylinder", Curves::MODE_BCSDF_CYLINDER},
+    {"ribbon", Curves::MODE_RIBBON}
+}))
+
 struct CurveIntersection
 {
     uint32 curveP0;
@@ -229,24 +236,22 @@ static Box3f curveBox(const Vec4f &q0, const Vec4f &q1, const Vec4f &q2)
 }
 
 Curves::Curves()
-: _modeString("half_cylinder"),
+: _mode("half_cylinder"),
   _curveThickness(0.01f),
   _subsample(0.0f),
   _overrideThickness(false),
   _taperThickness(false),
   _bsdf(std::make_shared<HairBcsdf>())
 {
-    init();
 }
 
 Curves::Curves(const Curves &o)
 : Primitive(o)
 {
-    _modeString        = o._modeString;
+    _mode              = o._mode;
     _curveThickness    = o._curveThickness;
     _taperThickness    = o._taperThickness;
     _overrideThickness = o._overrideThickness;
-    _mode              = o._mode;
     _path              = o._path;
     _curveCount        = o._curveCount;
     _nodeCount         = o._nodeCount;
@@ -262,7 +267,7 @@ Curves::Curves(const Curves &o)
 Curves::Curves(std::vector<uint32> curveEnds, std::vector<Vec4f> nodeData, std::shared_ptr<Bsdf> bsdf, std::string name)
 : Primitive(name),
   _path(std::make_shared<Path>(name.append(".fiber"))),
-  _modeString("half_cylinder"),
+  _mode("half_cylinder"),
   _curveThickness(0.01f),
   _overrideThickness(false),
   _taperThickness(false),
@@ -272,21 +277,6 @@ Curves::Curves(std::vector<uint32> curveEnds, std::vector<Vec4f> nodeData, std::
   _nodeData(std::move(nodeData)),
   _bsdf(std::move(bsdf))
 {
-    init();
-}
-
-void Curves::init()
-{
-    if (_modeString == "cylinder")
-        _mode = MODE_CYLINDER;
-    else if (_modeString == "half_cylinder")
-        _mode = MODE_HALF_CYLINDER;
-    else if (_modeString == "bcsdf_cylinder")
-        _mode = MODE_BCSDF_CYLINDER;
-    else if (_modeString == "ribbon")
-        _mode = MODE_RIBBON;
-    else
-        FAIL("Unkown mode type curve mode '%s'", _modeString);
 }
 
 void Curves::loadCurves()
@@ -385,12 +375,10 @@ void Curves::fromJson(JsonValue value, const Scene &scene)
     Primitive::fromJson(value, scene);
     if (auto path = value["file"]) _path = scene.fetchResource(path);
     if (auto bsdf = value["bsdf"]) _bsdf = scene.fetchBsdf(bsdf);
-    value.getField("mode", _modeString);
+    _mode = value["mode"];
     value.getField("curve_taper", _taperThickness);
     value.getField("subsample", _subsample);
     _overrideThickness = value.getField("curve_thickness", _curveThickness);
-
-    init();
 }
 
 rapidjson::Value Curves::toJson(Allocator &allocator) const
@@ -399,7 +387,7 @@ rapidjson::Value Curves::toJson(Allocator &allocator) const
         "type", "curves",
         "curve_taper", _taperThickness,
         "subsample", _subsample,
-        "mode", _modeString,
+        "mode", _mode.toString(),
         "bsdf", *_bsdf
     };
     if (_path)

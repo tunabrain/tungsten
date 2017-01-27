@@ -7,6 +7,8 @@
 
 #include "io/Path.hpp"
 
+#include "StringableEnum.hpp"
+
 #include <memory>
 #include <vector>
 
@@ -17,22 +19,22 @@ class Scene;
 
 class Curves : public Primitive
 {
-    enum CurveMode
+    enum CurveModeEnum
     {
         MODE_HALF_CYLINDER,
         MODE_BCSDF_CYLINDER,
         MODE_CYLINDER,
         MODE_RIBBON
     };
+    typedef StringableEnum<CurveModeEnum> CurveMode;
+    friend CurveMode;
 
     PathPtr _path;
-    std::string _modeString;
+    CurveMode _mode;
     float _curveThickness;
     float _subsample;
     bool _overrideThickness;
     bool _taperThickness;
-
-    CurveMode _mode;
 
     uint32 _curveCount;
     uint32 _nodeCount;
@@ -49,7 +51,6 @@ class Curves : public Primitive
 
     std::unique_ptr<Bvh::BinaryBvh> _bvh;
 
-    void init();
     void loadCurves();
     void computeBounds();
     void buildProxy();

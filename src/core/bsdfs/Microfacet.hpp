@@ -5,33 +5,24 @@
 #include "math/Angle.hpp"
 #include "math/Vec.hpp"
 
-#include "Debug.hpp"
+#include "StringableEnum.hpp"
 
 namespace Tungsten {
 
 class Microfacet
 {
-public:
-    enum Distribution
+    enum DistributionEnum
     {
         Beckmann,
         Phong,
         GGX
     };
 
-    static Distribution stringToType(const std::string &name)
-    {
-        if (name == "beckmann")
-            return Beckmann;
-        else if (name == "phong")
-            return Phong;
-        else if (name == "ggx")
-            return GGX;
-        FAIL("Invalid microfacet distribution: '%s'", name.c_str());
-        return Beckmann;
-    }
+public:
+    typedef StringableEnum<DistributionEnum> Distribution;
+    friend Distribution;
 
-    static float roughnessToAlpha(Distribution dist, float roughness)
+    static float roughnessToAlpha(DistributionEnum dist, float roughness)
     {
         CONSTEXPR float MinAlpha = 1e-3f;
         roughness = max(roughness, MinAlpha);
@@ -42,7 +33,7 @@ public:
             return roughness;
     }
 
-    static float D(Distribution dist, float alpha, const Vec3f &m)
+    static float D(DistributionEnum dist, float alpha, const Vec3f &m)
     {
         if (m.z() <= 0.0f)
             return 0.0f;
@@ -69,7 +60,7 @@ public:
         return 0.0f;
     }
 
-    static float G1(Distribution dist, float alpha, const Vec3f &v, const Vec3f &m)
+    static float G1(DistributionEnum dist, float alpha, const Vec3f &v, const Vec3f &m)
     {
         if (v.dot(m)*v.z() <= 0.0f)
             return 0.0f;
@@ -102,17 +93,17 @@ public:
         return 0.0f;
     }
 
-    static float G(Distribution dist, float alpha, const Vec3f &i, const Vec3f &o, const Vec3f &m)
+    static float G(DistributionEnum dist, float alpha, const Vec3f &i, const Vec3f &o, const Vec3f &m)
     {
         return G1(dist, alpha, i, m)*G1(dist, alpha, o, m);
     }
 
-    static float pdf(Distribution dist, float alpha, const Vec3f &m)
+    static float pdf(DistributionEnum dist, float alpha, const Vec3f &m)
     {
         return D(dist, alpha, m)*m.z();
     }
 
-    static Vec3f sample(Distribution dist, float alpha, Vec2f xi)
+    static Vec3f sample(DistributionEnum dist, float alpha, Vec2f xi)
     {
         float phi = xi.y()*TWO_PI;
         float cosTheta = 0.0f;
