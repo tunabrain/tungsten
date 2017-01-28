@@ -2,116 +2,52 @@
 #define OUTPUTBUFFERSETTINGS_HPP_
 
 #include "io/JsonSerializable.hpp"
-#include "io/JsonObject.hpp"
-#include "io/FileUtils.hpp"
+#include "io/Path.hpp"
+
+#include "StringableEnum.hpp"
 
 namespace Tungsten {
 
-enum OutputBufferType
+enum OutputBufferTypeEnum
 {
     OutputColor      = 0,
     OutputDepth      = 1,
     OutputNormal     = 2,
     OutputAlbedo     = 3,
     OutputVisibility = 4,
-    OutputUnknown    = 5,
 };
 
 class OutputBufferSettings : public JsonSerializable
 {
-    std::string _typeString;
-    OutputBufferType _type;
+    typedef StringableEnum<OutputBufferTypeEnum> Type;
+    friend Type;
+
+    Type _type;
     Path _ldrOutputFile;
     Path _hdrOutputFile;
     Path _outputDirectory;
     bool _twoBufferVariance;
     bool _sampleVariance;
 
-    static std::string typeToString(OutputBufferType type)
-    {
-        switch (type) {
-        case OutputColor:      return "color";
-        case OutputDepth:      return "depth";
-        case OutputNormal:     return "normal";
-        case OutputAlbedo:     return "albedo";
-        case OutputVisibility: return "visibility";
-        default:               return "unknown";
-        }
-    }
-
-    static OutputBufferType stringToType(const std::string &typeString)
-    {
-        if (typeString == "color")
-            return OutputColor;
-        else if (typeString == "depth")
-            return OutputDepth;
-        else if (typeString == "normal")
-            return OutputNormal;
-        else if (typeString == "albedo")
-            return OutputAlbedo;
-        else if (typeString == "visibility")
-            return OutputVisibility;
-        return OutputUnknown;
-    }
-
 public:
-    OutputBufferSettings()
-    : _type(OutputUnknown),
-      _twoBufferVariance(false),
-      _sampleVariance(false)
-    {
-    }
+    OutputBufferSettings();
 
-    virtual void fromJson(JsonValue value, const Scene &/*scene*/) override
-    {
-        if (!value.getField("type", _typeString)) {
-            DBG("Warning: Missing output buffer type");
-        } else {
-            _type = stringToType(_typeString);
-            if (_type == OutputUnknown)
-                DBG("Warning: Unknown output buffer type '%s'", _typeString);
-        }
-        value.getField("ldr_output_file", _ldrOutputFile);
-        value.getField("hdr_output_file", _hdrOutputFile);
-        value.getField("two_buffer_variance", _twoBufferVariance);
-        value.getField("sample_variance", _sampleVariance);
-    }
+    virtual void fromJson(JsonValue value, const Scene &/*scene*/) override;
+    virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
-    virtual rapidjson::Value toJson(Allocator &allocator) const override
-    {
-        JsonObject result{JsonSerializable::toJson(allocator), allocator,
-            "two_buffer_variance", _twoBufferVariance,
-            "sample_variance", _sampleVariance
-        };
-        if (!_typeString.empty())
-            result.add("type", _typeString);
-        if (!_ldrOutputFile.empty())
-            result.add("output_file", _ldrOutputFile);
-        if (!_hdrOutputFile.empty())
-            result.add("hdr_output_file", _hdrOutputFile);
+    void setOutputDirectory(const Path &directory);
 
-        return result;
-    }
-
-    void setOutputDirectory(const Path &directory)
-    {
-        _outputDirectory = directory;
-
-        _ldrOutputFile.setWorkingDirectory(_outputDirectory);
-        _hdrOutputFile.setWorkingDirectory(_outputDirectory);
-    }
-
-    void setType(OutputBufferType type)
+    void setType(OutputBufferTypeEnum type)
     {
         _type = type;
     }
 
-    const std::string &typeString() const
+    const char *typeString() const
     {
-        return _typeString;
+        return _type.toString();
     }
 
-    OutputBufferType type() const
+    Type type() const
     {
         return _type;
     }

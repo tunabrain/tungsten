@@ -7,6 +7,7 @@
 #include "math/Ray.hpp"
 
 #include "io/JsonSerializable.hpp"
+#include "io/FileUtils.hpp"
 #include "io/ImageIO.hpp"
 
 #include "Memory.hpp"
