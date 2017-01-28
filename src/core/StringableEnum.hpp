@@ -50,6 +50,8 @@ class StringableEnum
 public:
     StringableEnum() = default;
 
+    StringableEnum(Enum t) : _t(t) {}
+
     StringableEnum(JsonValue value)
     {
         const char *name = value.cast<const char *>();
