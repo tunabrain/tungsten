@@ -51,11 +51,8 @@ void MixedBsdf::fromJson(JsonValue value, const Scene &scene)
 
     _bsdf0 = scene.fetchBsdf(value.getRequiredMember("bsdf0"));
     _bsdf1 = scene.fetchBsdf(value.getRequiredMember("bsdf1"));
-    if (_bsdf0.get() == this || _bsdf1.get() == this) {
-        DBG("Warning: Recursive mixed BSDF not supported");
-        _bsdf0 = scene.errorBsdf();
-        _bsdf1 = scene.errorBsdf();
-    }
+    if (_bsdf0.get() == this || _bsdf1.get() == this)
+        value.parseError("Recursive mixed BSDF not supported");
     if (auto ratio = value["ratio"])
         _ratio = scene.fetchTexture(ratio, TexelConversion::REQUEST_AVERAGE);
 }
