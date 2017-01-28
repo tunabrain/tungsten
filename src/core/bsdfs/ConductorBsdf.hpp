@@ -13,7 +13,7 @@ class ConductorBsdf : public Bsdf
     Vec3f _eta;
     Vec3f _k;
 
-    void lookupMaterial();
+    bool lookupMaterial();
 
 public:
     ConductorBsdf();
@@ -52,8 +52,10 @@ public:
 
     void setMaterialName(const std::string &materialName)
     {
+        const std::string &oldMaterial = _materialName;
         _materialName = materialName;
-        lookupMaterial();
+        if (!lookupMaterial())
+            _materialName = oldMaterial;
     }
 };
 

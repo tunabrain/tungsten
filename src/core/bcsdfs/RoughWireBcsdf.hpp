@@ -14,7 +14,7 @@ class RoughWireBcsdf : public Bsdf
 
     float _v;
 
-    void lookupMaterial();
+    bool lookupMaterial();
 
     static float I0(float x);
     static float logI0(float x);

@@ -15,7 +15,7 @@ class RoughConductorBsdf : public Bsdf
     Vec3f _k;
 
 
-    void lookupMaterial();
+    bool lookupMaterial();
 
 public:
     RoughConductorBsdf();
@@ -69,8 +69,10 @@ public:
 
     void setMaterialName(const std::string &materialName)
     {
+        const std::string &oldMaterial = _materialName;
         _materialName = materialName;
-        lookupMaterial();
+        if (!lookupMaterial())
+            _materialName = oldMaterial;
     }
 
     void setRoughness(const std::shared_ptr<Texture> &roughness)

@@ -10,6 +10,8 @@
 
 #include "io/JsonObject.hpp"
 
+#include <tinyformat/tinyformat.hpp>
+
 namespace Tungsten {
 
 RoughWireBcsdf::RoughWireBcsdf()
@@ -21,12 +23,9 @@ RoughWireBcsdf::RoughWireBcsdf()
     _lobes = BsdfLobes(BsdfLobes::GlossyLobe | BsdfLobes::AnisotropicLobe);
 }
 
-void RoughWireBcsdf::lookupMaterial()
+bool RoughWireBcsdf::lookupMaterial()
 {
-    if (!ComplexIorList::lookup(_materialName, _eta, _k)) {
-        DBG("Warning: Unable to find material with name '%s'. Using default", _materialName.c_str());
-        ComplexIorList::lookup("Cu", _eta, _k);
-    }
+    return ComplexIorList::lookup(_materialName, _eta, _k);
 }
 
 // Modified Bessel function of the first kind
@@ -101,8 +100,8 @@ void RoughWireBcsdf::fromJson(JsonValue value, const Scene &scene)
     value.getField("roughness", _roughness);
     if (value.getField("eta", _eta) && value.getField("k", _k))
         _materialName.clear();
-    if (value.getField("material", _materialName))
-        lookupMaterial();
+    if (value.getField("material", _materialName) && !lookupMaterial())
+        value.parseError(tfm::format("Unable to find material with name '%s'", _materialName));
 }
 
 rapidjson::Value RoughWireBcsdf::toJson(Allocator &allocator) const

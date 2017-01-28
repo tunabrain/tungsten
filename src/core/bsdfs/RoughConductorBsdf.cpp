@@ -10,6 +10,8 @@
 #include "io/JsonObject.hpp"
 #include "io/Scene.hpp"
 
+#include <tinyformat/tinyformat.hpp>
+
 namespace Tungsten {
 
 RoughConductorBsdf::RoughConductorBsdf()
@@ -22,12 +24,9 @@ RoughConductorBsdf::RoughConductorBsdf()
     _lobes = BsdfLobes::GlossyReflectionLobe;
 }
 
-void RoughConductorBsdf::lookupMaterial()
+bool RoughConductorBsdf::lookupMaterial()
 {
-    if (!ComplexIorList::lookup(_materialName, _eta, _k)) {
-        DBG("Warning: Unable to find material with name '%s'. Using default", _materialName.c_str());
-        ComplexIorList::lookup("Cu", _eta, _k);
-    }
+    return ComplexIorList::lookup(_materialName, _eta, _k);
 }
 
 void RoughConductorBsdf::fromJson(JsonValue value, const Scene &scene)
@@ -36,8 +35,8 @@ void RoughConductorBsdf::fromJson(JsonValue value, const Scene &scene)
     if (value.getField("eta", _eta) && value.getField("k", _k))
         _materialName.clear();
     _distribution = value["distribution"];
-    if (value.getField("material", _materialName))
-        lookupMaterial();
+    if (value.getField("material", _materialName) && !lookupMaterial())
+        value.parseError(tfm::format("Unable to find material with name '%s'", _materialName));
 
     if (auto roughness = value["roughness"])
         _roughness = scene.fetchTexture(roughness, TexelConversion::REQUEST_AVERAGE);

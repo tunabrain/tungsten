@@ -13,6 +13,7 @@
 
 #include "io/JsonObject.hpp"
 
+#include <tinyformat/tinyformat.hpp>
 #include <rapidjson/document.h>
 
 namespace Tungsten {
@@ -25,12 +26,9 @@ ConductorBsdf::ConductorBsdf()
     _lobes = BsdfLobes(BsdfLobes::SpecularReflectionLobe);
 }
 
-void ConductorBsdf::lookupMaterial()
+bool ConductorBsdf::lookupMaterial()
 {
-    if (!ComplexIorList::lookup(_materialName, _eta, _k)) {
-        DBG("Warning: Unable to find material with name '%s'. Using default", _materialName.c_str());
-        ComplexIorList::lookup("Cu", _eta, _k);
-    }
+    return ComplexIorList::lookup(_materialName, _eta, _k);
 }
 
 void ConductorBsdf::fromJson(JsonValue value, const Scene &scene)
@@ -38,8 +36,8 @@ void ConductorBsdf::fromJson(JsonValue value, const Scene &scene)
     Bsdf::fromJson(value, scene);
     if (value.getField("eta", _eta) && value.getField("k", _k))
         _materialName.clear();
-    if (value.getField("material", _materialName))
-        lookupMaterial();
+    if (value.getField("material", _materialName) && !lookupMaterial())
+        value.parseError(tfm::format("Unable to find material with name '%s'", _materialName));
 }
 
 rapidjson::Value ConductorBsdf::toJson(Allocator &allocator) const
