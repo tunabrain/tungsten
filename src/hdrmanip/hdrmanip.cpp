@@ -143,7 +143,7 @@ int main(int argc, const char *argv[])
     float exposure = 0.0f;
     if (parser.isPresent(OPT_EXPOSURE))
         parseFloat(exposure, parser.param(OPT_EXPOSURE));
-    Tonemap::Type tonemap = Tonemap::GammaOnly;
+    Tonemap::Type tonemap("gamma");
     if (parser.isPresent(OPT_TONEMAP)) {
         try {
             tonemap = parser.param(OPT_TONEMAP);
