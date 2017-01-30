@@ -4,6 +4,7 @@
 /assets/*
 !/assets/materialtest/
 !/.gitignore
+!/.travis.yml
 !/CMakeLists.txt
 !/setup_builds.sh
 !/setup_builds.bat
@@ -11,5 +12,9 @@
 !/Readme.md
 !/LICENSE.txt
 !/src/
-!/data/
+!/data/editor
+!/data/example-scenes
+!/data/materialtest
+!/data/mc-loader
+!/data/shaders
 !/cmake/
