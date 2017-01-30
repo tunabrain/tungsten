@@ -76,7 +76,7 @@ void KelemenMltTracer::startSampleChain(UniformSampler &replaySampler, float lum
     tracePath(*_cameraSampler, *_emitterSampler, *_currentSplats);
 
     if (_currentSplats->totalLuminance() != luminance)
-        FAIL("Oh no! Terrible things have occurred! %f != %f", _currentSplats->totalLuminance(), luminance);
+        FAIL("Underlying integrator is not consistent. Expected a value of %f, but received %f", luminance, _currentSplats->totalLuminance());
 
     _cameraSampler->accept();
     _emitterSampler->accept();
