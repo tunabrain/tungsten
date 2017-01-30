@@ -69,7 +69,7 @@ void BidirectionalPathTraceIntegrator::loadState(InputStreamHandle &in)
         i.sampler->loadState(in);
 }
 
-void BidirectionalPathTraceIntegrator::fromJson(JsonValue value, const Scene &/*scene*/)
+void BidirectionalPathTraceIntegrator::fromJson(JsonPtr value, const Scene &/*scene*/)
 {
     _settings.fromJson(value);
 }

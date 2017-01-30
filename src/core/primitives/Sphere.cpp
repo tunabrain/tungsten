@@ -50,7 +50,7 @@ float Sphere::powerToRadianceFactor() const
     return INV_PI*_invArea;
 }
 
-void Sphere::fromJson(JsonValue value, const Scene &scene)
+void Sphere::fromJson(JsonPtr value, const Scene &scene)
 {
     Primitive::fromJson(value, scene);
 

@@ -1,7 +1,7 @@
 #ifndef TRACESETTINGS_HPP_
 #define TRACESETTINGS_HPP_
 
-#include "io/JsonValue.hpp"
+#include "io/JsonPtr.hpp"
 
 namespace Tungsten {
 
@@ -20,7 +20,7 @@ struct TraceSettings
     {
     }
 
-    void fromJson(JsonValue value)
+    void fromJson(JsonPtr value)
     {
         value.getField("min_bounces", minBounces);
         value.getField("max_bounces", maxBounces);

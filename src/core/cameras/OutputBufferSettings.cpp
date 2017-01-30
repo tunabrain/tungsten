@@ -20,7 +20,7 @@ OutputBufferSettings::OutputBufferSettings()
 {
 }
 
-void OutputBufferSettings::fromJson(JsonValue value, const Scene &/*scene*/)
+void OutputBufferSettings::fromJson(JsonPtr value, const Scene &/*scene*/)
 {
     _type = value.getRequiredMember("type");
     value.getField("ldr_output_file", _ldrOutputFile);

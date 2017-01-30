@@ -34,7 +34,7 @@ class CubicElement
 
     OptionalFace _faces[6];
 
-    void loadFaces(JsonValue faces)
+    void loadFaces(JsonPtr faces)
     {
         for (int i = 0; i < 6; ++i) {
             if (auto face = faces[cubeFaceToString(NamedFace(i))]) {
@@ -45,7 +45,7 @@ class CubicElement
     }
 
 public:
-    CubicElement(JsonValue value)
+    CubicElement(JsonPtr value)
     : _from(0.0f),
       _to(0.0f),
       _rotAxis(-1),

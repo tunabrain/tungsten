@@ -1,7 +1,7 @@
 #include "JsonDocument.hpp"
 
 #include "JsonLoadException.hpp"
-#include "JsonValue.hpp"
+#include "JsonPtr.hpp"
 #include "FileUtils.hpp"
 
 #include "math/MathUtil.hpp"
@@ -180,7 +180,7 @@ void JsonDocument::load()
 }
 
 JsonDocument::JsonDocument(const Path &file)
-: JsonValue(this, &_document),
+: JsonPtr(this, &_document),
   _file(file),
   _json(FileUtils::loadText(file))
 {
@@ -191,14 +191,14 @@ JsonDocument::JsonDocument(const Path &file)
 }
 
 JsonDocument::JsonDocument(const Path &file, std::string json)
-: JsonValue(this, &_document),
+: JsonPtr(this, &_document),
   _file(file),
   _json(std::move(json))
 {
     load();
 }
 
-void JsonDocument::parseError(JsonValue source, std::string description) const
+void JsonDocument::parseError(JsonPtr source, std::string description) const
 {
     OffsetTrackingDocument trackedDocument(_json);
     trackedDocument.parse<JsonParseFlags>();

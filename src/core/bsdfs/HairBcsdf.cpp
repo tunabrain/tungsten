@@ -153,7 +153,7 @@ float HairBcsdf::sampleM(float v, float sinThetaI, float cosThetaI, float xi1, f
     return -cosTheta*sinThetaI + sinTheta*cosPhi*cosThetaI;
 }
 
-void HairBcsdf::fromJson(JsonValue value, const Scene &scene)
+void HairBcsdf::fromJson(JsonPtr value, const Scene &scene)
 {
     Bsdf::fromJson(value, scene);
     value.getField("scale_angle", _scaleAngleDeg);

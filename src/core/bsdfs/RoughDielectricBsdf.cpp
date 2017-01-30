@@ -25,7 +25,7 @@ RoughDielectricBsdf::RoughDielectricBsdf()
     _lobes = BsdfLobes(BsdfLobes::GlossyReflectionLobe | BsdfLobes::GlossyTransmissionLobe);
 }
 
-void RoughDielectricBsdf::fromJson(JsonValue value, const Scene &scene)
+void RoughDielectricBsdf::fromJson(JsonPtr value, const Scene &scene)
 {
     Bsdf::fromJson(value, scene);
     value.getField("ior", _ior);

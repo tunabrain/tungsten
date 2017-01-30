@@ -16,7 +16,7 @@ struct ProgressivePhotonMapSettings
     {
     }
 
-    void fromJson(JsonValue value)
+    void fromJson(JsonPtr value)
     {
         value.getField("alpha", alpha);
     }

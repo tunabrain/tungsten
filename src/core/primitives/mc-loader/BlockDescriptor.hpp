@@ -17,7 +17,7 @@ class BlockDescriptor
     std::vector<BlockVariant> _variants;
 
 public:
-    BlockDescriptor(const std::string &name, JsonValue value, ModelResolver &resolver)
+    BlockDescriptor(const std::string &name, JsonPtr value, ModelResolver &resolver)
     : _name(name)
     {
         if (auto variants = value["variants"])

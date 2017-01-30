@@ -50,7 +50,7 @@ float ThinlensCamera::evalApertureThroughput(Vec3f planePos, Vec2f aperturePos) 
     return aperture/_aperture->maximum().x();
 }
 
-void ThinlensCamera::fromJson(JsonValue value, const Scene &scene)
+void ThinlensCamera::fromJson(JsonPtr value, const Scene &scene)
 {
     _scene = &scene;
     Camera::fromJson(value, scene);

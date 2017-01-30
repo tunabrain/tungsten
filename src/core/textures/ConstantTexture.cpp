@@ -17,7 +17,7 @@ ConstantTexture::ConstantTexture(const Vec3f &value)
 {
 }
 
-void ConstantTexture::fromJson(JsonValue value, const Scene &/*scene*/)
+void ConstantTexture::fromJson(JsonPtr value, const Scene &/*scene*/)
 {
     value.getField("value", _value);
 }

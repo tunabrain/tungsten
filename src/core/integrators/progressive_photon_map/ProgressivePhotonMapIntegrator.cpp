@@ -19,7 +19,7 @@ ProgressivePhotonMapIntegrator::ProgressivePhotonMapIntegrator()
 {
 }
 
-void ProgressivePhotonMapIntegrator::fromJson(JsonValue value, const Scene &scene)
+void ProgressivePhotonMapIntegrator::fromJson(JsonPtr value, const Scene &scene)
 {
     PhotonMapIntegrator::fromJson(value, scene);
     _progressiveSettings.fromJson(value);

@@ -14,7 +14,7 @@ namespace Tungsten {
 
 class BitmapTexture;
 class IesTexture;
-class JsonValue;
+class JsonPtr;
 class Scene;
 
 class TextureCache
@@ -28,11 +28,11 @@ class TextureCache
 public:
     TextureCache();
 
-    std::shared_ptr<BitmapTexture> fetchTexture(JsonValue value, TexelConversion conversion, const Scene *scene);
+    std::shared_ptr<BitmapTexture> fetchTexture(JsonPtr value, TexelConversion conversion, const Scene *scene);
     std::shared_ptr<BitmapTexture> fetchTexture(PathPtr path, TexelConversion conversion,
             bool gammaCorrect = true, bool linear = true, bool clamp = false);
 
-    std::shared_ptr<IesTexture> fetchIesTexture(JsonValue value, const Scene *scene);
+    std::shared_ptr<IesTexture> fetchIesTexture(JsonPtr value, const Scene *scene);
     std::shared_ptr<IesTexture> fetchIesTexture(PathPtr path, int resolution);
 
     void loadResources();

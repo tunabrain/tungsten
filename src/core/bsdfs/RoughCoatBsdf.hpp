@@ -21,7 +21,7 @@ class RoughCoatBsdf : public Bsdf
 public:
     RoughCoatBsdf();
 
-    virtual void fromJson(JsonValue value, const Scene &scene) override;
+    virtual void fromJson(JsonPtr value, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
     void substrateEvalAndPdf(const SurfaceScatterEvent &event, float eta,

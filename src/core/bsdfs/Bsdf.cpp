@@ -16,7 +16,7 @@ Bsdf::Bsdf()
 {
 }
 
-void Bsdf::fromJson(JsonValue value, const Scene &scene)
+void Bsdf::fromJson(JsonPtr value, const Scene &scene)
 {
     JsonSerializable::fromJson(value, scene);
 

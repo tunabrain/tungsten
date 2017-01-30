@@ -15,7 +15,7 @@ DiskTexture::DiskTexture()
 {
 }
 
-void DiskTexture::fromJson(JsonValue value, const Scene &/*scene*/)
+void DiskTexture::fromJson(JsonPtr value, const Scene &/*scene*/)
 {
     value.getField("value", _value);
 }

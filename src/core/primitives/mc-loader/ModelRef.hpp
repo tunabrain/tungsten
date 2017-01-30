@@ -21,7 +21,7 @@ class ModelRef
     const std::vector<TexturedQuad> *_builtModel;
 
 public:
-    ModelRef(JsonValue value, ModelResolver &resolver)
+    ModelRef(JsonPtr value, ModelResolver &resolver)
     : _xRot(0),
       _yRot(0),
       _zRot(0),

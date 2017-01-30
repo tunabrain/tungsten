@@ -69,7 +69,7 @@ float Skydome::powerToRadianceFactor() const
     return INV_FOUR_PI;
 }
 
-void Skydome::fromJson(JsonValue value, const Scene &scene)
+void Skydome::fromJson(JsonPtr value, const Scene &scene)
 {
     _scene = &scene;
 

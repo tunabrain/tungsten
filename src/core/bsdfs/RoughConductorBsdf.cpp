@@ -29,7 +29,7 @@ bool RoughConductorBsdf::lookupMaterial()
     return ComplexIorList::lookup(_materialName, _eta, _k);
 }
 
-void RoughConductorBsdf::fromJson(JsonValue value, const Scene &scene)
+void RoughConductorBsdf::fromJson(JsonPtr value, const Scene &scene)
 {
     Bsdf::fromJson(value, scene);
     if (value.getField("eta", _eta) && value.getField("k", _k))

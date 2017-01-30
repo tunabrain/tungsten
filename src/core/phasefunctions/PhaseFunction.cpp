@@ -2,7 +2,7 @@
 
 namespace Tungsten {
 
-void PhaseFunction::fromJson(JsonValue /*value*/, const Scene &/*scene*/)
+void PhaseFunction::fromJson(JsonPtr /*value*/, const Scene &/*scene*/)
 {
 }
 

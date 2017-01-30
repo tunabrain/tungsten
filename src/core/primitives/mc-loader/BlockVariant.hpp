@@ -15,7 +15,7 @@ class BlockVariant
     std::vector<ModelRef> _models;
 
 public:
-    BlockVariant(const std::string &variant, JsonValue value, ModelResolver &resolver)
+    BlockVariant(const std::string &variant, JsonPtr value, ModelResolver &resolver)
     : _variant(variant)
     {
         if (value.isArray()) {

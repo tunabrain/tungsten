@@ -59,7 +59,7 @@ float Cube::powerToRadianceFactor() const
     return INV_PI*_invArea;
 }
 
-void Cube::fromJson(JsonValue value, const Scene &scene)
+void Cube::fromJson(JsonPtr value, const Scene &scene)
 {
     Primitive::fromJson(value, scene);
 

@@ -26,7 +26,7 @@ ThinSheetBsdf::ThinSheetBsdf()
     _lobes = BsdfLobes(BsdfLobes::SpecularReflectionLobe | BsdfLobes::ForwardLobe);
 }
 
-void ThinSheetBsdf::fromJson(JsonValue value, const Scene &scene)
+void ThinSheetBsdf::fromJson(JsonPtr value, const Scene &scene)
 {
     Bsdf::fromJson(value, scene);
     value.getField("ior", _ior);

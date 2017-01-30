@@ -546,7 +546,7 @@ void TraceableMinecraftMap::resolveBlocks(ResourcePackLoader &pack)
     _lights = std::make_shared<MultiQuadLight>(std::move(emitters), _materials);
 }
 
-void TraceableMinecraftMap::fromJson(JsonValue value, const Scene &scene)
+void TraceableMinecraftMap::fromJson(JsonPtr value, const Scene &scene)
 {
     Primitive::fromJson(value, scene);
 

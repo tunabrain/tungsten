@@ -41,7 +41,7 @@ void Camera::precompute()
     _invTransform = _transform.pseudoInvert();
 }
 
-void Camera::fromJson(JsonValue value, const Scene &scene)
+void Camera::fromJson(JsonPtr value, const Scene &scene)
 {
     _tonemapOp = value["tonemap"];
     value.getField("resolution", _res);

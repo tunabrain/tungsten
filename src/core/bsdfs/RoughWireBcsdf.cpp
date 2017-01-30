@@ -94,7 +94,7 @@ float RoughWireBcsdf::sampleM(float v, float sinThetaI, float cosThetaI, float x
     return -cosTheta*sinThetaI + sinTheta*cosPhi*cosThetaI;
 }
 
-void RoughWireBcsdf::fromJson(JsonValue value, const Scene &scene)
+void RoughWireBcsdf::fromJson(JsonPtr value, const Scene &scene)
 {
     Bsdf::fromJson(value, scene);
     value.getField("roughness", _roughness);

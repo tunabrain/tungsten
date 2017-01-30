@@ -111,7 +111,7 @@ float TriangleMesh::powerToRadianceFactor() const
 }
 
 
-void TriangleMesh::fromJson(JsonValue value, const Scene &scene)
+void TriangleMesh::fromJson(JsonPtr value, const Scene &scene)
 {
     Primitive::fromJson(value, scene);
 

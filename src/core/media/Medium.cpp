@@ -13,7 +13,7 @@ Medium::Medium()
 {
 }
 
-void Medium::fromJson(JsonValue value, const Scene &scene)
+void Medium::fromJson(JsonPtr value, const Scene &scene)
 {
     JsonSerializable::fromJson(value, scene);
 

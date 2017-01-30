@@ -20,7 +20,7 @@ struct KelemenMltSettings : public PathTracerSettings
     {
     }
 
-    void fromJson(JsonValue value)
+    void fromJson(JsonPtr value)
     {
         PathTracerSettings::fromJson(value);
         value.getField("initial_sample_pool", initialSamplePool);

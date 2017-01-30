@@ -53,7 +53,7 @@ public:
     Primitive();
     Primitive(const std::string &name);
 
-    virtual void fromJson(JsonValue value, const Scene &scene) override;
+    virtual void fromJson(JsonPtr value, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
     virtual bool intersect(Ray &ray, IntersectionTemporary &data) const = 0;

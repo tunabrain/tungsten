@@ -43,7 +43,7 @@ float Disk::powerToRadianceFactor() const
     return INV_PI*_invArea;
 }
 
-void Disk::fromJson(JsonValue value, const Scene &scene)
+void Disk::fromJson(JsonPtr value, const Scene &scene)
 {
     Primitive::fromJson(value, scene);
     value.getField("cone_angle", _coneAngle);

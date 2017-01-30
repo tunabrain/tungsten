@@ -16,7 +16,7 @@ VoxelMedium::VoxelMedium()
 {
 }
 
-void VoxelMedium::fromJson(JsonValue value, const Scene &scene)
+void VoxelMedium::fromJson(JsonPtr value, const Scene &scene)
 {
     Medium::fromJson(value, scene);
     value.getField("sigma_a", _sigmaA);

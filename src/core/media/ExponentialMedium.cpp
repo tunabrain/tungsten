@@ -19,7 +19,7 @@ ExponentialMedium::ExponentialMedium()
 {
 }
 
-void ExponentialMedium::fromJson(JsonValue value, const Scene &scene)
+void ExponentialMedium::fromJson(JsonPtr value, const Scene &scene)
 {
     Medium::fromJson(value, scene);
     value.getField("sigma_a", _materialSigmaA);

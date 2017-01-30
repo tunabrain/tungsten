@@ -22,7 +22,7 @@ AtmosphericMedium::AtmosphericMedium()
 {
 }
 
-void AtmosphericMedium::fromJson(JsonValue value, const Scene &scene)
+void AtmosphericMedium::fromJson(JsonPtr value, const Scene &scene)
 {
     _scene = &scene;
 

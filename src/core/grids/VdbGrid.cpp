@@ -128,7 +128,7 @@ void VdbGrid::generateSuperGrid()
     }
 }
 
-void VdbGrid::fromJson(JsonValue value, const Scene &scene)
+void VdbGrid::fromJson(JsonPtr value, const Scene &scene)
 {
     if (auto path = value["file"]) _path = scene.fetchResource(path);
     value.getField("grid_name", _gridName);

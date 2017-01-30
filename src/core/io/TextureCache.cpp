@@ -12,7 +12,7 @@ TextureCache::TextureCache()
 {
 }
 
-std::shared_ptr<BitmapTexture> TextureCache::fetchTexture(JsonValue value, TexelConversion conversion, const Scene *scene)
+std::shared_ptr<BitmapTexture> TextureCache::fetchTexture(JsonPtr value, TexelConversion conversion, const Scene *scene)
 {
     BitmapKeyType key = std::make_shared<BitmapTexture>();
     key->setTexelConversion(conversion);
@@ -38,7 +38,7 @@ std::shared_ptr<BitmapTexture> TextureCache::fetchTexture(PathPtr path, TexelCon
     return *iter;
 }
 
-std::shared_ptr<IesTexture> TextureCache::fetchIesTexture(JsonValue value, const Scene *scene)
+std::shared_ptr<IesTexture> TextureCache::fetchIesTexture(JsonPtr value, const Scene *scene)
 {
     IesKeyType key = std::make_shared<IesTexture>();
     key->fromJson(value, *scene);

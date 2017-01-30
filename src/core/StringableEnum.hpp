@@ -1,7 +1,7 @@
 #ifndef STRINGABLEENUM_HPP_
 #define STRINGABLEENUM_HPP_
 
-#include "io/JsonValue.hpp"
+#include "io/JsonPtr.hpp"
 
 #include "Debug.hpp"
 
@@ -49,7 +49,7 @@ public:
 
     StringableEnum(Enum t) : _t(t) {}
 
-    StringableEnum(JsonValue value)
+    StringableEnum(JsonPtr value)
     {
         const char *name = value.cast<const char *>();
         if (!fromString(name))
@@ -74,7 +74,7 @@ public:
 
     operator Enum() const { return _t; }
 
-    StringableEnum &operator=(JsonValue value)
+    StringableEnum &operator=(JsonPtr value)
     {
         if (value)
             *this = StringableEnum(value);

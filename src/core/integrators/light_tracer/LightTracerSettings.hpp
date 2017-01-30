@@ -13,7 +13,7 @@ struct LightTracerSettings : public TraceSettings
     {
     }
 
-    void fromJson(JsonValue value)
+    void fromJson(JsonPtr value)
     {
         TraceSettings::fromJson(value);
     }

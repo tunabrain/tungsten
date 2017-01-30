@@ -208,7 +208,7 @@ void BitmapTexture::init(void *texels, int w, int h, TexelType texelType)
     }
 }
 
-void BitmapTexture::fromJson(JsonValue value, const Scene &scene)
+void BitmapTexture::fromJson(JsonPtr value, const Scene &scene)
 {
     if (auto path = value["file"])
         _path = scene.fetchResource(path);

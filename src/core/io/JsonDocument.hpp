@@ -1,7 +1,7 @@
 #ifndef JSONDOCUMENT_HPP_
 #define JSONDOCUMENT_HPP_
 
-#include "JsonValue.hpp"
+#include "JsonPtr.hpp"
 #include "Path.hpp"
 
 #include <rapidjson/document.h>
@@ -9,7 +9,7 @@
 
 namespace Tungsten {
 
-class JsonDocument : public JsonValue
+class JsonDocument : public JsonPtr
 {
     Path _file;
     rapidjson::Document _document;
@@ -21,7 +21,7 @@ public:
     JsonDocument(const Path &file);
     JsonDocument(const Path &file, std::string json);
 
-    [[noreturn]] void parseError(JsonValue source, std::string description) const;
+    [[noreturn]] void parseError(JsonPtr source, std::string description) const;
 };
 
 }

@@ -1,11 +1,11 @@
-#include "JsonValue.hpp"
+#include "JsonPtr.hpp"
 
 #include "JsonDocument.hpp"
 #include "Path.hpp"
 
 namespace Tungsten {
 
-void JsonValue::get(bool &dst) const
+void JsonPtr::get(bool &dst) const
 {
     if (_value->IsBool())
         dst = _value->GetBool();
@@ -14,7 +14,7 @@ void JsonValue::get(bool &dst) const
 }
 
 template<typename T>
-void getJsonNumber(const rapidjson::Value &v, T &dst, JsonValue source)
+void getJsonNumber(const rapidjson::Value &v, T &dst, JsonPtr source)
 {
     if (v.IsDouble())
         dst = T(v.GetDouble());
@@ -30,42 +30,42 @@ void getJsonNumber(const rapidjson::Value &v, T &dst, JsonValue source)
         source.parseError("Parameter has wrong type: Expecting a number here");
 }
 
-void JsonValue::get(float &dst) const
+void JsonPtr::get(float &dst) const
 {
     getJsonNumber(*_value, dst, *this);
 }
 
-void JsonValue::get(double &dst) const
+void JsonPtr::get(double &dst) const
 {
     getJsonNumber(*_value, dst, *this);
 }
 
-void JsonValue::get(uint32 &dst) const
+void JsonPtr::get(uint32 &dst) const
 {
     getJsonNumber(*_value, dst, *this);
 }
 
-void JsonValue::get(int32 &dst) const
+void JsonPtr::get(int32 &dst) const
 {
     getJsonNumber(*_value, dst, *this);
 }
 
-void JsonValue::get(uint64 &dst) const
+void JsonPtr::get(uint64 &dst) const
 {
     getJsonNumber(*_value, dst, *this);
 }
 
-void JsonValue::get(int64 &dst) const
+void JsonPtr::get(int64 &dst) const
 {
     getJsonNumber(*_value, dst, *this);
 }
 
-void JsonValue::get(std::string &dst) const
+void JsonPtr::get(std::string &dst) const
 {
     dst = cast<const char *>();
 }
 
-void JsonValue::get(const char *&dst) const
+void JsonPtr::get(const char *&dst) const
 {
     if (isString())
         dst = _value->GetString();
@@ -100,7 +100,7 @@ static void gramSchmidt(Vec3f &a, Vec3f &b, Vec3f &c)
         c.normalize();
 }
 
-void JsonValue::get(Mat4f &dst) const
+void JsonPtr::get(Mat4f &dst) const
 {
     if (isArray()) {
         if (size() != 16)
@@ -180,18 +180,18 @@ void JsonValue::get(Mat4f &dst) const
     }
 }
 
-void JsonValue::get(Path &dst) const
+void JsonPtr::get(Path &dst) const
 {
     dst = Path(cast<std::string>());
     dst.freezeWorkingDirectory();
 }
 
-void JsonValue::parseError(std::string description) const
+void JsonPtr::parseError(std::string description) const
 {
     _document->parseError(*this, std::move(description));
 }
 
-JsonValueIterator JsonValue::begin() const { return JsonValueIterator(*this, _value->MemberBegin()); }
-JsonValueIterator JsonValue::  end() const { return JsonValueIterator(*this, _value->MemberEnd()); }
+JsonMemberIterator JsonPtr::begin() const { return JsonMemberIterator(*this, _value->MemberBegin()); }
+JsonMemberIterator JsonPtr::  end() const { return JsonMemberIterator(*this, _value->MemberEnd()); }
 
 }

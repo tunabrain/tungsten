@@ -9,7 +9,7 @@ JsonSerializable::JsonSerializable(const std::string &name)
 {
 }
 
-void JsonSerializable::fromJson(JsonValue value, const Scene &/*scene*/)
+void JsonSerializable::fromJson(JsonPtr value, const Scene &/*scene*/)
 {
     value.getField("name", _name);
 }

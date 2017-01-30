@@ -26,7 +26,7 @@ void KelemenMltIntegrator::loadState(InputStreamHandle &/*in*/)
 {
 }
 
-void KelemenMltIntegrator::fromJson(JsonValue value, const Scene &/*scene*/)
+void KelemenMltIntegrator::fromJson(JsonPtr value, const Scene &/*scene*/)
 {
     _settings.fromJson(value);
 }

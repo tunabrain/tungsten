@@ -28,7 +28,7 @@ RoughPlasticBsdf::RoughPlasticBsdf()
     _lobes = BsdfLobes(BsdfLobes::GlossyReflectionLobe | BsdfLobes::DiffuseReflectionLobe);
 }
 
-void RoughPlasticBsdf::fromJson(JsonValue value, const Scene &scene)
+void RoughPlasticBsdf::fromJson(JsonPtr value, const Scene &scene)
 {
     Bsdf::fromJson(value, scene);
     value.getField("ior", _ior);

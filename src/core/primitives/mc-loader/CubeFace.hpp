@@ -4,7 +4,7 @@
 #include "math/MathUtil.hpp"
 #include "math/Vec.hpp"
 
-#include "io/JsonValue.hpp"
+#include "io/JsonPtr.hpp"
 
 #include <string>
 #include <array>
@@ -28,7 +28,7 @@ public:
     {
     }
 
-    CubeFace(JsonValue value)
+    CubeFace(JsonPtr value)
     : _uv(0.0f, 0.0f, 16.0f, 16.0f),
       _rotation(0),
       _tint(-1)

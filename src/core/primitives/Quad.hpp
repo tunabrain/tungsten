@@ -27,7 +27,7 @@ public:
     Quad(const Vec3f &base, const Vec3f &edge0, const Vec3f &edge1,
             const std::string &name, std::shared_ptr<Bsdf> bsdf);
 
-    virtual void fromJson(JsonValue value, const Scene &scene) override;
+    virtual void fromJson(JsonPtr value, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
     virtual bool intersect(Ray &ray, IntersectionTemporary &data) const override;

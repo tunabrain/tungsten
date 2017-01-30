@@ -61,7 +61,7 @@ Scene::Scene(const Path &srcDir,
 }
 
 template<typename T>
-std::shared_ptr<T> instantiate(JsonValue value, const Scene &scene)
+std::shared_ptr<T> instantiate(JsonPtr value, const Scene &scene)
 {
     auto result = StringableEnum<std::function<std::shared_ptr<T>()>>(value.getRequiredMember("type")).toEnum()();
     result->fromJson(value, scene);
@@ -69,7 +69,7 @@ std::shared_ptr<T> instantiate(JsonValue value, const Scene &scene)
 }
 
 template<typename T>
-std::shared_ptr<T> findObject(const std::vector<std::shared_ptr<T>> &list, const std::string &name, JsonValue value)
+std::shared_ptr<T> findObject(const std::vector<std::shared_ptr<T>> &list, const std::string &name, JsonPtr value)
 {
     for (const std::shared_ptr<T> &t : list)
         if (t->name() == name)
@@ -79,7 +79,7 @@ std::shared_ptr<T> findObject(const std::vector<std::shared_ptr<T>> &list, const
 }
 
 template<typename T>
-std::shared_ptr<T> fetchObject(const std::vector<std::shared_ptr<T>> &list, const Scene &scene, JsonValue value)
+std::shared_ptr<T> fetchObject(const std::vector<std::shared_ptr<T>> &list, const Scene &scene, JsonPtr value)
 {
     if (value.isString()) {
         return findObject(list, value.cast<std::string>(), value);
@@ -91,29 +91,29 @@ std::shared_ptr<T> fetchObject(const std::vector<std::shared_ptr<T>> &list, cons
     }
 }
 
-std::shared_ptr<PhaseFunction> Scene::fetchPhase(JsonValue value) const
+std::shared_ptr<PhaseFunction> Scene::fetchPhase(JsonPtr value) const
 {
     return instantiate<PhaseFunction>(value, *this);
 }
 
-std::shared_ptr<Medium> Scene::fetchMedium(JsonValue value) const
+std::shared_ptr<Medium> Scene::fetchMedium(JsonPtr value) const
 {
     return fetchObject(_media, *this, value);
 }
 
-std::shared_ptr<Grid> Scene::fetchGrid(JsonValue value) const
+std::shared_ptr<Grid> Scene::fetchGrid(JsonPtr value) const
 {
     return instantiate<Grid>(value, *this);
 }
 
-std::shared_ptr<Bsdf> Scene::fetchBsdf(JsonValue value) const
+std::shared_ptr<Bsdf> Scene::fetchBsdf(JsonPtr value) const
 {
     using namespace std::placeholders;
     auto result = fetchObject(_bsdfs, *this, value);
     return std::move(result);
 }
 
-std::shared_ptr<Texture> Scene::fetchTexture(JsonValue value, TexelConversion conversion) const
+std::shared_ptr<Texture> Scene::fetchTexture(JsonPtr value, TexelConversion conversion) const
 {
     // Note: TexelConversions are only honored by BitmapTexture.
     // This is inconsistent, but conversions do not really make sense for other textures,
@@ -156,7 +156,7 @@ PathPtr Scene::fetchResource(const std::string &path) const
     }
 }
 
-PathPtr Scene::fetchResource(JsonValue value) const
+PathPtr Scene::fetchResource(JsonPtr value) const
 {
     return fetchResource(value.cast<std::string>());
 }
@@ -222,7 +222,7 @@ void Scene::merge(Scene scene)
         addPrimitive(m);
 }
 
-void Scene::fromJson(JsonValue value, const Scene &scene)
+void Scene::fromJson(JsonPtr value, const Scene &scene)
 {
     JsonSerializable::fromJson(value, scene);
 

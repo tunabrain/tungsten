@@ -68,7 +68,7 @@ public:
     Camera();
     Camera(const Mat4f &transform, const Vec2u &res);
 
-    void fromJson(JsonValue value, const Scene &scene) override;
+    void fromJson(JsonPtr value, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
     virtual bool samplePosition(PathSampleGenerator &sampler, PositionSample &sample) const;

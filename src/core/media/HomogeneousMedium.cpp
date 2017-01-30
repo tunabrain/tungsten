@@ -16,7 +16,7 @@ HomogeneousMedium::HomogeneousMedium()
 {
 }
 
-void HomogeneousMedium::fromJson(JsonValue value, const Scene &scene)
+void HomogeneousMedium::fromJson(JsonPtr value, const Scene &scene)
 {
     Medium::fromJson(value, scene);
     value.getField("sigma_a", _materialSigmaA);

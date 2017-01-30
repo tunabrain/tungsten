@@ -46,7 +46,7 @@ public:
     {
     }
 
-    virtual void fromJson(JsonValue value, const Scene &scene)
+    virtual void fromJson(JsonPtr value, const Scene &scene)
     {
         value.getField("output_directory", _outputDirectory);
 

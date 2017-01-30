@@ -27,7 +27,7 @@ float Point::powerToRadianceFactor() const
     return INV_FOUR_PI;
 }
 
-void Point::fromJson(JsonValue value, const Scene &scene)
+void Point::fromJson(JsonPtr value, const Scene &scene)
 {
     Primitive::fromJson(value, scene);
 }

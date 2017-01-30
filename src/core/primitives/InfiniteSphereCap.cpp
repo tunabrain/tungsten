@@ -36,7 +36,7 @@ float InfiniteSphereCap::powerToRadianceFactor() const
     return INV_TWO_PI/(1.0f - _cosCapAngle);
 }
 
-void InfiniteSphereCap::fromJson(JsonValue value, const Scene &scene)
+void InfiniteSphereCap::fromJson(JsonPtr value, const Scene &scene)
 {
     _scene = &scene;
 

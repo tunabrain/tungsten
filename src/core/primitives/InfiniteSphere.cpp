@@ -61,7 +61,7 @@ float InfiniteSphere::powerToRadianceFactor() const
     return INV_FOUR_PI;
 }
 
-void InfiniteSphere::fromJson(JsonValue value, const Scene &scene)
+void InfiniteSphere::fromJson(JsonPtr value, const Scene &scene)
 {
     Primitive::fromJson(value, scene);
     value.getField("sample", _doSample);

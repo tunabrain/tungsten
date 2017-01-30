@@ -45,7 +45,7 @@ MixedBsdf::MixedBsdf(std::shared_ptr<Bsdf> bsdf0, std::shared_ptr<Bsdf> bsdf1, f
     _lobes = BsdfLobes(_bsdf0->lobes(), _bsdf1->lobes());
 }
 
-void MixedBsdf::fromJson(JsonValue value, const Scene &scene)
+void MixedBsdf::fromJson(JsonPtr value, const Scene &scene)
 {
     Bsdf::fromJson(value, scene);
 

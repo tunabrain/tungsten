@@ -30,7 +30,7 @@ void BladeTexture::init()
     _baseNormal = Vec2f(cosAngle, sinAngle);
 }
 
-void BladeTexture::fromJson(JsonValue value, const Scene &scene)
+void BladeTexture::fromJson(JsonPtr value, const Scene &scene)
 {
     Texture::fromJson(value, scene);
     value.getField("blades", _numBlades);

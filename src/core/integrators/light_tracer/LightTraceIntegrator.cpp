@@ -40,7 +40,7 @@ void LightTraceIntegrator::loadState(InputStreamHandle &/*in*/)
 {
 }
 
-void LightTraceIntegrator::fromJson(JsonValue value, const Scene &/*scene*/)
+void LightTraceIntegrator::fromJson(JsonPtr value, const Scene &/*scene*/)
 {
     _settings.fromJson(value);
 }

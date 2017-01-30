@@ -24,7 +24,7 @@ PlasticBsdf::PlasticBsdf()
     _lobes = BsdfLobes(BsdfLobes::SpecularReflectionLobe | BsdfLobes::DiffuseReflectionLobe);
 }
 
-void PlasticBsdf::fromJson(JsonValue value, const Scene &scene)
+void PlasticBsdf::fromJson(JsonPtr value, const Scene &scene)
 {
     Bsdf::fromJson(value, scene);
     value.getField("ior", _ior);

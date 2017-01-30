@@ -16,7 +16,7 @@ public:
     IesTexture();
     IesTexture(PathPtr path, int resolution);
 
-    virtual void fromJson(JsonValue value, const Scene &scene) override;
+    virtual void fromJson(JsonPtr value, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
     virtual void loadResources() override;

@@ -21,7 +21,7 @@ OrenNayarBsdf::OrenNayarBsdf()
     _lobes = BsdfLobes(BsdfLobes::DiffuseReflectionLobe);
 }
 
-void OrenNayarBsdf::fromJson(JsonValue value, const Scene &scene)
+void OrenNayarBsdf::fromJson(JsonPtr value, const Scene &scene)
 {
     Bsdf::fromJson(value, scene);
 

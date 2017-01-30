@@ -171,7 +171,7 @@ void PathTraceIntegrator::loadState(InputStreamHandle &in)
         i.sampler->loadState(in);
 }
 
-void PathTraceIntegrator::fromJson(JsonValue value, const Scene &/*scene*/)
+void PathTraceIntegrator::fromJson(JsonPtr value, const Scene &/*scene*/)
 {
     _settings.fromJson(value);
 }

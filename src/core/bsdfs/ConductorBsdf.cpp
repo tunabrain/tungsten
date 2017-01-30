@@ -31,7 +31,7 @@ bool ConductorBsdf::lookupMaterial()
     return ComplexIorList::lookup(_materialName, _eta, _k);
 }
 
-void ConductorBsdf::fromJson(JsonValue value, const Scene &scene)
+void ConductorBsdf::fromJson(JsonPtr value, const Scene &scene)
 {
     Bsdf::fromJson(value, scene);
     if (value.getField("eta", _eta) && value.getField("k", _k))

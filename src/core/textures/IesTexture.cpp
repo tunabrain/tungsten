@@ -24,7 +24,7 @@ IesTexture::IesTexture(PathPtr path, int resolution)
 {
 }
 
-void IesTexture::fromJson(JsonValue value, const Scene &scene)
+void IesTexture::fromJson(JsonPtr value, const Scene &scene)
 {
     if (auto path = value["file"])
         _path = scene.fetchResource(path);

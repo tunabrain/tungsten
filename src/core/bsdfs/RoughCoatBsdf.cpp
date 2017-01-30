@@ -22,7 +22,7 @@ RoughCoatBsdf::RoughCoatBsdf()
 {
 }
 
-void RoughCoatBsdf::fromJson(JsonValue value, const Scene &scene)
+void RoughCoatBsdf::fromJson(JsonPtr value, const Scene &scene)
 {
     Bsdf::fromJson(value, scene);
     value.getField("ior", _ior);

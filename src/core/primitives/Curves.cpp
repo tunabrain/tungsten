@@ -370,7 +370,7 @@ void Curves::buildProxy()
     _proxy = std::make_shared<TriangleMesh>(verts, tris, _bsdf, "Curves", false, false);
 }
 
-void Curves::fromJson(JsonValue value, const Scene &scene)
+void Curves::fromJson(JsonPtr value, const Scene &scene)
 {
     Primitive::fromJson(value, scene);
     if (auto path = value["file"]) _path = scene.fetchResource(path);

@@ -20,7 +20,7 @@ CheckerTexture::CheckerTexture(Vec3f onColor, Vec3f offColor, int resU, int resV
 {
 }
 
-void CheckerTexture::fromJson(JsonValue value, const Scene &scene)
+void CheckerTexture::fromJson(JsonPtr value, const Scene &scene)
 {
     Texture::fromJson(value, scene);
     value.getField("on_color",   _onColor);

@@ -23,7 +23,7 @@ class BladeTexture : public Texture
 public:
     BladeTexture();
 
-    virtual void fromJson(JsonValue value, const Scene &scene) override;
+    virtual void fromJson(JsonPtr value, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
     virtual bool isConstant() const override;

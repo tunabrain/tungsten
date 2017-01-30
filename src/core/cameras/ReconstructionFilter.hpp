@@ -103,7 +103,7 @@ class ReconstructionFilter
 
 public:
     ReconstructionFilter(const std::string &name = "tent") : _type(name ) { precompute(); }
-    ReconstructionFilter(JsonValue value)                  : _type(value) { precompute(); }
+    ReconstructionFilter(JsonPtr value)                  : _type(value) { precompute(); }
 
     inline Vec2f sample(Vec2f uv, float &pdf) const
     {

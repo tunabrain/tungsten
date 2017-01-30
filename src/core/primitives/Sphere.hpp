@@ -27,7 +27,7 @@ public:
     Sphere();
     Sphere(const Vec3f &pos, float r, const std::string &name, std::shared_ptr<Bsdf> bsdf);
 
-    virtual void fromJson(JsonValue value, const Scene &scene) override;
+    virtual void fromJson(JsonPtr value, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
     virtual bool intersect(Ray &ray, IntersectionTemporary &data) const override;

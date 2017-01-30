@@ -20,7 +20,7 @@ PhongBsdf::PhongBsdf(float exponent, float diffuseRatio)
     _lobes = BsdfLobes(BsdfLobes::GlossyReflectionLobe);
 }
 
-void PhongBsdf::fromJson(JsonValue value, const Scene &scene)
+void PhongBsdf::fromJson(JsonPtr value, const Scene &scene)
 {
     Bsdf::fromJson(value, scene);
     value.getField("exponent", _exponent);

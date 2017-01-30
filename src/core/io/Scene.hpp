@@ -60,19 +60,19 @@ public:
           std::shared_ptr<TextureCache> cache,
           std::shared_ptr<Camera> camera);
 
-    virtual void fromJson(JsonValue value, const Scene &scene) override;
+    virtual void fromJson(JsonPtr value, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
     virtual void loadResources() override;
     virtual void saveResources() override;
 
-    std::shared_ptr<PhaseFunction> fetchPhase(JsonValue value) const;
-    std::shared_ptr<Medium> fetchMedium(JsonValue value) const;
-    std::shared_ptr<Grid> fetchGrid(JsonValue value) const;
-    std::shared_ptr<Bsdf> fetchBsdf(JsonValue value) const;
-    std::shared_ptr<Texture> fetchTexture(JsonValue value, TexelConversion conversion) const;
+    std::shared_ptr<PhaseFunction> fetchPhase(JsonPtr value) const;
+    std::shared_ptr<Medium> fetchMedium(JsonPtr value) const;
+    std::shared_ptr<Grid> fetchGrid(JsonPtr value) const;
+    std::shared_ptr<Bsdf> fetchBsdf(JsonPtr value) const;
+    std::shared_ptr<Texture> fetchTexture(JsonPtr value, TexelConversion conversion) const;
     PathPtr fetchResource(const std::string &path) const;
-    PathPtr fetchResource(JsonValue v) const;
+    PathPtr fetchResource(JsonPtr v) const;
 
     const Primitive *findPrimitive(const std::string &name) const;
 

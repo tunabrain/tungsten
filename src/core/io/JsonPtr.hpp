@@ -1,5 +1,5 @@
-#ifndef JSONVALUE_HPP_
-#define JSONVALUE_HPP_
+#ifndef JSONPTR_HPP_
+#define JSONPTR_HPP_
 
 #include "math/Mat4f.hpp"
 #include "math/Vec.hpp"
@@ -9,28 +9,28 @@
 
 namespace Tungsten {
 
-class JsonValueIterator;
+class JsonMemberIterator;
 class JsonDocument;
 class Path;
 
-class JsonValue
+class JsonPtr
 {
-    friend JsonValueIterator;
+    friend JsonMemberIterator;
     friend JsonDocument;
 
 protected:
     const JsonDocument *_document;
     const rapidjson::Value *_value;
 
-    JsonValue(const JsonDocument *document, const rapidjson::Value *value)
+    JsonPtr(const JsonDocument *document, const rapidjson::Value *value)
     : _document(document),
       _value(value)
     {
     }
 
 public:
-    JsonValue()
-    : JsonValue(nullptr, nullptr)
+    JsonPtr()
+    : JsonPtr(nullptr, nullptr)
     {
     }
 
@@ -85,27 +85,27 @@ public:
         return false;
     }
 
-    JsonValue operator[](unsigned i) const
+    JsonPtr operator[](unsigned i) const
     {
         if (!_value->IsArray())
-            return JsonValue();
+            return JsonPtr();
 
-        return JsonValue(_document, &(*_value)[i]);
+        return JsonPtr(_document, &(*_value)[i]);
     }
 
-    JsonValue operator[](const char *field) const
+    JsonPtr operator[](const char *field) const
     {
         if (!_value->IsObject())
-            return JsonValue();
+            return JsonPtr();
 
         auto member = _value->FindMember(field);
         if (member == _value->MemberEnd())
-            return JsonValue();
+            return JsonPtr();
 
-        return JsonValue(_document, &member->value);
+        return JsonPtr(_document, &member->value);
     }
 
-    JsonValue getRequiredMember(const char *field) const
+    JsonPtr getRequiredMember(const char *field) const
     {
         if (!isObject())
             parseError("Type mismatch: Expecting a JSON object here");
@@ -130,19 +130,19 @@ public:
     bool isString() const { return _value && _value->IsString(); }
     bool isNumber() const { return _value && _value->IsNumber(); }
 
-    JsonValueIterator begin() const;
-    JsonValueIterator   end() const;
+    JsonMemberIterator begin() const;
+    JsonMemberIterator   end() const;
 };
 
-class JsonValueIterator
+class JsonMemberIterator
 {
-    friend JsonValue;
+    friend JsonPtr;
 
     const JsonDocument *_document;
     const rapidjson::Value *_value;
     rapidjson::Value::ConstMemberIterator _iter;
 
-    JsonValueIterator(const JsonValue &v, rapidjson::Value::ConstMemberIterator iter)
+    JsonMemberIterator(const JsonPtr &v, rapidjson::Value::ConstMemberIterator iter)
     : _document(v._document),
       _value(v._value),
       _iter(iter)
@@ -150,23 +150,23 @@ class JsonValueIterator
     }
 
 public:
-    bool operator!=(const JsonValueIterator &o)
+    bool operator!=(const JsonMemberIterator &o)
     {
         return _iter != o._iter;
     }
 
-    JsonValueIterator operator++()
+    JsonMemberIterator operator++()
     {
         _iter++;
         return *this;
     }
 
-    std::pair<const char *, JsonValue> operator*() const
+    std::pair<const char *, JsonPtr> operator*() const
     {
-        return std::make_pair(_iter->name.GetString(), JsonValue(_document, &_iter->value));
+        return std::make_pair(_iter->name.GetString(), JsonPtr(_document, &_iter->value));
     }
 };
 
 }
 
-#endif /* JSONVALUE_HPP_ */
+#endif /* JSONPTR_HPP_ */

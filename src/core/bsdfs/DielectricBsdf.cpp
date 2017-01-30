@@ -30,7 +30,7 @@ DielectricBsdf::DielectricBsdf(float ior)
     _lobes = BsdfLobes(BsdfLobes::SpecularReflectionLobe | BsdfLobes::SpecularTransmissionLobe);
 }
 
-void DielectricBsdf::fromJson(JsonValue value, const Scene &scene)
+void DielectricBsdf::fromJson(JsonPtr value, const Scene &scene)
 {
     Bsdf::fromJson(value, scene);
     value.getField("ior", _ior);

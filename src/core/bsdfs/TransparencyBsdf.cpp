@@ -22,7 +22,7 @@ TransparencyBsdf::TransparencyBsdf(std::shared_ptr<Texture> opacity, std::shared
 {
 }
 
-void TransparencyBsdf::fromJson(JsonValue value, const Scene &scene)
+void TransparencyBsdf::fromJson(JsonPtr value, const Scene &scene)
 {
     Bsdf::fromJson(value, scene);
     if (auto base = value["base"])

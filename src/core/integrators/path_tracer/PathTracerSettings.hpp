@@ -18,7 +18,7 @@ struct PathTracerSettings : public TraceSettings
     {
     }
 
-    void fromJson(JsonValue value)
+    void fromJson(JsonPtr value)
     {
         TraceSettings::fromJson(value);
         value.getField("enable_light_sampling", enableLightSampling);

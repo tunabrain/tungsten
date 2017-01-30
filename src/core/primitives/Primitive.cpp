@@ -19,7 +19,7 @@ Primitive::Primitive(const std::string &name)
 {
 }
 
-void Primitive::fromJson(JsonValue value, const Scene &scene)
+void Primitive::fromJson(JsonPtr value, const Scene &scene)
 {
     JsonSerializable::fromJson(value, scene);
     value.getField("transform", _transform);

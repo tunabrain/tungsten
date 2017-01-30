@@ -17,7 +17,7 @@ SmoothCoatBsdf::SmoothCoatBsdf()
 {
 }
 
-void SmoothCoatBsdf::fromJson(JsonValue value, const Scene &scene)
+void SmoothCoatBsdf::fromJson(JsonPtr value, const Scene &scene)
 {
     Bsdf::fromJson(value, scene);
     value.getField("ior", _ior);

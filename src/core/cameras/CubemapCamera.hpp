@@ -43,7 +43,7 @@ public:
     CubemapCamera();
     CubemapCamera(const Mat4f &transform, const Vec2u &res);
 
-    virtual void fromJson(JsonValue value, const Scene &scene) override;
+    virtual void fromJson(JsonPtr value, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
     virtual bool samplePosition(PathSampleGenerator &sampler, PositionSample &sample) const override final;

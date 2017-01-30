@@ -52,7 +52,7 @@ float Quad::powerToRadianceFactor() const
     return INV_PI*_invArea;
 }
 
-void Quad::fromJson(JsonValue value, const Scene &scene)
+void Quad::fromJson(JsonPtr value, const Scene &scene)
 {
     Primitive::fromJson(value, scene);
 
