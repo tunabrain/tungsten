@@ -1,7 +1,5 @@
 #include "ReconstructionFilter.hpp"
 
-#include "io/JsonUtils.hpp"
-
 namespace Tungsten {
 
 DEFINE_STRINGABLE_ENUM(ReconstructionFilter::Type, "reconstruction filter", ({

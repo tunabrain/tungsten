@@ -1,7 +1,7 @@
 #ifndef TRACESETTINGS_HPP_
 #define TRACESETTINGS_HPP_
 
-#include "io/JsonUtils.hpp"
+#include "io/JsonValue.hpp"
 
 namespace Tungsten {
 

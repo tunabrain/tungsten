@@ -4,8 +4,6 @@
 #include "CubicElement.hpp"
 #include "TexturedQuad.hpp"
 
-#include "io/JsonUtils.hpp"
-
 #include <utility>
 #include <string>
 #include <vector>

@@ -14,7 +14,6 @@
 #include "math/Vec.hpp"
 
 #include "io/JsonSerializable.hpp"
-#include "io/JsonUtils.hpp"
 
 #include <rapidjson/document.h>
 #include <memory>

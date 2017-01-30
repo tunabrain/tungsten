@@ -18,7 +18,6 @@
 #include "math/Box.hpp"
 
 #include "io/JsonSerializable.hpp"
-#include "io/JsonUtils.hpp"
 
 #include <vector>
 #include <memory>

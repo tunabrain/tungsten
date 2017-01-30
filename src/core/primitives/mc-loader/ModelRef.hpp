@@ -3,8 +3,6 @@
 
 #include "ModelResolver.hpp"
 
-#include "io/JsonUtils.hpp"
-
 #include <string>
 #include <vector>
 
