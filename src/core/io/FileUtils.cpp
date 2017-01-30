@@ -5,8 +5,7 @@
 #include "ZipReader.hpp"
 #include "Path.hpp"
 
-#include "Debug.hpp"
-
+#include <tinyformat/tinyformat.hpp>
 #include <rapidjson/prettywriter.h>
 #ifdef _MSC_VER
 #include <dirent/dirent.h>

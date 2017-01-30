@@ -6,8 +6,6 @@
 #include <rapidjson/document.h>
 #include <string>
 
-#include "Debug.hpp"
-
 namespace Tungsten {
 
 class Scene;

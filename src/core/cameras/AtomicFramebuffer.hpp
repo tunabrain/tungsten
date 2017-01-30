@@ -5,8 +5,6 @@
 
 #include "math/Vec.hpp"
 
-#include "Debug.hpp"
-
 #include <memory>
 #include <atomic>
 

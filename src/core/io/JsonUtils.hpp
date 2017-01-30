@@ -3,8 +3,6 @@
 
 #include "JsonSerializable.hpp"
 
-#include "Debug.hpp"
-
 #include "math/Mat4f.hpp"
 #include "math/Vec.hpp"
 

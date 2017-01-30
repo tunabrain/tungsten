@@ -10,6 +10,8 @@
 
 #include "sampling/UniformSampler.hpp"
 
+#include "Debug.hpp"
+
 namespace Tungsten {
 namespace MinecraftLoader {
 

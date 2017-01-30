@@ -13,7 +13,6 @@
 
 #include "IntTypes.hpp"
 #include "Debug.hpp"
-#include "Timer.hpp"
 
 #include <algorithm>
 
@@ -169,9 +168,6 @@ void BvhBuilder::build(PrimVector prims)
 {
     if (prims.empty())
         return;
-#ifndef NDEBUG
-    Timer timer;
-#endif
     Box3fp geomBounds, centroidBounds;
     for (const Primitive &p : prims) {
         geomBounds.grow(p.box());
@@ -184,8 +180,6 @@ void BvhBuilder::build(PrimVector prims)
     _depth = result.depth;
 
 #ifndef NDEBUG
-    timer.bench("Recursive build finished");
-
     integrityCheck(*_root, 0);
 #endif
 }

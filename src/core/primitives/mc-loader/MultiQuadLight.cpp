@@ -8,6 +8,7 @@
 #include "bsdfs/LambertBsdf.hpp"
 
 #include "Platform.hpp"
+#include "Debug.hpp"
 
 #include <iostream>
 

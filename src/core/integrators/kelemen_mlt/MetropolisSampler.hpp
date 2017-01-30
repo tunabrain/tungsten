@@ -136,7 +136,7 @@ public:
     inline virtual float next1D() override final
     {
         if (_vectorIdx == _maxSize)
-            FAIL("Terrible things have occurred! Exceeded maximum size of metropolis sampler");
+            FAIL("Exceeded maximum size of metropolis sampler");
 
         int idx = _vectorIdx++;
         SampleRecord &sample = _sampleVector[idx];

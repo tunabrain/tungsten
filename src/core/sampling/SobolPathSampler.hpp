@@ -4,8 +4,6 @@
 #include "PathSampleGenerator.hpp"
 #include "UniformSampler.hpp"
 
-#include "Debug.hpp"
-
 #include <sobol/sobol.h>
 #include <cstring>
 

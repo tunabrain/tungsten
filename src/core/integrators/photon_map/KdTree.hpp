@@ -8,8 +8,6 @@
 #include "thread/ThreadPool.hpp"
 #include "thread/TaskGroup.hpp"
 
-#include "Debug.hpp"
-
 #include <algorithm>
 #include <vector>
 
