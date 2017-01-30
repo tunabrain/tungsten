@@ -19,8 +19,6 @@
 
 #include "primitives/Primitive.hpp"
 
-#include "materials/BitmapTexture.hpp"
-
 #include "renderer/RendererSettings.hpp"
 #include "renderer/TraceableScene.hpp"
 
@@ -42,8 +40,6 @@ class Scene : public JsonSerializable
     std::vector<std::shared_ptr<Primitive>> _primitives;
     std::vector<std::shared_ptr<Medium>> _media;
     std::vector<std::shared_ptr<Bsdf>> _bsdfs;
-    std::shared_ptr<Bsdf> _errorBsdf;
-    std::shared_ptr<Texture> _errorTexture;
     std::shared_ptr<TextureCache> _textureCache;
     std::shared_ptr<Camera> _camera;
     std::shared_ptr<Integrator> _integrator;
@@ -52,24 +48,6 @@ class Scene : public JsonSerializable
     mutable std::unordered_map<Path, PathPtr> _resources;
 
     RendererSettings _rendererSettings;
-
-    std::shared_ptr<PhaseFunction> instantiatePhase     (JsonValue value) const;
-    std::shared_ptr<Medium>        instantiateMedium    (JsonValue value) const;
-    std::shared_ptr<Grid>          instantiateGrid      (JsonValue value) const;
-    std::shared_ptr<Bsdf>          instantiateBsdf      (JsonValue value) const;
-    std::shared_ptr<Primitive>     instantiatePrimitive (JsonValue value) const;
-    std::shared_ptr<Camera>        instantiateCamera    (JsonValue value) const;
-    std::shared_ptr<Integrator>    instantiateIntegrator(JsonValue value) const;
-    std::shared_ptr<Texture>       instantiateTexture   (JsonValue value, TexelConversion conversion) const;
-
-    template<typename T>
-    std::shared_ptr<T> findObject(const std::vector<std::shared_ptr<T>> &list, std::string name) const;
-
-    template<typename T, typename Instantiator>
-    std::shared_ptr<T> fetchObject(const std::vector<std::shared_ptr<T>> &list, JsonValue value, Instantiator instantiator) const;
-
-    template<typename T>
-    bool addUnique(const std::shared_ptr<T> &o, std::vector<std::shared_ptr<T>> &list);
 
 public:
     Scene();
@@ -180,11 +158,6 @@ public:
     std::unordered_map<Path, PathPtr> &resources()
     {
         return _resources;
-    }
-
-    std::shared_ptr<Bsdf> errorBsdf() const
-    {
-        return _errorBsdf;
     }
 
     static Scene *load(const Path &path, std::shared_ptr<TextureCache> cache = nullptr);

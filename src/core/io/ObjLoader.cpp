@@ -11,6 +11,7 @@
 #include "primitives/Disk.hpp"
 
 #include "materials/ConstantTexture.hpp"
+#include "materials/BitmapTexture.hpp"
 
 #include "cameras/PinholeCamera.hpp"
 

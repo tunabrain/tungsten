@@ -5,6 +5,7 @@
 #include "sampling/SampleWarp.hpp"
 
 #include "io/JsonObject.hpp"
+#include "io/Scene.hpp"
 
 #include "Debug.hpp"
 
