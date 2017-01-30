@@ -70,6 +70,8 @@ public:
         FAIL("StringifiedEnum has invalid value!");
     }
 
+    Enum &toEnum() { return _t; }
+
     operator Enum() const { return _t; }
 
     StringableEnum &operator=(JsonValue value)
@@ -78,6 +80,7 @@ public:
             *this = StringableEnum(value);
         return *this;
     }
+
     static std::vector<Entry> &entries();
 };
 
