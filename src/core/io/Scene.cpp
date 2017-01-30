@@ -25,8 +25,7 @@
 
 #include "grids/GridFactory.hpp"
 
-#include "Debug.hpp"
-
+#include <tinyformat/tinyformat.hpp>
 #include <rapidjson/document.h>
 #include <functional>
 
@@ -70,12 +69,12 @@ std::shared_ptr<T> instantiate(JsonValue value, const Scene &scene)
 }
 
 template<typename T>
-std::shared_ptr<T> findObject(const std::vector<std::shared_ptr<T>> &list, std::string name)
+std::shared_ptr<T> findObject(const std::vector<std::shared_ptr<T>> &list, const std::string &name, JsonValue value)
 {
     for (const std::shared_ptr<T> &t : list)
         if (t->name() == name)
             return t;
-    FAIL("Unable to find object '%s'", name.c_str());
+    value.parseError(tfm::format("Unable to find an object with name '%s'", name));
     return nullptr;
 }
 
@@ -83,11 +82,11 @@ template<typename T>
 std::shared_ptr<T> fetchObject(const std::vector<std::shared_ptr<T>> &list, const Scene &scene, JsonValue value)
 {
     if (value.isString()) {
-        return findObject(list, value.cast<std::string>());
+        return findObject(list, value.cast<std::string>(), value);
     } else if (value.isObject()) {
         return instantiate<T>(value, scene);
     } else {
-        FAIL("Unkown value type");
+        value.parseError("Type mismatch: Expecting either an object or an object reference here");
         return nullptr;
     }
 }
@@ -135,7 +134,7 @@ std::shared_ptr<Texture> Scene::fetchTexture(JsonValue value, TexelConversion co
         else
             return instantiate<Texture>(value, *this);
     } else {
-        DBG("Cannot instantiate texture from unknown value type");
+        value.parseError("Type mismatch: Expecting a texture here");
     }
     return nullptr;
 }
