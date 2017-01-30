@@ -107,6 +107,11 @@ void BidirectionalPathTraceIntegrator::teardownAfterRender()
     _tiles  .shrink_to_fit();
 }
 
+bool BidirectionalPathTraceIntegrator::supportsResumeRender() const
+{
+    return true;
+}
+
 void BidirectionalPathTraceIntegrator::startRender(std::function<void()> completionCallback)
 {
     if (done()) {

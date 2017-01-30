@@ -212,6 +212,11 @@ void PathTraceIntegrator::teardownAfterRender()
     _tiles  .shrink_to_fit();
 }
 
+bool PathTraceIntegrator::supportsResumeRender() const
+{
+    return true;
+}
+
 void PathTraceIntegrator::startRender(std::function<void()> completionCallback)
 {
     if (done() || !generateWork()) {

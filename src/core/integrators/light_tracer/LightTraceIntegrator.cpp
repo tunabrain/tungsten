@@ -34,12 +34,10 @@ void LightTraceIntegrator::traceRays(uint32 taskId, uint32 numSubTasks, uint32 t
 
 void LightTraceIntegrator::saveState(OutputStreamHandle &/*out*/)
 {
-    FAIL("LightTraceIntegrator::saveState not supported!");
 }
 
 void LightTraceIntegrator::loadState(InputStreamHandle &/*in*/)
 {
-    FAIL("LightTraceIntegrator::loadState not supported!");
 }
 
 void LightTraceIntegrator::fromJson(JsonValue value, const Scene &/*scene*/)

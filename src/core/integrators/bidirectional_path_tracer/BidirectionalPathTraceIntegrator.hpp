@@ -54,6 +54,8 @@ public:
     virtual void prepareForRender(TraceableScene &scene, uint32 seed) override;
     virtual void teardownAfterRender() override;
 
+    virtual bool supportsResumeRender() const override;
+
     virtual void startRender(std::function<void()> completionCallback) override;
     virtual void waitForCompletion() override;
     virtual void abortRender() override;

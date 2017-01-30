@@ -20,12 +20,10 @@ KelemenMltIntegrator::KelemenMltIntegrator()
 
 void KelemenMltIntegrator::saveState(OutputStreamHandle &/*out*/)
 {
-    FAIL("KelemenMltIntegrator::saveState not supported!");
 }
 
 void KelemenMltIntegrator::loadState(InputStreamHandle &/*in*/)
 {
-    FAIL("KelemenMltIntegrator::loadState not supported!");
 }
 
 void KelemenMltIntegrator::fromJson(JsonValue value, const Scene &/*scene*/)

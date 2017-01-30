@@ -243,13 +243,19 @@ public:
                 _flattenedScene.reset(_scene->makeTraceable(seed));
             }
             Integrator &integrator = _flattenedScene->integrator();
+            bool resumeRender = _scene->rendererSettings().enableResumeRender();
+            if (resumeRender && !integrator.supportsResumeRender()) {
+                writeLogLine("Warning: Resuming renders is enabled in the scene file, "
+                             "but is not supported by the current integrator");
+                resumeRender = false;
+            }
 
             if (!_parser.isPresent(OPT_CHECKPOINTS))
                 _checkpointInterval = StringUtils::parseDuration(_scene->rendererSettings().checkpointInterval());
             if (!_parser.isPresent(OPT_TIMEOUT))
                 _timeout = StringUtils::parseDuration(_scene->rendererSettings().timeout());
 
-            if (_scene->rendererSettings().enableResumeRender() && !_parser.isPresent(OPT_RESTART)) {
+            if (resumeRender && !_parser.isPresent(OPT_RESTART)) {
                 writeLogLine("Trying to resume render from saved state... ");
                 if (integrator.resumeRender(*_scene))
                     writeLogLine("Resume successful");
@@ -286,7 +292,7 @@ public:
                     Timer ioTimer;
                     checkpointTimer.start();
                     integrator.saveCheckpoint();
-                    if (_scene->rendererSettings().enableResumeRender())
+                    if (resumeRender)
                         integrator.saveRenderResumeData(*_scene);
                     ioTimer.stop();
                     writeLogLine(tfm::format("Saving checkpoint took %s",

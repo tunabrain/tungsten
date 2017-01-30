@@ -44,6 +44,7 @@ public:
 
     void saveRenderResumeData(Scene &scene);
     bool resumeRender(Scene &scene);
+    virtual bool supportsResumeRender() const;
 
     bool done() const
     {

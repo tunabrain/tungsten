@@ -161,4 +161,9 @@ bool Integrator::resumeRender(Scene &scene)
     return true;
 }
 
+bool Integrator::supportsResumeRender() const
+{
+    return false;
+}
+
 }
