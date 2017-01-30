@@ -8,7 +8,7 @@
 #include "samplerecords/PositionSample.hpp"
 #include "samplerecords/LightSample.hpp"
 
-#include "materials/Texture.hpp"
+#include "textures/Texture.hpp"
 
 #include "bsdfs/Bsdf.hpp"
 

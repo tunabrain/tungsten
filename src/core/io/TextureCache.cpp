@@ -1,8 +1,8 @@
 #include "TextureCache.hpp"
 #include "FileUtils.hpp"
 
-#include "materials/BitmapTexture.hpp"
-#include "materials/IesTexture.hpp"
+#include "textures/BitmapTexture.hpp"
+#include "textures/IesTexture.hpp"
 
 namespace Tungsten {
 

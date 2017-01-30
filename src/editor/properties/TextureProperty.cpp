@@ -2,12 +2,12 @@
 #include "PropertyForm.hpp"
 #include "ListProperty.hpp"
 
-#include "materials/ConstantTexture.hpp"
-#include "materials/CheckerTexture.hpp"
-#include "materials/BitmapTexture.hpp"
-#include "materials/BladeTexture.hpp"
-#include "materials/DiskTexture.hpp"
-#include "materials/IesTexture.hpp"
+#include "textures/ConstantTexture.hpp"
+#include "textures/CheckerTexture.hpp"
+#include "textures/BitmapTexture.hpp"
+#include "textures/BladeTexture.hpp"
+#include "textures/DiskTexture.hpp"
+#include "textures/IesTexture.hpp"
 
 #include "editor/ColorPickButton.hpp"
 #include "editor/TextureDisplay.hpp"

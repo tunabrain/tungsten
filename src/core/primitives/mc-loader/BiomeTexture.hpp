@@ -1,8 +1,8 @@
 #ifndef BIOMETEXTURE_HPP_
 #define BIOMETEXTURE_HPP_
 
-#include "materials/BitmapTexture.hpp"
-#include "materials/Texture.hpp"
+#include "textures/BitmapTexture.hpp"
+#include "textures/Texture.hpp"
 
 #include <unordered_map>
 #include <memory>

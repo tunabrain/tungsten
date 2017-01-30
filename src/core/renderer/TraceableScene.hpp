@@ -7,7 +7,7 @@
 #include "primitives/EmbreeUtil.hpp"
 #include "primitives/Primitive.hpp"
 
-#include "materials/ConstantTexture.hpp"
+#include "textures/ConstantTexture.hpp"
 
 #include "cameras/Camera.hpp"
 

@@ -10,8 +10,8 @@
 #include "primitives/Quad.hpp"
 #include "primitives/Disk.hpp"
 
-#include "materials/ConstantTexture.hpp"
-#include "materials/BitmapTexture.hpp"
+#include "textures/ConstantTexture.hpp"
+#include "textures/BitmapTexture.hpp"
 
 #include "cameras/PinholeCamera.hpp"
 

@@ -1,6 +1,6 @@
 #include "ThinlensCamera.hpp"
 
-#include "materials/DiskTexture.hpp"
+#include "textures/DiskTexture.hpp"
 
 #include "sampling/PathSampleGenerator.hpp"
 

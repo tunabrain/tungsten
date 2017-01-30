@@ -3,7 +3,7 @@
 
 #include "Primitive.hpp"
 
-#include "materials/BitmapTexture.hpp"
+#include "textures/BitmapTexture.hpp"
 
 namespace Tungsten {
 

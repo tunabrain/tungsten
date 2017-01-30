@@ -1,7 +1,7 @@
 #include "ResourcePackLoader.hpp"
 #include "TraceableMinecraftMap.hpp"
 
-#include "materials/BitmapTexture.hpp"
+#include "textures/BitmapTexture.hpp"
 
 #include "io/FileIterables.hpp"
 #include "io/JsonDocument.hpp"

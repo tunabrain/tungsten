@@ -8,7 +8,7 @@
 #include "primitives/Quad.hpp"
 #include "primitives/Disk.hpp"
 
-#include "materials/CheckerTexture.hpp"
+#include "textures/CheckerTexture.hpp"
 
 #include "bsdfs/LambertBsdf.hpp"
 #include "bsdfs/NullBsdf.hpp"

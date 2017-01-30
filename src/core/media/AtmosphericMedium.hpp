@@ -3,7 +3,7 @@
 
 #include "Medium.hpp"
 
-#include "materials/Texture.hpp"
+#include "textures/Texture.hpp"
 
 #include <memory>
 

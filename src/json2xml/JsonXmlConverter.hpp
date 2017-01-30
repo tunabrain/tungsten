@@ -17,9 +17,9 @@
 #include "primitives/Cube.hpp"
 #include "primitives/Disk.hpp"
 
-#include "materials/ConstantTexture.hpp"
-#include "materials/CheckerTexture.hpp"
-#include "materials/BitmapTexture.hpp"
+#include "textures/ConstantTexture.hpp"
+#include "textures/CheckerTexture.hpp"
+#include "textures/BitmapTexture.hpp"
 
 #include "cameras/ThinlensCamera.hpp"
 #include "cameras/PinholeCamera.hpp"

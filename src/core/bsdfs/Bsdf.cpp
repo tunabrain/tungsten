@@ -1,6 +1,6 @@
 #include "Bsdf.hpp"
 
-#include "materials/ConstantTexture.hpp"
+#include "textures/ConstantTexture.hpp"
 
 #include "media/Medium.hpp"
 

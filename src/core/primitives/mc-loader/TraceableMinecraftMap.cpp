@@ -6,7 +6,7 @@
 
 #include "primitives/TriangleMesh.hpp"
 
-#include "materials/ConstantTexture.hpp"
+#include "textures/ConstantTexture.hpp"
 
 #include "cameras/PinholeCamera.hpp"
 

@@ -1,7 +1,7 @@
 #ifndef QUADMATERIAL_HPP_
 #define QUADMATERIAL_HPP_
 
-#include "materials/BitmapTexture.hpp"
+#include "textures/BitmapTexture.hpp"
 
 #include "bsdfs/Bsdf.hpp"
 

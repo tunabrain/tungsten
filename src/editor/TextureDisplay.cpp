@@ -1,6 +1,6 @@
 #include "TextureDisplay.hpp"
 
-#include "materials/Texture.hpp"
+#include "textures/Texture.hpp"
 
 #include "math/MathUtil.hpp"
 

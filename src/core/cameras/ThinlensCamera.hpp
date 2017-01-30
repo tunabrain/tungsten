@@ -3,7 +3,7 @@
 
 #include "Camera.hpp"
 
-#include "materials/Texture.hpp"
+#include "textures/Texture.hpp"
 
 namespace Tungsten {
 

@@ -13,9 +13,9 @@
 
 #include "primitives/PrimitiveFactory.hpp"
 
-#include "materials/TextureFactory.hpp"
-#include "materials/BitmapTexture.hpp"
-#include "materials/IesTexture.hpp"
+#include "textures/TextureFactory.hpp"
+#include "textures/BitmapTexture.hpp"
+#include "textures/IesTexture.hpp"
 
 #include "cameras/CameraFactory.hpp"
 #include "cameras/PinholeCamera.hpp"

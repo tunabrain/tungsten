@@ -3,7 +3,7 @@
 #include "ComplexIor.hpp"
 #include "Fresnel.hpp"
 
-#include "materials/ConstantTexture.hpp"
+#include "textures/ConstantTexture.hpp"
 
 #include "sampling/PathSampleGenerator.hpp"
 

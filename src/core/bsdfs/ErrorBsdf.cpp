@@ -3,7 +3,7 @@
 
 #include "ErrorBsdf.hpp"
 
-#include "materials/ConstantTexture.hpp"
+#include "textures/ConstantTexture.hpp"
 
 namespace Tungsten {
 
