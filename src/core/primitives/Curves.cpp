@@ -3,7 +3,7 @@
 
 #include "sampling/UniformSampler.hpp"
 
-#include "bcsdfs/HairBcsdf.hpp"
+#include "bsdfs/HairBcsdf.hpp"
 
 #include "math/TangentFrame.hpp"
 #include "math/MathUtil.hpp"

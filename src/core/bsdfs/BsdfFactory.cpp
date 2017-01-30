@@ -1,13 +1,11 @@
 #include "BsdfFactory.hpp"
 
-#include "bcsdfs/LambertianFiberBcsdf.hpp"
-#include "bcsdfs/RoughWireBcsdf.hpp"
-#include "bcsdfs/HairBcsdf.hpp"
-
+#include "LambertianFiberBcsdf.hpp"
 #include "RoughDielectricBsdf.hpp"
 #include "RoughConductorBsdf.hpp"
 #include "RoughPlasticBsdf.hpp"
 #include "TransparencyBsdf.hpp"
+#include "RoughWireBcsdf.hpp"
 #include "DielectricBsdf.hpp"
 #include "SmoothCoatBsdf.hpp"
 #include "RoughCoatBsdf.hpp"
@@ -21,6 +19,7 @@
 #include "ErrorBsdf.hpp"
 #include "PhongBsdf.hpp"
 #include "MixedBsdf.hpp"
+#include "HairBcsdf.hpp"
 #include "NullBsdf.hpp"
 #include "Bsdf.hpp"
 
