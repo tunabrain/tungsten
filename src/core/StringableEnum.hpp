@@ -18,13 +18,12 @@ class StringableEnum
     typedef std::pair<const char *, Enum> Entry;
 
     static const char *_name;
-    static std::vector<Entry> _entries;
 
     Enum _t;
 
     bool fromString(const char *s)
     {
-        for (const auto &i : _entries) {
+        for (const auto &i : entries()) {
             if (std::strcmp(i.first, s) == 0) {
                 _t = i.second;
                 return true;
@@ -37,15 +36,13 @@ class StringableEnum
     {
         std::stringstream ss;
         ss << "Unknown " << _name << " name: \"" << source << "\". Available options are: ";
-        for (size_t i = 0; i < _entries.size(); ++i) {
+        for (size_t i = 0; i < entries().size(); ++i) {
             if (i)
                 ss << ", ";
-            ss << _entries[i].first;
+            ss << entries()[i].first;
         }
         return ss.str();
     }
-
-    static std::vector<Entry> initializer();
 
 public:
     StringableEnum() = default;
@@ -67,7 +64,7 @@ public:
 
     const char *toString() const
     {
-        for (const auto &i : _entries)
+        for (const auto &i : entries())
             if (i.second == _t)
                 return i.first;
         FAIL("StringifiedEnum has invalid value!");
@@ -81,15 +78,14 @@ public:
             *this = StringableEnum(value);
         return *this;
     }
+    static std::vector<Entry> &entries();
 };
-
-template<typename T>
-std::vector<typename StringableEnum<T>::Entry> StringableEnum<T>::_entries = StringableEnum<T>::initializer();
 
 #define DECLARE_STRINGABLE_ENUM(TYPE, NAME, ENTRIES)          \
     template<> const char *TYPE::_name = NAME;                \
-    template<> std::vector<TYPE::Entry> TYPE::initializer() { \
-        return std::vector<TYPE::Entry>ENTRIES;               \
+    template<> std::vector<TYPE::Entry> &TYPE::entries() {    \
+        static std::vector<TYPE::Entry> entries ENTRIES;      \
+        return entries;                                       \
     }
 
 }
