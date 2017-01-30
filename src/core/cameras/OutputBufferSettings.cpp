@@ -5,7 +5,7 @@
 
 namespace Tungsten {
 
-DECLARE_STRINGABLE_ENUM(OutputBufferSettings::Type, "output buffer type", ({
+DEFINE_STRINGABLE_ENUM(OutputBufferSettings::Type, "output buffer type", ({
     {"color", OutputColor},
     {"depth", OutputDepth},
     {"normal", OutputNormal},

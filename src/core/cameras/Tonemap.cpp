@@ -2,7 +2,7 @@
 
 namespace Tungsten {
 
-DECLARE_STRINGABLE_ENUM(Tonemap::Type, "tonemap operator", ({
+DEFINE_STRINGABLE_ENUM(Tonemap::Type, "tonemap operator", ({
     {"linear", Tonemap::LinearOnly},
     {"gamma", Tonemap::GammaOnly},
     {"reinhard", Tonemap::Reinhard},

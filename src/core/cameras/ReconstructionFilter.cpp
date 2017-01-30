@@ -4,7 +4,7 @@
 
 namespace Tungsten {
 
-DECLARE_STRINGABLE_ENUM(ReconstructionFilter::Type, "reconstruction filter", ({
+DEFINE_STRINGABLE_ENUM(ReconstructionFilter::Type, "reconstruction filter", ({
     {"dirac", ReconstructionFilter::Dirac},
     {"box", ReconstructionFilter::Box},
     {"tent", ReconstructionFilter::Tent},

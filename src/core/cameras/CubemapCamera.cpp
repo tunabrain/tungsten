@@ -52,7 +52,7 @@ static const int BasisIndexV[][6] = {
     {NegY, NegY, PosZ, NegZ, NegY, NegY},
 };
 
-DECLARE_STRINGABLE_ENUM(CubemapCamera::ProjectionMode, "projection mode", ({
+DEFINE_STRINGABLE_ENUM(CubemapCamera::ProjectionMode, "projection mode", ({
     {"horizontal_cross", CubemapCamera::MODE_HORIZONTAL_CROSS},
     {"vertical_cross", CubemapCamera::MODE_VERTICAL_CROSS},
     {"row", CubemapCamera::MODE_ROW},

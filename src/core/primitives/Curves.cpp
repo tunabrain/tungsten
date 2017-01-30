@@ -17,7 +17,7 @@
 
 namespace Tungsten {
 
-DECLARE_STRINGABLE_ENUM(Curves::CurveMode, "curve mode", ({
+DEFINE_STRINGABLE_ENUM(Curves::CurveMode, "curve mode", ({
     {"cylinder", Curves::MODE_CYLINDER},
     {"half_cylinder", Curves::MODE_HALF_CYLINDER},
     {"bcsdf_cylinder", Curves::MODE_BCSDF_CYLINDER},

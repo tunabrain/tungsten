@@ -81,7 +81,7 @@ public:
     static std::vector<Entry> &entries();
 };
 
-#define DECLARE_STRINGABLE_ENUM(TYPE, NAME, ENTRIES)          \
+#define DEFINE_STRINGABLE_ENUM(TYPE, NAME, ENTRIES)           \
     template<> const char *TYPE::_name = NAME;                \
     template<> std::vector<TYPE::Entry> &TYPE::entries() {    \
         static std::vector<TYPE::Entry> entries ENTRIES;      \
