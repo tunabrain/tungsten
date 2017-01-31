@@ -5,6 +5,7 @@
 !/assets/materialtest/
 !/.gitignore
 !/.travis.yml
+!/appveyor.yml
 !/CMakeLists.txt
 !/setup_builds.sh
 !/setup_builds.bat

@@ -1,0 +1,15 @@
+os: Visual Studio 2015
+
+clone_folder: c:\projects\tungsten
+
+platform: x64
+configuration: Release
+
+install:
+
+build:
+  project: tungsten.sln
+
+before_build:
+  - cd c:\projects\tungsten
+  - cmake -G "Visual Studio 12 2013 Win64" .
