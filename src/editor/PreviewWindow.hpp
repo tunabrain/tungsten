@@ -14,7 +14,7 @@
 
 #include <unordered_map>
 #include <unordered_set>
-#include <QOpenGLWidget>
+#include <QGLWidget>
 #include <memory>
 
 class QStatusBar;
@@ -57,7 +57,7 @@ enum MouseConsumers
     SelectionConsumer = (1 << 2),
 };
 
-class PreviewWindow : public QOpenGLWidget
+class PreviewWindow : public QGLWidget
 {
     Q_OBJECT
 

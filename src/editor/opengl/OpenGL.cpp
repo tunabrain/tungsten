@@ -1,4 +1,4 @@
-#include <QOpenGLWidget>
+#include <QGLWidget>
 #include "OpenGL.hpp"
 
 namespace Tungsten {

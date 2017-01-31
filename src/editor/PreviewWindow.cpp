@@ -53,7 +53,7 @@ void GlMesh::draw(Shader &shader)
 }
 
 PreviewWindow::PreviewWindow(QWidget */*proxyParent*/, MainWindow *parent)
-: QOpenGLWidget(parent),
+: QGLWidget(parent),
   _parent(*parent),
   _scene(parent->scene()),
   _selection(parent->selection()),
@@ -63,16 +63,13 @@ PreviewWindow::PreviewWindow(QWidget */*proxyParent*/, MainWindow *parent)
     setMouseTracking(true);
     setFocusPolicy(Qt::ClickFocus);
 
-    QSurfaceFormat fmt;
-    fmt.setMajorVersion(3);
-    fmt.setMinorVersion(2);
-    fmt.setProfile(QSurfaceFormat::CoreProfile);
+    QGLFormat fmt;
+    fmt.setVersion(3, 2);
+    fmt.setProfile(QGLFormat::CoreProfile);
     fmt.setAlphaBufferSize(8);
     fmt.setDepthBufferSize(24);
     fmt.setSamples(4);
     setFormat(fmt);
-
-    setUpdateBehavior(NoPartialUpdate);
 
     new QShortcut(QKeySequence("A"), this, SLOT(toggleSelectAll()));
     new QShortcut(QKeySequence("G"), this, SLOT(grabGizmo()));
@@ -539,7 +536,7 @@ void PreviewWindow::initializeGL()
 {
     GL::initOpenGL();
 
-    if (!(format().version() >= qMakePair(3, 2)) ||
+    if (!(qMakePair(format().majorVersion(), format().minorVersion()) >= qMakePair(3, 2)) ||
         !(QOpenGLContext::currentContext()->isValid())) {
         QMessageBox::critical(this,
                 "No OpenGL Support",
@@ -736,7 +733,7 @@ void PreviewWindow::keyPressEvent(QKeyEvent *event)
         _gizmo.abortTransform();
         break;
     }
-    QOpenGLWidget::keyPressEvent(event);
+    QGLWidget::keyPressEvent(event);
     update();
 }
 
@@ -744,7 +741,7 @@ void PreviewWindow::keyReleaseEvent(QKeyEvent *event)
 {
     if (event->key() == Qt::Key_Control)
         _gizmo.setSnapToGrid(false);
-    QOpenGLWidget::keyPressEvent(event);
+    QGLWidget::keyPressEvent(event);
 }
 
 void PreviewWindow::showContextMenu()
