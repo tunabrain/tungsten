@@ -3,6 +3,8 @@
 
 #include "Path.hpp"
 
+#include "Platform.hpp"
+
 #include <exception>
 #include <string>
 
@@ -22,7 +24,7 @@ public:
     const std::string &description() const { return _description; }
     const std::string &excerpt() const { return _excerpt; }
 
-    virtual const char *what() const noexcept override { return _what.c_str(); }
+    virtual const char *what() const NOEXCEPT override { return _what.c_str(); }
 };
 
 }

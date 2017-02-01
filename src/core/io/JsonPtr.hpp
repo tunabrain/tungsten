@@ -4,6 +4,8 @@
 #include "math/Mat4f.hpp"
 #include "math/Vec.hpp"
 
+#include "Platform.hpp"
+
 #include <rapidjson/document.h>
 #include <tinyformat/tinyformat.hpp>
 
@@ -121,7 +123,7 @@ public:
         return _value->Size();
     }
 
-    [[noreturn]] void parseError(std::string description) const;
+    NORETURN void parseError(std::string description) const;
 
     operator bool() const { return _value != nullptr; }
 

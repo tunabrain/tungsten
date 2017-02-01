@@ -216,10 +216,12 @@ typedef DWORD clockid_t;
 #endif
 
 #ifndef _TIMESPEC_DEFINED
+#if !defined(_MSC_VER) || _MSC_VER < 1900
 struct timespec {
     time_t   tv_sec;        /* seconds */
     long     tv_nsec;       /* nanoseconds */
 };
+#endif
 #endif
 
 #define pid_t HANDLE /* MINGW typedefs pid_t to int. Using #define here. */

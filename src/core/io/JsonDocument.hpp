@@ -4,6 +4,8 @@
 #include "JsonPtr.hpp"
 #include "Path.hpp"
 
+#include "Platform.hpp"
+
 #include <rapidjson/document.h>
 #include <string>
 
@@ -21,7 +23,7 @@ public:
     JsonDocument(const Path &file);
     JsonDocument(const Path &file, std::string json);
 
-    [[noreturn]] void parseError(JsonPtr source, std::string description) const;
+    NORETURN void parseError(JsonPtr source, std::string description) const;
 };
 
 }

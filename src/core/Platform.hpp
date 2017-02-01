@@ -16,4 +16,16 @@
 
 #define MARK_UNUSED(x) (void)(x)
 
+#ifdef _MSC_VER
+#define NORETURN __declspec(noreturn)
+#else
+#define NORETURN [[noreturn]]
+#endif
+
+#ifndef _MSC_VER
+#define NOEXCEPT noexcept
+#else
+#define NOEXCEPT
+#endif
+
 #endif /* PLATFORM_HPP_ */
