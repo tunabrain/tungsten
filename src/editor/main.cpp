@@ -13,6 +13,7 @@
 #include "MainWindow.hpp"
 
 #ifdef OPENVDB_AVAILABLE
+#undef Q_FOREACH // Fix QT/OpenVDB compatibility issues
 #include <openvdb/openvdb.h>
 #endif
 
