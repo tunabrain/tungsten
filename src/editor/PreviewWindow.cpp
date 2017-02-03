@@ -556,8 +556,7 @@ void PreviewWindow::initializeGL()
 
     _fbo.reset(new RenderTarget());
 
-    Path exePath = FileUtils::getExecutablePath();
-    Path shaderBasePath = exePath.parent()/"data/shaders/";
+    Path shaderBasePath = FileUtils::getDataPath()/"shaders/";
 
     _shader.reset(
         new Shader(shaderBasePath, "Preamble.txt", "MeshPreview.vert", "MeshPreview.geom", "MeshPreview.frag", 1));

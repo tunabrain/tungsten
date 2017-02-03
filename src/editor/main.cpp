@@ -32,8 +32,8 @@ int main(int argc, char *argv[])
 
     QApplication app(argc, argv);
 
-    QDir::setCurrent(QString::fromStdString(FileUtils::getExecutablePath().parent().nativeSeparators().asString()));
-    Path path = FileUtils::getExecutablePath().parent()/"data/editor/style/style.qss";
+    QDir::setCurrent(QString::fromStdString(FileUtils::getDataPath().nativeSeparators().asString()));
+    Path path = FileUtils::getDataPath()/"editor/style/style.qss";
     app.setStyleSheet(QString::fromStdString(FileUtils::loadText(path)));
 
     QDesktopWidget desktop;
@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
 
     mainWindow.show();
 
-    Path testScenePath = FileUtils::getExecutablePath().parent()/"data/materialtest/materialtest.json";
+    Path testScenePath = FileUtils::getDataPath()/"materialtest/materialtest.json";
     if (argc > 1)
         mainWindow.openScene(QString(argv[1]));
     else if (FileUtils::exists(testScenePath))

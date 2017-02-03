@@ -408,6 +408,21 @@ Path FileUtils::getExecutablePath()
     return Path();
 }
 
+Path FileUtils::getDataPath()
+{
+#if _WIN32
+    Path execPath = getExecutablePath().parent()/"data";
+    if (execPath.exists())
+        return std::move(execPath);
+    return Path(INSTALL_PREFIX)/"data";
+#else
+    Path execPath = getExecutablePath().parent().parent()/"share/tungsten";
+    if (execPath.exists())
+        return std::move(execPath);
+    return Path(INSTALL_PREFIX)/"share/tungsten"
+#endif
+}
+
 uint64 FileUtils::fileSize(const Path &path)
 {
     StatStruct info;

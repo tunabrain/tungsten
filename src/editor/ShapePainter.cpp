@@ -26,8 +26,7 @@ void ShapePainter::initialize()
     _vbo->setStandardAttributes(VBO_ATT_POSITION | VBO_ATT_COLOR);
     _vbo->initBuffer();
 
-    Path exePath = FileUtils::getExecutablePath();
-    Path shaderBasePath = exePath.parent()/"data/shaders/";
+    Path shaderBasePath = FileUtils::getDataPath()/"shaders/";
 
     _defaultShader =
         new Shader(shaderBasePath, "Preamble.txt", "Primitive.vert", "", "Primitive.frag", 1);

@@ -87,6 +87,7 @@ public:
     static Path getCurrentDir();
 
     static Path getExecutablePath();
+    static Path getDataPath();
 
     static uint64 fileSize(const Path &path);
 

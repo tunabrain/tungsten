@@ -592,7 +592,7 @@ void TraceableMinecraftMap::loadResources()
             std::vector<Path> packs;
             for (int i = _packPaths.size() - 1; i >= 0; --i)
                 packs.push_back(*_packPaths[i]);
-            packs.push_back(FileUtils::getExecutablePath().parent()/"data/mc-loader");
+            packs.push_back(FileUtils::getDataPath()/"mc-loader");
 
             ResourcePackLoader pack(packs);
             buildModels(pack);
