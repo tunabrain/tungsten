@@ -176,13 +176,16 @@ void LightPath::tracePath(const TraceableScene &scene, TraceBase &tracer, PathSa
     toAreaMeasure();
 }
 
-Vec3f LightPath::bdptWeightedPathEmission(int minLength, int maxLength) const
+Vec3f LightPath::bdptWeightedPathEmission(int minLength, int maxLength, Vec3f *directEmissionByBounce) const
 {
     // TODO: Naive, slow version to make sure it's correct. Optimize this
 
     float *pdfForward  = reinterpret_cast<float *>(alloca(_length*sizeof(float)));
     float *pdfBackward = reinterpret_cast<float *>(alloca(_length*sizeof(float)));
     bool  *connectable = reinterpret_cast<bool  *>(alloca(_length*sizeof(bool)));
+
+    if (directEmissionByBounce)
+        std::memset(directEmissionByBounce, 0, (maxLength - 1)*sizeof(Vec3f));
 
     Vec3f result(0.0f);
     for (int t = 2; t <= _length; ++t) {
@@ -204,8 +207,12 @@ Vec3f LightPath::bdptWeightedPathEmission(int minLength, int maxLength) const
 
         // Early out for camera paths directly hitting the environment map
         // These can only be sampled with one technique
-        if (realT == 2 && _vertices[t - 1].isInfiniteSurface())
-            return emission*_vertices[t - 1].throughput();
+        if (realT == 2 && _vertices[t - 1].isInfiniteSurface()) {
+            Vec3f v = emission*_vertices[t - 1].throughput();
+            if (directEmissionByBounce)
+                directEmissionByBounce[0] = v;
+            return v;
+        }
 
         for (int i = 0; i < t; ++i) {
             pdfForward [t - (i + 1)] = _vertices[i].pdfBackward();
@@ -247,7 +254,10 @@ Vec3f LightPath::bdptWeightedPathEmission(int minLength, int maxLength) const
                 weight += pi;
         }
 
-        result += _vertices[t - 1].throughput()*emission/weight;
+        Vec3f v = _vertices[t - 1].throughput()*emission/weight;
+        if (directEmissionByBounce)
+            directEmissionByBounce[t - 2] = v;
+        result += v;
     }
 
     return result;

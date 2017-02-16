@@ -90,7 +90,7 @@ public:
         return _vertexIndex[i];
     }
 
-    Vec3f bdptWeightedPathEmission(int minLength, int maxLength) const;
+    Vec3f bdptWeightedPathEmission(int minLength, int maxLength, Vec3f *directEmissionByBounce = nullptr) const;
 
     static Vec3f bdptConnect(const TraceBase &tracer, const LightPath &camera, const LightPath &emitter,
             int s, int t, int maxBounce, PathSampleGenerator &sampler);
