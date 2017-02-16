@@ -39,7 +39,7 @@ public:
     virtual void waitForCompletion() = 0;
     virtual void abortRender() = 0;
 
-    void saveOutputs();
+    virtual void saveOutputs();
     void saveCheckpoint();
 
     void saveRenderResumeData(Scene &scene);

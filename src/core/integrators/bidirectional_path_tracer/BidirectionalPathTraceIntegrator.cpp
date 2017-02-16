@@ -1,4 +1,5 @@
 #include "BidirectionalPathTraceIntegrator.hpp"
+#include "ImagePyramid.hpp"
 
 #include "sampling/SobolPathSampler.hpp"
 
@@ -16,6 +17,10 @@ BidirectionalPathTraceIntegrator::BidirectionalPathTraceIntegrator()
   _w(0),
   _h(0),
   _sampler(0xBA5EBA11)
+{
+}
+
+BidirectionalPathTraceIntegrator::~BidirectionalPathTraceIntegrator()
 {
 }
 
@@ -91,8 +96,11 @@ void BidirectionalPathTraceIntegrator::prepareForRender(TraceableScene &scene, u
     scene.cam().requestColorBuffer();
     scene.cam().requestSplatBuffer();
 
+    if (_settings.imagePyramid)
+        _imagePyramid.reset(new ImagePyramid(_settings.maxBounces, _scene->cam()));
+
     for (uint32 i = 0; i < ThreadUtils::pool->threadCount(); ++i)
-        _tracers.emplace_back(new BidirectionalPathTracer(&scene, _settings, i));
+        _tracers.emplace_back(new BidirectionalPathTracer(&scene, _settings, i, _imagePyramid.get()));
 
     diceTiles();
 }
@@ -147,6 +155,15 @@ void BidirectionalPathTraceIntegrator::abortRender()
         _group->abort();
         _group->wait();
         _group.reset();
+    }
+}
+
+void BidirectionalPathTraceIntegrator::saveOutputs()
+{
+    Integrator::saveOutputs();
+    if (_settings.imagePyramid) {
+        Path pathPrefix = _scene->rendererSettings().outputFile().stripExtension();
+        _imagePyramid->saveBuffers(pathPrefix, _scene->rendererSettings().spp(), false);
     }
 }
 

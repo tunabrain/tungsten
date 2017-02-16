@@ -22,6 +22,8 @@
 
 namespace Tungsten {
 
+class ImagePyramid;
+
 class BidirectionalPathTraceIntegrator : public Integrator
 {
     static CONSTEXPR uint32 TileSize = 16;
@@ -37,6 +39,7 @@ class BidirectionalPathTraceIntegrator : public Integrator
     std::vector<std::unique_ptr<BidirectionalPathTracer>> _tracers;
 
     std::vector<ImageTile> _tiles;
+    std::unique_ptr<ImagePyramid> _imagePyramid;
 
     void diceTiles();
 
@@ -47,6 +50,7 @@ class BidirectionalPathTraceIntegrator : public Integrator
 
 public:
     BidirectionalPathTraceIntegrator();
+    ~BidirectionalPathTraceIntegrator();
 
     virtual void fromJson(JsonPtr value, const Scene &scene) override;
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
@@ -59,6 +63,8 @@ public:
     virtual void startRender(std::function<void()> completionCallback) override;
     virtual void waitForCompletion() override;
     virtual void abortRender() override;
+
+    virtual void saveOutputs() override;
 };
 
 }
