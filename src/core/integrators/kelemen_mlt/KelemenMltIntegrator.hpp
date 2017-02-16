@@ -21,6 +21,8 @@
 
 namespace Tungsten {
 
+class ImagePyramid;
+
 class KelemenMltIntegrator : public Integrator
 {
     struct PathCandidate
@@ -39,6 +41,8 @@ class KelemenMltIntegrator : public Integrator
 
     UniformSampler _sampler;
     std::vector<std::unique_ptr<KelemenMltTracer>> _tracers;
+
+    std::unique_ptr<ImagePyramid> _imagePyramid;
 
     bool _chainsLaunched;
     double _luminanceScale;
@@ -64,6 +68,8 @@ public:
     virtual void startRender(std::function<void()> completionCallback) override;
     virtual void waitForCompletion() override;
     virtual void abortRender() override;
+
+    virtual void saveOutputs() override;
 };
 
 }

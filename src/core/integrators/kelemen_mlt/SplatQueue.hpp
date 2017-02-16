@@ -3,6 +3,8 @@
 
 #include "cameras/AtomicFramebuffer.hpp"
 
+#include "integrators/bidirectional_path_tracer/ImagePyramid.hpp"
+
 #include "math/Vec.hpp"
 
 #include <memory>
@@ -13,11 +15,13 @@ class SplatQueue
 {
     struct FilteredSplat
     {
+        int s, t;
         Vec2f pixel;
         Vec3f value;
     };
     struct Splat
     {
+        int s, t;
         Vec2u pixel;
         Vec3f value;
     };
@@ -47,15 +51,15 @@ public:
         _totalLuminance = 0.0f;
     }
 
-    void addSplat(Vec2u pixel, Vec3f value)
+    void addSplat(int s, int t, Vec2u pixel, Vec3f value)
     {
-        _splats[_splatCount++] = Splat{pixel, value};
+        _splats[_splatCount++] = Splat{s, t, pixel, value};
         _totalLuminance += value.luminance();
     }
 
-    void addFilteredSplat(Vec2f pixel, Vec3f value)
+    void addFilteredSplat(int s, int t, Vec2f pixel, Vec3f value)
     {
-        _filteredSplats[_filteredSplatCount++] = FilteredSplat{pixel, value};
+        _filteredSplats[_filteredSplatCount++] = FilteredSplat{s, t, pixel, value};
         _totalLuminance += value.luminance();
     }
 
@@ -70,7 +74,14 @@ public:
             buffer.splatFiltered(_filteredSplats[i].pixel, _filteredSplats[i].value*scale);
         for (int i = 0; i < _splatCount; ++i)
             buffer.splat(_splats[i].pixel, _splats[i].value*scale);
-        clear();
+    }
+
+    void apply(ImagePyramid &pyramid, float scale)
+    {
+        for (int i = 0; i < _filteredSplatCount; ++i)
+            pyramid.splatFiltered(_filteredSplats[i].s, _filteredSplats[i].t, _filteredSplats[i].pixel, _filteredSplats[i].value*scale);
+        for (int i = 0; i < _splatCount; ++i)
+            pyramid.splat(_splats[i].s, _splats[i].t, _splats[i].pixel, _splats[i].value*scale);
     }
 };
 

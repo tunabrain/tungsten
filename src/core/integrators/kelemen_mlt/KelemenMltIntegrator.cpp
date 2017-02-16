@@ -1,5 +1,7 @@
 #include "KelemenMltIntegrator.hpp"
 
+#include "integrators/bidirectional_path_tracer/ImagePyramid.hpp"
+
 #include "sampling/UniformPathSampler.hpp"
 #include "sampling/SobolPathSampler.hpp"
 
@@ -49,8 +51,11 @@ void KelemenMltIntegrator::prepareForRender(TraceableScene &scene, uint32 seed)
     scene.cam().requestColorBuffer();
     scene.cam().requestSplatBuffer();
 
+    if (_settings.imagePyramid)
+        _imagePyramid.reset(new ImagePyramid(_settings.maxBounces, _scene->cam()));
+
     for (uint32 i = 0; i < ThreadUtils::pool->threadCount(); ++i)
-        _tracers.emplace_back(new KelemenMltTracer(&scene, _settings, _sampler.state(), i));
+        _tracers.emplace_back(new KelemenMltTracer(&scene, _settings, _sampler.state(), i, _imagePyramid.get()));
 }
 
 void KelemenMltIntegrator::teardownAfterRender()
@@ -71,7 +76,7 @@ void KelemenMltIntegrator::traceSamplePool(uint32 taskId, uint32 numSubTasks, ui
     UniformPathSampler pathSampler(_tracers[taskId]->sampler());
     for (uint32 i = rayBase; i < rayTail; ++i) {
         _pathCandidates[i].state = pathSampler.sampler().state();
-        _tracers[taskId]->tracePath(pathSampler, pathSampler, *queue);
+        _tracers[taskId]->tracePath(pathSampler, pathSampler, *queue, false);
 
         _pathCandidates[i].luminanceSum = queue->totalLuminance();
         _pathCandidates[i].luminance = _pathCandidates[i].luminanceSum;
@@ -170,6 +175,13 @@ void KelemenMltIntegrator::abortRender()
         _group->wait();
         _group.reset();
     }
+}
+
+void KelemenMltIntegrator::saveOutputs()
+{
+    Integrator::saveOutputs();
+    if (_imagePyramid)
+        _imagePyramid->saveBuffers(_scene->rendererSettings().outputFile().stripExtension(), _scene->rendererSettings().spp(), true);
 }
 
 }

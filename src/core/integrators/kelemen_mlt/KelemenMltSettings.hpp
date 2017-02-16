@@ -12,11 +12,13 @@ struct KelemenMltSettings : public PathTracerSettings
     int initialSamplePool;
     bool bidirectional;
     float largeStepProbability;
+    bool imagePyramid;
 
     KelemenMltSettings()
     : initialSamplePool(10000),
       bidirectional(true),
-      largeStepProbability(0.1f)
+      largeStepProbability(0.1f),
+      imagePyramid(false)
     {
     }
 
@@ -26,6 +28,7 @@ struct KelemenMltSettings : public PathTracerSettings
         value.getField("initial_sample_pool", initialSamplePool);
         value.getField("bidirectional", bidirectional);
         value.getField("large_step_probability", largeStepProbability);
+        value.getField("image_pyramid", imagePyramid);
     }
 
     rapidjson::Value toJson(rapidjson::Document::AllocatorType &allocator) const
@@ -37,7 +40,8 @@ struct KelemenMltSettings : public PathTracerSettings
             "type", "kelemen_mlt",
             "initial_sample_pool", initialSamplePool,
             "bidirectional", bidirectional,
-            "large_step_probability", largeStepProbability
+            "large_step_probability", largeStepProbability,
+            "image_pyramid", imagePyramid,
         };
     }
 };

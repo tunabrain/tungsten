@@ -1,14 +1,17 @@
 #include "KelemenMltTracer.hpp"
 
+#include "integrators/bidirectional_path_tracer/ImagePyramid.hpp"
+
 #include "sampling/UniformPathSampler.hpp"
 #include "sampling/UniformSampler.hpp"
 
 namespace Tungsten {
 
 KelemenMltTracer::KelemenMltTracer(TraceableScene *scene, const KelemenMltSettings &settings, uint64 seed,
-        uint32 threadId)
+        uint32 threadId, ImagePyramid *imagePyramid)
 : PathTracer(scene, settings, threadId),
   _splatBuffer(scene->cam().splatBuffer()),
+  _imagePyramid(imagePyramid),
   _settings(settings),
   _sampler(seed, threadId),
   _currentSplats(new SplatQueue(sqr(_settings.maxBounces + 2))),
@@ -16,10 +19,12 @@ KelemenMltTracer::KelemenMltTracer(TraceableScene *scene, const KelemenMltSettin
   _cameraPath(new LightPath(settings.maxBounces + 1)),
   _emitterPath(new LightPath(settings.maxBounces + 1))
 {
+    if (_imagePyramid)
+        _directEmissionByBounce.reset(new Vec3f[settings.maxBounces + 2]);
 }
 
 void KelemenMltTracer::tracePath(PathSampleGenerator &cameraSampler, PathSampleGenerator &emitterSampler,
-        SplatQueue &splatQueue)
+        SplatQueue &splatQueue, bool record)
 {
     splatQueue.clear();
 
@@ -27,7 +32,7 @@ void KelemenMltTracer::tracePath(PathSampleGenerator &cameraSampler, PathSampleG
     Vec2u pixel = min(Vec2u(resF*cameraSampler.next2D()), _scene->cam().resolution());
 
     if (!_settings.bidirectional) {
-        splatQueue.addSplat(pixel, traceSample(pixel, cameraSampler));
+        splatQueue.addSplat(0, 0, pixel, traceSample(pixel, cameraSampler));
         return;
     }
 
@@ -48,7 +53,10 @@ void KelemenMltTracer::tracePath(PathSampleGenerator &cameraSampler, PathSampleG
     int cameraLength =  cameraPath.length();
     int  lightLength = emitterPath.length();
 
-    Vec3f primarySplat = cameraPath.bdptWeightedPathEmission(_settings.minBounces + 2, _settings.maxBounces + 1);
+    bool splitPrimaries = record && _imagePyramid;
+
+    Vec3f primarySplat = cameraPath.bdptWeightedPathEmission(_settings.minBounces + 2, _settings.maxBounces + 1,
+            splitPrimaries ? _directEmissionByBounce.get() : nullptr);
     for (int s = 1; s <= lightLength; ++s) {
         int upperBound = min(_settings.maxBounces - s + 1, cameraLength);
         for (int t = 1; t <= upperBound; ++t) {
@@ -59,13 +67,21 @@ void KelemenMltTracer::tracePath(PathSampleGenerator &cameraSampler, PathSampleG
                 Vec2f pixel;
                 Vec3f splatWeight;
                 if (LightPath::bdptCameraConnect(*this, cameraPath, emitterPath, s, _settings.maxBounces, emitterSampler, splatWeight, pixel))
-                    splatQueue.addFilteredSplat(pixel, splatWeight*lightSplatScale);
+                    splatQueue.addFilteredSplat(s, t, pixel, splatWeight*lightSplatScale);
             } else {
-                primarySplat += LightPath::bdptConnect(*this, cameraPath, emitterPath, s, t, _settings.maxBounces, cameraSampler);
+                Vec3f v = LightPath::bdptConnect(*this, cameraPath, emitterPath, s, t, _settings.maxBounces, cameraSampler);
+                if (splitPrimaries)
+                    splatQueue.addSplat(s, t, pixel, v);
+                else
+                    primarySplat += v;
             }
         }
     }
-    splatQueue.addSplat(pixel, primarySplat);
+    if (splitPrimaries)
+        for (int t = 2; t <= cameraPath.length(); ++t)
+            splatQueue.addSplat(0, t, pixel, _directEmissionByBounce[t - 2]);
+    else
+        splatQueue.addSplat(0, 0, pixel, primarySplat);
 }
 
 void KelemenMltTracer::startSampleChain(UniformSampler &replaySampler, float luminance)
@@ -73,7 +89,7 @@ void KelemenMltTracer::startSampleChain(UniformSampler &replaySampler, float lum
     _cameraSampler.reset (new MetropolisSampler(&replaySampler, _settings.maxBounces*16));
     _emitterSampler.reset(new MetropolisSampler(&replaySampler, _settings.maxBounces*16));
 
-    tracePath(*_cameraSampler, *_emitterSampler, *_currentSplats);
+    tracePath(*_cameraSampler, *_emitterSampler, *_currentSplats, false);
 
     if (_currentSplats->totalLuminance() != luminance)
         FAIL("Underlying integrator is not consistent. Expected a value of %f, but received %f", luminance, _currentSplats->totalLuminance());
@@ -92,7 +108,7 @@ void KelemenMltTracer::runSampleChain(int chainLength, float luminanceScale)
         _cameraSampler->setLargeStep(largeStep);
         _emitterSampler->setLargeStep(largeStep);
 
-        tracePath(*_cameraSampler, *_emitterSampler, *_proposedSplats);
+        tracePath(*_cameraSampler, *_emitterSampler, *_proposedSplats, true);
 
         float currentI = _currentSplats->totalLuminance();
         float proposedI = _proposedSplats->totalLuminance();
@@ -120,7 +136,13 @@ void KelemenMltTracer::runSampleChain(int chainLength, float luminanceScale)
             _cameraSampler->reject();
             _emitterSampler->reject();
         }
+
+        if (_imagePyramid)
+            _currentSplats->apply(*_imagePyramid, luminanceScale/_currentSplats->totalLuminance());
     }
+
+    if (_currentSplats->totalLuminance() != 0.0f)
+        _currentSplats->apply(*_scene->cam().splatBuffer(), accumulatedWeight/_currentSplats->totalLuminance());
 }
 
 }

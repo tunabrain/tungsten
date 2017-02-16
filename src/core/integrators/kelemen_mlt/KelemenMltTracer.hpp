@@ -12,10 +12,12 @@
 namespace Tungsten {
 
 class AtomicFramebuffer;
+class ImagePyramid;
 
 class KelemenMltTracer : public PathTracer
 {
     AtomicFramebuffer *_splatBuffer;
+    ImagePyramid *_imagePyramid;
     KelemenMltSettings _settings;
     UniformSampler _sampler;
 
@@ -26,10 +28,13 @@ class KelemenMltTracer : public PathTracer
     std::unique_ptr<LightPath> _cameraPath;
     std::unique_ptr<LightPath> _emitterPath;
 
-public:
-    KelemenMltTracer(TraceableScene *scene, const KelemenMltSettings &settings, uint64 seed, uint32 threadId);
+    std::unique_ptr<Vec3f[]> _directEmissionByBounce;
 
-    void tracePath(PathSampleGenerator &cameraSampler, PathSampleGenerator &emitterSampler, SplatQueue &splatQueue);
+public:
+    KelemenMltTracer(TraceableScene *scene, const KelemenMltSettings &settings, uint64 seed, uint32 threadId,
+            ImagePyramid *imagePyramid);
+
+    void tracePath(PathSampleGenerator &cameraSampler, PathSampleGenerator &emitterSampler, SplatQueue &splatQueue, bool record);
 
     void startSampleChain(UniformSampler &replaySampler, float luminance);
     void runSampleChain(int chainLength, float luminanceScale);
