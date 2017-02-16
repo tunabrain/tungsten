@@ -227,6 +227,11 @@ public:
         return _splatBuffer.get();
     }
 
+    ReconstructionFilter reconstructionFilter() const
+    {
+        return _filter;
+    }
+
     bool isFilterDirac() const
     {
         return _filter.isDirac();
