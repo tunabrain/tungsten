@@ -50,6 +50,9 @@ public:
         _index = sample;
         _dimension = 0;
     }
+    virtual void advancePath() override final
+    {
+    }
 
     virtual bool nextBoolean(float pTrue) override final
     {

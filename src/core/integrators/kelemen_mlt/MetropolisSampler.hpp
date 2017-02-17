@@ -83,6 +83,9 @@ public:
     virtual void startPath(uint32 /*pixelId*/, uint32 /*sample*/) override
     {
     }
+    virtual void advancePath()
+    {
+    }
 
     virtual void saveState(OutputStreamHandle &/*out*/) override
     {
