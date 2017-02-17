@@ -2,6 +2,7 @@
 
 #include "bidirectional_path_tracer/BidirectionalPathTraceIntegrator.hpp"
 #include "progressive_photon_map/ProgressivePhotonMapIntegrator.hpp"
+#include "multiplexed_mlt/MultiplexedMltIntegrator.hpp"
 #include "light_tracer/LightTraceIntegrator.hpp"
 #include "kelemen_mlt/KelemenMltIntegrator.hpp"
 #include "path_tracer/PathTraceIntegrator.hpp"
@@ -16,6 +17,7 @@ DEFINE_STRINGABLE_ENUM(IntegratorFactory, "integrator", ({
     {"progressive_photon_map", std::make_shared<ProgressivePhotonMapIntegrator>},
     {"bidirectional_path_tracer", std::make_shared<BidirectionalPathTraceIntegrator>},
     {"kelemen_mlt", std::make_shared<KelemenMltIntegrator>},
+    {"multiplexed_mlt", std::make_shared<MultiplexedMltIntegrator>},
 }))
 
 }
