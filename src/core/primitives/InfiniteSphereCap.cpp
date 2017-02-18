@@ -108,11 +108,11 @@ void InfiniteSphereCap::makeSamplable(const TraceableScene &scene, uint32 /*thre
 
 bool InfiniteSphereCap::samplePosition(PathSampleGenerator &sampler, PositionSample &sample) const
 {
-    float faceXi = sampler.next1D();
-    Vec2f xi = sampler.next2D();
-
     sample.uv = Vec2f(0.0f);
     sample.Ng = -_capFrame.toGlobal(SampleWarp::uniformSphericalCap(sampler.next2D(), _cosCapAngle));
+
+    float faceXi = sampler.next1D();
+    Vec2f xi = sampler.next2D();
     sample.p = SampleWarp::projectedBox(_sceneBounds, sample.Ng, faceXi, xi);
     sample.pdf = SampleWarp::projectedBoxPdf(_sceneBounds, sample.Ng);
     sample.weight = Vec3f(1.0f/sample.pdf);
@@ -135,6 +135,32 @@ bool InfiniteSphereCap::sampleDirect(uint32 /*threadIndex*/, const Vec3f &/*p*/,
     sample.d = _capFrame.toGlobal(dir);
     sample.dist = Ray::infinity();
     sample.pdf = SampleWarp::uniformSphericalCapPdf(_cosCapAngle);
+
+    return true;
+}
+
+bool InfiniteSphereCap::invertPosition(WritablePathSampleGenerator &sampler, const PositionSample &point) const
+{
+    float faceXi;
+    Vec2f xi;
+    if (!SampleWarp::invertProjectedBox(_sceneBounds, point.p, -point.Ng, faceXi, xi, sampler.untracked1D()))
+        return false;
+
+    sampler.put1D(faceXi);
+    sampler.put2D(xi);
+
+    return true;
+}
+
+bool InfiniteSphereCap::invertDirection(WritablePathSampleGenerator &sampler, const PositionSample &/*point*/,
+        const DirectionSample &direction) const
+{
+    Vec3f d = -_capFrame.toLocal(direction.d);
+    Vec2f xi;
+    if (!SampleWarp::invertUniformSphericalCap(d, _cosCapAngle, xi, sampler.untracked1D()))
+        return false;
+
+    sampler.put2D(xi);
 
     return true;
 }

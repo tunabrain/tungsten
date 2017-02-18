@@ -63,6 +63,16 @@ bool Primitive::sampleDirect(uint32 /*threadIndex*/, const Vec3f &/*p*/, PathSam
     return false;
 }
 
+bool Primitive::invertPosition(WritablePathSampleGenerator &/*sampler*/, const PositionSample &/*point*/) const
+{
+    FAIL("Primitive::invertPosition not implemented!");
+}
+bool Primitive::invertDirection(WritablePathSampleGenerator &/*sampler*/, const PositionSample &/*point*/,
+        const DirectionSample &/*direction*/) const
+{
+    FAIL("Primitive::invertDirection not implemented!");
+}
+
 float Primitive::positionalPdf(const PositionSample &/*point*/) const
 {
     return 0.0f;

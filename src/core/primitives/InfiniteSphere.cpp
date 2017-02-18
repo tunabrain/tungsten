@@ -123,9 +123,6 @@ void InfiniteSphere::makeSamplable(const TraceableScene &scene, uint32 /*threadI
 
 bool InfiniteSphere::samplePosition(PathSampleGenerator &sampler, PositionSample &sample) const
 {
-    float faceXi = sampler.next1D();
-    Vec2f xi = sampler.next2D();
-
     if (_emission->isConstant()) {
         sample.Ng = -SampleWarp::uniformSphere(sampler.next2D());
         sample.uv = directionToUV(-sample.Ng);
@@ -135,6 +132,8 @@ bool InfiniteSphere::samplePosition(PathSampleGenerator &sampler, PositionSample
         sample.Ng = -uvToDirection(sample.uv, sinTheta);
     }
 
+    float faceXi = sampler.next1D();
+    Vec2f xi = sampler.next2D();
     sample.p = SampleWarp::projectedBox(_sceneBounds, sample.Ng, faceXi, xi);
     sample.pdf = SampleWarp::projectedBoxPdf(_sceneBounds, sample.Ng);
     sample.weight = Vec3f(1.0f/sample.pdf);
@@ -174,6 +173,30 @@ bool InfiniteSphere::sampleDirect(uint32 /*threadIndex*/, const Vec3f &/*p*/, Pa
         sample.dist = Ray::infinity();
         return sample.pdf != 0.0f;
     }
+}
+
+bool InfiniteSphere::invertPosition(WritablePathSampleGenerator &sampler, const PositionSample &point) const
+{
+    float faceXi;
+    Vec2f xi;
+    if (!SampleWarp::invertProjectedBox(_sceneBounds, point.p, -point.Ng, faceXi, xi, sampler.untracked1D()))
+        return false;
+
+    sampler.put1D(faceXi);
+    sampler.put2D(xi);
+
+    return true;
+}
+
+bool InfiniteSphere::invertDirection(WritablePathSampleGenerator &sampler, const PositionSample &/*point*/,
+        const DirectionSample &direction) const
+{
+    if (_emission->isConstant())
+        sampler.put2D(SampleWarp::invertUniformSphere(-direction.d, sampler.untracked1D()));
+    else
+        sampler.put2D(_emission->invert(MAP_SPHERICAL, directionToUV(-direction.d)));
+
+    return true;
 }
 
 float InfiniteSphere::positionalPdf(const PositionSample &point) const

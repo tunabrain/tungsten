@@ -69,6 +69,9 @@ public:
     virtual bool samplePosition(PathSampleGenerator &sampler, PositionSample &sample) const;
     virtual bool sampleDirection(PathSampleGenerator &sampler, const PositionSample &point, DirectionSample &sample) const;
     virtual bool sampleDirect(uint32 threadIndex, const Vec3f &p, PathSampleGenerator &sampler, LightSample &sample) const;
+    virtual bool invertPosition(WritablePathSampleGenerator &sampler, const PositionSample &point) const;
+    virtual bool invertDirection(WritablePathSampleGenerator &sampler, const PositionSample &point,
+            const DirectionSample &direction) const;
     virtual float positionalPdf(const PositionSample &point) const;
     virtual float directionalPdf(const PositionSample &point, const DirectionSample &sample) const;
     virtual float directPdf(uint32 threadIndex, const IntersectionTemporary &data,

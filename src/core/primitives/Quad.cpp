@@ -90,7 +90,7 @@ bool Quad::intersect(Ray &ray, IntersectionTemporary &data) const
     QuadIntersection *isect = data.as<QuadIntersection>();
     isect->p = q;
     isect->u = l0;
-    isect->v = 1.0f - l1;
+    isect->v = l1;
     isect->backSide = nDotW >= 0.0f;
     data.primitive = this;
 
@@ -183,6 +183,23 @@ bool Quad::sampleDirect(uint32 /*threadIndex*/, const Vec3f &p, PathSampleGenera
     float cosTheta = -_frame.normal.dot(sample.d);
     sample.pdf = rSq/(cosTheta*_area);
 
+    return true;
+}
+
+bool Quad::invertPosition(WritablePathSampleGenerator &sampler, const PositionSample &point) const
+{
+    sampler.put2D(point.uv);
+    return true;
+}
+
+bool Quad::invertDirection(WritablePathSampleGenerator &sampler, const PositionSample &/*point*/,
+        const DirectionSample &direction) const
+{
+    Vec3f localD = _frame.toLocal(direction.d);
+    if (localD.z() <= 0.0f)
+        return false;
+
+    sampler.put2D(SampleWarp::invertCosineHemisphere(localD, sampler.untracked1D()));
     return true;
 }
 

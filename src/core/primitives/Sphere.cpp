@@ -193,6 +193,24 @@ bool Sphere::sampleDirect(uint32 /*threadIndex*/, const Vec3f &p, PathSampleGene
     return true;
 }
 
+bool Sphere::invertPosition(WritablePathSampleGenerator &sampler, const PositionSample &point) const
+{
+    sampler.put2D(SampleWarp::invertUniformSphere(_invRot*point.Ng, sampler.untracked1D()));
+    return true;
+}
+
+bool Sphere::invertDirection(WritablePathSampleGenerator &sampler, const PositionSample &point,
+        const DirectionSample &direction) const
+{
+    Vec3f Ng = (point.p - _pos)/_radius;
+    Vec3f localD = TangentFrame(Ng).toLocal(direction.d);
+    if (localD.z() <= 0.0f)
+        return false;
+
+    sampler.put2D(SampleWarp::invertCosineHemisphere(localD, sampler.untracked1D()));
+    return true;
+}
+
 float Sphere::positionalPdf(const PositionSample &/*point*/) const
 {
     return _invArea;
