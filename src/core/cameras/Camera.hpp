@@ -10,7 +10,7 @@
 #include "samplerecords/PositionSample.hpp"
 #include "samplerecords/LensSample.hpp"
 
-#include "sampling/PathSampleGenerator.hpp"
+#include "sampling/WritablePathSampleGenerator.hpp"
 
 #include "math/Mat4f.hpp"
 #include "math/Vec.hpp"
@@ -76,6 +76,9 @@ public:
     virtual bool sampleDirection(PathSampleGenerator &sampler, const PositionSample &point, Vec2u pixel,
             DirectionSample &sample) const;
     virtual bool sampleDirect(const Vec3f &p, PathSampleGenerator &sampler, LensSample &sample) const;
+    virtual bool invertPosition(WritablePathSampleGenerator &sampler, const PositionSample &point) const;
+    virtual bool invertDirection(WritablePathSampleGenerator &sampler, const PositionSample &point,
+            const DirectionSample &sample) const;
     virtual bool evalDirection(PathSampleGenerator &sampler, const PositionSample &point,
             const DirectionSample &direction, Vec3f &weight, Vec2f &pixel) const;
     virtual float directionPdf(const PositionSample &point, const DirectionSample &direction) const;

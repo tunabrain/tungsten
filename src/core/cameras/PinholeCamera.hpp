@@ -29,6 +29,9 @@ public:
     virtual bool sampleDirection(PathSampleGenerator &sampler, const PositionSample &point, Vec2u pixel,
             DirectionSample &sample) const override final;
     virtual bool sampleDirect(const Vec3f &p, PathSampleGenerator &sampler, LensSample &sample) const override final;
+    virtual bool invertPosition(WritablePathSampleGenerator &sampler, const PositionSample &point) const override final;
+    virtual bool invertDirection(WritablePathSampleGenerator &sampler, const PositionSample &point,
+            const DirectionSample &sample) const override final;
     virtual bool evalDirection(PathSampleGenerator &sampler, const PositionSample &point,
                 const DirectionSample &direction, Vec3f &weight, Vec2f &pixel) const override final;
     virtual float directionPdf(const PositionSample &point, const DirectionSample &direction) const override final;

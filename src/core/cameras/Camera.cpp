@@ -107,6 +107,17 @@ bool Camera::sampleDirect(const Vec3f &/*p*/, PathSampleGenerator &/*sampler*/, 
     return false;
 }
 
+bool Camera::invertPosition(WritablePathSampleGenerator &/*sampler*/, const PositionSample &/*point*/) const
+{
+    FAIL("Camera::invertPosition not implemented");
+}
+
+bool Camera::invertDirection(WritablePathSampleGenerator &/*sampler*/, const PositionSample &/*point*/,
+        const DirectionSample &/*sample*/) const
+{
+    FAIL("Camera::invertDirection not implemented");
+}
+
 bool Camera::evalDirection(PathSampleGenerator &/*sampler*/, const PositionSample &/*point*/,
         const DirectionSample &/*direction*/, Vec3f &/*weight*/, Vec2f &/*pixel*/) const
 {

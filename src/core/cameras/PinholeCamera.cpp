@@ -99,6 +99,34 @@ bool PinholeCamera::sampleDirect(const Vec3f &p, PathSampleGenerator &sampler, L
     return true;
 }
 
+bool PinholeCamera::invertPosition(WritablePathSampleGenerator &/*sampler*/, const PositionSample &/*point*/) const
+{
+    return true;
+}
+
+bool PinholeCamera::invertDirection(WritablePathSampleGenerator &sampler, const PositionSample &/*point*/,
+        const DirectionSample &direction) const
+{
+    Vec3f localD = _invTransform.transformVector(direction.d);
+    if (localD.z() <= 0.0f)
+        return false;
+    localD *= _planeDist/localD.z();
+
+    Vec2f pixel(
+        (localD.x() + 1.0f)/(2.0f*_pixelSize.x()),
+        (_ratio - localD.y())/(2.0f*_pixelSize.x())
+    );
+    if (pixel.x() < 0.0f || pixel.y() < 0.0f ||
+        pixel.x() >= _res.x() || pixel.y() >= _res.y())
+        return false;
+
+    Vec2f roundedPixel = Vec2f(Vec2u(pixel));
+    sampler.put2D((roundedPixel + sampler.untracked2D())/Vec2f(_res));
+    sampler.put2D(pixel - roundedPixel); /* FIXME: Only works for box filter */
+
+    return true;
+}
+
 bool PinholeCamera::evalDirection(PathSampleGenerator &/*sampler*/, const PositionSample &/*point*/,
         const DirectionSample &direction, Vec3f &weight, Vec2f &pixel) const
 {
