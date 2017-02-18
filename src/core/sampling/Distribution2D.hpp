@@ -81,6 +81,19 @@ public:
         column = clamp(column, 0, _w - 1);
         return _pdf[row*_w + column]*_marginalPdf[row];
     }
+
+    Vec2f unwarp(Vec2f uv, int row, int column) const
+    {
+        row    = clamp(row,    0, _h - 1);
+        column = clamp(column, 0, _w - 1);
+        int idxC = row*(_w + 1) + column;
+        int idxP = row*_w + column;
+
+        return Vec2f(
+            uv.x()*_pdf[idxP] + _cdf[idxC],
+            uv.y()*_marginalPdf[row] + _marginalCdf[row]
+        );
+    }
 };
 
 }
