@@ -39,6 +39,11 @@ Vec3f Medium::transmittanceAndPdfs(PathSampleGenerator &sampler, const Ray &ray,
     return transmittance(sampler, ray);
 }
 
+bool Medium::invert(WritablePathSampleGenerator &/*sampler*/, const Ray &/*ray*/, bool /*onSurface*/) const
+{
+    FAIL("Medium::invert not implemented!");
+}
+
 const PhaseFunction *Medium::phaseFunction(const Vec3f &/*p*/) const
 {
     return _phaseFunction.get();

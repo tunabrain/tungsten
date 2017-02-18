@@ -34,6 +34,7 @@ public:
     virtual float pdf(PathSampleGenerator &sampler, const Ray &ray, bool onSurface) const override;
     virtual Vec3f transmittanceAndPdfs(PathSampleGenerator &sampler, const Ray &ray, bool startOnSurface,
             bool endOnSurface, float &pdfForward, float &pdfBackward) const override;
+    virtual bool invert(WritablePathSampleGenerator &sampler, const Ray &ray, bool onSurface) const;
 
     Vec3f sigmaA() const { return _sigmaA; }
     Vec3f sigmaS() const { return _sigmaS; }

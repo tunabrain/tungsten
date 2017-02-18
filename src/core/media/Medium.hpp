@@ -1,9 +1,11 @@
 #ifndef MEDIUM_HPP_
 #define MEDIUM_HPP_
 
+#include "phasefunctions/PhaseFunction.hpp"
+
 #include "samplerecords/MediumSample.hpp"
 
-#include "phasefunctions/PhaseFunction.hpp"
+#include "sampling/WritablePathSampleGenerator.hpp"
 
 #include "math/Ray.hpp"
 
@@ -61,6 +63,7 @@ public:
     virtual float pdf(PathSampleGenerator &sampler, const Ray &ray, bool onSurface) const = 0;
     virtual Vec3f transmittanceAndPdfs(PathSampleGenerator &sampler, const Ray &ray, bool startOnSurface,
             bool endOnSurface, float &pdfForward, float &pdfBackward) const;
+    virtual bool invert(WritablePathSampleGenerator &sampler, const Ray &ray, bool onSurface) const;
     virtual const PhaseFunction *phaseFunction(const Vec3f &p) const;
 };
 

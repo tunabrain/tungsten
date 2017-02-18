@@ -137,4 +137,23 @@ Vec3f HomogeneousMedium::transmittanceAndPdfs(PathSampleGenerator &/*sampler*/, 
     }
 }
 
+bool HomogeneousMedium::invert(WritablePathSampleGenerator &sampler, const Ray &ray, bool onSurface) const
+{
+    if (_absorptionOnly)
+        return true;
+
+    Vec3f transmittance = std::exp(-ray.farT()*_sigmaT);
+    Vec3f pdfs = _sigmaT*transmittance;
+    float target = sampler.untracked1D()*pdfs.sum();
+    int component = (target < pdfs.x() ? 0 : (target < pdfs.x() + pdfs.y() ? 1 : 2));
+
+    float xi = 1.0f - transmittance[component];
+    if (onSurface)
+        xi += (1.0f - xi)*sampler.untracked1D();
+    sampler.putDiscrete(3, component);
+    sampler.put1D(xi);
+
+    return true;
+}
+
 }
