@@ -71,6 +71,11 @@ Vec2f ConstantTexture::sample(TextureMapJacobian /*jacobian*/, const Vec2f &uv) 
     return uv;
 }
 
+Vec2f ConstantTexture::invert(TextureMapJacobian /*jacobian*/, const Vec2f &uv) const
+{
+    return uv;
+}
+
 float ConstantTexture::pdf(TextureMapJacobian /*jacobian*/, const Vec2f &/*uv*/) const
 {
     return 1.0f;

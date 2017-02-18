@@ -438,6 +438,17 @@ Vec2f BitmapTexture::sample(TextureMapJacobian jacobian, const Vec2f &uv) const
     return Vec2f((newUv.x() + column)/_w, 1.0f - (newUv.y() + row)/_h);
 }
 
+Vec2f BitmapTexture::invert(TextureMapJacobian jacobian, const Vec2f &uv) const
+{
+    Vec2f newUv = Vec2f(uv.x()*_w, (1.0f - uv.y())*_h);
+    int row = int(newUv.y());
+    int column = int(newUv.x());
+    newUv.x() -= column;
+    newUv.y() -= row;
+
+    return _distribution[jacobian]->unwarp(newUv, row, column);
+}
+
 float BitmapTexture::pdf(TextureMapJacobian jacobian, const Vec2f &uv) const
 {
     return _distribution[jacobian]->pdf(int((1.0f - uv.y())*_h), int(uv.x()*_w))*_w*_h;
