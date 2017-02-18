@@ -74,6 +74,11 @@ Vec3f ConductorBsdf::eval(const SurfaceScatterEvent &event) const
         return Vec3f(0.0f);
 }
 
+bool ConductorBsdf::invert(WritablePathSampleGenerator &/*sampler*/, const SurfaceScatterEvent &event) const
+{
+    return checkReflectionConstraint(event.wi, event.wo);
+}
+
 float ConductorBsdf::pdf(const SurfaceScatterEvent &event) const
 {
     bool sampleR = event.requestedLobe.test(BsdfLobes::SpecularReflectionLobe);

@@ -65,7 +65,7 @@ bool RoughPlasticBsdf::sample(SurfaceScatterEvent &event) const
     const Vec3f &wi = event.wi;
     float eta = 1.0f/_ior;
     float Fi = Fresnel::dielectricReflectance(eta, wi.z());
-    float substrateWeight = _avgTransmittance*(1.0f - Fi);
+    float substrateWeight = _substrateWeight*_avgTransmittance*(1.0f - Fi);
     float specularWeight = Fi;
     float specularProbability = specularWeight/(specularWeight + substrateWeight);
 
@@ -141,6 +141,48 @@ Vec3f RoughPlasticBsdf::eval(const SurfaceScatterEvent &event) const
     return glossyR + diffuseR;
 }
 
+bool RoughPlasticBsdf::invert(WritablePathSampleGenerator &sampler, const SurfaceScatterEvent &event) const
+{
+    if (event.wi.z() <= 0.0f || event.wo.z() <= 0.0f)
+        return false;
+
+    bool sampleR = event.requestedLobe.test(BsdfLobes::GlossyReflectionLobe);
+    bool sampleT = event.requestedLobe.test(BsdfLobes::DiffuseReflectionLobe);
+
+    if (!sampleR && !sampleT)
+        return false;
+
+    float glossyPdf = 0.0f;
+    if (sampleR)
+        glossyPdf = RoughDielectricBsdf::pdfBase(event, true, false, (*_roughness)[*event.info].x(), _ior, _distribution);
+
+    float diffusePdf = 0.0f;
+    if (sampleT)
+        diffusePdf = SampleWarp::cosineHemispherePdf(event.wo);
+
+    float Fi = Fresnel::dielectricReflectance(1.0f/_ior, event.wi.z());
+    float substrateWeight = _substrateWeight*_avgTransmittance*(1.0f - Fi);
+    float specularWeight = Fi;
+    float specularProbability = specularWeight/(specularWeight + substrateWeight);
+
+    if (sampleT && sampleR) {
+        diffusePdf *= (1.0f - specularProbability);
+        glossyPdf *= specularProbability;
+    }
+
+    if (sampler.untrackedBoolean(glossyPdf/(diffusePdf + glossyPdf))) {
+        sampler.putBoolean(specularProbability, true);
+        float roughness = (*_roughness)[*event.info].x();
+        return RoughDielectricBsdf::invertBase(sampler, event, true, false, roughness, _ior, _distribution);
+    } else {
+        if (sampleR)
+            sampler.putBoolean(specularProbability, false);
+        sampler.put2D(SampleWarp::invertCosineHemisphere(event.wo, sampler.untracked1D()));
+        return true;
+    }
+    return false;
+}
+
 float RoughPlasticBsdf::pdf(const SurfaceScatterEvent &event) const
 {
     bool sampleR = event.requestedLobe.test(BsdfLobes::GlossyReflectionLobe);
@@ -160,7 +202,7 @@ float RoughPlasticBsdf::pdf(const SurfaceScatterEvent &event) const
 
     if (sampleT && sampleR) {
         float Fi = Fresnel::dielectricReflectance(1.0f/_ior, event.wi.z());
-        float substrateWeight = _avgTransmittance*(1.0f - Fi);
+        float substrateWeight = _substrateWeight*_avgTransmittance*(1.0f - Fi);
         float specularWeight = Fi;
         float specularProbability = specularWeight/(specularWeight + substrateWeight);
 
@@ -174,6 +216,7 @@ void RoughPlasticBsdf::prepareForRender()
 {
     _scaledSigmaA = _thickness*_sigmaA;
     _avgTransmittance = std::exp(-2.0f*_scaledSigmaA.avg());
+    _substrateWeight = _albedo->average().avg();
 
     _diffuseFresnel = Fresnel::computeDiffuseFresnel(_ior, 1000000);
 }

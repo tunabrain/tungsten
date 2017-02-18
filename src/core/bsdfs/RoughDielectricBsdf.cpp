@@ -163,6 +163,38 @@ Vec3f RoughDielectricBsdf::evalBase(const SurfaceScatterEvent &event, bool sampl
     }
 }
 
+bool RoughDielectricBsdf::invertBase(WritablePathSampleGenerator &sampler, const SurfaceScatterEvent &event,
+        bool sampleR, bool sampleT, float roughness, float ior, Microfacet::Distribution distribution)
+{
+    float wiDotN = event.wi.z();
+    float woDotN = event.wo.z();
+
+    bool reflect = wiDotN*woDotN >= 0.0f;
+    if ((reflect && !sampleR) || (!reflect && !sampleT))
+        return false;
+
+    float sampleRoughness = (1.2f - 0.2f*std::sqrt(std::abs(wiDotN)))*roughness;
+    float sampleAlpha = Microfacet::roughnessToAlpha(distribution, sampleRoughness);
+
+    float eta = wiDotN < 0.0f ? ior : 1.0f/ior;
+    Vec3d m;
+    if (reflect)
+        m = Vec3d(event.wi + event.wo).normalized();
+    else
+        m = Vec3d(event.wi*eta + event.wo).normalized();
+    if (m.z() < 0.0f)
+        m = -m;
+    float wiDotM = event.wi.dot(Vec3f(m));
+    float F = Fresnel::dielectricReflectance(1.0f/ior, wiDotM);
+
+    sampler.put2D(Microfacet::invert(distribution, sampleAlpha, m, sampler.untracked1D()));
+
+    if (sampleR && sampleT)
+         sampler.putBoolean(F, reflect);
+
+    return true;
+}
+
 float RoughDielectricBsdf::pdfBase(const SurfaceScatterEvent &event, bool sampleR, bool sampleT,
         float roughness, float ior, Microfacet::Distribution distribution)
 {
@@ -219,6 +251,15 @@ Vec3f RoughDielectricBsdf::eval(const SurfaceScatterEvent &event) const
     float roughness = (*_roughness)[*event.info].x();
 
     return evalBase(event, sampleR, sampleT, roughness, _ior, _distribution)*albedo(event.info);
+}
+
+bool RoughDielectricBsdf::invert(WritablePathSampleGenerator &sampler, const SurfaceScatterEvent &event) const
+{
+    bool sampleR = event.requestedLobe.test(BsdfLobes::GlossyReflectionLobe);
+    bool sampleT = event.requestedLobe.test(BsdfLobes::GlossyTransmissionLobe) && _enableT;
+    float roughness = (*_roughness)[*event.info].x();
+
+    return invertBase(sampler, event, sampleR, sampleT, roughness, _ior, _distribution);
 }
 
 float RoughDielectricBsdf::pdf(const SurfaceScatterEvent &event) const

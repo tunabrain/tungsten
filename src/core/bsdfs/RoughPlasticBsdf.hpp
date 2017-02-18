@@ -12,6 +12,7 @@ class RoughPlasticBsdf : public Bsdf
 {
     float _ior;
     float _thickness;
+    float _substrateWeight;
     Vec3f _sigmaA;
     Microfacet::Distribution _distribution;
     std::shared_ptr<Texture> _roughness;
@@ -27,6 +28,7 @@ public:
     virtual rapidjson::Value toJson(Allocator &allocator) const override;
 
     virtual bool sample(SurfaceScatterEvent &event) const override;
+    virtual bool invert(WritablePathSampleGenerator &sampler, const SurfaceScatterEvent &event) const override;
     virtual Vec3f eval(const SurfaceScatterEvent &event) const override;
     virtual float pdf(const SurfaceScatterEvent &event) const override;
 

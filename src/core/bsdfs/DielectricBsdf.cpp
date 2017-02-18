@@ -107,6 +107,42 @@ Vec3f DielectricBsdf::eval(const SurfaceScatterEvent &event) const
     }
 }
 
+bool DielectricBsdf::invert(WritablePathSampleGenerator &sampler, const SurfaceScatterEvent &event) const
+{
+    bool evalR = event.requestedLobe.test(BsdfLobes::SpecularReflectionLobe);
+    bool evalT = event.requestedLobe.test(BsdfLobes::SpecularTransmissionLobe) && _enableT;
+
+    float eta = event.wi.z() < 0.0f ? _ior : _invIor;
+    float cosThetaT = 0.0f;
+    float F = Fresnel::dielectricReflectance(eta, std::abs(event.wi.z()), cosThetaT);
+
+    float reflectionProbability;
+    if (evalR && evalT)
+        reflectionProbability = F;
+    else if (evalR)
+        reflectionProbability = 1.0f;
+    else if (evalT)
+        reflectionProbability = 0.0f;
+    else
+        return false;
+
+    if (event.wi.z()*event.wo.z() >= 0.0f) {
+        if (evalR && checkReflectionConstraint(event.wi, event.wo)) {
+            sampler.putBoolean(reflectionProbability, true);
+            return true;
+        } else {
+            return false;
+        }
+    } else {
+        if (evalT && checkRefractionConstraint(event.wi, event.wo, eta, cosThetaT)) {
+            sampler.putBoolean(reflectionProbability, false);
+            return true;
+        } else {
+            return false;
+        }
+    }
+}
+
 float DielectricBsdf::pdf(const SurfaceScatterEvent &event) const
 {
     bool sampleR = event.requestedLobe.test(BsdfLobes::SpecularReflectionLobe);

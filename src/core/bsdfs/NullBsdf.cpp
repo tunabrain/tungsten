@@ -26,6 +26,11 @@ Vec3f NullBsdf::eval(const SurfaceScatterEvent &/*event*/) const
     return Vec3f(0.0f);
 }
 
+bool NullBsdf::invert(WritablePathSampleGenerator &/*sampler*/, const SurfaceScatterEvent &/*event*/) const
+{
+    return false;
+}
+
 float NullBsdf::pdf(const SurfaceScatterEvent &/*event*/) const
 {
     return 0.0f;

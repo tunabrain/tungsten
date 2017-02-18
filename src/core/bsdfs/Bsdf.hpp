@@ -9,6 +9,8 @@
 
 #include "textures/Texture.hpp"
 
+#include "sampling/WritablePathSampleGenerator.hpp"
+
 #include "math/TangentFrame.hpp"
 #include "math/MathUtil.hpp"
 #include "math/Vec.hpp"
@@ -63,6 +65,7 @@ public:
 
     virtual Vec3f eval(const SurfaceScatterEvent &event) const = 0;
     virtual bool sample(SurfaceScatterEvent &event) const = 0;
+    virtual bool invert(WritablePathSampleGenerator &sampler, const SurfaceScatterEvent &event) const;
     virtual float pdf(const SurfaceScatterEvent &event) const = 0;
 
     inline bool sample(SurfaceScatterEvent &event, bool adjoint) const

@@ -45,6 +45,15 @@ Vec3f MirrorBsdf::eval(const SurfaceScatterEvent &event) const
         return Vec3f(0.0f);
 }
 
+bool MirrorBsdf::invert(WritablePathSampleGenerator &/*sampler*/, const SurfaceScatterEvent &event) const
+{
+    bool evalR = event.requestedLobe.test(BsdfLobes::SpecularReflectionLobe);
+    if (evalR && checkReflectionConstraint(event.wi, event.wo))
+        return true;
+    else
+        return false;
+}
+
 float MirrorBsdf::pdf(const SurfaceScatterEvent &event) const
 {
     bool sampleR = event.requestedLobe.test(BsdfLobes::SpecularReflectionLobe);

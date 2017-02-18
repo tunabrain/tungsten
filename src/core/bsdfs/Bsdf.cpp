@@ -35,4 +35,9 @@ rapidjson::Value Bsdf::toJson(Allocator &allocator) const
     return result;
 }
 
+bool Bsdf::invert(WritablePathSampleGenerator &/*sampler*/, const SurfaceScatterEvent &/*event*/) const
+{
+    FAIL("Invert not implemented!");
+}
+
 }

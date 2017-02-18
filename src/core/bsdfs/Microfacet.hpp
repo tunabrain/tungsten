@@ -1,6 +1,8 @@
 #ifndef MICROFACET_HPP_
 #define MICROFACET_HPP_
 
+#include "sampling/SampleWarp.hpp"
+
 #include "math/MathUtil.hpp"
 #include "math/Angle.hpp"
 #include "math/Vec.hpp"
@@ -125,6 +127,32 @@ public:
 
         float r = std::sqrt(max(1.0f - cosTheta*cosTheta, 0.0f));
         return Vec3f(std::cos(phi)*r, std::sin(phi)*r, cosTheta);
+    }
+
+    static inline Vec2f invert(Distribution dist, float alpha, const Vec3d &m, float mu)
+    {
+        Vec2d xi;
+        xi.y() = SampleWarp::invertPhi(m, mu);
+
+        double cosTheta = m.z();
+        switch (dist) {
+        case Beckmann: {
+            double tanThetaSq = 1.0/(cosTheta*cosTheta) - 1.0;
+            xi.x() = 1.0 - std::exp(-tanThetaSq/(alpha*alpha));
+            break;
+        } case Phong: {
+            xi.x() = std::pow(cosTheta, double(alpha) + 2.0);
+            break;
+        } case GGX: {
+            double tanThetaSq = 1.0/(cosTheta*cosTheta) - 1.0;
+            double gamma = tanThetaSq/(alpha*alpha);
+            xi.x() = gamma/(1.0 + gamma);
+            break;
+        } default:
+            xi.x() = 0.0;
+        }
+
+        return Vec2f(xi);
     }
 };
 

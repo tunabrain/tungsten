@@ -87,6 +87,41 @@ bool PlasticBsdf::sample(SurfaceScatterEvent &event) const
     return true;
 }
 
+bool PlasticBsdf::invert(WritablePathSampleGenerator &sampler, const SurfaceScatterEvent &event) const
+{
+    if (event.wi.z() <= 0.0f)
+        return false;
+
+    bool sampleR = event.requestedLobe.test(BsdfLobes::SpecularReflectionLobe);
+    bool sampleT = event.requestedLobe.test(BsdfLobes::DiffuseReflectionLobe);
+
+    const Vec3f &wi = event.wi;
+    float eta = 1.0f/_ior;
+    float Fi = Fresnel::dielectricReflectance(eta, wi.z());
+    float substrateWeight = _avgTransmittance*(1.0f - Fi);
+    float specularWeight = Fi;
+    float specularProbability;
+    if (sampleR && sampleT)
+        specularProbability = specularWeight/(specularWeight + substrateWeight);
+    else if (sampleR)
+        specularProbability = 1.0f;
+    else if (sampleT)
+        specularProbability = 0.0f;
+    else
+        return false;
+
+    if (sampleR && checkReflectionConstraint(event.wi, event.wo)) {
+        sampler.putBoolean(specularProbability, true);
+        return true;
+    } else if (sampleT) {
+        if (sampleR)
+            sampler.putBoolean(specularProbability, false);
+        sampler.put2D(SampleWarp::invertCosineHemisphere(event.wo, sampler.untracked1D()));
+        return true;
+    }
+    return false;
+}
+
 Vec3f PlasticBsdf::eval(const SurfaceScatterEvent &event) const
 {
     if (event.wi.z() <= 0.0f || event.wo.z() <= 0.0f)

@@ -46,6 +46,18 @@ Vec3f LambertBsdf::eval(const SurfaceScatterEvent &event) const
     return albedo(event.info)*INV_PI*event.wo.z();
 }
 
+bool LambertBsdf::invert(WritablePathSampleGenerator &sampler, const SurfaceScatterEvent &event) const
+{
+    if (!event.requestedLobe.test(BsdfLobes::DiffuseReflectionLobe))
+        return false;
+    if (event.wi.z() <= 0.0f || event.wo.z() <= 0.0f)
+        return false;
+
+    sampler.put2D(SampleWarp::invertCosineHemisphere(event.wo, sampler.untracked1D()));
+
+    return true;
+}
+
 float LambertBsdf::pdf(const SurfaceScatterEvent &event) const
 {
     if (!event.requestedLobe.test(BsdfLobes::DiffuseReflectionLobe))

@@ -99,6 +99,50 @@ bool SmoothCoatBsdf::sample(SurfaceScatterEvent &event) const
     return true;
 }
 
+bool SmoothCoatBsdf::invert(WritablePathSampleGenerator &sampler, const SurfaceScatterEvent &event) const
+{
+    if (event.wi.z() <= 0.0f)
+        return false;
+
+    bool sampleR = event.requestedLobe.test(BsdfLobes::SpecularReflectionLobe);
+    bool sampleT = event.requestedLobe.test(_substrate->lobes());
+
+    if (!sampleR && !sampleT)
+        return false;
+
+    const Vec3f &wi = event.wi;
+    const Vec3f &wo = event.wo;
+    float eta = 1.0f/_ior;
+
+    float cosThetaTi, cosThetaTo;
+    float Fi = Fresnel::dielectricReflectance(eta, wi.z(), cosThetaTi);
+
+    float substrateWeight = _avgTransmittance*(1.0f - Fi);
+    float specularWeight = Fi;
+    float specularProbability;
+    if (sampleR && sampleT)
+        specularProbability = specularWeight/(specularWeight + substrateWeight);
+    else if (sampleR)
+        specularProbability = 1.0f;
+    else if (sampleT)
+        specularProbability = 0.0f;
+    else
+        return false;
+
+    if (sampleR && checkReflectionConstraint(event.wi, event.wo)) {
+        sampler.putBoolean(specularProbability, true);
+        return true;
+    } else if (sampleT) {
+        if (sampleR)
+            sampler.putBoolean(specularProbability, false);
+
+        Vec3f wiSubstrate(wi.x()*eta, wi.y()*eta, std::copysign(cosThetaTi, wi.z()));
+        Vec3f woSubstrate(wo.x()*eta, wo.y()*eta, std::copysign(cosThetaTo, wo.z()));
+        return _substrate->invert(sampler, event.makeWarpedQuery(wiSubstrate, woSubstrate));
+    }
+    return false;
+}
+
 Vec3f SmoothCoatBsdf::eval(const SurfaceScatterEvent &event) const
 {
     if (event.wi.z() <= 0.0f || event.wo.z() <= 0.0f)

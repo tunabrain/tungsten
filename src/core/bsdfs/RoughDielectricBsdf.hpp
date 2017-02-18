@@ -28,11 +28,15 @@ public:
     static Vec3f evalBase(const SurfaceScatterEvent &event, bool sampleR, bool sampleT,
             float roughness, float ior, Microfacet::Distribution distribution);
 
+    static bool invertBase(WritablePathSampleGenerator &sampler, const SurfaceScatterEvent &event,
+            bool sampleR, bool sampleT, float roughness, float ior, Microfacet::Distribution distribution);
+
     static float pdfBase(const SurfaceScatterEvent &event, bool sampleR, bool sampleT,
             float roughness, float ior, Microfacet::Distribution distribution);
 
     virtual bool sample(SurfaceScatterEvent &event) const override;
     virtual Vec3f eval(const SurfaceScatterEvent &event) const override;
+    virtual bool invert(WritablePathSampleGenerator &sampler, const SurfaceScatterEvent &event) const override;
     virtual float pdf(const SurfaceScatterEvent &event) const override;
     virtual float eta(const SurfaceScatterEvent &event) const override;
 

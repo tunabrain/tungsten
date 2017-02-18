@@ -109,6 +109,22 @@ Vec3f RoughConductorBsdf::eval(const SurfaceScatterEvent &event) const
     return albedo(event.info)*(F*fr);
 }
 
+bool RoughConductorBsdf::invert(WritablePathSampleGenerator &sampler, const SurfaceScatterEvent &event) const
+{
+    if (!event.requestedLobe.test(BsdfLobes::GlossyReflectionLobe))
+        return false;
+    if (event.wi.z() <= 0.0f || event.wo.z() <= 0.0f)
+        return false;
+
+    float roughness = (*_roughness)[*event.info].x();
+    float alpha = Microfacet::roughnessToAlpha(_distribution, roughness);
+
+    Vec3d m = (Vec3d(event.wi) + Vec3d(event.wo)).normalized();
+    sampler.put2D(Microfacet::invert(_distribution, alpha, m, sampler.untracked1D()));
+
+    return true;
+}
+
 float RoughConductorBsdf::pdf(const SurfaceScatterEvent &event) const
 {
     if (!event.requestedLobe.test(BsdfLobes::GlossyReflectionLobe))
