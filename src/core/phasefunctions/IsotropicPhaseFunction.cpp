@@ -27,6 +27,12 @@ bool IsotropicPhaseFunction::sample(PathSampleGenerator &sampler, const Vec3f &/
     return true;
 }
 
+bool IsotropicPhaseFunction::invert(WritablePathSampleGenerator &sampler, const Vec3f &/*wi*/, const Vec3f &wo) const
+{
+    sampler.put2D(SampleWarp::invertUniformSphere(wo, sampler.untracked1D()));
+    return true;
+}
+
 float IsotropicPhaseFunction::pdf(const Vec3f &/*wi*/, const Vec3f &/*wo*/) const
 {
     return SampleWarp::uniformSpherePdf();

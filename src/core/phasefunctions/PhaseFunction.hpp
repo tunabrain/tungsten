@@ -3,6 +3,8 @@
 
 #include "samplerecords/PhaseSample.hpp"
 
+#include "sampling/WritablePathSampleGenerator.hpp"
+
 #include "io/JsonSerializable.hpp"
 
 namespace Tungsten {
@@ -18,6 +20,7 @@ public:
 
     virtual Vec3f eval(const Vec3f &wi, const Vec3f &wo) const = 0;
     virtual bool sample(PathSampleGenerator &sampler, const Vec3f &wi, PhaseSample &sample) const = 0;
+    virtual bool invert(WritablePathSampleGenerator &sampler, const Vec3f &wi, const Vec3f &wo) const;
     virtual float pdf(const Vec3f &wi, const Vec3f &wo) const = 0;
 };
 

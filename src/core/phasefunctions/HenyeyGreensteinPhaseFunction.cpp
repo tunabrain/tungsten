@@ -63,6 +63,22 @@ bool HenyeyGreensteinPhaseFunction::sample(PathSampleGenerator &sampler, const V
     return true;
 }
 
+bool HenyeyGreensteinPhaseFunction::invert(WritablePathSampleGenerator &sampler, const Vec3f &wi, const Vec3f &wo) const
+{
+    if (_g == 0.0f) {
+        sampler.put2D(SampleWarp::invertUniformSphere(wo, sampler.untracked1D()));
+    } else {
+        Vec3f w = TangentFrame(wi).toLocal(wo);
+
+        sampler.put2D(Vec2f(
+            SampleWarp::invertPhi(w, sampler.untracked1D()),
+            clamp(0.5f*(((1.0f - _g*_g)/std::sqrt(-((2.0f*_g)*w.z() - 1.0f - _g*_g)) - 1.0f)/_g + 1.0f), 0.0f, 1.0f)
+        ));
+    }
+
+    return true;
+}
+
 float HenyeyGreensteinPhaseFunction::pdf(const Vec3f &wi, const Vec3f &wo) const
 {
     return henyeyGreenstein(wi.dot(wo));
