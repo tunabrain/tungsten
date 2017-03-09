@@ -416,7 +416,7 @@ Path FileUtils::getDataPath()
         return std::move(execPath);
     return Path(INSTALL_PREFIX)/"data";
 #else
-    Path execPath = getExecutablePath().parent().parent()/"share/tungsten";
+    Path execPath = getExecutablePath().parent()/"share/tungsten";
     if (execPath.exists())
         return std::move(execPath);
     return Path(INSTALL_PREFIX)/"share/tungsten";
