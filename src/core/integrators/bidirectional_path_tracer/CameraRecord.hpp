@@ -11,12 +11,14 @@ namespace Tungsten {
 struct CameraRecord
 {
     Vec2u pixel;
+    bool hasPixel;
     PositionSample point;
     DirectionSample direction;
 
     CameraRecord() = default;
     CameraRecord(Vec2u pixel_)
-    : pixel(pixel_)
+    : pixel(pixel_),
+      hasPixel(true)
     {
     }
 };

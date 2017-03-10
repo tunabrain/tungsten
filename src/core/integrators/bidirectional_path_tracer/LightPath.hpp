@@ -41,15 +41,24 @@ public:
         _length = 0;
     }
 
+
+    void startCameraPath(const Camera *camera)
+    {
+        _vertices[0] = PathVertex(camera);
+        _length = 0;
+        _adjoint = false;
+    }
     void startCameraPath(const Camera *camera, Vec2u pixel)
     {
         _vertices[0] = PathVertex(camera, pixel);
+        _length = 0;
         _adjoint = false;
     }
 
     void startEmitterPath(const Primitive *emitter, float emitterPdf)
     {
         _vertices[0] = PathVertex(emitter, emitterPdf);
+        _length = 0;
         _adjoint = true;
     }
 

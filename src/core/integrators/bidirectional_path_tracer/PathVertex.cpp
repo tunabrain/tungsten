@@ -83,8 +83,13 @@ bool PathVertex::sampleNextVertex(const TraceableScene &scene, TraceBase &tracer
         break;
     } case CameraVertex: {
         CameraRecord &record = _record.camera;
-        if (!_sampler.camera->sampleDirection(state.sampler, record.point, record.pixel, record.direction))
-            return false;
+        if (record.hasPixel) {
+            if (!_sampler.camera->sampleDirection(state.sampler, record.point, record.pixel, record.direction))
+                return false;
+        } else {
+            if (!_sampler.camera->sampleDirectionAndPixel(state.sampler, record.point, record.pixel, record.direction))
+                return false;
+        }
 
         weight = record.direction.weight;
         pdf = record.direction.pdf;

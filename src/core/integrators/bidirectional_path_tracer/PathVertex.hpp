@@ -91,6 +91,14 @@ public:
       _connectable(!_dirac)
     {
     }
+    PathVertex(const Camera *camera)
+    : _type(CameraVertex),
+      _sampler(camera),
+      _dirac(camera->isFilterDirac()),
+      _connectable(!_dirac)
+    {
+        _record.camera.hasPixel = false;
+    }
     PathVertex(const Bsdf *bsdf, const SurfaceRecord &surface, const Vec3f &throughput_)
     : _type(SurfaceVertex),
       _record(surface),
