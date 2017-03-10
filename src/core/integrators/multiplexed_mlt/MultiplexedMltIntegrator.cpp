@@ -93,6 +93,7 @@ void MultiplexedMltIntegrator::selectSeedPaths()
         numRays += data.raysCast;
     }
 
+    _luminancePerLength.clear();
     _luminancePerLength.resize(_settings.maxBounces + 1, 0.0);
     for (uint32 i = 1; i < rangeTail; ++i) {
         int length = _pathCandidates[i].s + _pathCandidates[i].t - 1;
@@ -128,7 +129,6 @@ void MultiplexedMltIntegrator::selectSeedPaths()
 
     _scene->cam().blitSplatBuffer();
     _luminanceScale = totalLuminance;
-    _pathCandidates.reset();
 }
 
 void MultiplexedMltIntegrator::fromJson(JsonPtr v, const Scene &/*scene*/)
@@ -202,26 +202,44 @@ void MultiplexedMltIntegrator::teardownAfterRender()
     _imagePyramid.reset();
 }
 
+void MultiplexedMltIntegrator::advanceSpp()
+{
+    int sppStep = _scene->rendererSettings().sppStep();
+    int ipb = _settings.iterationsPerBatch;
+    int finishBorder = _scene->rendererSettings().spp();
+    int retraceBorder = ipb <= 0 ? finishBorder : (((int(_currentSpp) + ipb - 1)/ipb)*ipb);
+
+    if (ipb > 0 && int(_currentSpp) == retraceBorder) {
+        if (_chainsLaunched)
+            _chainsLaunched = false;
+        retraceBorder += ipb;
+    }
+    _nextSpp = min(int(_currentSpp) + sppStep, finishBorder, retraceBorder);
+}
+
 void MultiplexedMltIntegrator::startRender(std::function<void()> completionCallback)
 {
-    if (done()) {
+    if (_chainsLaunched && done()) {
         completionCallback();
         return;
     }
 
     double weight = double(_w*_h)/(_w*_h*_nextSpp + _settings.initialSamplePool);
     _scene->cam().setColorBufferWeight(weight);
-    _scene->cam().setSplatWeight(_luminanceScale*weight);
+    _scene->cam().setSplatWeight(weight);
 
     using namespace std::placeholders;
     if (!_chainsLaunched) {
-        _pathCandidates.reset(new PathCandidate[_settings.initialSamplePool]);
+        std::cout << "Tracing candidates now " << std::endl;
+        if (!_pathCandidates)
+            _pathCandidates.reset(new PathCandidate[_settings.initialSamplePool]);
 
         _group = ThreadUtils::pool->enqueue(
             std::bind(&MultiplexedMltIntegrator::traceSamplePool, this, _1, _2, _3),
             _tracers.size(),
             [&, completionCallback]() {
                 selectSeedPaths();
+                advanceSpp();
                 _chainsLaunched = true;
                 completionCallback();
             }

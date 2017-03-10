@@ -169,7 +169,7 @@ void MultiplexedMltTracer::runSampleChain(int pathLength, int chainLength, Multi
 
         if (_sampler.next1D() < a) {
             if (currentI != 0.0f)
-                currentSplats->apply(*_scene->cam().splatBuffer(), accumulatedWeight/currentI);
+                currentSplats->apply(*_scene->cam().splatBuffer(), luminanceScale*accumulatedWeight/currentI);
 
             std::swap(currentSplats, proposedSplats);
             accumulatedWeight = proposedWeight;
@@ -187,7 +187,7 @@ void MultiplexedMltTracer::runSampleChain(int pathLength, int chainLength, Multi
             currentS = proposedS;
         } else {
             if (proposedI != 0.0f)
-                proposedSplats->apply(*_scene->cam().splatBuffer(), proposedWeight/proposedI);
+                proposedSplats->apply(*_scene->cam().splatBuffer(), luminanceScale*proposedWeight/proposedI);
 
             cameraSampler.reject();
             emitterSampler.reject();
@@ -205,7 +205,7 @@ void MultiplexedMltTracer::runSampleChain(int pathLength, int chainLength, Multi
     }
 
     if (currentSplats->totalLuminance() != 0.0f)
-        currentSplats->apply(*_scene->cam().splatBuffer(), accumulatedWeight/currentSplats->totalLuminance());
+        currentSplats->apply(*_scene->cam().splatBuffer(), luminanceScale*accumulatedWeight/currentSplats->totalLuminance());
 }
 
 }
