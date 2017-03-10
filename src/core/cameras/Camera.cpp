@@ -90,8 +90,8 @@ bool Camera::samplePosition(PathSampleGenerator &/*sampler*/, PositionSample &/*
     return false;
 }
 
-bool Camera::sampleDirection(PathSampleGenerator &/*sampler*/, const PositionSample &/*point*/,
-        DirectionSample &/*sample*/) const
+bool Camera::sampleDirectionAndPixel(PathSampleGenerator &/*sampler*/, const PositionSample &/*point*/,
+        Vec2u &/*pixel*/, DirectionSample &/*sample*/) const
 {
     return false;
 }

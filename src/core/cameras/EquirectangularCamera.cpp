@@ -57,10 +57,10 @@ bool EquirectangularCamera::samplePosition(PathSampleGenerator &/*sampler*/, Pos
     return true;
 }
 
-bool EquirectangularCamera::sampleDirection(PathSampleGenerator &sampler, const PositionSample &point,
-        DirectionSample &sample) const
+bool EquirectangularCamera::sampleDirectionAndPixel(PathSampleGenerator &sampler, const PositionSample &point,
+        Vec2u &pixel, DirectionSample &sample) const
 {
-    Vec2u pixel(sampler.next2D()*Vec2f(_res));
+    pixel = Vec2u(sampler.next2D()*Vec2f(_res));
     return sampleDirection(sampler, point, pixel, sample);
 }
 
