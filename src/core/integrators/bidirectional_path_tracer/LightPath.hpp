@@ -41,6 +41,10 @@ public:
         _length = 0;
     }
 
+    void resize(int length)
+    {
+        _length = length;
+    }
 
     void startCameraPath(const Camera *camera)
     {
@@ -48,6 +52,7 @@ public:
         _length = 0;
         _adjoint = false;
     }
+
     void startCameraPath(const Camera *camera, Vec2u pixel)
     {
         _vertices[0] = PathVertex(camera, pixel);
@@ -105,6 +110,8 @@ public:
             int s, int t, int maxBounce, PathSampleGenerator &sampler, float *ratios = nullptr);
     static bool bdptCameraConnect(const TraceBase &tracer, const LightPath &camera, const LightPath &emitter,
             int s, int maxBounce, PathSampleGenerator &sampler, Vec3f &weight, Vec2f &pixel, float *ratios = nullptr);
+
+    bool extendSampleSpace(WritablePathSampleGenerator &sampler, const LightPath &source, int numVerts) const;
 };
 
 }

@@ -370,4 +370,53 @@ bool LightPath::bdptCameraConnect(const TraceBase &tracer, const LightPath &came
     return true;
 }
 
+bool LightPath::extendSampleSpace(WritablePathSampleGenerator &sampler, const LightPath &source, int numVerts) const
+{
+    int length = max(_length, 1);
+    sampler.seek(length - 1);
+
+    PathEdge nextEdge;
+    const PathVertex *nextVertex;
+    if (_length == 0) {
+        if (!_vertices[0].invertRootVertex(sampler, source[source.length() - 1]))
+            return false;
+        numVerts--;
+        if (numVerts > 0) {
+            nextEdge = source.edge(source.length() - 2).reverse();
+            nextVertex = &source[source.length() - 2];
+        } else {
+            return true;
+        }
+    } else {
+        if (_length == 1 && !_vertices[0].invertRootVertex(sampler, _vertices[0]))
+            return false;
+        if (_length == 1 && _vertices[0].isInfiniteEmitter())
+            nextEdge = PathEdge(_vertices[0].emitterRecord().direction.d, 1.0f, 1.0f);
+        else if (source.length() == 1 && source[0].isInfiniteEmitter())
+            nextEdge = PathEdge(-source[0].emitterRecord().direction.d, 1.0f, 1.0f);
+        else
+            nextEdge = PathEdge(_vertices[_length - 1], source[source.length() - 1]);
+        nextVertex = &source[source.length() - 1];
+    }
+
+    if (!_vertices[length - 1].invertVertex(sampler, length == 1 ? nullptr : &_edges[length - 2], nextEdge, *nextVertex))
+        return false;
+
+    PathEdge prevEdge = nextEdge;
+    int sourceOffset = (_length == 0) ? 1 : 0;
+    for (int i = 1; i < numVerts; ++i) {
+        int vertIdx = source.length() - i - sourceOffset;
+        nextEdge = source.edge(vertIdx - 1).reverse();
+        sampler.seek(length - 1 + i);
+        if (!source[vertIdx].invertVertex(sampler, &prevEdge, nextEdge, source[vertIdx - 1])) {
+            //std::cout << "extendSampleSpace failed at i=" << i << std::endl;
+            return false;
+        }
+
+        prevEdge = nextEdge;
+    }
+
+    return true;
+}
+
 }
