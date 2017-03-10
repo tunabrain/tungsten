@@ -56,7 +56,7 @@ void KelemenMltTracer::tracePath(PathSampleGenerator &cameraSampler, PathSampleG
     bool splitPrimaries = record && _imagePyramid;
 
     Vec3f primarySplat = cameraPath.bdptWeightedPathEmission(_settings.minBounces + 2, _settings.maxBounces + 1,
-            splitPrimaries ? _directEmissionByBounce.get() : nullptr);
+            nullptr, splitPrimaries ? _directEmissionByBounce.get() : nullptr);
     for (int s = 1; s <= lightLength; ++s) {
         int upperBound = min(_settings.maxBounces - s + 1, cameraLength);
         for (int t = 1; t <= upperBound; ++t) {

@@ -36,7 +36,7 @@ Vec3f BidirectionalPathTracer::traceSample(Vec2u pixel, uint32 lightPathId, Path
     int cameraLength =  cameraPath.length();
     int  lightLength = emitterPath.length();
 
-    Vec3f result = cameraPath.bdptWeightedPathEmission(_settings.minBounces + 2, _settings.maxBounces + 1, _directEmissionByBounce.get());
+    Vec3f result = cameraPath.bdptWeightedPathEmission(_settings.minBounces + 2, _settings.maxBounces + 1, nullptr, _directEmissionByBounce.get());
 
     if (_imagePyramid)
         for (int t = 2; t <= cameraPath.length(); ++t)

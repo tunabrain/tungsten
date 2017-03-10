@@ -94,7 +94,7 @@ void LightPath::toAreaMeasure()
 }
 
 float LightPath::misWeight(const LightPath &camera, const LightPath &emitter,
-            const PathEdge &edge, int s, int t)
+            const PathEdge &edge, int s, int t, float *ratios)
 {
     float *pdfForward  = reinterpret_cast<float *>(alloca((s + t)*sizeof(float)));
     float *pdfBackward = reinterpret_cast<float *>(alloca((s + t)*sizeof(float)));
@@ -133,19 +133,40 @@ float LightPath::misWeight(const LightPath &camera, const LightPath &emitter,
 
     float weight = 1.0f;
     float pi = 1.0f;
+    if (ratios)
+        ratios[s] = 1.0f;
     for (int i = s + 1; i < s + t; ++i) {
         pi *= pdfForward[i - 1]/pdfBackward[i - 1];
-        if (connectable[i - 1] && connectable[i])
+        if (connectable[i - 1] && connectable[i]) {
             weight += pi;
+            if (ratios)
+                ratios[i] = pi;
+        } else {
+            if (ratios)
+                ratios[i] = 0.0f;
+        }
     }
     pi = 1.0f;
     for (int i = s - 1; i >= 1; --i) {
         pi *= pdfBackward[i]/pdfForward[i];
-        if (connectable[i - 1] && connectable[i])
+        if (connectable[i - 1] && connectable[i]) {
             weight += pi;
+            if (ratios)
+                ratios[i] = pi;
+        } else {
+            if (ratios)
+                ratios[i] = 0.0f;
+        }
     }
-    if (!emitter[0].emitter()->isDirac())
-        weight += pi*pdfBackward[0]/pdfForward[0];
+    if (!emitter[0].emitter()->isDirac()) {
+        pi *= pdfBackward[0]/pdfForward[0];
+        weight += pi;
+        if (ratios)
+            ratios[0] = pi;
+    } else {
+        if (ratios)
+            ratios[0] = 0.0f;
+     }
 
     return 1.0f/weight;
 }
@@ -177,7 +198,7 @@ void LightPath::tracePath(const TraceableScene &scene, TraceBase &tracer, PathSa
     toAreaMeasure();
 }
 
-Vec3f LightPath::bdptWeightedPathEmission(int minLength, int maxLength, Vec3f *directEmissionByBounce) const
+Vec3f LightPath::bdptWeightedPathEmission(int minLength, int maxLength, float *ratios, Vec3f *directEmissionByBounce) const
 {
     // TODO: Naive, slow version to make sure it's correct. Optimize this
 
@@ -249,10 +270,18 @@ Vec3f LightPath::bdptWeightedPathEmission(int minLength, int maxLength, Vec3f *d
 
         float weight = 1.0f;
         float pi = 1.0f;
+        if (ratios)
+            ratios[0] = 1.0f;
         for (int i = 1; i < t; ++i) {
             pi *= pdfForward[i - 1]/pdfBackward[i - 1];
-            if (connectable[i - 1] && connectable[i])
+            if (connectable[i - 1] && connectable[i]) {
                 weight += pi;
+                if (ratios)
+                    ratios[i] = pi;
+            } else {
+                if (ratios)
+                    ratios[i] = 0.0f;
+            }
         }
 
         Vec3f v = _vertices[t - 1].throughput()*emission/weight;
@@ -265,7 +294,7 @@ Vec3f LightPath::bdptWeightedPathEmission(int minLength, int maxLength, Vec3f *d
 }
 
 Vec3f LightPath::bdptConnect(const TraceBase &tracer, const LightPath &camera, const LightPath &emitter,
-        int s, int t, int maxBounce, PathSampleGenerator &sampler)
+        int s, int t, int maxBounce, PathSampleGenerator &sampler, float *ratios)
 {
     const PathVertex &a = emitter[s - 1];
     const PathVertex &b = camera[t - 1];
@@ -292,7 +321,7 @@ Vec3f LightPath::bdptConnect(const TraceBase &tracer, const LightPath &camera, c
 
         Vec3f unweightedContrib = transmittance*a.throughput()*a.eval(d, true)*b.eval(-d, false)*b.throughput();
 
-        return unweightedContrib*misWeight(camera, emitter, edge, s, t);
+        return unweightedContrib*misWeight(camera, emitter, edge, s, t, ratios);
     } else {
         PathEdge edge(a, b);
         // Catch the case where both vertices land on the same surface
@@ -306,12 +335,12 @@ Vec3f LightPath::bdptConnect(const TraceBase &tracer, const LightPath &camera, c
 
         Vec3f unweightedContrib = transmittance*a.throughput()*a.eval(edge.d, true)*b.eval(-edge.d, false)*b.throughput()/edge.rSq;
 
-        return unweightedContrib*misWeight(camera, emitter, edge, s, t);
+        return unweightedContrib*misWeight(camera, emitter, edge, s, t, ratios);
     }
 }
 
 bool LightPath::bdptCameraConnect(const TraceBase &tracer, const LightPath &camera, const LightPath &emitter,
-        int s, int maxBounce, PathSampleGenerator &sampler, Vec3f &weight, Vec2f &pixel)
+        int s, int maxBounce, PathSampleGenerator &sampler, Vec3f &weight, Vec2f &pixel, float *ratios)
 {
     const PathVertex &a = emitter[s - 1];
     const PathVertex &b = camera[0];
@@ -336,7 +365,7 @@ bool LightPath::bdptCameraConnect(const TraceBase &tracer, const LightPath &came
         return false;
 
     weight = transmittance*splatWeight*b.throughput()*a.eval(edge.d, true)*a.throughput()/edge.rSq;
-    weight *= misWeight(camera, emitter, edge, s, 1);
+    weight *= misWeight(camera, emitter, edge, s, 1, ratios);
 
     return true;
 }
