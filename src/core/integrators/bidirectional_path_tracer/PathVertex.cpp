@@ -203,6 +203,65 @@ bool PathVertex::sampleNextVertex(const TraceableScene &scene, TraceBase &tracer
     }
 }
 
+bool PathVertex::invertRootVertex(WritablePathSampleGenerator &sampler, const PathVertex &next) const
+{
+    PositionSample point;
+    switch (next._type) {
+    case EmitterVertex:
+        point = next._record.emitter.point;
+        break;
+    case CameraVertex:
+        point = next._record.camera.point;
+        break;
+    case SurfaceVertex:
+        point = PositionSample(next._record.surface.info);
+        break;
+    default:
+        return false;
+    }
+
+    switch (_type) {
+    case EmitterVertex:
+        if (_sampler.emitter->isInfinite())
+            return _sampler.emitter->invertDirection(sampler, point, DirectionSample(point.Ng));
+        else
+            return _sampler.emitter->invertPosition(sampler, point);
+    case CameraVertex:
+        return _sampler.camera->invertPosition(sampler, point);
+    default:
+        return false;
+    }
+}
+
+bool PathVertex::invertVertex(WritablePathSampleGenerator &sampler, const PathEdge *prevEdge,
+        const PathEdge &nextEdge, const PathVertex &nextVert) const
+{
+    if (selectMedium(nextEdge.d))
+        selectMedium(nextEdge.d)->invert(sampler, Ray(pos(), nextEdge.d, 0.0f, nextEdge.r), nextVert.onSurface());
+
+    switch (_type) {
+    case EmitterVertex: {
+        if (_sampler.emitter->isInfinite())
+            return _sampler.emitter->invertPosition(sampler, PositionSample(nextVert.pos(), nextEdge.d));
+        else
+            return _sampler.emitter->invertDirection(sampler, PositionSample(), DirectionSample(nextEdge.d));
+    } case CameraVertex: {
+        return _sampler.camera->invertDirection(sampler, _record.camera.point, DirectionSample(nextEdge.d));
+    } case SurfaceVertex: {
+        if (isInfiniteSurface())
+            return false;
+        sampler.put1D(0.0f); // Transparency sampling
+        Vec3f wi = _record.surface.event.frame.toLocal(-prevEdge->d);
+        Vec3f wo = _record.surface.event.frame.toLocal( nextEdge. d);
+        return _sampler.bsdf->invert(sampler, _record.surface.event.makeWarpedQuery(wi, wo));
+    } case MediumVertex: {
+        return _sampler.phase->invert(sampler, prevEdge->d, nextEdge.d);
+    } default:
+        return false;
+    }
+}
+
+
 Vec3f PathVertex::eval(const Vec3f &d, bool adjoint) const
 {
     switch (_type) {

@@ -125,6 +125,9 @@ public:
     bool sampleRootVertex(TraceState &state);
     bool sampleNextVertex(const TraceableScene &scene, TraceBase &tracer, TraceState &state, bool adjoint,
             PathVertex *prev, PathEdge *prevEdge, PathVertex &next, PathEdge &nextEdge);
+    bool invertRootVertex(WritablePathSampleGenerator &sampler, const PathVertex &next) const;
+    bool invertVertex(WritablePathSampleGenerator &sampler, const PathEdge *prevEdge,
+            const PathEdge &nextEdge, const PathVertex &nextVert) const;
 
     Vec3f eval(const Vec3f &d, bool adjoint) const;
     void evalPdfs(const PathVertex *prev, const PathEdge *prevEdge, const PathVertex &next,

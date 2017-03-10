@@ -15,6 +15,14 @@ struct PositionSample
     Vec3f Ng;
 
     PositionSample() = default;
+    PositionSample(const Vec3f &p_, const Vec3f &Ng_)
+    : p(p_),
+      weight(0.0f),
+      pdf(0.0f),
+      uv(0.0f),
+      Ng(Ng_)
+    {
+    }
     PositionSample(const IntersectionInfo &info)
     : p(info.p),
       weight(0.0f),
