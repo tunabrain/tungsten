@@ -658,6 +658,15 @@ bool isnan(const Tungsten::Vec<ElementType, Size> &t)
     return false;
 }
 
+template<typename ElementType, unsigned Size>
+bool isinf(const Tungsten::Vec<ElementType, Size> &t)
+{
+    for (unsigned i = 0; i < Size; ++i)
+        if (std::isinf(t[i]))
+            return true;
+    return false;
+}
+
 }
 
 #endif /* VEC_HPP_ */
