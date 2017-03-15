@@ -53,12 +53,16 @@ public:
 
     void addSplat(int s, int t, Vec2u pixel, Vec3f value)
     {
+        if (std::isnan(value) || std::isinf(value))
+            return;
         _splats[_splatCount++] = Splat{s, t, pixel, value};
         _totalLuminance += value.luminance();
     }
 
     void addFilteredSplat(int s, int t, Vec2f pixel, Vec3f value)
     {
+        if (std::isnan(value) || std::isinf(value) || std::isnan(pixel) || std::isinf(pixel))
+            return;
         _filteredSplats[_filteredSplatCount++] = FilteredSplat{s, t, pixel, value};
         _totalLuminance += value.luminance();
     }
