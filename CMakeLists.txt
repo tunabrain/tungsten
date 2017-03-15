@@ -86,6 +86,11 @@ set(core_libs core thirdparty embree)
 
 include_directories(src/core src/thirdparty src/thirdparty/embree/include src)
 
+find_package(Eigen3)
+if (EIGEN3_FOUND)
+    include_directories(${EIGEN3_INCLUDE_DIR})
+endif()
+
 find_package(OpenEXR)
 if (OPENEXR_FOUND)
     message(STATUS "OpenEXR detected. Building with .exr support")
@@ -138,7 +143,8 @@ target_link_libraries(scenemanip ${core_libs})
 add_executable(hdrmanip src/hdrmanip/hdrmanip.cpp)
 target_link_libraries(hdrmanip ${core_libs})
 
-add_executable(denoiser src/denoiser/denoiser.cpp)
+file(GLOB_RECURSE denoiser_SOURCES "src/denoiser/*.cpp")
+add_executable(denoiser ${denoiser_SOURCES})
 target_link_libraries(denoiser ${core_libs})
 
 add_executable(tungsten src/tungsten/tungsten.cpp)
