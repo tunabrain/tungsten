@@ -22,7 +22,7 @@ class OutputBuffer
     Vec2u _res;
 
     std::unique_ptr<T[]> _bufferA, _bufferB;
-    std::unique_ptr<float[]> _variance;
+    std::unique_ptr<T[]> _variance;
     std::unique_ptr<uint32[]> _sampleCount;
 
     const OutputBufferSettings &_settings;
@@ -97,7 +97,7 @@ public:
         if (settings.twoBufferVariance())
             _bufferB = zeroAlloc<T>(numPixels);
         if (settings.sampleVariance())
-            _variance = zeroAlloc<float>(numPixels);
+            _variance = zeroAlloc<T>(numPixels);
         _sampleCount = zeroAlloc<uint32>(numPixels);
     }
 
@@ -119,7 +119,7 @@ public:
             }
             T delta = c - curr;
             curr += delta/(sampleIdx + 1);
-            _variance[idx] += average(delta*(c - curr));
+            _variance[idx] += delta*(c - curr);
         }
 
         if (_bufferB) {
@@ -177,12 +177,12 @@ public:
                 saveLdr(_bufferA.get(), ldrFile, true);
         }
         if (_variance) {
-            std::unique_ptr<float[]> scaled(new float[numPixels]);
+            std::unique_ptr<T[]> scaled(new T[numPixels]);
             for (uint32 i = 0; i < numPixels; ++i)
-                scaled[i] = _variance[i]/float(_sampleCount[i]*max(uint32(1), _sampleCount[i] - 1));
+                scaled[i] = _variance[i]/T(_sampleCount[i]*max(uint32(1), _sampleCount[i] - 1));
 
             if (!hdrFile.empty())
-                ImageIO::saveHdr(hdrVariance, scaled.get(), _res.x(), _res.y(), 1);
+                ImageIO::saveHdr(hdrVariance, elementPointer(scaled.get()), _res.x(), _res.y(), elementCount(T(0.0f)));
             if (!ldrFile.empty())
                 saveLdr(scaled.get(), ldrVariance, false);
         }
@@ -210,7 +210,7 @@ public:
         FileUtils::streamWrite(out, _sampleCount.get(), numPixels);
     }
 
-    inline float variance(int x, int y) const
+    inline T variance(int x, int y) const
     {
         return _variance[x + y*_res.x()]/max(uint32(1), _sampleCount[x + y*_res.x()] - 1);
     }
