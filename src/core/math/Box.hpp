@@ -75,9 +75,8 @@ public:
 
     inline bool empty() const
     {
-        TVec diag(diagonal());
         for (unsigned i = 0; i < Size; ++i)
-            if (diag[i] <= ElementType(0))
+            if (_max[i] <= _min[i])
                 return true;
         return false;
     }
