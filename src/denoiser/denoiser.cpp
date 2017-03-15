@@ -7,6 +7,12 @@
 #include "io/ImageIO.hpp"
 #include "io/Scene.hpp"
 
+#include "Regression.hpp"
+#include "NlMeans.hpp"
+#include "Pixmap.hpp"
+
+#include "Logging.hpp"
+#include "Memory.hpp"
 #include "Timer.hpp"
 
 #include <tinyformat/tinyformat.hpp>
@@ -17,204 +23,209 @@ using namespace Tungsten;
 
 static const int OPT_VERSION  = 0;
 static const int OPT_HELP     = 1;
-static const int OPT_FWEIGHT  = 2;
-static const int OPT_CWEIGHT  = 3;
 
-void normalize(Vec3f *img, float *imgV, int w, int h)
+template<typename Texel>
+struct RenderBuffer
 {
-    Vec3f maximum(0.0f);
-    for (int i = 0; i < w*h; ++i)
-        maximum = max(maximum, img[i]);
-    for (int i = 0; i < w*h; ++i) {
-        img [i] /= maximum;
-        imgV[i] /= sqr(maximum.avg());
+    std::unique_ptr<Pixmap<Texel>> buffer;
+    std::unique_ptr<Pixmap<Texel>> bufferA;
+    std::unique_ptr<Pixmap<Texel>> bufferB;
+    std::unique_ptr<Pixmap<Texel>> bufferVariance;
+};
+typedef RenderBuffer<float> RenderBufferF;
+typedef RenderBuffer<Vec3f> RenderBuffer3f;
+
+Pixmap3f nforDenoiser(RenderBuffer3f image, std::vector<RenderBufferF> features)
+{
+    int w = image.buffer->w(), h = image.buffer->h();
+
+    // Feature cross-prefiltering (section 5.1)
+    printTimestampedLog("Prefiltering features...");
+    std::vector<PixmapF> filteredFeaturesA(features.size());
+    std::vector<PixmapF> filteredFeaturesB(features.size());
+    SimdNlMeans featureFilter;
+    for (size_t i = 0; i < features.size(); ++i) {
+        featureFilter.addBuffer(filteredFeaturesA[i], *features[i].bufferA, *features[i].bufferB, *features[i].bufferVariance);
+        featureFilter.addBuffer(filteredFeaturesB[i], *features[i].bufferB, *features[i].bufferA, *features[i].bufferVariance);
     }
+    featureFilter.denoise(3, 5, 0.5f, 2.0f);
+    features.clear();
+    printTimestampedLog("Prefiltering done");
+
+    // Main regression (section 5.2)
+    std::vector<Pixmap3f> filteredColorsA;
+    std::vector<Pixmap3f> filteredColorsB;
+    std::vector<Pixmap3f> mses;
+    for (float k : {0.5f, 1.0f}) {
+        printTimestampedLog(tfm::format("Beginning regression pass %d/2", mses.size() + 1));
+        // Regression pass
+        printTimestampedLog("Denosing half buffer A...");
+        Pixmap3f filteredColorA = collaborativeRegression(*image.bufferA, *image.bufferB, filteredFeaturesB, *image.bufferVariance, 3, 9, k);
+        printTimestampedLog("Denosing half buffer B...");
+        Pixmap3f filteredColorB = collaborativeRegression(*image.bufferB, *image.bufferA, filteredFeaturesA, *image.bufferVariance, 3, 9, k);
+
+        // MSE estimation (section 5.3)
+        printTimestampedLog("Estimating MSE...");
+        Pixmap3f noisyMse(w, h);
+        for (int i = 0; i < w*h; ++i) {
+            Vec3f mseA = sqr((*image.bufferB)[i] - filteredColorA[i]) - 2.0f*(*image.bufferVariance)[i];
+            Vec3f mseB = sqr((*image.bufferA)[i] - filteredColorB[i]) - 2.0f*(*image.bufferVariance)[i];
+            Vec3f residualColorVariance = sqr(filteredColorB[i] - filteredColorA[i])*0.25f;
+
+            noisyMse[i] = (mseA + mseB)*0.5f - residualColorVariance;
+        }
+        filteredColorsA.emplace_back(std::move(filteredColorA));
+        filteredColorsB.emplace_back(std::move(filteredColorB));
+
+        // MSE filtering
+        mses.emplace_back(nlMeans(noisyMse, *image.buffer, *image.bufferVariance, 1, 9, 1.0f, 1.0f, true));
+    }
+    printTimestampedLog("Regression pass done");
+
+    // Bandwidth selection (section 5.3)
+    // Generate selection map
+    printTimestampedLog("Generating selection maps...");
+    Pixmap3f noisySelection(w, h);
+    for (int i = 0; i < w*h; ++i)
+        for (int j = 0; j < 3; ++j)
+            noisySelection[i][j] = mses[0][i][j] < mses[1][i][j] ? 0.0f : 1.0f;
+    mses.clear();
+    // Filter selection map
+    Pixmap3f selection = nlMeans(noisySelection, *image.buffer, *image.bufferVariance, 1, 9, 1.0f, 1.0f, true);
+
+    // Apply selection map
+    Pixmap3f resultA(w, h);
+    Pixmap3f resultB(w, h);
+    for (int i = 0; i < w*h; ++i) {
+        resultA[i] += lerp(filteredColorsA[0][i], filteredColorsA[1][i], selection[i]);
+        resultB[i] += lerp(filteredColorsB[0][i], filteredColorsB[1][i], selection[i]);
+    }
+    selection.reset();
+    filteredColorsA.clear();
+    filteredColorsB.clear();
+
+    // Second filter pass (section 5.4)
+    printTimestampedLog("Beginning second filter pass");
+    printTimestampedLog("Denoising final features...");
+    std::vector<PixmapF> finalFeatures;
+    for (size_t i = 0; i < filteredFeaturesA.size(); ++i) {
+        PixmapF combinedFeature(w, h);
+        PixmapF combinedFeatureVar(w, h);
+
+        for (int j = 0; j < w*h; ++j) {
+            combinedFeature   [j] =    (filteredFeaturesA[i][j] + filteredFeaturesB[i][j])*0.5f;
+            combinedFeatureVar[j] = sqr(filteredFeaturesB[i][j] - filteredFeaturesA[i][j])*0.25f;
+        }
+        filteredFeaturesA[i].reset();
+        filteredFeaturesB[i].reset();
+
+        finalFeatures.emplace_back(nlMeans(combinedFeature, combinedFeature, combinedFeatureVar, 3, 2, 0.5f));
+    }
+
+    Pixmap3f combinedResult(w, h);
+    Pixmap3f combinedResultVar(w, h);
+    for (int j = 0; j < w*h; ++j) {
+        combinedResult   [j] =    (resultA[j] + resultB[j])*0.5f;
+        combinedResultVar[j] = sqr(resultB[j] - resultA[j])*0.25f;
+    }
+    printTimestampedLog("Performing final regression...");
+    return collaborativeRegression(combinedResult, combinedResult, finalFeatures, combinedResultVar, 3, 9, 1.0f);
 }
 
-std::unique_ptr<Vec3f[]> floatArrayToVecArray(std::unique_ptr<float[]> img, int w, int h)
+// Extracts a single channel of an RGB image into a separate pixmap
+std::unique_ptr<PixmapF> slicePixmap(const Pixmap3f &src, int channel)
 {
-    std::unique_ptr<Vec3f[]> result(new Vec3f[w*h]);
-    std::memcpy(result.get(), img.get(), w*h*sizeof(Vec3f));
+    int w = src.w(), h = src.h();
+
+    auto result = std::unique_ptr<PixmapF>(new PixmapF(w, h));
+    for (int j = 0; j < w*h; ++j)
+        (*result)[j] = src[j][channel];
+
     return std::move(result);
 }
 
-void saveVecImage(const Vec3f *img, Path path, int w, int h)
+void loadInputBuffers(RenderBuffer3f &image, std::vector<RenderBufferF> &features, const Scene &scene)
 {
-    ImageIO::saveHdr(path, img[0].data(), w, h, 3);
-}
+    for (const auto &b : scene.rendererSettings().renderOutputs()) {
+        if (!b.hdrOutputFile().empty()) {
+            Path file = b.hdrOutputFile();
+            auto buffer = loadPixmap<Vec3f>(file, true);
+            if (buffer) {
+                std::unique_ptr<Pixmap3f> bufferVariance;
+                if (b.sampleVariance()) {
+                    Path varianceFile = file.stripExtension() + "Variance" + file.extension();
+                    bufferVariance = loadPixmap<Vec3f>(varianceFile);
+                }
+                std::unique_ptr<Pixmap3f> bufferA, bufferB;
+                if (b.twoBufferVariance()) {
+                    Path fileA = file.stripExtension() + "A" + file.extension();
+                    Path fileB = file.stripExtension() + "B" + file.extension();
+                    bufferA = loadPixmap<Vec3f>(fileA);
+                    bufferB = loadPixmap<Vec3f>(fileB);
+                }
 
-std::unique_ptr<Vec3f[]> loadVecImage(Path path, int &w, int &h)
-{
-    auto img = ImageIO::loadHdr(path, TexelConversion::REQUEST_RGB, w, h);
-    if (!img)
-        return nullptr;
-    return floatArrayToVecArray(std::move(img), w, h);
-}
-
-std::unique_ptr<float[]> loadFloatImage(Path path, int &w, int &h)
-{
-    return ImageIO::loadHdr(path, TexelConversion::REQUEST_AVERAGE, w, h);
-}
-
-template<typename Distance>
-std::unique_ptr<Vec3f[]> nlMeansFilter(std::unique_ptr<Vec3f[]> img, float *var,
-        int w, int h, float kC, Distance distance)
-{
-    CONSTEXPR int F = 3;
-    CONSTEXPR int R = 5;
-
-    auto delta = [&](int idxP, int idxQ) {
-        float v = var ? var[idxP] + var[idxQ] : 1.0f;
-        return sqr(img[idxP] - img[idxQ])/(1e-3f + kC*kC*v);
-    };
-    auto patchDistance = [&](int xp, int yp, int xq, int yq) {
-        float weight = 0.0f;
-        float dist = 0.0f;
-        for (int dy = -F; dy <= F; ++dy) {
-            for (int dx = -F; dx <= F; ++dx) {
-                int xpi = xp + dx, ypi = yp + dy;
-                int xqi = xq + dx, yqi = yq + dy;
-                if (xpi <  0 || xqi <  0 || ypi <  0 || yqi <  0 ||
-                    xpi >= w || xqi >= w || ypi >= h || yqi >= h)
-                    continue;
-                dist += delta(xpi + ypi*w, xqi + yqi*w).sum();
-                weight += 3.0f;
-            }
-        }
-        return dist/weight;
-    };
-
-    std::unique_ptr<Vec3f[]> result(new Vec3f[w*h]);
-    ThreadUtils::parallelFor(0, h, 20, [&](Tungsten::uint32 y) {
-        for (int x = 0; x < w; ++x) {
-            float weightSum = 0.0f;
-            Vec3f filtered(0.0f);
-            for (int t = -R; t <= R; ++t) {
-                for (int s = -R; s <= R; ++s) {
-                    int xq = x + s, yq = y + t;
-                    if (xq < 0 || yq < 0 || xq >= w || yq >= h)
-                        continue;
-                    float wc = std::exp(-patchDistance(x, y, xq, yq));
-                    float wi = distance(wc, x + y*w, xq + yq*w);
-                    filtered += wi*img[xq + yq*w];
-                    weightSum += wi;
+                if (b.type() == OutputColor) {
+                    image.buffer         = std::move(buffer);
+                    image.bufferA        = std::move(bufferA);
+                    image.bufferB        = std::move(bufferB);
+                    image.bufferVariance = std::move(bufferVariance);
+                } else {
+                    bool isRgb = (b.type() == OutputNormal || b.type() == OutputAlbedo);
+                    for (int i = 0; i < (isRgb ? 3 : 1); ++i) {
+                        features.emplace_back();
+                        if (buffer        ) features.back().buffer         = slicePixmap(*buffer        , i);
+                        if (bufferA       ) features.back().bufferA        = slicePixmap(*bufferA       , i);
+                        if (bufferB       ) features.back().bufferB        = slicePixmap(*bufferB       , i);
+                        if (bufferVariance) features.back().bufferVariance = slicePixmap(*bufferVariance, i);
+                    }
+                    printTimestampedLog(tfm::format("Using feature %s", b.typeString()));
                 }
             }
-            result[x + y*w] = filtered/weightSum;
         }
-    });
-
-    return std::move(result);
+    }
 }
 
 int main(int argc, const char *argv[])
- {
-     CliParser parser("denoiser", "[options] scene outputfile");
-     parser.addOption('h', "help", "Prints this help text", false, OPT_HELP);
-     parser.addOption('v', "version", "Prints version information", false, OPT_VERSION);
-     parser.addOption('f', "fweight", "Specify feature weight (default: 1)", true, OPT_FWEIGHT);
-     parser.addOption('c', "cweight", "Specify color buffer weight (default: 1)", true, OPT_CWEIGHT);
+{
+    CliParser parser("denoiser", "[options] scene outputfile");
+    parser.addOption('h', "help", "Prints this help text", false, OPT_HELP);
+    parser.addOption('v', "version", "Prints version information", false, OPT_VERSION);
 
-     parser.parse(argc, argv);
+    parser.parse(argc, argv);
+    if (parser.operands().size() != 2 || parser.isPresent(OPT_HELP)) {
+        parser.printHelpText();
+        return 0;
+    }
+    if (parser.isPresent(OPT_VERSION)) {
+        std::cout << "denoiser, version " << VERSION_STRING << std::endl;
+        return 0;
+    }
 
-     if (parser.operands().size() != 2 || parser.isPresent(OPT_HELP)) {
-         parser.printHelpText();
-         return 0;
-     }
-     if (parser.isPresent(OPT_VERSION)) {
-         std::cout << "denoiser, version " << VERSION_STRING << std::endl;
-         return 0;
-     }
+    Path sceneFile(parser.operands()[0]);
+    Path targetFile(parser.operands()[1]);
 
-     Path sceneFile(parser.operands()[0]);
-     Path targetFile(parser.operands()[1]);
+    printTimestampedLog(tfm::format("Loading scene '%s'...", sceneFile));
 
-     std::cout << tfm::format("Loading scene '%s'...", sceneFile) << std::endl;
-
-     std::unique_ptr<Scene> scene;
-     try {
-         scene.reset(Scene::load(sceneFile));
-     } catch (const JsonLoadException &e) {
-         std::cerr << e.what() << std::endl;
-         return 1;
-     }
+    std::unique_ptr<Scene> scene;
+    try {
+        scene.reset(Scene::load(sceneFile));
+    } catch (const JsonLoadException &e) {
+        std::cerr << e.what() << std::endl;
+        return 1;
+    }
 
     ThreadUtils::startThreads(max(ThreadUtils::idealThreadCount() - 1, 1u));
 
-    Path hdrImage = scene->rendererSettings().hdrOutputFile();
-    if (hdrImage.empty()) {
-        std::cerr << "Can only filter HDR images. "
-                "Please remember to set hdr_output_file in the renderer settings" << std::endl;
-        return 1;
-    }
-
-
-    int w, h;
-    std::unique_ptr<Vec3f[]> image = loadVecImage(hdrImage, w, h);
-    if (!image) {
-        std::cerr << tfm::format("Failed to load HDR image at '%s'", hdrImage) << std::endl;
-        return 1;
-    }
-    std::unique_ptr<float[]> imageVariance;
-
-    std::vector<std::unique_ptr<Vec3f[]>> features;
-    std::vector<std::unique_ptr<float[]>> featureVariance;
-    for (const auto &b : scene->rendererSettings().renderOutputs()) {
-        if (!b.hdrOutputFile().empty()) {
-            Path file = b.hdrOutputFile();
-
-            if (b.type() == OutputColor) {
-                if (b.sampleVariance()) {
-                    Path varianceFile = file.stripExtension() + "Variance" + file.extension();
-                    imageVariance = loadFloatImage(varianceFile, w, h);
-                }
-            } else {
-                std::unique_ptr<Vec3f[]> feature = loadVecImage(file, w, h);
-                if (feature) {
-                    features.emplace_back(std::move(feature));
-
-                    if (b.sampleVariance()) {
-                        Path varianceFile = file.stripExtension() + "Variance" + file.extension();
-                        featureVariance.emplace_back(loadFloatImage(varianceFile, w, h));
-                    }
-
-                    std::cout << "Using feature " << b.typeString() << std::endl;
-                }
-            }
-        }
-    }
-
-    float kF = 1.0f;
-    if (parser.isPresent(OPT_FWEIGHT)) {
-        float f = std::atof(parser.param(OPT_FWEIGHT).c_str());
-        if (f > 0.0f)
-            kF = f;
-    }
-    float kC = 1.0f;
-    if (parser.isPresent(OPT_CWEIGHT)) {
-        float f = std::atof(parser.param(OPT_CWEIGHT).c_str());
-        if (f > 0.0f)
-            kC = f;
-    }
-
-    const float Tau = 1e-3f;
-
-    auto bilateralWeight = [&](const Vec3f *f, const float *var, int idxP, int idxQ) {
-        float v = var ? var[idxP] : 1.0f;
-        return (sqr(f[idxP] - f[idxQ])/(sqr(kF*0.6f)*max(Tau, v))).sum();
-    };
+    RenderBuffer3f image;
+    std::vector<RenderBufferF> features;
+    loadInputBuffers(image, features, *scene);
 
     Timer timer;
-    image = nlMeansFilter(std::move(image), imageVariance.get(), w, h, kC, [&](float wc, int idxP, int idxQ) {
-        float dF = 0.0f;
-        for (size_t i = 0; i < features.size(); ++i)
-            dF = max(dF, bilateralWeight(features[i].get(), featureVariance[i].get(), idxP, idxQ));
-        float wf = std::exp(-dF);
-        return min(wf, wc);
-    });
-    timer.bench("Filtering took");
+    Pixmap3f result = nforDenoiser(std::move(image), std::move(features));
+    timer.stop();
+    printTimestampedLog(tfm::format("Filtering complete! Filter time: %.1fs", timer.elapsed()));
 
-    saveVecImage(image.get(), targetFile, w, h);
+    result.save(targetFile, true);
 
     return 0;
 }

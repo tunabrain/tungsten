@@ -4,6 +4,7 @@
 
 #include "IntTypes.hpp"
 #include "MathUtil.hpp"
+#include "Range.hpp"
 
 #include "sse/SimdUtils.hpp"
 
@@ -119,6 +120,11 @@ public:
     {
         _min = Tungsten::max(_min, box._min);
         _max = Tungsten::min(_max, box._max);
+    }
+
+    Range<ElementType> range(int dimension) const
+    {
+        return Range<ElementType>(_min[dimension], _max[dimension]);
     }
 
     friend std::ostream &operator<< (std::ostream &stream, const Box &box) {

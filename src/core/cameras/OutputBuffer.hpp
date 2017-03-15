@@ -163,7 +163,7 @@ public:
             if (!hdrFile.empty()) {
                 ImageIO::saveHdr(hdrFile,  elementPointer(hdr.get()),      _res.x(), _res.y(), elementCount(hdr[0]));
                 ImageIO::saveHdr(hdrFileA, elementPointer(_bufferA.get()), _res.x(), _res.y(), elementCount(_bufferA[0]));
-                ImageIO::saveHdr(hdrFileB, elementPointer(_bufferA.get()), _res.x(), _res.y(), elementCount(_bufferB[0]));
+                ImageIO::saveHdr(hdrFileB, elementPointer(_bufferB.get()), _res.x(), _res.y(), elementCount(_bufferB[0]));
             }
             if (!ldrFile.empty()) {
                 saveLdr(hdr.get(), ldrFile, true);
