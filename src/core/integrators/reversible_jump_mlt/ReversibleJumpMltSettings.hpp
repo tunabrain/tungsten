@@ -22,7 +22,7 @@ struct ReversibleJumpMltSettings : public TraceSettings
       imagePyramid(false),
       gaussianMutation(false),
       largeStepProbability(0.1f),
-      strategyPerturbationProbability(0.1f)
+      strategyPerturbationProbability(0.05f)
     {
     }
 

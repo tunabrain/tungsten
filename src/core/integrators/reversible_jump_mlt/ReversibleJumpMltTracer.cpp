@@ -145,7 +145,7 @@ void ReversibleJumpMltTracer::runSampleChain(int pathLength, int chainLength, Mu
         int proposedS = currentS;
         float strategySelector = _sampler.next1D();
         bool largeStep = strategySelector < _settings.largeStepProbability;
-        bool strategyChange = (strategySelector >= _settings.largeStepProbability && strategySelector < _settings.strategyPerturbationProbability);
+        bool strategyChange = (strategySelector >= _settings.largeStepProbability && strategySelector < _settings.largeStepProbability + _settings.strategyPerturbationProbability);
 
         float proposalWeight = 1.0f;
         if (largeStep) {
