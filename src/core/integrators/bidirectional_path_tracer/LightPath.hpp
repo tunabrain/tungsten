@@ -112,6 +112,9 @@ public:
             int s, int maxBounce, PathSampleGenerator &sampler, Vec3f &weight, Vec2f &pixel, float *ratios = nullptr);
 
     bool extendSampleSpace(WritablePathSampleGenerator &sampler, const LightPath &source, int numVerts) const;
+
+    static bool invert(WritablePathSampleGenerator &cameraSampler, WritablePathSampleGenerator &emitterSampler,
+            const LightPath &camera, const LightPath &emitter, int newS);
 };
 
 }

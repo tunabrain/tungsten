@@ -55,10 +55,6 @@ class ReversibleJumpMltTracer : public TraceBase
                     LightPath &emitterPath, PathSampleGenerator &emitterSampler,
                     int s = -1, int t = -1, bool traceCamera = true, bool traceEmitter = true);
 
-    bool shiftVertices(const LightPath & cameraPath, WritablePathSampleGenerator & cameraSampler,
-                       const LightPath &emitterPath, WritablePathSampleGenerator &emitterSampler,
-                       int newS) const;
-
     void evalSample(WritableMetropolisSampler &cameraSampler, WritableMetropolisSampler &emitterSampler,
             int length, int s, ChainState &state);
 

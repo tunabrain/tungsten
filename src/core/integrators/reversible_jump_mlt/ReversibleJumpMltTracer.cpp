@@ -43,21 +43,6 @@ void ReversibleJumpMltTracer::tracePaths(
     }
 }
 
-bool ReversibleJumpMltTracer::shiftVertices(
-        const LightPath & cameraPath, WritablePathSampleGenerator & cameraSampler,
-        const LightPath &emitterPath, WritablePathSampleGenerator &emitterSampler,
-        int newS) const
-{
-    int s = emitterPath.length();
-
-    if (newS == s)
-        return true;
-    if (newS < s)
-        return cameraPath.extendSampleSpace(cameraSampler, emitterPath, s - newS);
-    else
-        return emitterPath.extendSampleSpace(emitterSampler, cameraPath, newS - s);
-}
-
 void ReversibleJumpMltTracer::evalSample(WritableMetropolisSampler &cameraSampler, WritableMetropolisSampler &emitterSampler,
         int length, int s, ChainState &state)
 {
@@ -158,17 +143,18 @@ void ReversibleJumpMltTracer::runSampleChain(int pathLength, int chainLength, Mu
     float accumulatedWeight = 0.0f;
     for (int iter = 0; iter < chainLength; ++iter) {
         int proposedS = currentS;
-        float aFactor = 1.0f;
-        bool largeStep = _sampler.next1D() < _settings.largeStepProbability;
+        float strategySelector = _sampler.next1D();
+        bool largeStep = strategySelector < _settings.largeStepProbability;
+        bool strategyChange = (strategySelector >= _settings.largeStepProbability && strategySelector < _settings.strategyPerturbationProbability);
 
         float proposalWeight = 1.0f;
         if (largeStep) {
             proposedS = min(int(_sampler.next1D()*(pathLength + 1)), pathLength);
             cameraSampler.largeStep();
             emitterSampler.largeStep();
-         } else {
-            cameraSampler.smallStep();
-            emitterSampler.smallStep();
+        } else if (strategyChange) {
+            cameraSampler.freeze();
+            emitterSampler.freeze();
 
             float sum = 0.0f;
             for (int i = 0; i <= pathLength; ++i)
@@ -180,12 +166,16 @@ void ReversibleJumpMltTracer::runSampleChain(int pathLength, int chainLength, Mu
                     break;
             }
 
-            if (!shiftVertices(current->cameraPath, cameraSampler, current->emitterPath, emitterSampler, proposedS))
-                aFactor = 0.0f;
+            if (!LightPath::invert(cameraSampler, emitterSampler, current->cameraPath, current->emitterPath, proposedS))
+                proposalWeight = 0.0f;
             else
-                aFactor = 1.0f;
+                proposalWeight = 1.0f;
+
             cameraSampler.seek(0);
             emitterSampler.seek(0);
+        } else {
+            cameraSampler.smallStep();
+            emitterSampler.smallStep();
         }
 
         evalSample(cameraSampler, emitterSampler, pathLength, proposedS, *proposed);
@@ -193,7 +183,7 @@ void ReversibleJumpMltTracer::runSampleChain(int pathLength, int chainLength, Mu
         float currentI = current->splats.totalLuminance();
         float proposedI = proposed->splats.totalLuminance();
 
-        float a = currentI == 0.0f ? 1.0f : min(proposalWeight*aFactor*proposedI/currentI, 1.0f);
+        float a = currentI == 0.0f ? 1.0f : min(proposalWeight*proposedI/currentI, 1.0f);
 
         float currentWeight = (1.0f - a);
         float proposedWeight = a;

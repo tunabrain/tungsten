@@ -370,53 +370,56 @@ bool LightPath::bdptCameraConnect(const TraceBase &tracer, const LightPath &came
     return true;
 }
 
-bool LightPath::extendSampleSpace(WritablePathSampleGenerator &sampler, const LightPath &source, int numVerts) const
+bool LightPath::invert(WritablePathSampleGenerator &cameraSampler, WritablePathSampleGenerator &emitterSampler,
+        const LightPath &camera, const LightPath &emitter, int newS)
 {
-    int length = max(_length, 1);
-    sampler.seek(length - 1);
+    int s = emitter.length();
+    int t = camera.length();
+    int newT = s + t - newS;
+    int vEnd = s + t - 1;
+    int eEnd = s + t - 2;
 
-    PathEdge nextEdge;
-    const PathVertex *nextVertex;
-    if (_length == 0) {
-        if (!_vertices[0].invertRootVertex(sampler, source[source.length() - 1]))
+    const PathVertex **vertices = reinterpret_cast<const PathVertex **>(alloca((s + t)*sizeof(const PathVertex *)));
+    PathEdge *edges = reinterpret_cast<PathEdge *>(alloca((s + t - 1)*sizeof(PathEdge)));
+
+    for (int i = 0; i < s; ++i)
+        vertices[i] = &emitter[i];
+    for (int i = 0; i < t; ++i)
+        vertices[vEnd - i] = &camera[i];
+
+    for (int i = 0; i < s - 1; ++i)
+        edges[i] = emitter.edge(i);
+    for (int i = 0; i < t - 1; ++i)
+        edges[eEnd - i] = camera.edge(i).reverse();
+
+    if (s == 1 && emitter[0].isInfiniteEmitter())
+        edges[0] = PathEdge(emitter[0].emitterRecord().direction.d, 1.0f, 1.0f);
+    else if (s != 0 && t != 0)
+        edges[s - 1] = PathEdge(emitter[s - 1], camera[t - 1]);
+
+    emitterSampler.seek(0);
+    if (!emitter[0].invertRootVertex(emitterSampler, *vertices[0]))
+        return false;
+    for (int i = 0; i < newS - 1; ++i) {
+        const PathVertex *v = (i == 0 ? &emitter[0] : vertices[i]);
+        if (!v->invertVertex(emitterSampler, i ? &edges[i - 1] : nullptr, edges[i], *vertices[i + 1]))
             return false;
-        numVerts--;
-        if (numVerts > 0) {
-            nextEdge = source.edge(source.length() - 2).reverse();
-            nextVertex = &source[source.length() - 2];
-        } else {
-            return true;
-        }
-    } else {
-        if (_length == 1 && !_vertices[0].invertRootVertex(sampler, _vertices[0]))
-            return false;
-        if (_length == 1 && _vertices[0].isInfiniteEmitter())
-            nextEdge = PathEdge(_vertices[0].emitterRecord().direction.d, 1.0f, 1.0f);
-        else if (source.length() == 1 && source[0].isInfiniteEmitter())
-            nextEdge = PathEdge(-source[0].emitterRecord().direction.d, 1.0f, 1.0f);
-        else
-            nextEdge = PathEdge(_vertices[_length - 1], source[source.length() - 1]);
-        nextVertex = &source[source.length() - 1];
+        emitterSampler.seek(i + 1);
     }
 
-    if (!_vertices[length - 1].invertVertex(sampler, length == 1 ? nullptr : &_edges[length - 2], nextEdge, *nextVertex))
+    cameraSampler.seek(0);
+    if (!camera[0].invertRootVertex(cameraSampler, *vertices[vEnd]))
         return false;
-
-    PathEdge prevEdge = nextEdge;
-    int sourceOffset = (_length == 0) ? 1 : 0;
-    for (int i = 1; i < numVerts; ++i) {
-        int vertIdx = source.length() - i - sourceOffset;
-        nextEdge = source.edge(vertIdx - 1).reverse();
-        sampler.seek(length - 1 + i);
-        if (!source[vertIdx].invertVertex(sampler, &prevEdge, nextEdge, source[vertIdx - 1])) {
-            //std::cout << "extendSampleSpace failed at i=" << i << std::endl;
+    PathEdge prevEdge;
+    for (int i = 0; i < newT - 1; ++i) {
+        PathEdge nextEdge = edges[eEnd - i].reverse();
+        const PathVertex *v = (i == 0 ? &camera[0] : vertices[vEnd - i]);
+        if (!v->invertVertex(cameraSampler, i ? &prevEdge : nullptr, nextEdge, *vertices[vEnd - (i + 1)]))
             return false;
-        }
-
         prevEdge = nextEdge;
+        cameraSampler.seek(i + 1);
     }
 
     return true;
 }
-
 }
