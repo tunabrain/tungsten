@@ -173,7 +173,7 @@ void ReversibleJumpMltIntegrator::prepareForRender(TraceableScene &scene, uint32
 
 void ReversibleJumpMltIntegrator::teardownAfterRender()
 {
-    for (int length = 0; length < _settings.maxBounces; ++length) {
+    for (int length = 0; length <= _settings.maxBounces; ++length) {
         int mutLarge = _stats->largeStep().numMutations(length);
         int mutSmall = _stats->smallStep().numMutations(length);
         int mutStrat = _stats->techniqueChange().numMutations(length);
