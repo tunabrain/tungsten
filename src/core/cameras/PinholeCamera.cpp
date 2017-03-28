@@ -137,8 +137,8 @@ bool PinholeCamera::evalDirection(PathSampleGenerator &/*sampler*/, const Positi
 
     pixel.x() = (localD.x() + 1.0f)/(2.0f*_pixelSize.x());
     pixel.y() = (_ratio - localD.y())/(2.0f*_pixelSize.x());
-    if (pixel.x() < -_filter.width() || pixel.y() < -_filter.width() ||
-        pixel.x() >= _res.x() || pixel.y() >= _res.y())
+    if (pixel.x() <= 0.5f - _filter.width() || pixel.y() <= 0.5f - _filter.width() ||
+        pixel.x() >= _res.x() - 0.5f + _filter.width() || pixel.y() >= _res.y() - 0.5f + _filter.width())
         return false;
 
     weight = Vec3f(sqr(_planeDist)/(4.0f*_pixelSize.x()*_pixelSize.x()*cube(localD.z()/localD.length())));
