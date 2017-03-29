@@ -38,7 +38,7 @@ void Camera::precompute()
 {
     _ratio = _res.y()/float(_res.x());
     _pixelSize = Vec2f(1.0f/_res.x(), 1.0f/_res.y());
-    _invTransform = _transform.pseudoInvert();
+    _invTransform = _transform.invert();
 }
 
 void Camera::fromJson(JsonPtr value, const Scene &scene)
