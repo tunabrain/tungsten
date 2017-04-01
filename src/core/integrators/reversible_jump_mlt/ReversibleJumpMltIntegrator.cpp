@@ -177,16 +177,20 @@ void ReversibleJumpMltIntegrator::teardownAfterRender()
         int mutLarge = _stats->largeStep().numMutations(length);
         int mutSmall = _stats->smallStep().numMutations(length);
         int mutStrat = _stats->techniqueChange().numMutations(length);
+        int inversion = _stats->inversion().numMutations(length);
 
         if (mutLarge + mutSmall + mutStrat) {
             std::cout << tfm::format(
                 "Path length %2d:\n"
                 "          Large step: acceptance ratio %5.2f%% of %d attempts\n"
                 "          Small step: acceptance ratio %5.2f%% of %d attempts\n"
-                "    Technique change: acceptance ratio %5.2f%% of %d attempts\n", length,
-                mutLarge == 0 ? 0.0f : 100.0f*_stats->largeStep().acceptanceRatio(length), mutLarge,
-                mutSmall == 0 ? 0.0f : 100.0f*_stats->smallStep().acceptanceRatio(length), mutSmall,
-                mutStrat == 0 ? 0.0f : 100.0f*_stats->techniqueChange().acceptanceRatio(length), mutStrat) << std::endl;
+                "    Technique change: acceptance ratio %5.2f%% of %d attempts\n"
+                "          Inversions: acceptance ratio %5.2f%% of %d attempts\n",
+                length,
+                mutLarge  == 0 ? 0.0f : 100.0f*_stats->largeStep().acceptanceRatio(length), mutLarge,
+                mutSmall  == 0 ? 0.0f : 100.0f*_stats->smallStep().acceptanceRatio(length), mutSmall,
+                mutStrat  == 0 ? 0.0f : 100.0f*_stats->techniqueChange().acceptanceRatio(length), mutStrat,
+                inversion == 0 ? 0.0f : 100.0f*_stats->inversion().acceptanceRatio(length), inversion) << std::endl;
         }
     }
 

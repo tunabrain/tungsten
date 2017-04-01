@@ -166,10 +166,13 @@ void ReversibleJumpMltTracer::runSampleChain(int pathLength, int chainLength, Mu
                     break;
             }
 
-            if (!LightPath::invert(cameraSampler, emitterSampler, current->cameraPath, current->emitterPath, proposedS))
+            if (!LightPath::invert(cameraSampler, emitterSampler, current->cameraPath, current->emitterPath, proposedS)) {
                 proposalWeight = 0.0f;
-            else
+                stats.inversion().reject(pathLength);
+            } else {
                 proposalWeight = 1.0f;
+                stats.inversion().accept(pathLength);
+            }
 
             cameraSampler.seek(0);
             emitterSampler.seek(0);
