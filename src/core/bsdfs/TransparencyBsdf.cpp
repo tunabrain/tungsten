@@ -28,7 +28,7 @@ void TransparencyBsdf::fromJson(JsonPtr value, const Scene &scene)
     if (auto base = value["base"])
         _base = scene.fetchBsdf(base);
     if (auto alpha = value["alpha"])
-        _opacity = scene.fetchTexture(alpha, TexelConversion::REQUEST_AVERAGE);
+        _opacity = scene.fetchTexture(alpha, TexelConversion::REQUEST_AUTO);
 }
 
 rapidjson::Value TransparencyBsdf::toJson(Allocator &allocator) const
