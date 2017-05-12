@@ -59,8 +59,6 @@ int MultiplexedMltTracer::evalSample(LightPath & cameraPath, PathSampleGenerator
 
     if (cameraLength != t || lightLength != s)
         return s;
-    if (!cameraPath[t - 1].connectable() || (s > 0 && !emitterPath[s - 1].connectable()))
-        return s;
 
     if (s == 0) {
         Vec2u pixel = cameraPath[0].cameraRecord().pixel;
@@ -81,7 +79,7 @@ int MultiplexedMltTracer::evalSample(LightPath & cameraPath, PathSampleGenerator
 }
 
 void MultiplexedMltTracer::traceCandidatePath(LightPath &cameraPath, LightPath &emitterPath,
-        const std::function<void(Vec3f, int, int)> &addCandidate)
+        SplatQueue &queue, const std::function<void(Vec3f, int, int)> &addCandidate)
 {
     tracePaths(cameraPath, _cameraSampler, emitterPath, _emitterSampler);
 
@@ -89,21 +87,28 @@ void MultiplexedMltTracer::traceCandidatePath(LightPath &cameraPath, LightPath &
     int  lightLength = emitterPath.length();
 
     for (int s = 0; s <= lightLength; ++s) {
-        int lowerBound = max(_settings.minBounces - s + 2, 1);
         int upperBound = min(_settings.maxBounces - s + 1, cameraLength);
-        for (int t = lowerBound; t <= upperBound; ++t) {
+        for (int t = 1; t <= upperBound; ++t) {
             if (!cameraPath[t - 1].connectable() || (s > 0 && !emitterPath[s - 1].connectable()))
                 continue;
 
             if (s == 0) {
-                addCandidate(cameraPath.bdptWeightedPathEmission(t, t), s, t);
+                if (t - 2 < _settings.minBounces || t - 2 >= _settings.maxBounces)
+                    continue;
+                Vec3f v = cameraPath.bdptWeightedPathEmission(t, t);
+                queue.addSplat(0, t, cameraPath[0].cameraRecord().pixel, v);
+                addCandidate(v, 0, t);
             } else if (t == 1) {
                 Vec2f pixel;
                 Vec3f splatWeight;
-                if (LightPath::bdptCameraConnect(*this, cameraPath, emitterPath, s, _settings.maxBounces, _emitterSampler, splatWeight, pixel))
+                if (LightPath::bdptCameraConnect(*this, cameraPath, emitterPath, s, _settings.maxBounces, _emitterSampler, splatWeight, pixel)) {
+                    queue.addFilteredSplat(s, t, pixel, splatWeight*_lightSplatScale);
                     addCandidate(splatWeight*_lightSplatScale, s, t);
+                }
             } else {
-                addCandidate(LightPath::bdptConnect(*this, cameraPath, emitterPath, s, t, _settings.maxBounces, _cameraSampler), s, t);
+                Vec3f v = LightPath::bdptConnect(*this, cameraPath, emitterPath, s, t, _settings.maxBounces, _cameraSampler);
+                queue.addSplat(s, t, cameraPath[0].cameraRecord().pixel, v);
+                addCandidate(v, s, t);
             }
         }
     }
@@ -136,7 +141,8 @@ void MultiplexedMltTracer::startSampleChain(int s, int t, float luminance, Unifo
         FAIL("Underlying integrator is not consistent. Expected a value of %f, but received %f", luminance, chain.currentSplats->totalLuminance());
 }
 
-void MultiplexedMltTracer::runSampleChain(int pathLength, int chainLength, MultiplexedStats &stats, float luminanceScale)
+LargeStepTracker MultiplexedMltTracer::runSampleChain(int pathLength, int chainLength,
+        MultiplexedStats &stats, float luminanceScale)
 {
     MarkovChain &chain = _chains[pathLength];
     MetropolisSampler & cameraSampler = *chain. cameraSampler;
@@ -146,6 +152,8 @@ void MultiplexedMltTracer::runSampleChain(int pathLength, int chainLength, Multi
     std::unique_ptr<SplatQueue> & currentSplats = chain. currentSplats;
     std::unique_ptr<SplatQueue> &proposedSplats = chain.proposedSplats;
     int &currentS = chain.currentS;
+
+    LargeStepTracker largeSteps;
 
     float accumulatedWeight = 0.0f;
     for (int i = 0; i < chainLength; ++i) {
@@ -160,6 +168,9 @@ void MultiplexedMltTracer::runSampleChain(int pathLength, int chainLength, Multi
         if (std::isnan(proposedI))
             proposedI = 0.0f;
 
+        if (largeStep)
+            largeSteps.add(proposedI*(pathLength + 1));
+
         float a = currentI == 0.0f ? 1.0f : min(proposedI/currentI, 1.0f);
 
         float currentWeight = (1.0f - a);
@@ -169,7 +180,7 @@ void MultiplexedMltTracer::runSampleChain(int pathLength, int chainLength, Multi
 
         if (_sampler.next1D() < a) {
             if (currentI != 0.0f)
-                currentSplats->apply(*_scene->cam().splatBuffer(), luminanceScale*accumulatedWeight/currentI);
+                currentSplats->apply(*_scene->cam().splatBuffer(), accumulatedWeight/currentI);
 
             std::swap(currentSplats, proposedSplats);
             accumulatedWeight = proposedWeight;
@@ -187,7 +198,7 @@ void MultiplexedMltTracer::runSampleChain(int pathLength, int chainLength, Multi
             currentS = proposedS;
         } else {
             if (proposedI != 0.0f)
-                proposedSplats->apply(*_scene->cam().splatBuffer(), luminanceScale*proposedWeight/proposedI);
+                proposedSplats->apply(*_scene->cam().splatBuffer(), proposedWeight/proposedI);
 
             cameraSampler.reject();
             emitterSampler.reject();
@@ -205,7 +216,9 @@ void MultiplexedMltTracer::runSampleChain(int pathLength, int chainLength, Multi
     }
 
     if (currentSplats->totalLuminance() != 0.0f)
-        currentSplats->apply(*_scene->cam().splatBuffer(), luminanceScale*accumulatedWeight/currentSplats->totalLuminance());
+        currentSplats->apply(*_scene->cam().splatBuffer(), accumulatedWeight/currentSplats->totalLuminance());
+
+    return largeSteps;
 }
 
 }

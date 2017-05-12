@@ -37,6 +37,7 @@ class MultiplexedMltIntegrator : public Integrator
     };
     struct SubtaskData
     {
+        std::unique_ptr<LargeStepTracker[]> independentEstimator;
         uint32 rangeStart;
         uint32 rangeLength;
         uint32 raysCast;
@@ -55,7 +56,8 @@ class MultiplexedMltIntegrator : public Integrator
 
     bool _chainsLaunched;
     double _luminanceScale;
-    std::vector<double> _luminancePerLength;
+    std::atomic<uint64> _numSeedPathsTraced;
+    std::vector<LargeStepTracker> _luminancePerLength;
     std::unique_ptr<PathCandidate[]> _pathCandidates;
 
     std::unique_ptr<AtomicMultiplexedStats> _stats;
@@ -69,6 +71,9 @@ class MultiplexedMltIntegrator : public Integrator
 
     void selectSeedPaths();
 
+    void computeNormalizationFactor();
+    void setBufferWeights();
+
 public:
     MultiplexedMltIntegrator();
 
@@ -79,8 +84,6 @@ public:
 
     virtual void prepareForRender(TraceableScene &scene, uint32 seed) override;
     virtual void teardownAfterRender() override;
-
-    void advanceSpp();
 
     virtual void startRender(std::function<void()> completionCallback) override;
     virtual void waitForCompletion() override;

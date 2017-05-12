@@ -171,7 +171,7 @@ float LightPath::misWeight(const LightPath &camera, const LightPath &emitter,
     return 1.0f/weight;
 }
 
-void LightPath::tracePath(const TraceableScene &scene, TraceBase &tracer, PathSampleGenerator &sampler, int length)
+void LightPath::tracePath(const TraceableScene &scene, TraceBase &tracer, PathSampleGenerator &sampler, int length, bool prunePath)
 {
     if (length == -1)
         length = _maxLength;
@@ -195,7 +195,28 @@ void LightPath::tracePath(const TraceableScene &scene, TraceBase &tracer, PathSa
     while (_length > 0 && !_vertices[_length - 1].connectable())
         _length--;
 
+    if (prunePath)
+        prune();
+}
+
+void LightPath::prune()
+{
     toAreaMeasure();
+}
+
+void LightPath::copy(const LightPath &o)
+{
+    _maxLength   = o._maxLength;
+    _maxVertices = o._maxVertices;
+    _length      = o._length;
+    _adjoint     = o._adjoint;
+    std::memcpy(_vertexIndex.get(), o._vertexIndex.get(), _maxVertices*sizeof(_vertexIndex[0]));
+    std::memcpy(_vertices   .get(), o._vertices   .get(), _maxVertices*sizeof(_vertices   [0]));
+    std::memcpy(_edges      .get(), o._edges      .get(), _maxVertices*sizeof(_edges      [0]));
+
+    for (int i = 0; i < _maxVertices; ++i)
+        if (_vertices[i].onSurface())
+            _vertices[i].pointerFixup();
 }
 
 Vec3f LightPath::bdptWeightedPathEmission(int minLength, int maxLength, float *ratios, Vec3f *directEmissionByBounce) const

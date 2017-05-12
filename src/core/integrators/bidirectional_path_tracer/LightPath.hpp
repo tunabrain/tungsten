@@ -11,6 +11,7 @@ namespace Tungsten {
 class LightPath
 {
     int _maxLength;
+    int _maxVertices;
     int _length;
     bool _adjoint;
     std::unique_ptr<int[]> _vertexIndex;
@@ -28,11 +29,12 @@ class LightPath
 public:
     LightPath(int maxLength)
     : _maxLength(maxLength),
+      _maxVertices(maxLength + 4),
       _length(0),
       _adjoint(false),
-      _vertexIndex(new int[maxLength + 4]),
-      _vertices(new PathVertex[maxLength + 4]),
-      _edges(new PathEdge[maxLength + 4])
+      _vertexIndex(new int[_maxVertices]),
+      _vertices(new PathVertex[_maxVertices]),
+      _edges(new PathEdge[_maxVertices])
     {
     }
 
@@ -67,7 +69,7 @@ public:
         _adjoint = true;
     }
 
-    void tracePath(const TraceableScene &scene, TraceBase &tracer, PathSampleGenerator &sampler, int length = -1);
+    void tracePath(const TraceableScene &scene, TraceBase &tracer, PathSampleGenerator &sampler, int length = -1, bool prunePath = true);
 
     int maxLength() const
     {
@@ -103,6 +105,10 @@ public:
     {
         return _vertexIndex[i];
     }
+
+    void prune();
+
+    void copy(const LightPath &o);
 
     Vec3f bdptWeightedPathEmission(int minLength, int maxLength, float *ratios = nullptr, Vec3f *directEmissionByBounce = nullptr) const;
 

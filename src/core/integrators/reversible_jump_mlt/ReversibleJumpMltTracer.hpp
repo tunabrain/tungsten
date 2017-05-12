@@ -7,6 +7,7 @@
 #include "integrators/bidirectional_path_tracer/ImagePyramid.hpp"
 #include "integrators/bidirectional_path_tracer/LightPath.hpp"
 #include "integrators/multiplexed_mlt/MultiplexedStats.hpp"
+#include "integrators/multiplexed_mlt/LargeStepTracker.hpp"
 #include "integrators/kelemen_mlt/SplatQueue.hpp"
 #include "integrators/TraceBase.hpp"
 
@@ -20,14 +21,16 @@ class ReversibleJumpMltTracer : public TraceBase
 {
     struct ChainState
     {
-        LightPath cameraPath;
-        LightPath emitterPath;
+        LightPath cameraPath, unprunedCameraPath;
+        LightPath emitterPath, unprunedEmitterPath;
         SplatQueue splats;
         std::unique_ptr<float[]> ratios;
 
         ChainState(int length)
         : cameraPath(length + 1),
+          unprunedCameraPath(length + 1),
           emitterPath(length),
+          unprunedEmitterPath(length),
           splats(1),
           ratios(new float[length + 1])
         {
@@ -53,7 +56,7 @@ class ReversibleJumpMltTracer : public TraceBase
 
     void tracePaths(LightPath & cameraPath, PathSampleGenerator & cameraSampler,
                     LightPath &emitterPath, PathSampleGenerator &emitterSampler,
-                    int s = -1, int t = -1, bool traceCamera = true, bool traceEmitter = true);
+                    int s = -1, int t = -1, bool prune = true);
 
     void evalSample(WritableMetropolisSampler &cameraSampler, WritableMetropolisSampler &emitterSampler,
             int length, int s, ChainState &state);
@@ -63,10 +66,10 @@ public:
             UniformSampler &sampler, ImagePyramid *pyramid);
 
     void traceCandidatePath(LightPath &cameraPath, LightPath &emitterPath,
-            const std::function<void(Vec3f, int, int)> &addCandidate);
+            SplatQueue &queue, const std::function<void(Vec3f, int, int)> &addCandidate);
     void startSampleChain(int s, int t, float luminance, UniformSampler &cameraReplaySampler,
             UniformSampler &emitterReplaySampler);
-    void runSampleChain(int pathLength, int chainLength, MultiplexedStats &stats, float luminanceScale);
+    LargeStepTracker runSampleChain(int pathLength, int chainLength, MultiplexedStats &stats, float luminanceScale);
 
     UniformPathSampler &cameraSampler()
     {

@@ -35,6 +35,10 @@ void ReversibleJumpMltIntegrator::traceSamplePool(uint32 taskId, uint32 numSubTa
     LightPath  cameraPath(_settings.maxBounces + 1);
     LightPath emitterPath(_settings.maxBounces);
 
+    std::unique_ptr<SplatQueue> queue(new SplatQueue(sqr(_settings.maxBounces + 2)));
+
+    int numPathsTraced = 0;
+
     uint32 candidateIdx = rayBase;
     uint32 rayIdx = 0;
     while (rayIdx < rayTail - rayBase && candidateIdx < rayTail) {
@@ -42,8 +46,11 @@ void ReversibleJumpMltIntegrator::traceSamplePool(uint32 taskId, uint32 numSubTa
         uint64 emitterState = _tracers[taskId]->emitterSampler().sampler().state();
         uint32 sequence     = _tracers[taskId]-> cameraSampler().sampler().sequence();
 
-        _tracers[taskId]->traceCandidatePath(cameraPath, emitterPath, [&](Vec3f value, int s, int t) {
-            if (candidateIdx == rayTail)
+        numPathsTraced++;
+
+        _tracers[taskId]->traceCandidatePath(cameraPath, emitterPath, *queue, [&](Vec3f value, int s, int t) {
+            int length = s + t - 1;
+            if (candidateIdx == rayTail || length > _settings.maxBounces)
                 return;
             int idx = candidateIdx++;
 
@@ -58,12 +65,17 @@ void ReversibleJumpMltIntegrator::traceSamplePool(uint32 taskId, uint32 numSubTa
             _pathCandidates[idx].t = t;
         });
 
+        queue->apply(*_scene->cam().splatBuffer(), 1.0f);
+        queue->clear();
+
         rayIdx++;
     }
 
     _subtaskData[taskId].rangeStart = rayBase;
     _subtaskData[taskId].rangeLength = candidateIdx - rayBase;
     _subtaskData[taskId].raysCast = rayIdx;
+
+    _numSeedPathsTraced += numPathsTraced;
 }
 
 void ReversibleJumpMltIntegrator::runSampleChain(uint32 taskId, uint32 numSubTasks, uint32 /*threadId*/)
@@ -73,11 +85,13 @@ void ReversibleJumpMltIntegrator::runSampleChain(uint32 taskId, uint32 numSubTas
     uint32 rayBase    = intLerp(0, rayCount, taskId + 0, numSubTasks);
     uint32 raysToCast = intLerp(0, rayCount, taskId + 1, numSubTasks) - rayBase;
 
+    LargeStepTracker *stepTrackers = _subtaskData[taskId].independentEstimator.get();
+
     MultiplexedStats stats(*_stats);
     for (int i = 1; i <= _settings.maxBounces; ++i) {
-        int chainLength = int(raysToCast*_luminancePerLength[i]/_luminanceScale);
+        int chainLength = int(raysToCast*_luminancePerLength[i].getAverage()/_luminanceScale);
         if (chainLength > 0)
-            _tracers[taskId]->runSampleChain(i, chainLength, stats, _luminanceScale);
+            stepTrackers[i] += _tracers[taskId]->runSampleChain(i, chainLength, stats, _luminanceScale);
     }
 }
 
@@ -86,7 +100,7 @@ void ReversibleJumpMltIntegrator::selectSeedPaths()
     uint32 rangeTail = _subtaskData[0].rangeLength;
     uint32 numRays = _subtaskData[0].raysCast;
     for (size_t i = 1; i < _subtaskData.size(); ++i) {
-        SubtaskData data = _subtaskData[i];
+        const SubtaskData &data = _subtaskData[i];
         if (rangeTail != data.rangeStart)
             std::memmove(&_pathCandidates[rangeTail], &_pathCandidates[data.rangeStart], data.rangeLength*sizeof(PathCandidate));
         rangeTail += data.rangeLength;
@@ -94,17 +108,17 @@ void ReversibleJumpMltIntegrator::selectSeedPaths()
     }
 
     _luminancePerLength.clear();
-    _luminancePerLength.resize(_settings.maxBounces + 1, 0.0);
+    _luminancePerLength.resize(_settings.maxBounces + 1);
     for (uint32 i = 1; i < rangeTail; ++i) {
         int length = _pathCandidates[i].s + _pathCandidates[i].t - 1;
-        _pathCandidates[i].luminanceSum = _pathCandidates[i].luminance + _luminancePerLength[length];
-        _luminancePerLength[length] = _pathCandidates[i].luminanceSum;
+        _luminancePerLength[length].add(_pathCandidates[i].luminance);
+        _pathCandidates[i].luminanceSum = _luminancePerLength[length].getSum();
     }
 
     for (size_t tracerId = 0; tracerId < _tracers.size(); ++tracerId) {
         std::vector<double> targetEnergy;
         for (size_t i = 0; i < _luminancePerLength.size(); ++i)
-            targetEnergy.push_back(_sampler.next1D()*_luminancePerLength[i]);
+            targetEnergy.push_back(_sampler.next1D()*_luminancePerLength[i].getSum());
 
         std::vector<int> selectedPaths(_luminancePerLength.size(), -1);
         for (uint32 i = 0; i < rangeTail; ++i) {
@@ -121,14 +135,34 @@ void ReversibleJumpMltIntegrator::selectSeedPaths()
         }
     }
 
-    double totalLuminance = 0.0;
-    for (double &l : _luminancePerLength) {
-        l /= numRays;
-        totalLuminance += l;
-    }
+    for (auto &l : _luminancePerLength)
+        l.setSampleCount(_numSeedPathsTraced);
 
     _scene->cam().blitSplatBuffer();
-    _luminanceScale = totalLuminance;
+}
+
+void ReversibleJumpMltIntegrator::computeNormalizationFactor()
+{
+    for (auto &subTask : _subtaskData) {
+        for (size_t i = 0; i < _luminancePerLength.size(); ++i) {
+            _luminancePerLength[i] += subTask.independentEstimator[i];
+            subTask.independentEstimator[i].clear();
+        }
+    }
+
+    _luminanceScale = 0.0;
+    for (const auto l : _luminancePerLength)
+        _luminanceScale += l.getAverage();
+}
+
+void ReversibleJumpMltIntegrator::setBufferWeights()
+{
+    uint64 numSamples = uint64(_w*_h)*_currentSpp;
+    numSamples += _chainsLaunched ? uint64(_numSeedPathsTraced) : _settings.initialSamplePool;
+
+    double weight = double(_w*_h)/numSamples;
+    _scene->cam().setColorBufferWeight(weight);
+    _scene->cam().setSplatWeight(_luminanceScale*weight);
 }
 
 void ReversibleJumpMltIntegrator::fromJson(JsonPtr v, const Scene &/*scene*/)
@@ -152,22 +186,28 @@ void ReversibleJumpMltIntegrator::prepareForRender(TraceableScene &scene, uint32
 {
     _chainsLaunched = false;
     _currentSpp = 0;
+    _numSeedPathsTraced = 0;
     _sampler = UniformSampler(MathUtil::hash32(seed), ThreadUtils::pool->threadCount()*3);
     _scene = &scene;
     advanceSpp();
 
     _w = scene.cam().resolution().x();
     _h = scene.cam().resolution().y();
+    scene.cam().requestColorBuffer();
     scene.cam().requestSplatBuffer();
 
     _stats.reset(new AtomicMultiplexedStats(_settings.maxBounces));
+
+    _pathCandidates.reset(new PathCandidate[_settings.initialSamplePool]);
 
     if (_settings.imagePyramid)
         _imagePyramid.reset(new ImagePyramid(_settings.maxBounces, _scene->cam()));
 
     for (uint32 i = 0; i < ThreadUtils::pool->threadCount(); ++i) {
         _tracers.emplace_back(new ReversibleJumpMltTracer(&scene, _settings, i, _sampler, _imagePyramid.get()));
-        _subtaskData.emplace_back();
+        _subtaskData.emplace_back(SubtaskData{
+            std::unique_ptr<LargeStepTracker[]>(new LargeStepTracker[_settings.maxBounces + 1]), 0, 0, 0
+        });
     }
 }
 
@@ -206,21 +246,6 @@ void ReversibleJumpMltIntegrator::teardownAfterRender()
     _imagePyramid.reset();
 }
 
-void ReversibleJumpMltIntegrator::advanceSpp()
-{
-    int sppStep = _scene->rendererSettings().sppStep();
-    int ipb = _settings.iterationsPerBatch;
-    int finishBorder = _scene->rendererSettings().spp();
-    int retraceBorder = ipb <= 0 ? finishBorder : (((int(_currentSpp) + ipb - 1)/ipb)*ipb);
-
-    if (ipb > 0 && int(_currentSpp) == retraceBorder) {
-        if (_chainsLaunched)
-            _chainsLaunched = false;
-        retraceBorder += ipb;
-    }
-    _nextSpp = min(int(_currentSpp) + sppStep, finishBorder, retraceBorder);
-}
-
 void ReversibleJumpMltIntegrator::startRender(std::function<void()> completionCallback)
 {
     if (_chainsLaunched && done()) {
@@ -228,21 +253,19 @@ void ReversibleJumpMltIntegrator::startRender(std::function<void()> completionCa
         return;
     }
 
-    double weight = double(_w*_h)/(_w*_h*_nextSpp + _settings.initialSamplePool);
-    _scene->cam().setSplatWeight(weight);
-
     using namespace std::placeholders;
     if (!_chainsLaunched) {
-        if (!_pathCandidates)
-            _pathCandidates.reset(new PathCandidate[_settings.initialSamplePool]);
+        setBufferWeights();
 
         _group = ThreadUtils::pool->enqueue(
             std::bind(&ReversibleJumpMltIntegrator::traceSamplePool, this, _1, _2, _3),
             _tracers.size(),
             [&, completionCallback]() {
                 selectSeedPaths();
+                computeNormalizationFactor();
                 advanceSpp();
                 _chainsLaunched = true;
+                setBufferWeights();
                 completionCallback();
             }
         );
@@ -252,7 +275,9 @@ void ReversibleJumpMltIntegrator::startRender(std::function<void()> completionCa
             _tracers.size(),
             [&, completionCallback]() {
                 _currentSpp = _nextSpp;
+                computeNormalizationFactor();
                 advanceSpp();
+                setBufferWeights();
                 completionCallback();
             }
         );

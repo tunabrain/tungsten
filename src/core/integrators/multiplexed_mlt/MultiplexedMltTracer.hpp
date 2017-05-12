@@ -3,6 +3,7 @@
 
 #include "MultiplexedMltSettings.hpp"
 #include "MultiplexedStats.hpp"
+#include "LargeStepTracker.hpp"
 
 #include "integrators/bidirectional_path_tracer/ImagePyramid.hpp"
 #include "integrators/bidirectional_path_tracer/LightPath.hpp"
@@ -20,6 +21,7 @@ class AtomicFramebuffer;
 
 class MultiplexedMltTracer : public TraceBase
 {
+private:
     struct MarkovChain
     {
         std::unique_ptr<MetropolisSampler>  cameraSampler;
@@ -53,10 +55,10 @@ public:
             UniformSampler &sampler, ImagePyramid *pyramid);
 
     void traceCandidatePath(LightPath &cameraPath, LightPath &emitterPath,
-            const std::function<void(Vec3f, int, int)> &addCandidate);
+            SplatQueue &queue, const std::function<void(Vec3f, int, int)> &addCandidate);
     void startSampleChain(int s, int t, float luminance, UniformSampler &cameraReplaySampler,
             UniformSampler &emitterReplaySampler);
-    void runSampleChain(int pathLength, int chainLength, MultiplexedStats &stats, float luminanceScale);
+    LargeStepTracker runSampleChain(int pathLength, int chainLength, MultiplexedStats &stats, float luminanceScale);
 
     UniformPathSampler &cameraSampler()
     {

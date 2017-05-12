@@ -20,27 +20,24 @@ ReversibleJumpMltTracer::ReversibleJumpMltTracer(TraceableScene *scene, const Re
 void ReversibleJumpMltTracer::tracePaths(
         LightPath & cameraPath, PathSampleGenerator & cameraSampler,
         LightPath &emitterPath, PathSampleGenerator &emitterSampler,
-        int s, int t, bool traceCamera, bool traceEmitter)
+        int s, int t, bool prune)
 {
-    if (traceCamera) {
-        if (t == -1)
-            t = _settings.maxBounces + 1;
-        cameraPath.clear();
-        cameraPath.startCameraPath(&_scene->cam());
-        cameraSampler.startPath(0, 0);
-        if (t > 0)
-            cameraPath.tracePath(*_scene, *this,  cameraSampler, t);
-    }
+    if (t == -1)
+        t = _settings.maxBounces + 1;
+    if (s == -1)
+        s = _settings.maxBounces;
 
-    if (traceEmitter) {
-        if (s == -1)
-            s = _settings.maxBounces;
-        emitterPath.clear();
-        emitterPath.startEmitterPath(_scene->lights()[0].get(), 1.0f);
-        emitterSampler.startPath(0, 0);
-        if (s > 0)
-            emitterPath.tracePath(*_scene, *this, emitterSampler, s);
-    }
+    cameraPath.clear();
+    cameraPath.startCameraPath(&_scene->cam());
+    cameraSampler.startPath(0, 0);
+    if (t > 0)
+        cameraPath.tracePath(*_scene, *this,  cameraSampler, t, prune);
+
+    emitterPath.clear();
+    emitterPath.startEmitterPath(_scene->lights()[0].get(), 1.0f);
+    emitterSampler.startPath(0, 0);
+    if (s > 0)
+        emitterPath.tracePath(*_scene, *this, emitterSampler, s, prune);
 }
 
 void ReversibleJumpMltTracer::evalSample(WritableMetropolisSampler &cameraSampler, WritableMetropolisSampler &emitterSampler,
@@ -53,15 +50,22 @@ void ReversibleJumpMltTracer::evalSample(WritableMetropolisSampler &cameraSample
     LightPath & cameraPath = state.cameraPath;
     LightPath &emitterPath = state.emitterPath;
 
-    tracePaths(cameraPath, cameraSampler, emitterPath, emitterSampler, s, t, true, true);
+    tracePaths(cameraPath, cameraSampler, emitterPath, emitterSampler, s, t, false);
 
     int cameraLength =  cameraPath.length();
     int  lightLength = emitterPath.length();
 
     if (cameraLength != t || lightLength != s)
         return;
-    if (!cameraPath[t - 1].connectable() || (s > 0 && !emitterPath[s - 1].connectable()))
-        return;
+
+    state. unprunedCameraPath.copy( cameraPath);
+    state.unprunedEmitterPath.copy(emitterPath);
+
+     cameraPath.prune();
+    emitterPath.prune();
+
+    int prunedT =  cameraPath.length();
+    int prunedS = emitterPath.length();
 
     if (s == 0) {
         Vec2u pixel = cameraPath[0].cameraRecord().pixel;
@@ -70,17 +74,17 @@ void ReversibleJumpMltTracer::evalSample(WritableMetropolisSampler &cameraSample
     } else if (t == 1) {
         Vec2f pixel;
         Vec3f splatWeight;
-        if (LightPath::bdptCameraConnect(*this, cameraPath, emitterPath, s, _settings.maxBounces, emitterSampler, splatWeight, pixel, state.ratios.get()))
+        if (LightPath::bdptCameraConnect(*this, cameraPath, emitterPath, prunedS, _settings.maxBounces, emitterSampler, splatWeight, pixel, state.ratios.get()))
             state.splats.addFilteredSplat(s, t, pixel, splatWeight*_lightSplatScale);
     } else {
         Vec2u pixel = cameraPath[0].cameraRecord().pixel;
-        Vec3f v = LightPath::bdptConnect(*this, cameraPath, emitterPath, s, t, _settings.maxBounces, _cameraSampler, state.ratios.get());
+        Vec3f v = LightPath::bdptConnect(*this, cameraPath, emitterPath, prunedS, prunedT, _settings.maxBounces, _cameraSampler, state.ratios.get());
         state.splats.addSplat(s, t, pixel, v);
     }
 }
 
 void ReversibleJumpMltTracer::traceCandidatePath(LightPath &cameraPath, LightPath &emitterPath,
-        const std::function<void(Vec3f, int, int)> &addCandidate)
+        SplatQueue &queue, const std::function<void(Vec3f, int, int)> &addCandidate)
 {
     tracePaths(cameraPath, _cameraSampler, emitterPath, _emitterSampler);
 
@@ -88,21 +92,28 @@ void ReversibleJumpMltTracer::traceCandidatePath(LightPath &cameraPath, LightPat
     int  lightLength = emitterPath.length();
 
     for (int s = 0; s <= lightLength; ++s) {
-        int lowerBound = max(_settings.minBounces - s + 2, 1);
         int upperBound = min(_settings.maxBounces - s + 1, cameraLength);
-        for (int t = lowerBound; t <= upperBound; ++t) {
+        for (int t = 1; t <= upperBound; ++t) {
             if (!cameraPath[t - 1].connectable() || (s > 0 && !emitterPath[s - 1].connectable()))
                 continue;
 
             if (s == 0) {
-                addCandidate(cameraPath.bdptWeightedPathEmission(t, t), s, t);
+                if (t - 2 < _settings.minBounces || t - 2 >= _settings.maxBounces)
+                    continue;
+                Vec3f v = cameraPath.bdptWeightedPathEmission(t, t);
+                queue.addSplat(0, t, cameraPath[0].cameraRecord().pixel, v);
+                addCandidate(v, 0, t);
             } else if (t == 1) {
                 Vec2f pixel;
                 Vec3f splatWeight;
-                if (LightPath::bdptCameraConnect(*this, cameraPath, emitterPath, s, _settings.maxBounces, _emitterSampler, splatWeight, pixel))
+                if (LightPath::bdptCameraConnect(*this, cameraPath, emitterPath, s, _settings.maxBounces, _emitterSampler, splatWeight, pixel)) {
+                    queue.addFilteredSplat(s, t, pixel, splatWeight*_lightSplatScale);
                     addCandidate(splatWeight*_lightSplatScale, s, t);
+                }
             } else {
-                addCandidate(LightPath::bdptConnect(*this, cameraPath, emitterPath, s, t, _settings.maxBounces, _cameraSampler), s, t);
+                Vec3f v = LightPath::bdptConnect(*this, cameraPath, emitterPath, s, t, _settings.maxBounces, _cameraSampler);
+                queue.addSplat(s, t, cameraPath[0].cameraRecord().pixel, v);
+                addCandidate(v, s, t);
             }
         }
     }
@@ -131,7 +142,8 @@ void ReversibleJumpMltTracer::startSampleChain(int s, int t, float luminance, Un
         FAIL("Underlying integrator is not consistent. Expected a value of %f, but received %f", luminance, chain.currentState->splats.totalLuminance());
 }
 
-void ReversibleJumpMltTracer::runSampleChain(int pathLength, int chainLength, MultiplexedStats &stats, float luminanceScale)
+LargeStepTracker ReversibleJumpMltTracer::runSampleChain(int pathLength, int chainLength,
+        MultiplexedStats &stats, float luminanceScale)
 {
     MarkovChain &chain = _chains[pathLength];
     WritableMetropolisSampler & cameraSampler = *chain. cameraSampler;
@@ -139,6 +151,8 @@ void ReversibleJumpMltTracer::runSampleChain(int pathLength, int chainLength, Mu
     std::unique_ptr<ChainState> &current  = chain. currentState;
     std::unique_ptr<ChainState> &proposed = chain.proposedState;
     int &currentS = chain.currentS;
+
+    LargeStepTracker largeSteps;
 
     float accumulatedWeight = 0.0f;
     for (int iter = 0; iter < chainLength; ++iter) {
@@ -156,17 +170,27 @@ void ReversibleJumpMltTracer::runSampleChain(int pathLength, int chainLength, Mu
             cameraSampler.freeze();
             emitterSampler.freeze();
 
+            int prunedLength = current->cameraPath.length() + current->emitterPath.length() - 1;
             float sum = 0.0f;
-            for (int i = 0; i <= pathLength; ++i)
+            for (int i = 0; i <= prunedLength; ++i)
                 sum += current->ratios[i];
             float target = sum*_sampler.next1D();
-            for (proposedS = 0; proposedS < pathLength; ++proposedS) {
+            for (proposedS = 0; proposedS < prunedLength; ++proposedS) {
                 target -= current->ratios[proposedS];
                 if (target < 0.0f)
                     break;
             }
+            if (proposedS <= current->emitterPath.length()) {
+                if (proposedS > 0)
+                    proposedS = current->emitterPath.vertexIndex(proposedS - 1) + 1; /* TODO */
+            } else {
+                int proposedT = prunedLength + 1 - proposedS;
+                if (proposedT > 0)
+                    proposedT = current->cameraPath.vertexIndex(proposedT - 1) + 1; /* TODO */
+                proposedS = prunedLength + 1 - proposedT;
+            }
 
-            if (!LightPath::invert(cameraSampler, emitterSampler, current->cameraPath, current->emitterPath, proposedS)) {
+            if (!LightPath::invert(cameraSampler, emitterSampler, current->unprunedCameraPath, current->unprunedEmitterPath, proposedS)) {
                 proposalWeight = 0.0f;
                 stats.inversion().reject(pathLength);
             } else {
@@ -186,6 +210,9 @@ void ReversibleJumpMltTracer::runSampleChain(int pathLength, int chainLength, Mu
         float currentI = current->splats.totalLuminance();
         float proposedI = proposed->splats.totalLuminance();
 
+        if (largeStep)
+            largeSteps.add(proposedI*(pathLength + 1));
+
         float a = currentI == 0.0f ? 1.0f : min(proposalWeight*proposedI/currentI, 1.0f);
 
         float currentWeight = (1.0f - a);
@@ -197,7 +224,7 @@ void ReversibleJumpMltTracer::runSampleChain(int pathLength, int chainLength, Mu
 
         if (accept) {
             if (currentI != 0.0f)
-                current->splats.apply(*_scene->cam().splatBuffer(), luminanceScale*accumulatedWeight/currentI);
+                current->splats.apply(*_scene->cam().splatBuffer(), accumulatedWeight/currentI);
 
             std::swap(current, proposed);
             accumulatedWeight = proposedWeight;
@@ -215,7 +242,7 @@ void ReversibleJumpMltTracer::runSampleChain(int pathLength, int chainLength, Mu
             currentS = proposedS;
         } else {
             if (proposedI != 0.0f)
-                proposed->splats.apply(*_scene->cam().splatBuffer(), luminanceScale*proposedWeight/proposedI);
+                proposed->splats.apply(*_scene->cam().splatBuffer(), proposedWeight/proposedI);
 
             cameraSampler.reject();
             emitterSampler.reject();
@@ -233,7 +260,9 @@ void ReversibleJumpMltTracer::runSampleChain(int pathLength, int chainLength, Mu
     }
 
     if (current->splats.totalLuminance() != 0.0f)
-        current->splats.apply(*_scene->cam().splatBuffer(), luminanceScale*accumulatedWeight/current->splats.totalLuminance());
+        current->splats.apply(*_scene->cam().splatBuffer(), accumulatedWeight/current->splats.totalLuminance());
+
+    return largeSteps;
 }
 
 }

@@ -10,6 +10,7 @@
 #include "integrators/bidirectional_path_tracer/ImagePyramid.hpp"
 
 #include "integrators/multiplexed_mlt/MultiplexedStats.hpp"
+#include "integrators/multiplexed_mlt/LargeStepTracker.hpp"
 
 #include "sampling/PathSampleGenerator.hpp"
 #include "sampling/UniformSampler.hpp"
@@ -38,6 +39,7 @@ class ReversibleJumpMltIntegrator : public Integrator
     };
     struct SubtaskData
     {
+        std::unique_ptr<LargeStepTracker[]> independentEstimator;
         uint32 rangeStart;
         uint32 rangeLength;
         uint32 raysCast;
@@ -56,7 +58,8 @@ class ReversibleJumpMltIntegrator : public Integrator
 
     bool _chainsLaunched;
     double _luminanceScale;
-    std::vector<double> _luminancePerLength;
+    std::atomic<uint64> _numSeedPathsTraced;
+    std::vector<LargeStepTracker> _luminancePerLength;
     std::unique_ptr<PathCandidate[]> _pathCandidates;
 
     std::unique_ptr<AtomicMultiplexedStats> _stats;
@@ -70,6 +73,9 @@ class ReversibleJumpMltIntegrator : public Integrator
 
     void selectSeedPaths();
 
+    void computeNormalizationFactor();
+    void setBufferWeights();
+
 public:
     ReversibleJumpMltIntegrator();
 
@@ -80,8 +86,6 @@ public:
 
     virtual void prepareForRender(TraceableScene &scene, uint32 seed) override;
     virtual void teardownAfterRender() override;
-
-    void advanceSpp();
 
     virtual void startRender(std::function<void()> completionCallback) override;
     virtual void waitForCompletion() override;
