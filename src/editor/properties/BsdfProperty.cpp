@@ -6,6 +6,7 @@
 #include "editor/QtLambda.hpp"
 #include "editor/QtUtils.hpp"
 
+#include "bsdfs/DiffuseTransmissionBsdf.hpp"
 #include "bsdfs/RoughDielectricBsdf.hpp"
 #include "bsdfs/RoughConductorBsdf.hpp"
 #include "bsdfs/RoughPlasticBsdf.hpp"
@@ -69,47 +70,49 @@ BsdfProperty::BsdfProperty(QWidget *parent, PropertyForm &sheet, std::string nam
 
 BsdfProperty::BsdfType BsdfProperty::bsdfToType(Bsdf *bsdf) const
 {
-    if (dynamic_cast<ConductorBsdf       *>(bsdf)) return TYPE_CONDUCTOR;
-    if (dynamic_cast<DielectricBsdf      *>(bsdf)) return TYPE_DIELECTRIC;
-    if (dynamic_cast<ErrorBsdf           *>(bsdf)) return TYPE_ERROR;
-    if (dynamic_cast<ForwardBsdf         *>(bsdf)) return TYPE_FORWARD;
-    if (dynamic_cast<LambertBsdf         *>(bsdf)) return TYPE_LAMBERT;
-    if (dynamic_cast<MirrorBsdf          *>(bsdf)) return TYPE_MIRROR;
-    if (dynamic_cast<MixedBsdf           *>(bsdf)) return TYPE_MIXED;
-    if (dynamic_cast<NullBsdf            *>(bsdf)) return TYPE_NULL;
-    if (dynamic_cast<OrenNayarBsdf       *>(bsdf)) return TYPE_OREN_NAYAR;
-    if (dynamic_cast<PhongBsdf           *>(bsdf)) return TYPE_PHONG;
-    if (dynamic_cast<PlasticBsdf         *>(bsdf)) return TYPE_PLASTIC;
-    if (dynamic_cast<RoughCoatBsdf       *>(bsdf)) return TYPE_ROUGH_COAT;
-    if (dynamic_cast<RoughConductorBsdf  *>(bsdf)) return TYPE_ROUGH_CONDUCTOR;
-    if (dynamic_cast<RoughDielectricBsdf *>(bsdf)) return TYPE_ROUGH_DIELECTRIC;
-    if (dynamic_cast<RoughPlasticBsdf    *>(bsdf)) return TYPE_ROUGH_PLASTIC;
-    if (dynamic_cast<SmoothCoatBsdf      *>(bsdf)) return TYPE_SMOOTH_COAT;
-    if (dynamic_cast<ThinSheetBsdf       *>(bsdf)) return TYPE_THIN_SHEET;
-    if (dynamic_cast<TransparencyBsdf    *>(bsdf)) return TYPE_TRANSPARENCY;
+    if (dynamic_cast<ConductorBsdf           *>(bsdf)) return TYPE_CONDUCTOR;
+    if (dynamic_cast<DielectricBsdf          *>(bsdf)) return TYPE_DIELECTRIC;
+    if (dynamic_cast<ErrorBsdf               *>(bsdf)) return TYPE_ERROR;
+    if (dynamic_cast<ForwardBsdf             *>(bsdf)) return TYPE_FORWARD;
+    if (dynamic_cast<LambertBsdf             *>(bsdf)) return TYPE_LAMBERT;
+    if (dynamic_cast<MirrorBsdf              *>(bsdf)) return TYPE_MIRROR;
+    if (dynamic_cast<MixedBsdf               *>(bsdf)) return TYPE_MIXED;
+    if (dynamic_cast<NullBsdf                *>(bsdf)) return TYPE_NULL;
+    if (dynamic_cast<OrenNayarBsdf           *>(bsdf)) return TYPE_OREN_NAYAR;
+    if (dynamic_cast<PhongBsdf               *>(bsdf)) return TYPE_PHONG;
+    if (dynamic_cast<PlasticBsdf             *>(bsdf)) return TYPE_PLASTIC;
+    if (dynamic_cast<RoughCoatBsdf           *>(bsdf)) return TYPE_ROUGH_COAT;
+    if (dynamic_cast<RoughConductorBsdf      *>(bsdf)) return TYPE_ROUGH_CONDUCTOR;
+    if (dynamic_cast<RoughDielectricBsdf     *>(bsdf)) return TYPE_ROUGH_DIELECTRIC;
+    if (dynamic_cast<RoughPlasticBsdf        *>(bsdf)) return TYPE_ROUGH_PLASTIC;
+    if (dynamic_cast<SmoothCoatBsdf          *>(bsdf)) return TYPE_SMOOTH_COAT;
+    if (dynamic_cast<ThinSheetBsdf           *>(bsdf)) return TYPE_THIN_SHEET;
+    if (dynamic_cast<TransparencyBsdf        *>(bsdf)) return TYPE_TRANSPARENCY;
+    if (dynamic_cast<DiffuseTransmissionBsdf *>(bsdf)) return TYPE_DIFFUSE_TRANSMISSION;
     return TYPE_ERROR;
 }
 const char *BsdfProperty::typeToString(BsdfType type) const
 {
     switch (type) {
-    case TYPE_CONDUCTOR:        return "Conductor";
-    case TYPE_DIELECTRIC:       return "Dielectric";
-    case TYPE_ERROR:            return "Error";
-    case TYPE_FORWARD:          return "Forward";
-    case TYPE_LAMBERT:          return "Lambert";
-    case TYPE_MIRROR:           return "Mirror";
-    case TYPE_MIXED:            return "Mixed";
-    case TYPE_NULL:             return "Null";
-    case TYPE_OREN_NAYAR:       return "Oren-Nayar";
-    case TYPE_PHONG:            return "Phong";
-    case TYPE_PLASTIC:          return "Plastic";
-    case TYPE_ROUGH_COAT:       return "Rough Coat";
-    case TYPE_ROUGH_CONDUCTOR:  return "Rough Conductor";
-    case TYPE_ROUGH_DIELECTRIC: return "Rough Dielectric";
-    case TYPE_ROUGH_PLASTIC:    return "Rough Plastic";
-    case TYPE_SMOOTH_COAT:      return "Smooth Coat";
-    case TYPE_THIN_SHEET:       return "Thin Sheet";
-    case TYPE_TRANSPARENCY:     return "Transparency";
+    case TYPE_CONDUCTOR:            return "Conductor";
+    case TYPE_DIELECTRIC:           return "Dielectric";
+    case TYPE_ERROR:                return "Error";
+    case TYPE_FORWARD:              return "Forward";
+    case TYPE_LAMBERT:              return "Lambert";
+    case TYPE_MIRROR:               return "Mirror";
+    case TYPE_MIXED:                return "Mixed";
+    case TYPE_NULL:                 return "Null";
+    case TYPE_OREN_NAYAR:           return "Oren-Nayar";
+    case TYPE_PHONG:                return "Phong";
+    case TYPE_PLASTIC:              return "Plastic";
+    case TYPE_ROUGH_COAT:           return "Rough Coat";
+    case TYPE_ROUGH_CONDUCTOR:      return "Rough Conductor";
+    case TYPE_ROUGH_DIELECTRIC:     return "Rough Dielectric";
+    case TYPE_ROUGH_PLASTIC:        return "Rough Plastic";
+    case TYPE_SMOOTH_COAT:          return "Smooth Coat";
+    case TYPE_THIN_SHEET:           return "Thin Sheet";
+    case TYPE_TRANSPARENCY:         return "Transparency";
+    case TYPE_DIFFUSE_TRANSMISSION: return "Diffuse Transmission";
     default:                    return "";
     }
 }
@@ -142,24 +145,25 @@ bool BsdfProperty::hasAlbedo(BsdfType type) const
 std::shared_ptr<Bsdf> BsdfProperty::instantiateBsdf(BsdfType type) const
 {
     switch (type) {
-    case TYPE_CONDUCTOR:        return std::make_shared<ConductorBsdf>();
-    case TYPE_DIELECTRIC:       return std::make_shared<DielectricBsdf>();
-    case TYPE_ERROR:            return std::make_shared<ErrorBsdf>();
-    case TYPE_FORWARD:          return std::make_shared<ForwardBsdf>();
-    case TYPE_LAMBERT:          return std::make_shared<LambertBsdf>();
-    case TYPE_MIRROR:           return std::make_shared<MirrorBsdf>();
-    case TYPE_MIXED:            return std::make_shared<MixedBsdf>();
-    case TYPE_NULL:             return std::make_shared<NullBsdf>();
-    case TYPE_OREN_NAYAR:       return std::make_shared<OrenNayarBsdf>();
-    case TYPE_PHONG:            return std::make_shared<PhongBsdf>();
-    case TYPE_PLASTIC:          return std::make_shared<PlasticBsdf>();
-    case TYPE_ROUGH_COAT:       return std::make_shared<RoughCoatBsdf>();
-    case TYPE_ROUGH_CONDUCTOR:  return std::make_shared<RoughConductorBsdf>();
-    case TYPE_ROUGH_DIELECTRIC: return std::make_shared<RoughDielectricBsdf>();
-    case TYPE_ROUGH_PLASTIC:    return std::make_shared<RoughPlasticBsdf>();
-    case TYPE_SMOOTH_COAT:      return std::make_shared<SmoothCoatBsdf>();
-    case TYPE_THIN_SHEET:       return std::make_shared<ThinSheetBsdf>();
-    case TYPE_TRANSPARENCY:     return std::make_shared<TransparencyBsdf>();
+    case TYPE_CONDUCTOR:            return std::make_shared<ConductorBsdf>();
+    case TYPE_DIELECTRIC:           return std::make_shared<DielectricBsdf>();
+    case TYPE_ERROR:                return std::make_shared<ErrorBsdf>();
+    case TYPE_FORWARD:              return std::make_shared<ForwardBsdf>();
+    case TYPE_LAMBERT:              return std::make_shared<LambertBsdf>();
+    case TYPE_MIRROR:               return std::make_shared<MirrorBsdf>();
+    case TYPE_MIXED:                return std::make_shared<MixedBsdf>();
+    case TYPE_NULL:                 return std::make_shared<NullBsdf>();
+    case TYPE_OREN_NAYAR:           return std::make_shared<OrenNayarBsdf>();
+    case TYPE_PHONG:                return std::make_shared<PhongBsdf>();
+    case TYPE_PLASTIC:              return std::make_shared<PlasticBsdf>();
+    case TYPE_ROUGH_COAT:           return std::make_shared<RoughCoatBsdf>();
+    case TYPE_ROUGH_CONDUCTOR:      return std::make_shared<RoughConductorBsdf>();
+    case TYPE_ROUGH_DIELECTRIC:     return std::make_shared<RoughDielectricBsdf>();
+    case TYPE_ROUGH_PLASTIC:        return std::make_shared<RoughPlasticBsdf>();
+    case TYPE_SMOOTH_COAT:          return std::make_shared<SmoothCoatBsdf>();
+    case TYPE_THIN_SHEET:           return std::make_shared<ThinSheetBsdf>();
+    case TYPE_TRANSPARENCY:         return std::make_shared<TransparencyBsdf>();
+    case TYPE_DIFFUSE_TRANSMISSION: return std::make_shared<DiffuseTransmissionBsdf>();
     default:                    return nullptr;
     }
 }
@@ -284,24 +288,25 @@ void BsdfProperty::buildBsdfPage()
 void BsdfProperty::buildBsdfPage(PropertyForm *sheet)
 {
     switch (_type) {
-    case TYPE_CONDUCTOR:        buildBsdfPage(sheet, dynamic_cast<ConductorBsdf       *>(_value.get())); break;
-    case TYPE_DIELECTRIC:       buildBsdfPage(sheet, dynamic_cast<DielectricBsdf      *>(_value.get())); break;
-    case TYPE_ERROR:            buildBsdfPage(sheet, dynamic_cast<ErrorBsdf           *>(_value.get())); break;
-    case TYPE_FORWARD:          buildBsdfPage(sheet, dynamic_cast<ForwardBsdf         *>(_value.get())); break;
-    case TYPE_LAMBERT:          buildBsdfPage(sheet, dynamic_cast<LambertBsdf         *>(_value.get())); break;
-    case TYPE_MIRROR:           buildBsdfPage(sheet, dynamic_cast<MirrorBsdf          *>(_value.get())); break;
-    case TYPE_MIXED:            buildBsdfPage(sheet, dynamic_cast<MixedBsdf           *>(_value.get())); break;
-    case TYPE_NULL:             buildBsdfPage(sheet, dynamic_cast<NullBsdf            *>(_value.get())); break;
-    case TYPE_OREN_NAYAR:       buildBsdfPage(sheet, dynamic_cast<OrenNayarBsdf       *>(_value.get())); break;
-    case TYPE_PHONG:            buildBsdfPage(sheet, dynamic_cast<PhongBsdf           *>(_value.get())); break;
-    case TYPE_PLASTIC:          buildBsdfPage(sheet, dynamic_cast<PlasticBsdf         *>(_value.get())); break;
-    case TYPE_ROUGH_COAT:       buildBsdfPage(sheet, dynamic_cast<RoughCoatBsdf       *>(_value.get())); break;
-    case TYPE_ROUGH_CONDUCTOR:  buildBsdfPage(sheet, dynamic_cast<RoughConductorBsdf  *>(_value.get())); break;
-    case TYPE_ROUGH_DIELECTRIC: buildBsdfPage(sheet, dynamic_cast<RoughDielectricBsdf *>(_value.get())); break;
-    case TYPE_ROUGH_PLASTIC:    buildBsdfPage(sheet, dynamic_cast<RoughPlasticBsdf    *>(_value.get())); break;
-    case TYPE_SMOOTH_COAT:      buildBsdfPage(sheet, dynamic_cast<SmoothCoatBsdf      *>(_value.get())); break;
-    case TYPE_THIN_SHEET:       buildBsdfPage(sheet, dynamic_cast<ThinSheetBsdf       *>(_value.get())); break;
-    case TYPE_TRANSPARENCY:     buildBsdfPage(sheet, dynamic_cast<TransparencyBsdf    *>(_value.get())); break;
+    case TYPE_CONDUCTOR:            buildBsdfPage(sheet, dynamic_cast<ConductorBsdf           *>(_value.get())); break;
+    case TYPE_DIELECTRIC:           buildBsdfPage(sheet, dynamic_cast<DielectricBsdf          *>(_value.get())); break;
+    case TYPE_ERROR:                buildBsdfPage(sheet, dynamic_cast<ErrorBsdf               *>(_value.get())); break;
+    case TYPE_FORWARD:              buildBsdfPage(sheet, dynamic_cast<ForwardBsdf             *>(_value.get())); break;
+    case TYPE_LAMBERT:              buildBsdfPage(sheet, dynamic_cast<LambertBsdf             *>(_value.get())); break;
+    case TYPE_MIRROR:               buildBsdfPage(sheet, dynamic_cast<MirrorBsdf              *>(_value.get())); break;
+    case TYPE_MIXED:                buildBsdfPage(sheet, dynamic_cast<MixedBsdf               *>(_value.get())); break;
+    case TYPE_NULL:                 buildBsdfPage(sheet, dynamic_cast<NullBsdf                *>(_value.get())); break;
+    case TYPE_OREN_NAYAR:           buildBsdfPage(sheet, dynamic_cast<OrenNayarBsdf           *>(_value.get())); break;
+    case TYPE_PHONG:                buildBsdfPage(sheet, dynamic_cast<PhongBsdf               *>(_value.get())); break;
+    case TYPE_PLASTIC:              buildBsdfPage(sheet, dynamic_cast<PlasticBsdf             *>(_value.get())); break;
+    case TYPE_ROUGH_COAT:           buildBsdfPage(sheet, dynamic_cast<RoughCoatBsdf           *>(_value.get())); break;
+    case TYPE_ROUGH_CONDUCTOR:      buildBsdfPage(sheet, dynamic_cast<RoughConductorBsdf      *>(_value.get())); break;
+    case TYPE_ROUGH_DIELECTRIC:     buildBsdfPage(sheet, dynamic_cast<RoughDielectricBsdf     *>(_value.get())); break;
+    case TYPE_ROUGH_PLASTIC:        buildBsdfPage(sheet, dynamic_cast<RoughPlasticBsdf        *>(_value.get())); break;
+    case TYPE_SMOOTH_COAT:          buildBsdfPage(sheet, dynamic_cast<SmoothCoatBsdf          *>(_value.get())); break;
+    case TYPE_THIN_SHEET:           buildBsdfPage(sheet, dynamic_cast<ThinSheetBsdf           *>(_value.get())); break;
+    case TYPE_TRANSPARENCY:         buildBsdfPage(sheet, dynamic_cast<TransparencyBsdf        *>(_value.get())); break;
+    case TYPE_DIFFUSE_TRANSMISSION: buildBsdfPage(sheet, dynamic_cast<DiffuseTransmissionBsdf *>(_value.get())); break;
     default: break;
     }
 }
@@ -337,6 +342,15 @@ static void addComplexIorProperty(QWidget *parent, PropertyForm *sheet, const st
     });
 
     QObject::connect(presets, SIGNAL(activated(int)), lambdaSlot, SLOT(call()));
+}
+
+void BsdfProperty::buildBsdfPage(PropertyForm *sheet, DiffuseTransmissionBsdf *bsdf)
+{
+    sheet->addFloatProperty(bsdf->transmittance(), "Transmittance", [this, bsdf](float t) {
+        bsdf->setTransmittance(t);
+        updateBsdfDisplay();
+        return true;
+    });
 }
 
 void BsdfProperty::buildBsdfPage(PropertyForm *sheet, RoughDielectricBsdf *bsdf)

@@ -17,6 +17,7 @@ class BsdfDisplay;
 class Scene;
 class Bsdf;
 
+class DiffuseTransmissionBsdf;
 class RoughDielectricBsdf;
 class RoughConductorBsdf;
 class RoughPlasticBsdf;
@@ -60,6 +61,7 @@ class BsdfProperty : public Property
         TYPE_SMOOTH_COAT,
         TYPE_THIN_SHEET,
         TYPE_TRANSPARENCY,
+        TYPE_DIFFUSE_TRANSMISSION,
         BSDF_TYPE_COUNT,
     };
 
@@ -91,6 +93,7 @@ class BsdfProperty : public Property
     void buildBsdfPage();
 
     void buildBsdfPage(PropertyForm *sheet);
+    void buildBsdfPage(PropertyForm *sheet, DiffuseTransmissionBsdf *bsdf);
     void buildBsdfPage(PropertyForm *sheet, RoughDielectricBsdf *bsdf);
     void buildBsdfPage(PropertyForm *sheet, RoughConductorBsdf *bsdf);
     void buildBsdfPage(PropertyForm *sheet, RoughPlasticBsdf *bsdf);
