@@ -192,6 +192,25 @@ bool Disk::sampleDirect(uint32 /*threadIndex*/, const Vec3f &p, PathSampleGenera
     return true;
 }
 
+bool Disk::invertPosition(WritablePathSampleGenerator &sampler, const PositionSample &point) const
+{
+    Vec3f p = point.p - _center;
+    Vec3f lQ = Vec3f(_frame.bitangent.dot(p)/_r, _frame.tangent.dot(p)/_r, 0.0f);
+    sampler.put2D(SampleWarp::invertUniformDisk(lQ, sampler.untracked1D()));
+    return true;
+}
+
+bool Disk::invertDirection(WritablePathSampleGenerator &sampler, const PositionSample &/*point*/,
+        const DirectionSample &direction) const
+{
+    Vec3f localD = _frame.toLocal(direction.d);
+    if (localD.z() <= 0.0f)
+        return false;
+
+    sampler.put2D(SampleWarp::invertCosineHemisphere(localD, sampler.untracked1D()));
+    return true;
+}
+
 float Disk::positionalPdf(const PositionSample &/*point*/) const
 {
     return _invArea;

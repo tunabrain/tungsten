@@ -105,6 +105,18 @@ bool Point::sampleDirect(uint32 /*threadIndex*/, const Vec3f &p, PathSampleGener
     return true;
 }
 
+bool Point::invertPosition(WritablePathSampleGenerator &/*sampler*/, const PositionSample &/*point*/) const
+{
+    return true;
+}
+
+bool Point::invertDirection(WritablePathSampleGenerator &sampler, const PositionSample &/*point*/,
+        const DirectionSample &direction) const
+{
+    sampler.put2D(SampleWarp::invertUniformSphere(direction.d, sampler.untracked1D()));
+    return true;
+}
+
 float Point::positionalPdf(const PositionSample &/*point*/) const
 {
     return 1.0f;

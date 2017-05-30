@@ -16,7 +16,7 @@ namespace SampleWarp {
 template<typename T>
 static inline float invertPhi(Vec<T, 3> w, float mu)
 {
-    float result = (std::abs(w.z()) == 1.0f) ? mu*INV_TWO_PI : std::atan2(w.y(), w.x())*INV_TWO_PI;
+    float result = (w.x() == 0.0f && w.y() == 0.0f) ? mu*INV_TWO_PI : std::atan2(w.y(), w.x())*INV_TWO_PI;
     if (result < T(0))
         result += T(1);
     return result;
@@ -53,7 +53,7 @@ static inline Vec3f cosineHemisphere(const Vec2f &xi)
 
 static inline float cosineHemispherePdf(const Vec3f &p)
 {
-    return p.z()*INV_PI;
+    return std::abs(p.z())*INV_PI;
 }
 
 static inline Vec2f invertCosineHemisphere(const Vec3f &w, float mu)
@@ -71,6 +71,11 @@ static inline Vec3f uniformDisk(const Vec2f &xi)
 static inline float uniformDiskPdf()
 {
     return INV_PI;
+}
+
+static inline Vec2f invertUniformDisk(const Vec3f &p, float mu)
+{
+    return Vec2f(invertPhi(p, mu), p.xy().lengthSq());
 }
 
 static inline Vec3f uniformCylinder(Vec2f &xi)
@@ -163,6 +168,11 @@ static inline Vec2f uniformTriangleUv(const Vec2f &xi)
     float beta = (1.0f - xi.y())*uSqrt;
 
     return Vec2f(alpha, beta);
+}
+
+static inline Vec2f invertUniformTriangleUv(const Vec2f &uv)
+{
+    return Vec2f(sqr(1.0f - uv.x()), 1.0f - uv.y()/(1.0f - uv.x()));
 }
 
 static inline Vec3f uniformTriangle(const Vec2f &xi, const Vec3f& a, const Vec3f& b, const Vec3f& c)

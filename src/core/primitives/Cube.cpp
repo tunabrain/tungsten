@@ -54,6 +54,22 @@ inline int Cube::sampleFace(float &u) const
     }
 }
 
+inline float Cube::invertFace(int dim, float u) const
+{
+    switch (dim) {
+    case 0:
+        u *= _faceCdf.x();
+        break;
+    case 1:
+        u = _faceCdf.x() + u*(_faceCdf.y() - _faceCdf.x());
+        break;
+    case 2:
+        u = _faceCdf.y() + u*(_faceCdf.z() - _faceCdf.y());
+        break;
+    }
+    return u/_faceCdf.z();
+}
+
 float Cube::powerToRadianceFactor() const
 {
     return INV_PI*_invArea;
@@ -225,6 +241,40 @@ bool Cube::sampleDirect(uint32 /*threadIndex*/, const Vec3f &p, PathSampleGenera
         return false;
     sample.pdf = rSq/(cosTheta*_area);
 
+    return true;
+}
+
+bool Cube::invertPosition(WritablePathSampleGenerator &sampler, const PositionSample &point) const
+{
+    Vec3f p = _invRot*(point.p - _pos);
+    Vec3f n = _invRot*point.Ng;
+    int dim = std::abs(n).maxDim();
+    float s = (dim + 1) % 3;
+    float t = (dim + 2) % 3;
+
+    Vec2f xi(
+        (p[s]/_scale[s] + 1.0f)*0.5f,
+        (p[t]/_scale[t] + 1.0f)*0.5f
+    );
+
+    float u = sampler.untracked1D()*0.5f;
+    if (n[dim] > 0.0f)
+        u += 0.5f;
+    u = invertFace(dim, u);
+
+    sampler.put1D(u);
+    sampler.put2D(xi);
+
+    return true;
+}
+
+bool Cube::invertDirection(WritablePathSampleGenerator &sampler, const PositionSample &point, const DirectionSample &direction) const
+{
+    Vec3f localD = TangentFrame(point.Ng).toLocal(direction.d);
+    if (localD.z() <= 0.0f)
+        return false;
+
+    sampler.put2D(SampleWarp::invertCosineHemisphere(localD, sampler.untracked1D()));
     return true;
 }
 

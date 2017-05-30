@@ -141,13 +141,12 @@ void Skydome::makeSamplable(const TraceableScene &scene, uint32 /*threadIndex*/)
 
 bool Skydome::samplePosition(PathSampleGenerator &sampler, PositionSample &sample) const
 {
-    float faceXi = sampler.next1D();
-    Vec2f xi = sampler.next2D();
-
     sample.uv = _sky->sample(MAP_SPHERICAL, sampler.next2D());
     float sinTheta;
     sample.Ng = -uvToDirection(sample.uv, sinTheta);
 
+    float faceXi = sampler.next1D();
+    Vec2f xi = sampler.next2D();
     sample.p = SampleWarp::projectedBox(_sceneBounds, sample.Ng, faceXi, xi);
     sample.pdf = SampleWarp::projectedBoxPdf(_sceneBounds, sample.Ng);
     sample.weight = Vec3f(1.0f/sample.pdf);
@@ -177,6 +176,28 @@ bool Skydome::sampleDirect(uint32 /*threadIndex*/, const Vec3f &/*p*/, PathSampl
     sample.dist = Ray::infinity();
     return sample.pdf != 0.0f;
 }
+
+bool Skydome::invertPosition(WritablePathSampleGenerator &sampler, const PositionSample &point) const
+{
+    float faceXi;
+    Vec2f xi;
+    if (!SampleWarp::invertProjectedBox(_sceneBounds, point.p, -point.Ng, faceXi, xi, sampler.untracked1D()))
+        return false;
+
+    sampler.put1D(faceXi);
+    sampler.put2D(xi);
+
+    return true;
+}
+
+bool Skydome::invertDirection(WritablePathSampleGenerator &sampler, const PositionSample &/*point*/,
+        const DirectionSample &direction) const
+{
+    sampler.put2D(_sky->invert(MAP_SPHERICAL, directionToUV(-direction.d)));
+
+    return true;
+}
+
 
 float Skydome::positionalPdf(const PositionSample &point) const
 {
