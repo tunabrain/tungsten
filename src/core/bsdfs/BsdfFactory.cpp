@@ -1,5 +1,6 @@
 #include "BsdfFactory.hpp"
 
+#include "DiffuseTransmissionBsdf.hpp"
 #include "LambertianFiberBcsdf.hpp"
 #include "RoughDielectricBsdf.hpp"
 #include "RoughConductorBsdf.hpp"
@@ -46,6 +47,7 @@ DEFINE_STRINGABLE_ENUM(BsdfFactory, "BSDF", ({
     {"lambertian_fiber", std::make_shared<LambertianFiberBcsdf>},
     {"rough_wire", std::make_shared<RoughWireBcsdf>},
     {"hair", std::make_shared<HairBcsdf>},
+    {"diffuse_transmission", std::make_shared<DiffuseTransmissionBsdf>}
 }))
 
 }
