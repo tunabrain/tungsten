@@ -237,7 +237,7 @@ bool PathVertex::invertVertex(WritablePathSampleGenerator &sampler, const PathEd
         const PathEdge &nextEdge, const PathVertex &nextVert) const
 {
     if (selectMedium(nextEdge.d))
-        selectMedium(nextEdge.d)->invert(sampler, Ray(pos(), nextEdge.d, 0.0f, nextEdge.r), nextVert.onSurface());
+        selectMedium(nextEdge.d)->invertDistance(sampler, Ray(pos(), nextEdge.d, 0.0f, nextEdge.r), nextVert.onSurface());
 
     switch (_type) {
     case EmitterVertex: {

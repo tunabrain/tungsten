@@ -30,6 +30,7 @@ public:
 
     virtual bool sampleDistance(PathSampleGenerator &sampler, const Ray &ray,
             MediumState &state, MediumSample &sample) const override;
+    virtual bool invertDistance(WritablePathSampleGenerator &sampler, const Ray &ray, bool onSurface) const;
     virtual Vec3f transmittance(PathSampleGenerator &sampler, const Ray &ray) const override;
     virtual float pdf(PathSampleGenerator &sampler, const Ray &ray, bool onSurface) const override;
     virtual Vec3f transmittanceAndPdfs(PathSampleGenerator &sampler, const Ray &ray, bool startOnSurface,

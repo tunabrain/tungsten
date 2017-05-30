@@ -99,6 +99,33 @@ bool HomogeneousMedium::sampleDistance(PathSampleGenerator &sampler, const Ray &
 
     return true;
 }
+
+bool HomogeneousMedium::invertDistance(WritablePathSampleGenerator &sampler, const Ray &ray, bool onSurface) const
+{
+    float maxT = ray.farT();
+    if (_absorptionOnly) {
+        if (maxT == Ray::infinity())
+            return false;
+        return true;
+    } else {
+        Vec3f Tr = std::exp(-_sigmaT*maxT);
+        Vec3f pdfs = onSurface ? Tr : _sigmaT*Tr;
+        Vec3f cdf(pdfs.x(), pdfs.x() + pdfs.y(), pdfs.sum());
+
+        float target = sampler.untracked1D()*cdf.z();
+        int component = target < cdf.x() ? 0 : (target < cdf.y() ? 1 : 2);
+        float Trc = Tr[component];
+
+        float xi = 1.0f - Trc;
+        if (onSurface)
+            xi -= (1.0f - Trc)*sampler.next1D();
+
+        sampler.putDiscrete(3, component);
+        sampler.put1D(xi);
+    }
+    return true;
+}
+
 Vec3f HomogeneousMedium::transmittance(PathSampleGenerator &/*sampler*/, const Ray &ray) const
 {
     if (ray.farT() == Ray::infinity())

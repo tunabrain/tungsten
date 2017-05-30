@@ -31,17 +31,17 @@ rapidjson::Value Medium::toJson(Allocator &allocator) const
     };
 }
 
+bool Medium::invertDistance(WritablePathSampleGenerator &/*sampler*/, const Ray &/*ray*/, bool /*onSurface*/) const
+{
+    FAIL("Medium::invert not implemented!");
+}
+
 Vec3f Medium::transmittanceAndPdfs(PathSampleGenerator &sampler, const Ray &ray, bool startOnSurface,
         bool endOnSurface, float &pdfForward, float &pdfBackward) const
 {
     pdfForward = pdf(sampler, ray, endOnSurface);
     pdfBackward = pdf(sampler, ray.scatter(ray.hitpoint(), -ray.dir(), 0.0f, ray.farT()), startOnSurface);
     return transmittance(sampler, ray);
-}
-
-bool Medium::invert(WritablePathSampleGenerator &/*sampler*/, const Ray &/*ray*/, bool /*onSurface*/) const
-{
-    FAIL("Medium::invert not implemented!");
 }
 
 const PhaseFunction *Medium::phaseFunction(const Vec3f &/*p*/) const
