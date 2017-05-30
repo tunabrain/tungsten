@@ -250,10 +250,18 @@ bool PathVertex::invertVertex(WritablePathSampleGenerator &sampler, const PathEd
     } case SurfaceVertex: {
         if (isInfiniteSurface())
             return false;
-        sampler.put1D(0.0f); // Transparency sampling
-        Vec3f wi = _record.surface.event.frame.toLocal(-prevEdge->d);
-        Vec3f wo = _record.surface.event.frame.toLocal( nextEdge. d);
-        return _sampler.bsdf->invert(sampler, _record.surface.event.makeWarpedQuery(wi, wo));
+
+        Vec3f transparency = _sampler.bsdf->eval(_record.surface.event.makeForwardEvent(), false);
+        float transparencyScalar = transparency.avg();
+        sampler.putBoolean(transparencyScalar, isForward());
+
+        if (isForward()) {
+            return true;
+        } else {
+            Vec3f wi = _record.surface.event.frame.toLocal(-prevEdge->d);
+            Vec3f wo = _record.surface.event.frame.toLocal( nextEdge. d);
+            return _sampler.bsdf->invert(sampler, _record.surface.event.makeWarpedQuery(wi, wo));
+        }
     } case MediumVertex: {
         return _sampler.phase->invert(sampler, prevEdge->d, nextEdge.d);
     } default:
