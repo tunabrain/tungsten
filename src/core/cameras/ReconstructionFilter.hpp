@@ -5,6 +5,7 @@
 
 #include "math/MathUtil.hpp"
 #include "math/Angle.hpp"
+#include "math/Box.hpp"
 #include "math/Vec.hpp"
 
 #include "StringableEnum.hpp"
@@ -95,10 +96,53 @@ class ReconstructionFilter
             }
         }
         pdf = _cdf[idx] - _cdf[idx - 1];
-        u = clamp(_binSize*(idx + (xi - _cdf[idx - 1])/pdf), 0.0f, 1.0f);
+        u = _binSize*(idx + (xi - _cdf[idx - 1])/pdf);
         pdf *= 0.5f*_invBinSize;
         if (negative)
             u = -u;
+    }
+
+    float invert(float u) const
+    {
+        bool negative = u < 0.0f;
+        u = std::abs(u)*_invBinSize;
+
+        int idx = min(int(u), RFILTER_RESOLUTION);
+
+        float xi = _cdf[idx - 1] + (u - idx)*(_cdf[idx] - _cdf[idx - 1]);
+        xi = negative ? xi*0.5f : 0.5f + xi*0.5f;
+
+        return xi;
+    }
+
+    bool invert(int minX, int maxX, float x, float mu, int &pixel, float &xi) const
+    {
+        CONSTEXPR int MaxWidth = 2;
+        CONSTEXPR int NumBins = (MaxWidth + 1)*2;
+        // Simple trick to avoid round-to-zero shenanigans - we know the position on the image plane
+        // can't be more than the filter width below zero, so we shift-round-shift to make sure we
+        // round down always
+        int ix = int(x + 2*MaxWidth) - 2*MaxWidth;
+        float cx = ix + 0.5f;
+
+        float pixelCdf[NumBins];
+        for (int dx = -MaxWidth; dx <= MaxWidth; ++dx)
+            pixelCdf[dx + MaxWidth] = evalApproximate(x - (cx + dx))*(ix + dx >= minX && ix + dx < maxX ? 1.0f : 0.0f);
+        for (int i = 1; i < NumBins; ++i)
+            pixelCdf[i] += pixelCdf[i - 1];
+
+        if (pixelCdf[NumBins - 1] == 0.0f)
+            return false;
+
+        float target = pixelCdf[NumBins - 1]*mu;
+        int idx;
+        for (idx = 0; idx < NumBins - 1; ++idx)
+            if (target < pixelCdf[idx])
+                break;
+
+        pixel = ix + (idx - MaxWidth);
+        xi = invert(x - (pixel + 0.5f));
+        return true;
     }
 
 public:
@@ -122,6 +166,22 @@ public:
 
         pdf = pdfX*pdfY;
         return result;
+    }
+
+    inline bool invert(const Box2i &bounds, Vec2f pixel, Vec2f mu, Vec2i &pixelI, Vec2f &xi) const
+    {
+        if (_type == Dirac) {
+            return false;
+        } else if (_type == Box) {
+            pixelI = Vec2i(pixel);
+            xi = pixel - Vec2f(pixelI);
+            return true;
+        }
+
+        bool successX = invert(bounds.min().x(), bounds.max().x(), pixel.x(), mu.x(), pixelI.x(), xi.x());
+        bool successY = invert(bounds.min().y(), bounds.max().y(), pixel.y(), mu.y(), pixelI.y(), xi.y());
+
+        return successX && successY;
     }
 
     float eval(float x) const
