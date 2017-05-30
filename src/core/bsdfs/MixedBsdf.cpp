@@ -103,6 +103,24 @@ Vec3f MixedBsdf::eval(const SurfaceScatterEvent &event) const
     return albedo(event.info)*(_bsdf0->eval(event)*ratio + _bsdf1->eval(event)*(1.0f - ratio));
 }
 
+bool MixedBsdf::invert(WritablePathSampleGenerator &sampler, const SurfaceScatterEvent &event) const
+{
+    float ratio;
+    if (!adjustedRatio(event.requestedLobe, event.info, ratio))
+        return false;
+
+    float pdf0 = _bsdf0->pdf(event)*ratio;
+    float pdf1 = _bsdf1->pdf(event)*(1.0f - ratio);
+
+    if (sampler.untrackedBoolean(pdf0/(pdf0 + pdf1))) {
+        sampler.putBoolean(ratio, true);
+        return _bsdf0->invert(sampler, event);
+    } else {
+        sampler.putBoolean(ratio, false);
+        return _bsdf1->invert(sampler, event);
+    }
+}
+
 float MixedBsdf::pdf(const SurfaceScatterEvent &event) const
 {
     float ratio;

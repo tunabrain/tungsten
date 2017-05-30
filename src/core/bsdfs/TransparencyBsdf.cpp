@@ -53,6 +53,11 @@ Vec3f TransparencyBsdf::eval(const SurfaceScatterEvent &event) const
         return _base->eval(event);
 }
 
+bool TransparencyBsdf::invert(WritablePathSampleGenerator &sampler, const SurfaceScatterEvent &event) const
+{
+    return _base->invert(sampler, event);
+}
+
 float TransparencyBsdf::pdf(const SurfaceScatterEvent &event) const
 {
     return _base->pdf(event);

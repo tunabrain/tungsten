@@ -193,6 +193,65 @@ Vec3f RoughCoatBsdf::eval(const SurfaceScatterEvent &event) const
     return glossyR + substrateR;
 }
 
+bool RoughCoatBsdf::invert(WritablePathSampleGenerator &sampler, const SurfaceScatterEvent &event) const
+{
+    bool sampleR = event.requestedLobe.test(BsdfLobes::GlossyReflectionLobe);
+    bool sampleT = event.requestedLobe.test(_substrate->lobes());
+
+    if (!sampleT && !sampleR)
+        return 0.0f;
+    if (event.wi.z() <= 0.0f || event.wo.z() <= 0.0f)
+        return 0.0f;
+
+    const Vec3f &wi = event.wi;
+    const Vec3f &wo = event.wo;
+    float eta = 1.0f/_ior;
+
+    float cosThetaTi, cosThetaTo;
+    float Fi = Fresnel::dielectricReflectance(eta, wi.z(), cosThetaTi);
+    float Fo = Fresnel::dielectricReflectance(eta, wo.z(), cosThetaTo);
+
+    float specularProbability;
+    if (sampleR && sampleT) {
+        float substrateWeight = _avgTransmittance*(1.0f - Fi);
+        float specularWeight = Fi;
+        specularProbability = specularWeight/(specularWeight + substrateWeight);
+    } else {
+        specularProbability = sampleR ? 1.0f : 0.0f;
+    }
+
+    float glossyPdf = 0.0f;
+    if (sampleR)
+        glossyPdf = RoughDielectricBsdf::pdfBase(event, true, false, (*_roughness)[*event.info].x(), _ior, _distribution);
+
+    float substratePdf = 0.0f;
+    Vec3f wiSubstrate, woSubstrate;
+    if (sampleT) {
+        if (Fi < 1.0f && Fo < 1.0f) {
+            wiSubstrate = Vec3f(wi.x()*eta, wi.y()*eta, std::copysign(cosThetaTi, wi.z()));
+            woSubstrate = Vec3f(wo.x()*eta, wo.y()*eta, std::copysign(cosThetaTo, wo.z()));
+
+            substratePdf = _substrate->pdf(event.makeWarpedQuery(wiSubstrate, woSubstrate));
+            substratePdf *= eta*eta*std::abs(wo.z()/cosThetaTo);
+        }
+    }
+
+    float pdf0 = glossyPdf*specularProbability;
+    float pdf1 = substratePdf*(1.0f - specularProbability);
+    if (pdf0 == 0.0f && pdf1 == 0.0f)
+        return false;
+
+    if (sampler.untrackedBoolean(pdf0/(pdf0 + pdf1))) {
+        sampler.putBoolean(specularProbability, true);
+        float roughness = (*_roughness)[*event.info].x();
+        return RoughDielectricBsdf::invertBase(sampler, event, true, false, roughness, _ior, _distribution);
+    } else {
+        if (sampleR)
+            sampler.putBoolean(specularProbability, false);
+        return _substrate->invert(sampler, event.makeWarpedQuery(wiSubstrate, woSubstrate));
+    }
+}
+
 float RoughCoatBsdf::pdf(const SurfaceScatterEvent &event) const
 {
     bool sampleR = event.requestedLobe.test(BsdfLobes::GlossyReflectionLobe);

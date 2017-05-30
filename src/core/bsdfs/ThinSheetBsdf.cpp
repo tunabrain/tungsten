@@ -104,6 +104,12 @@ Vec3f ThinSheetBsdf::eval(const SurfaceScatterEvent &event) const
     return transmittance;
 }
 
+bool ThinSheetBsdf::invert(WritablePathSampleGenerator &/*sampler*/, const SurfaceScatterEvent &event) const
+{
+    bool sampleR = event.requestedLobe.test(BsdfLobes::SpecularReflectionLobe);
+    return sampleR && checkReflectionConstraint(event.wi, event.wo);
+}
+
 float ThinSheetBsdf::pdf(const SurfaceScatterEvent &event) const
 {
     bool sampleR = event.requestedLobe.test(BsdfLobes::SpecularReflectionLobe);

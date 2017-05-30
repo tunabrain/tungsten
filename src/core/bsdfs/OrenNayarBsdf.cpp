@@ -99,6 +99,29 @@ Vec3f OrenNayarBsdf::eval(const SurfaceScatterEvent &event) const
     return (diffuseAlbedo*fr1 + diffuseAlbedo*diffuseAlbedo*fr2)*wo.z()*INV_PI;
 }
 
+bool OrenNayarBsdf::invert(WritablePathSampleGenerator &sampler, const SurfaceScatterEvent &event) const
+{
+    if (!event.requestedLobe.test(BsdfLobes::DiffuseReflectionLobe))
+        return 0.0f;
+    if (event.wi.z() <= 0.0f || event.wo.z() <= 0.0f)
+        return 0.0f;
+
+    float roughness = (*_roughness)[*event.info].x();
+    float ratio = clamp(roughness, 0.01f, 1.0f);
+
+    float pdf0 = SampleWarp::uniformHemispherePdf(event.wo)*ratio;
+    float pdf1 = SampleWarp::cosineHemispherePdf(event.wo)*(1.0f - ratio);
+
+    if (sampler.untrackedBoolean(pdf0/(pdf0 + pdf1))) {
+        sampler.putBoolean(ratio, true);
+        sampler.put2D(SampleWarp::invertUniformHemisphere(event.wo, sampler.untracked1D()));
+    } else {
+        sampler.putBoolean(ratio, false);
+        sampler.put2D(SampleWarp::invertCosineHemisphere(event.wo, sampler.untracked1D()));
+    }
+    return true;
+}
+
 float OrenNayarBsdf::pdf(const SurfaceScatterEvent &event) const
 {
     if (!event.requestedLobe.test(BsdfLobes::DiffuseReflectionLobe))
