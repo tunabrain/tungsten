@@ -29,7 +29,7 @@ public:
 
     double getAverage() const
     {
-        return _cumulativeLuminance/max(_numLargeSteps, 1ull);
+        return _cumulativeLuminance/max(_numLargeSteps, uint64(1));
     }
 
     double getSum() const
