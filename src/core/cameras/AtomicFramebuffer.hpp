@@ -39,6 +39,13 @@ public:
     {
         unsafeReset();
     }
+    AtomicFramebuffer(AtomicFramebuffer &&o)
+    : _w(o._w),
+      _h(o._h),
+      _filter(o._filter),
+      _buffer(std::move(o._buffer))
+    {
+    }
 
     inline void splatFiltered(Vec2f pixel, Vec3f w)
     {

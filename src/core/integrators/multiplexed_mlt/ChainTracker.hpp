@@ -58,7 +58,13 @@ public:
     {
         std::memset(_chainData.get(), 0, _numBounces*sizeof(Vec2i));
     }
-    ChainTracker(ChainTracker &&o) = default;
+    ChainTracker(ChainTracker &&o)
+    : _parent(o._parent),
+      _numBounces(o._numBounces),
+      _chainData(std::move(o._chainData))
+    {
+    }
+
     ~ChainTracker()
     {
         if (_chainData) {
