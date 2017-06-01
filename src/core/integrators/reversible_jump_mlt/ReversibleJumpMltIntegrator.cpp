@@ -205,9 +205,8 @@ void ReversibleJumpMltIntegrator::prepareForRender(TraceableScene &scene, uint32
 
     for (uint32 i = 0; i < ThreadUtils::pool->threadCount(); ++i) {
         _tracers.emplace_back(new ReversibleJumpMltTracer(&scene, _settings, i, _sampler, _imagePyramid.get()));
-        _subtaskData.emplace_back(SubtaskData{
-            std::unique_ptr<LargeStepTracker[]>(new LargeStepTracker[_settings.maxBounces + 1]), 0, 0, 0
-        });
+        _subtaskData.emplace_back();
+        _subtaskData.back().independentEstimator.reset(new LargeStepTracker[_settings.maxBounces + 1]);
     }
 }
 

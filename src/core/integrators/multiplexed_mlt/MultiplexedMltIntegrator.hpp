@@ -38,9 +38,9 @@ class MultiplexedMltIntegrator : public Integrator
     struct SubtaskData
     {
         std::unique_ptr<LargeStepTracker[]> independentEstimator;
-        uint32 rangeStart;
-        uint32 rangeLength;
-        uint32 raysCast;
+        uint32 rangeStart  = 0;
+        uint32 rangeLength = 0;
+        uint32 raysCast    = 0;
     };
 
     MultiplexedMltSettings _settings;
