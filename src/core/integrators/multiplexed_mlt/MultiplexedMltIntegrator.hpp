@@ -41,6 +41,15 @@ class MultiplexedMltIntegrator : public Integrator
         uint32 rangeStart  = 0;
         uint32 rangeLength = 0;
         uint32 raysCast    = 0;
+
+        SubtaskData() = default;
+        SubtaskData(SubtaskData &&o)
+        : independentEstimator(std::move(o.independentEstimator)),
+          rangeStart(o.rangeStart),
+          rangeLength(o.rangeLength),
+          raysCast(o.raysCast)
+        {
+        }
     };
 
     MultiplexedMltSettings _settings;
