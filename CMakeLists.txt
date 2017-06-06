@@ -164,7 +164,10 @@ endif()
 add_executable(tungsten_server src/tungsten-server/tungsten-server.cpp)
 target_link_libraries(tungsten_server ${core_libs} ${socket_libs})
 
-set(executables obj2json json2xml scenemanip hdrmanip denoiser tungsten tungsten_server)
+set(executables obj2json json2xml scenemanip hdrmanip tungsten tungsten_server)
+if (EIGEN3_FOUND)
+    set(executables ${executables} denoiser)
+endif()
 set(data_dirs example-scenes materialtest mc-loader)
 
 find_package(OpenGL)
