@@ -315,20 +315,6 @@ ADD_SUBDIRECTORY(kernels)
 IF (EMBREE_TUTORIALS)
   ADD_SUBDIRECTORY(tutorials)
 ENDIF()
-
-##############################################################
-# Uninstall
-##############################################################
-
-configure_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/common/cmake/uninstall.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/uninstall.cmake"
-    IMMEDIATE @ONLY)
-
-add_custom_target(uninstall
-    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/uninstall.cmake)
-
-SET_PROPERTY(TARGET uninstall PROPERTY FOLDER CMakePredefinedTargets)
 	
 ##############################################################
 # Has to be last
