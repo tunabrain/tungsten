@@ -378,9 +378,9 @@ int main(int argc, const char *argv[])
             }
 
             Path dstFile = file;
+            if (parser.isPresent(OPT_FILETYPE))
+                dstFile = dstFile.setExtension(Path(filetype));
             if (operands.size() > 1) {
-                if (parser.isPresent(OPT_FILETYPE))
-                    dstFile = dstFile.setExtension(Path(filetype));
                 if (parser.isPresent(OPT_OUTPUT))
                     dstFile = output/dstFile;
             } else if (parser.isPresent(OPT_OUTPUT)) {
