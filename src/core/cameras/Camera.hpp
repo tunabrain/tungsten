@@ -191,6 +191,11 @@ public:
         return _transform;
     }
 
+    const Mat4f &invTransform() const
+    {
+        return _invTransform;
+    }
+
     const Vec3f &pos() const
     {
         return _pos;
