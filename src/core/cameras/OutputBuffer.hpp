@@ -103,7 +103,7 @@ public:
 
     void addSample(Vec2u pixel, T c)
     {
-        if (std::isnan(c))
+        if (std::isnan(c) || std::isinf(c))
             return;
 
         int idx = pixel.x() + pixel.y()*_res.x();
