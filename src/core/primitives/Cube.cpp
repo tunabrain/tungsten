@@ -146,7 +146,7 @@ bool Cube::occluded(const Ray &ray) const
         }
     }
 
-    return ttMin <= ttMax;
+    return ttMin <= ttMax && ((ttMin > ray.nearT() && ttMin < ray.farT()) || (ttMax > ray.nearT() && ttMax < ray.farT()));
 }
 
 bool Cube::hitBackside(const IntersectionTemporary &data) const
