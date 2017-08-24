@@ -10,6 +10,8 @@
 #include "io/ImageIO.hpp"
 #include "io/Path.hpp"
 
+#include "Memory.hpp"
+
 #include <iostream>
 #include <cstdlib>
 
@@ -28,6 +30,7 @@ static const int OPT_MSE               = 10;
 static const int OPT_RMSE              = 11;
 static const int OPT_MSEMAP            = 12;
 static const int OPT_RMSEMAP           = 13;
+static const int OPT_VARIANCE          = 14;
 
 void parseFloat(float &dst, const std::string &src)
 {
@@ -219,6 +222,7 @@ int main(int argc, const char *argv[])
     parser.addOption('\0', "rmse", "Computes relative mean square error of two input images", false, OPT_RMSE);
     parser.addOption('\0', "mse-map", "Computes heat map of the mean square error of two input images", false, OPT_MSEMAP);
     parser.addOption('\0', "rmse-map", "Computes heat map of the relative mean square error of two input images", false, OPT_RMSEMAP);
+    parser.addOption('\0', "variance", "Compute sample variance of input images", false, OPT_VARIANCE);
 
     parser.parse(argc, argv);
 
@@ -357,6 +361,32 @@ int main(int argc, const char *argv[])
 
             std::cout << avgError << std::endl;
         }
+    } else if (parser.isPresent(OPT_VARIANCE)) {
+        int imgW, imgH;
+        ImageIO::loadHdr(Path(operands[0]), TexelConversion::REQUEST_RGB, imgW, imgH);
+
+        auto runningMean = zeroAlloc<float>(imgW*imgH*3);
+        auto runningVariance = zeroAlloc<float>(imgW*imgH*3);
+
+        for (size_t i = 0; i < operands.size(); ++i) {
+            Path file(operands[i]);
+
+            int imgW, imgH;
+            std::unique_ptr<float[]> img = ImageIO::loadHdr(file, TexelConversion::REQUEST_RGB, imgW, imgH);
+
+            for (uint32 j = 0; j < uint32(imgW*imgH*3); ++j) {
+                float delta = img[j] - runningMean[j];
+                runningMean[j] += delta/(i + 1);
+                float delta2 = img[j] - runningMean[j];
+                runningVariance[j] += delta*delta2;
+            }
+        }
+
+        Vec3d result = Vec3d(0.0);
+        for (uint32 j = 0; j < uint32(imgW*imgH*3); ++j)
+            result[j % 3] += runningVariance[j]/(operands.size() - 1);
+        result /= double(imgW*imgH);
+        std::cout << result << std::endl;
     } else {
         for (size_t i = 0; i < operands.size(); ++i) {
             Path file(operands[i]);
