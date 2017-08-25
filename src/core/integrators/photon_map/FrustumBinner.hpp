@@ -17,8 +17,8 @@ namespace Tungsten {
 
 class FrustumBinner
 {
-    static constexpr uint32 TileSize = 4;
-    static constexpr uint32 TileMask = TileSize - 1;
+    static CONSTEXPR uint32 TileSize = 4;
+    static CONSTEXPR uint32 TileMask = TileSize - 1;
 
     static inline float minReduce(float4 a, float4 b, float4 c)
     {
