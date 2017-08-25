@@ -76,7 +76,8 @@ add_library(thirdparty STATIC
 		src/thirdparty/sobol/sobol.cpp
 		src/thirdparty/stbi/stb_image.c
 		src/thirdparty/miniz/miniz.c
-		src/thirdparty/skylight/ArHosekSkyModel.cpp)
+		src/thirdparty/skylight/ArHosekSkyModel.cpp
+		src/thirdparty/tribox/tribox.cpp)
 
 if (CMAKE_COMPILER_IS_GNUCXX)
     set(CXX_WARNINGS "-Wall -Wextra -Wpointer-arith -Wcast-align -fstrict-aliasing -Wno-unused-local-typedefs -Wno-misleading-indentation -Wno-maybe-uninitialized -Wno-int-in-bool-context -Wno-implicit-fallthrough")
