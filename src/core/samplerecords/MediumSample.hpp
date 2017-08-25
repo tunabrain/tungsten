@@ -11,6 +11,8 @@ struct MediumSample
 {
     PhaseFunction *phase;
     Vec3f p;
+    float continuedT;
+    Vec3f continuedWeight;
     float t;
     Vec3f weight;
     float pdf;

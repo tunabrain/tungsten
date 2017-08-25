@@ -11,6 +11,7 @@
 #include "integrators/ImageTile.hpp"
 
 #include "sampling/PathSampleGenerator.hpp"
+#include "sampling/UniformPathSampler.hpp"
 #include "sampling/UniformSampler.hpp"
 
 #include "thread/TaskGroup.hpp"
@@ -26,6 +27,8 @@ namespace Tungsten {
 class ProgressivePhotonMapIntegrator : public PhotonMapIntegrator
 {
     ProgressivePhotonMapSettings _progressiveSettings;
+
+    std::vector<UniformPathSampler> _shadowSamplers;
 
     uint32 _iteration;
 

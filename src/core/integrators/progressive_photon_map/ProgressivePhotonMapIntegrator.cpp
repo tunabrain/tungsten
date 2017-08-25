@@ -34,13 +34,18 @@ void ProgressivePhotonMapIntegrator::prepareForRender(TraceableScene &scene, uin
 {
     _iteration = 0;
     PhotonMapIntegrator::prepareForRender(scene, seed);
+
+    for (size_t i = 0; i < _tracers.size(); ++i)
+        _shadowSamplers.emplace_back(_sampler.nextI());
 }
 
 void ProgressivePhotonMapIntegrator::renderSegment(std::function<void()> completionCallback)
 {
-    _totalTracedSurfacePhotons = 0;
-    _totalTracedVolumePhotons  = 0;
-    _totalTracedPathPhotons    = 0;
+    _totalTracedSurfacePaths = 0;
+    _totalTracedVolumePaths  = 0;
+    _totalTracedPaths        = 0;
+    _pathPhotonCount         = 0;
+    _scene->cam().setSplatWeight(1.0/_nextSpp);
 
     using namespace std::placeholders;
 
@@ -74,14 +79,28 @@ void ProgressivePhotonMapIntegrator::renderSegment(std::function<void()> complet
         _tiles.size(),
         [](){}
     ));
+    if (_useFrustumGrid) {
+        ThreadUtils::pool->yield(*ThreadUtils::pool->enqueue(
+            [&](uint32 tracerId, uint32 numTracers, uint32) {
+                uint32 start = intLerp(0, _pathPhotonCount, tracerId,     numTracers);
+                uint32 end   = intLerp(0, _pathPhotonCount, tracerId + 1, numTracers);
+                _tracers[tracerId]->evalPrimaryRays(_beams.get(), _planes0D.get(), _planes1D.get(),
+                        start, end, volumeRadius, _depthBuffer.get(), *_samplers[tracerId], _nextSpp - _currentSpp);
+            }, _tracers.size(), [](){}
+        ));
+    }
 
     _currentSpp = _nextSpp;
     advanceSpp();
     _iteration++;
 
+    _beams.reset();
+    _planes0D.reset();
+    _planes1D.reset();
     _surfaceTree.reset();
     _volumeTree.reset();
-    _beamBvh.reset();
+    _volumeGrid.reset();
+    _volumeBvh.reset();
     for (SubTaskData &data : _taskData) {
         data.surfaceRange.reset();
         data.volumeRange.reset();

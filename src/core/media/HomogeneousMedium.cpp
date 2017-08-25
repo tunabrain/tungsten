@@ -83,7 +83,9 @@ bool HomogeneousMedium::sampleDistance(PathSampleGenerator &sampler, const Ray &
 
         float t = -std::log(1.0f - sampler.next1D())/sigmaTc;
         sample.t = min(t, maxT);
+        sample.continuedT = t;
         sample.weight = FastMath::exp(-sample.t*_sigmaT);
+        sample.continuedWeight = FastMath::exp(-sample.continuedT*_sigmaT);
         sample.exited = (t >= maxT);
         if (sample.exited) {
             sample.pdf = sample.weight.avg();
@@ -92,6 +94,7 @@ bool HomogeneousMedium::sampleDistance(PathSampleGenerator &sampler, const Ray &
             sample.weight *= _sigmaS;
         }
         sample.weight /= sample.pdf;
+        sample.continuedWeight = _sigmaS*sample.continuedWeight/(_sigmaT*sample.continuedWeight).avg();
 
         state.advance();
     }

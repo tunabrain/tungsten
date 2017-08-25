@@ -3,6 +3,7 @@
 
 #include "PhotonMapSettings.hpp"
 #include "PhotonTracer.hpp"
+#include "GridAccel.hpp"
 #include "KdTree.hpp"
 #include "Photon.hpp"
 
@@ -38,7 +39,6 @@ protected:
         VolumePhotonRange volumeRange;
         PathPhotonRange pathRange;
     };
-
     std::vector<ImageTile> _tiles;
 
     PhotonMapSettings _settings;
@@ -48,22 +48,30 @@ protected:
     UniformSampler _sampler;
 
     std::shared_ptr<TaskGroup> _group;
+    std::unique_ptr<Ray[]> _depthBuffer;
 
-    std::atomic<uint32> _totalTracedSurfacePhotons;
-    std::atomic<uint32> _totalTracedVolumePhotons;
-    std::atomic<uint32> _totalTracedPathPhotons;
+    std::atomic<uint32> _totalTracedSurfacePaths;
+    std::atomic<uint32> _totalTracedVolumePaths;
+    std::atomic<uint32> _totalTracedPaths;
 
     std::vector<Photon> _surfacePhotons;
     std::vector<VolumePhoton> _volumePhotons;
     std::vector<PathPhoton> _pathPhotons;
+    std::unique_ptr<PhotonBeam[]> _beams;
+    std::unique_ptr<PhotonPlane0D[]> _planes0D;
+    std::unique_ptr<PhotonPlane1D[]> _planes1D;
+    uint32 _pathPhotonCount;
 
     std::unique_ptr<KdTree<Photon>> _surfaceTree;
     std::unique_ptr<KdTree<VolumePhoton>> _volumeTree;
-    std::unique_ptr<Bvh::BinaryBvh> _beamBvh;
+    std::unique_ptr<Bvh::BinaryBvh> _volumeBvh;
+    std::unique_ptr<GridAccel> _volumeGrid;
 
     std::vector<std::unique_ptr<PhotonTracer>> _tracers;
     std::vector<SubTaskData> _taskData;
     std::vector<std::unique_ptr<PathSampleGenerator>> _samplers;
+
+    bool _useFrustumGrid;
 
     void diceTiles();
 
@@ -73,8 +81,14 @@ protected:
     void tracePhotons(uint32 taskId, uint32 numSubTasks, uint32 threadId, uint32 sampleBase);
     void tracePixels(uint32 tileId, uint32 threadId, float surfaceRadius, float volumeRadius);
 
-    void buildBeamBvh(std::vector<PathPhotonRange> pathRanges, float volumeRadiusScale);
+    void buildPointBvh(uint32 tail, float volumeRadiusScale);
+    void buildBeamBvh(uint32 tail, float volumeRadiusScale);
+    void buildBeamGrid(uint32 tail, float volumeRadiusScale);
+    void buildPlaneBvh(uint32 tail, float volumeRadiusScale);
+    void buildPlaneGrid(uint32 tail, float volumeRadiusScale);
     void buildPhotonDataStructures(float volumeRadiusScale);
+
+    void renderSegment(std::function<void()> completionCallback);
 
 public:
     PhotonMapIntegrator();

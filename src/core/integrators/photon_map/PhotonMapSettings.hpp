@@ -5,17 +5,24 @@
 
 #include "io/JsonObject.hpp"
 
+#include "StringableEnum.hpp"
+
 #include <tinyformat/tinyformat.hpp>
 
 namespace Tungsten {
 
 struct PhotonMapSettings : public TraceSettings
 {
-    enum VolumePhotonType
+    enum VolumePhotonEnum
     {
         VOLUME_POINTS,
         VOLUME_BEAMS,
+        VOLUME_PLANES,
+        VOLUME_PLANES_1D,
     };
+
+    typedef StringableEnum<VolumePhotonEnum> VolumePhotonType;
+    friend VolumePhotonType;
 
     uint32 photonCount;
     uint32 volumePhotonCount;
@@ -23,8 +30,12 @@ struct PhotonMapSettings : public TraceSettings
     float gatherRadius;
     float volumeGatherRadius;
     VolumePhotonType volumePhotonType;
-    std::string volumePhotonTypeString;
+    bool includeSurfaces;
+    bool lowOrderScattering;
     bool fixedVolumeRadius;
+    bool useGrid;
+    bool useFrustumGrid;
+    int gridMemBudgetKb;
 
     PhotonMapSettings()
     : photonCount(1000000),
@@ -32,9 +43,13 @@ struct PhotonMapSettings : public TraceSettings
       gatherCount(20),
       gatherRadius(1e30f),
       volumeGatherRadius(gatherRadius),
-      volumePhotonType(VOLUME_POINTS),
-      volumePhotonTypeString("points"),
-      fixedVolumeRadius(false)
+      volumePhotonType("points"),
+      includeSurfaces(true),
+      lowOrderScattering(true),
+      fixedVolumeRadius(false),
+      useGrid(false),
+      useFrustumGrid(false),
+      gridMemBudgetKb(32*1024)
     {
     }
 
@@ -44,21 +59,20 @@ struct PhotonMapSettings : public TraceSettings
         value.getField("photon_count", photonCount);
         value.getField("volume_photon_count", volumePhotonCount);
         value.getField("gather_photon_count", gatherCount);
-        value.getField("volume_photon_type", volumePhotonTypeString);
-        if (volumePhotonTypeString == "points") {
-            volumePhotonType = VOLUME_POINTS;
-        } else if (volumePhotonTypeString == "beams") {
-            volumePhotonType = VOLUME_BEAMS;
-            // Set default value to something more sensible for photon beams
-            volumeGatherRadius = 0.01f;
-        } else {
-            value.parseError(tfm::format("Unknown volume photon type: '%s'", volumePhotonTypeString));
-            volumePhotonType = VOLUME_POINTS;
-        }
+        if (auto type = value["volume_photon_type"])
+            volumePhotonType = type;
         bool gatherRadiusSet = value.getField("gather_radius", gatherRadius);
         if (!value.getField("volume_gather_radius", volumeGatherRadius) && gatherRadiusSet)
             volumeGatherRadius = gatherRadius;
+        value.getField("low_order_scattering", lowOrderScattering);
+        value.getField("include_surfaces", includeSurfaces);
         value.getField("fixed_volume_radius", fixedVolumeRadius);
+        value.getField("use_grid", useGrid);
+        value.getField("use_frustum_grid", useFrustumGrid);
+        value.getField("grid_memory", gridMemBudgetKb);
+
+        if (useFrustumGrid && volumePhotonType == VOLUME_POINTS)
+            value.parseError("Photon points cannot be used with a frustum aligned grid");
     }
 
     rapidjson::Value toJson(rapidjson::Document::AllocatorType &allocator) const
@@ -70,8 +84,13 @@ struct PhotonMapSettings : public TraceSettings
             "gather_photon_count", gatherCount,
             "gather_radius", gatherRadius,
             "volume_gather_radius", volumeGatherRadius,
-            "volume_photon_type", volumePhotonTypeString,
-            "fixed_volume_radius", fixedVolumeRadius
+            "volume_photon_type", volumePhotonType.toString(),
+            "low_order_scattering", lowOrderScattering,
+            "include_surfaces", includeSurfaces,
+            "fixed_volume_radius", fixedVolumeRadius,
+            "use_grid", useGrid,
+            "use_frustum_grid", useFrustumGrid,
+            "grid_memory", gridMemBudgetKb
         };
     }
 };

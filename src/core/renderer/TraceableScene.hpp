@@ -24,6 +24,7 @@ namespace Tungsten {
 
 class TraceableScene
 {
+public:
     struct IntersectionRay : RTCRay
     {
         IntersectionTemporary &data;
@@ -33,15 +34,8 @@ class TraceableScene
         IntersectionRay(RTCRay eRay, IntersectionTemporary &data_, Ray &ray_, unsigned userGeomId_)
         : RTCRay(eRay), data(data_), ray(ray_), userGeomId(userGeomId_) {}
     };
-    struct OcclusionRay : RTCRay
-    {
-        const Ray &ray;
-        unsigned userGeomId;
 
-        OcclusionRay(RTCRay eRay, const Ray &ray_, unsigned userGeomId_)
-        : RTCRay(eRay), ray(ray_), userGeomId(userGeomId_) {}
-    };
-
+private:
     const float DefaultEpsilon = 5e-4f;
 
     Camera &_cam;
@@ -132,8 +126,7 @@ public:
                 }
             });
             rtcSetOccludedFunction(_scene, _userGeomId, [](void *ptr, RTCRay &embreeRay, size_t i) {
-                OcclusionRay &ray = *static_cast<OcclusionRay *>(&embreeRay);
-                if (static_cast<TraceableScene *>(ptr)->finites()[i]->occluded(ray.ray))
+                if (static_cast<TraceableScene *>(ptr)->finites()[i]->occluded(Ray(EmbreeUtil::convert(embreeRay))))
                     embreeRay.geomID = 0;
             });
 
@@ -161,8 +154,17 @@ public:
                     m->bsdf(i)->teardownAfterRender();
         }
 
-        rtcDeleteScene(_scene);
+        if (_scene)
+            rtcDeleteScene(_scene);
         _scene = nullptr;
+    }
+
+    float hitDistance(Ray &ray) const
+    {
+        IntersectionTemporary data;
+        IntersectionRay eRay(EmbreeUtil::convert(ray), data, ray, _userGeomId);
+        rtcIntersect(_scene, eRay);
+        return eRay.ray.farT();
     }
 
     bool intersect(Ray &ray, IntersectionTemporary &data, IntersectionInfo &info) const
@@ -209,7 +211,7 @@ public:
     bool occluded(const Ray &ray) const
     {
         if (_settings.useSceneBvh()) {
-            OcclusionRay eRay(EmbreeUtil::convert(ray), ray, _userGeomId);
+            auto eRay = EmbreeUtil::convert(ray);
             rtcOccluded(_scene, eRay);
             return eRay.geomID != RTC_INVALID_GEOMETRY_ID;
         } else {
@@ -263,6 +265,11 @@ public:
     RendererSettings rendererSettings() const
     {
         return _settings;
+    }
+
+    RTCScene scene() const
+    {
+        return _scene;
     }
 };
 
