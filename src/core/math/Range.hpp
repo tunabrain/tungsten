@@ -21,6 +21,12 @@ public:
 };
 
 template<typename T>
+Range<T> range(T end)
+{
+    return Range<T>(T(0), end, T(1));
+}
+
+template<typename T>
 Range<T> range(T start, T end, T step = T(1))
 {
     return Range<T>(start, end, step);
