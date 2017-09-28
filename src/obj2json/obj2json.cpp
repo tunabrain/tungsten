@@ -21,12 +21,12 @@ int main(int argc, const char *argv[])
 
     parser.parse(argc, argv);
 
-    if (parser.operands().size() != 2 || parser.isPresent(OPT_HELP)) {
-        parser.printHelpText();
-        return 0;
-    }
     if (parser.isPresent(OPT_VERSION)) {
         std::cout << "obj2json, version " << VERSION_STRING << std::endl;
+        return 0;
+    }
+    if (parser.operands().size() != 2 || parser.isPresent(OPT_HELP)) {
+        parser.printHelpText();
         return 0;
     }
 

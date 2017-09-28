@@ -192,12 +192,12 @@ int main(int argc, const char *argv[])
     parser.addOption('v', "version", "Prints version information", false, OPT_VERSION);
 
     parser.parse(argc, argv);
-    if (parser.operands().size() != 2 || parser.isPresent(OPT_HELP)) {
-        parser.printHelpText();
-        return 0;
-    }
     if (parser.isPresent(OPT_VERSION)) {
         std::cout << "denoiser, version " << VERSION_STRING << std::endl;
+        return 0;
+    }
+    if (parser.operands().size() != 2 || parser.isPresent(OPT_HELP)) {
+        parser.printHelpText();
         return 0;
     }
 

@@ -158,12 +158,12 @@ int main(int argc, const char *argv[])
 
     parser.parse(argc, argv);
 
-    if (argc < 2 || parser.isPresent(OPT_HELP)) {
-        parser.printHelpText();
-        return 0;
-    }
     if (parser.isPresent(OPT_VERSION)) {
         std::cout << "scenemanip, version " << VERSION_STRING << std::endl;
+        return 0;
+    }
+    if (argc < 2 || parser.isPresent(OPT_HELP)) {
+        parser.printHelpText();
         return 0;
     }
     if (parser.operands().empty())
