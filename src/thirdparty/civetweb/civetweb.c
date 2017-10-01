@@ -326,7 +326,7 @@ static DWORD pthread_self(void)
     return GetCurrentThreadId();
 }
 
-int pthread_key_create(pthread_key_t *key, void (*_must_be_zero)(void*) /* destructor function not supported for windows */)
+static int pthread_key_create(pthread_key_t *key, void (*_must_be_zero)(void*) /* destructor function not supported for windows */)
 {
     assert(_must_be_zero == NULL);
     if ((key!=0) && (_must_be_zero == NULL)) {
@@ -336,17 +336,17 @@ int pthread_key_create(pthread_key_t *key, void (*_must_be_zero)(void*) /* destr
     return -2;
 }
 
-int pthread_key_delete(pthread_key_t key)
+static int pthread_key_delete(pthread_key_t key)
 {
     return TlsFree(key) ? 0 : 1;
 }
 
-int pthread_setspecific(pthread_key_t key, void * value)
+static int pthread_setspecific(pthread_key_t key, void * value)
 {
     return TlsSetValue(key, value) ? 0 : 1;
 }
 
-void *pthread_getspecific(pthread_key_t key)
+static void *pthread_getspecific(pthread_key_t key)
 {
     return TlsGetValue(key);
 }
