@@ -51,7 +51,9 @@ IF(COMMAND cmake_policy)
   endif()
 ENDIF(COMMAND cmake_policy)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Vc_ARCHITECTURE_FLAGS}")
+foreach(flag ${Vc_ARCHITECTURE_FLAGS})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}")
+endforeach()
 
 set(EMBREE_STATIC_LIB ON CACHE BOOL "Build Embree as a static library." FORCE)
 set(EMBREE_ISPC_SUPPORT OFF CACHE BOOL "Build Embree with support for ISPC applications." FORCE)

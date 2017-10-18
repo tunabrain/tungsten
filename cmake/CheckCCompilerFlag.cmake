@@ -57,6 +57,7 @@ MACRO (CHECK_C_COMPILER_FLAG _FLAG _RESULT)
      FAIL_REGEX "unrecognized .*option"                     # GNU
      FAIL_REGEX "ignored for target"                        # GNU
      FAIL_REGEX "ignoring unknown option"                   # MSVC
+     FAIL_REGEX "warning D9002"                             # MSVC
      FAIL_REGEX "[Uu]nknown option"                         # HP
      FAIL_REGEX "[Ww]arning: [Oo]ption"                     # SunPro
      FAIL_REGEX "command option .* is not recognized"       # XL

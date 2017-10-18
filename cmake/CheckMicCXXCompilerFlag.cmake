@@ -40,7 +40,7 @@
 #=============================================================================
 
 macro(check_mic_cxx_compiler_flag _FLAG _RESULT)
-   if("${_RESULT}" MATCHES "^${_RESULT}$")
+   if(NOT DEFINED "${_RESULT}")
       set(_tmpdir "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp")
       if(${ARGC} GREATER 2)
          file(WRITE "${_tmpdir}/src.cpp" "${ARGV2}")
@@ -74,7 +74,7 @@ macro(check_mic_cxx_compiler_flag _FLAG _RESULT)
                "#10236:"                                   # ICC: File not found
                )
             if("${OUTPUT}" MATCHES "${_fail_regex}")
-               set(${_RESULT} FALSE)
+               set(${_RESULT} 1)
             endif()
          endforeach()
       endif()
