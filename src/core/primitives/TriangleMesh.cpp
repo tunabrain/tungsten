@@ -296,6 +296,24 @@ void TriangleMesh::makeCone(float radius, float height)
     }
 }
 
+void TriangleMesh::makeCylinder(float radius, float height)
+{
+    CONSTEXPR int SubDiv = 36;
+    int base = _verts.size();
+    _verts.emplace_back(Vec3f(0.0f, -height, 0.0f));
+    _verts.emplace_back(Vec3f(0.0f,  height, 0.0f));
+    for (int i = 0; i < SubDiv; ++i) {
+        float a = i*TWO_PI/SubDiv;
+        _verts.emplace_back(Vec3f(std::cos(a)*radius, -height, std::sin(a)*radius));
+        _verts.emplace_back(Vec3f(std::cos(a)*radius,  height, std::sin(a)*radius));
+        int i1 = (i + 1) % SubDiv;
+        _tris.emplace_back(base + 0, base + 2 + i*2, base + 2 + i1*2);
+        _tris.emplace_back(base + 1, base + 3 + i*2, base + 3 + i1*2);
+        _tris.emplace_back(base + 2 + i *2, base + 3 + i*2, base + 2 + i1*2);
+        _tris.emplace_back(base + 2 + i1*2, base + 3 + i*2, base + 3 + i1*2);
+    }
+}
+
 bool TriangleMesh::intersect(Ray &ray, IntersectionTemporary &data) const
 {
     RTCRay eRay(EmbreeUtil::convert(ray));

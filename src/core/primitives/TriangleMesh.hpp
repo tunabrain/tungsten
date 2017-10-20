@@ -71,6 +71,7 @@ public:
 
     void makeCube();
     void makeSphere(float radius);
+    void makeCylinder(float radius, float height);
     void makeCone(float radius, float height);
 
     virtual bool intersect(Ray &ray, IntersectionTemporary &data) const override;
