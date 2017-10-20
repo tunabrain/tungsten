@@ -104,6 +104,16 @@ public:
         return Vec<ElementType, 3>(x(), y(), z());
     }
 
+    Vec<ElementType, 2> xz() const
+    {
+        return Vec<ElementType, 2>(x(), z());
+    }
+
+    Vec<ElementType, 2> yz() const
+    {
+        return Vec<ElementType, 2>(y(), z());
+    }
+
     ElementType *data()
     {
         return &_v[0];
