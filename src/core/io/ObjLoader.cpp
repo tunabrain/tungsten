@@ -217,7 +217,7 @@ void ObjLoader::loadLine(const char *line)
             || hasPrefix(line, "o")
             || hasPrefix(line, "s");
 
-    if (meshBoundary && !_tris.empty() && !_geometryOnly) {
+    if (meshBoundary && (!_tris.empty() || !_segments.empty()) && !_geometryOnly) {
         _meshes.emplace_back(finalizeMesh());
         clearPerMeshData();
     }
@@ -326,6 +326,7 @@ void ObjLoader::clearPerMeshData()
     _indices.clear();
     _tris.clear();
     _verts.clear();
+    _segments.clear();
 }
 
 void ObjLoader::finalizeCurveData(std::vector<uint32> &curveEnds, std::vector<Vec4f> &nodeData)
