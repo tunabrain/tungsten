@@ -14,7 +14,8 @@ class Tonemap
         LinearOnly,
         GammaOnly,
         Reinhard,
-        Filmic
+        Filmic,
+        Pbrt
     };
 
 public:
@@ -33,6 +34,15 @@ public:
         case Filmic: {
             Vec3f x = max(Vec3f(0.0f), c - 0.004f);
             return (x*(6.2f*x + 0.5f))/(x*(6.2f*x + 1.7f) + 0.06f);
+        } case Pbrt: {
+            Vec3f result;
+            for (int i = 0; i < 3; ++i) {
+                if (c[i] < 0.0031308f)
+                    result[i] = 12.92f*c[i];
+                else
+                    result[i] = 1.055f*std::pow(c[i], 1.0f/2.4f) - 0.055f;
+            }
+            return result;
         }}
         return c;
     }
