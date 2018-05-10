@@ -9,6 +9,7 @@ namespace Tungsten {
 
 class LightTracer : public TraceBase
 {
+    LightTracerSettings _settings;
     AtomicFramebuffer *_splatBuffer;
 
 public:

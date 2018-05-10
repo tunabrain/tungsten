@@ -4,6 +4,7 @@ namespace Tungsten {
 
 LightTracer::LightTracer(TraceableScene *scene, const LightTracerSettings &settings, uint32 threadId)
 : TraceBase(scene, settings, threadId),
+  _settings(settings),
   _splatBuffer(scene->cam().splatBuffer())
 {
 }
@@ -47,6 +48,7 @@ void LightTracer::traceSample(PathSampleGenerator &sampler)
     state.reset();
     Vec3f emission(0.0f);
 
+    int bounceSinceSurface = 0;
     int bounce = 0;
     bool wasSpecular = true;
     bool didHit = _scene->intersect(ray, data, info);
@@ -62,25 +64,33 @@ void LightTracer::traceSample(PathSampleGenerator &sampler)
         }
 
         if (hitSurface) {
+            bounceSinceSurface = 0;
             surfaceEvent = makeLocalScatterEvent(data, info, ray, &sampler);
 
-            Vec3f weight;
-            Vec2f pixel;
-            if (surfaceLensSample(_scene->cam(), surfaceEvent, medium, bounce + 1, ray, weight, pixel))
-                _splatBuffer->splatFiltered(pixel, weight*throughput);
+            if (_settings.includeSurfaces) {
+                Vec3f weight;
+                Vec2f pixel;
+                if (surfaceLensSample(_scene->cam(), surfaceEvent, medium, bounce + 1, ray, weight, pixel))
+                    _splatBuffer->splatFiltered(pixel, weight*throughput);
+            }
 
             if (!handleSurface(surfaceEvent, data, info, medium, bounce,
                     true, false, ray, throughput, emission, wasSpecular, state))
                 break;
         } else {
-            Vec3f weight;
-            Vec2f pixel;
-            if (volumeLensSample(_scene->cam(), sampler, mediumSample, medium, bounce + 1, ray, weight, pixel))
-                _splatBuffer->splatFiltered(pixel, weight*throughput);
+            bounceSinceSurface++;
+
+            if (bounceSinceSurface >= 2 || _settings.lowOrderScattering) {
+                Vec3f weight;
+                Vec2f pixel;
+                if (volumeLensSample(_scene->cam(), sampler, mediumSample, medium, bounce + 1, ray, weight, pixel))
+                    _splatBuffer->splatFiltered(pixel, weight*throughput);
+            }
 
             if (!handleVolume(sampler, mediumSample, medium, bounce,
                     true, false, ray, throughput, emission, wasSpecular))
                 break;
+
         }
 
         if (throughput.max() == 0.0f)

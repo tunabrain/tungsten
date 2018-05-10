@@ -43,6 +43,7 @@ Vec3f PathTracer::traceSample(Vec2u pixel, PathSampleGenerator &sampler)
     bool recordedOutputValues = false;
     float hitDistance = 0.0f;
 
+    int mediumBounces = 0;
     int bounce = 0;
     bool didHit = _scene->intersect(ray, data, info);
     bool wasSpecular = true;
@@ -60,10 +61,17 @@ Vec3f PathTracer::traceSample(Vec2u pixel, PathSampleGenerator &sampler)
         if (hitSurface) {
             hitDistance += ray.farT();
 
+            if (mediumBounces == 1 && !_settings.lowOrderScattering)
+                return emission;
+
             surfaceEvent = makeLocalScatterEvent(data, info, ray, &sampler);
             Vec3f transmittance(-1.0f);
             bool terminate = !handleSurface(surfaceEvent, data, info, medium, bounce, false,
-                    _settings.enableLightSampling, ray, throughput, emission, wasSpecular, state, &transmittance);
+                    _settings.enableLightSampling && (mediumBounces > 0 || _settings.includeSurfaces), ray, throughput, emission, wasSpecular, state, &transmittance);
+
+            if (!info.bsdf->lobes().isPureDirac())
+                if (mediumBounces == 0 && !_settings.includeSurfaces)
+                    return emission;
 
             if (_trackOutputValues && !recordedOutputValues && (!wasSpecular || terminate)) {
                 if (_scene->cam().depthBuffer())
@@ -88,8 +96,10 @@ Vec3f PathTracer::traceSample(Vec2u pixel, PathSampleGenerator &sampler)
             if (terminate)
                 return emission;
         } else {
+            mediumBounces++;
+
             if (!handleVolume(sampler, mediumSample, medium, bounce, false,
-                    _settings.enableVolumeLightSampling, ray, throughput, emission, wasSpecular))
+                _settings.enableVolumeLightSampling && (mediumBounces > 1 || _settings.lowOrderScattering), ray, throughput, emission, wasSpecular))
                 return emission;
         }
 

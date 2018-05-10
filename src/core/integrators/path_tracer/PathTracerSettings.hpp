@@ -11,10 +11,14 @@ struct PathTracerSettings : public TraceSettings
 {
     bool enableLightSampling;
     bool enableVolumeLightSampling;
+    bool lowOrderScattering;
+    bool includeSurfaces;
 
     PathTracerSettings()
     : enableLightSampling(true),
-      enableVolumeLightSampling(true)
+      enableVolumeLightSampling(true),
+      lowOrderScattering(true),
+      includeSurfaces(true)
     {
     }
 
@@ -23,6 +27,8 @@ struct PathTracerSettings : public TraceSettings
         TraceSettings::fromJson(value);
         value.getField("enable_light_sampling", enableLightSampling);
         value.getField("enable_volume_light_sampling", enableVolumeLightSampling);
+        value.getField("low_order_scattering", lowOrderScattering);
+        value.getField("include_surfaces", includeSurfaces);
     }
 
     rapidjson::Value toJson(rapidjson::Document::AllocatorType &allocator) const
@@ -30,7 +36,9 @@ struct PathTracerSettings : public TraceSettings
         return JsonObject{TraceSettings::toJson(allocator), allocator,
             "type", "path_tracer",
             "enable_light_sampling", enableLightSampling,
-            "enable_volume_light_sampling", enableVolumeLightSampling
+            "enable_volume_light_sampling", enableVolumeLightSampling,
+            "low_order_scattering", lowOrderScattering,
+            "include_surfaces", includeSurfaces
         };
     }
 };
