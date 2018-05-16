@@ -22,20 +22,12 @@ struct TangentFrame
     TangentFrame(const Vec3f &n)
     : normal(n)
     {
-        // naive method
-        // if (std::abs(normal.x()) > std::abs(normal.y()))
-        //     tangent = Vec3f(0.0f, 1.0f, 0.0f);
-        // else
-        //     tangent = Vec3f(1.0f, 0.0f, 0.0f);
-        // bitangent = normal.cross(tangent).normalized();
-        // tangent = bitangent.cross(normal);
-
         // [Duff et al. 17] Building An Orthonormal Basis, Revisited. JCGT. 2017.
         float sign = copysignf(1.0f, normal.z());
-        const float a = -1.0f / (sign + normal.z());
-        const float b = normal.x() * normal.y() * a;
-        tangent = Vec3f(1.0f + sign * normal.x() * normal.x() * a, sign * b, -sign * normal.x());
-        bitangent = Vec3f(b, sign + normal.y() * normal.y() * a, -normal.y());
+        const float a = -1.0f/(sign + normal.z());
+        const float b = normal.x()*normal.y()*a;
+        tangent = Vec3f(1.0f + sign*normal.x()*normal.x()*a, sign*b, -sign*normal.x());
+        bitangent = Vec3f(b, sign + normal.y()*normal.y()*a, -normal.y());
     }
 
     Vec3f toLocal(const Vec3f &p) const
