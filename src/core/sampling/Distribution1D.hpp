@@ -38,6 +38,11 @@ public:
     {
         return _pdf[idx];
     }
+
+    float cdf(int idx) const
+    {
+        return _cdf[idx];
+    }
 };
 
 }
