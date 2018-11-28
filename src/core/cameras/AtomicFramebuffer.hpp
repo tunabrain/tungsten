@@ -77,6 +77,9 @@ public:
 
     inline void splat(Vec2u pixel, Vec3f w)
     {
+        if (std::isnan(w) || std::isinf(w))
+            return;
+
         uint32 idx = pixel.x() + pixel.y()*_w;
         atomicAdd(_buffer[idx].x(), w.x());
         atomicAdd(_buffer[idx].y(), w.y());
