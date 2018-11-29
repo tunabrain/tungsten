@@ -96,19 +96,25 @@ void LightPath::toAreaMeasure()
 float LightPath::misWeight(const LightPath &camera, const LightPath &emitter,
             const PathEdge &edge, int s, int t, float *ratios)
 {
-    float *pdfForward  = reinterpret_cast<float *>(alloca((s + t)*sizeof(float)));
-    float *pdfBackward = reinterpret_cast<float *>(alloca((s + t)*sizeof(float)));
-    bool  *connectable = reinterpret_cast<bool  *>(alloca((s + t)*sizeof(bool)));
+    float *pdfForward           = reinterpret_cast<float *>(alloca((s + t)*sizeof(float)));
+    float *pdfBackward          = reinterpret_cast<float *>(alloca((s + t)*sizeof(float)));
+    bool  *connectable          = reinterpret_cast<bool  *>(alloca((s + t)*sizeof(bool)));
+    const PathVertex **vertices = reinterpret_cast<const PathVertex **>(alloca((s + t)*sizeof(const PathVertex *)));
+
+    if (!camera[t - 1].segmentConnectable(emitter[s - 1]))
+        return 0.0f;
 
     for (int i = 0; i < s; ++i) {
         pdfForward [i] = emitter[i].pdfForward();
         pdfBackward[i] = emitter[i].pdfBackward();
         connectable[i] = !emitter[i].isDirac();
+        vertices   [i] = &emitter[i];
     }
     for (int i = 0; i < t; ++i) {
         pdfForward [s + t - (i + 1)] = camera[i].pdfBackward();
         pdfBackward[s + t - (i + 1)] = camera[i].pdfForward();
         connectable[s + t - (i + 1)] = !camera[i].isDirac();
+        vertices   [s + t - (i + 1)] = &camera[i];
     }
     connectable[s - 1] = connectable[s] = true;
 
@@ -137,7 +143,7 @@ float LightPath::misWeight(const LightPath &camera, const LightPath &emitter,
         ratios[s] = 1.0f;
     for (int i = s + 1; i < s + t; ++i) {
         pi *= pdfForward[i - 1]/pdfBackward[i - 1];
-        if (connectable[i - 1] && connectable[i]) {
+        if (connectable[i - 1] && connectable[i] && vertices[i - 1]->segmentConnectable(*vertices[i])) {
             weight += pi;
             if (ratios)
                 ratios[i] = pi;
@@ -149,7 +155,7 @@ float LightPath::misWeight(const LightPath &camera, const LightPath &emitter,
     pi = 1.0f;
     for (int i = s - 1; i >= 1; --i) {
         pi *= pdfBackward[i]/pdfForward[i];
-        if (connectable[i - 1] && connectable[i]) {
+        if (connectable[i - 1] && connectable[i] && vertices[i - 1]->segmentConnectable(*vertices[i])) {
             weight += pi;
             if (ratios)
                 ratios[i] = pi;
@@ -166,7 +172,7 @@ float LightPath::misWeight(const LightPath &camera, const LightPath &emitter,
     } else {
         if (ratios)
             ratios[0] = 0.0f;
-     }
+    }
 
     return 1.0f/weight;
 }

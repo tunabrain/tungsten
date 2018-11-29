@@ -121,26 +121,28 @@ bool VoxelMedium::sampleDistance(PathSampleGenerator &sampler, const Ray &ray,
 
     if (_absorptionOnly) {
         sample.t = maxT;
-        sample.weight = _grid->transmittance(sampler, p, w, t0, t1, _sigmaT/wPrime);
+        Vec3f tau = _grid->opticalDepth(sampler, p, w, t0, t1)*(_sigmaT/wPrime);
+        sample.weight = _transmittance->eval(tau, state.firstScatter, true);
         sample.pdf = 1.0f;
         sample.exited = true;
     } else {
         int component = sampler.nextDiscrete(3);
         float sigmaTc = _sigmaT[component];
-        float xi = 1.0f - sampler.next1D();
-        float logXi = -std::log(xi);
+        float tauC = _transmittance->sample(sampler, state.firstScatter)/(sigmaTc/wPrime);
 
-        Vec2f tAndDensity = _grid->inverseOpticalDepth(sampler, p, w, t0, t1, sigmaTc/wPrime, logXi);
+        Vec2f tAndDensity = _grid->inverseOpticalDepth(sampler, p, w, t0, t1, tauC);
         sample.t = tAndDensity.x();
         sample.exited = (sample.t >= t1);
-        float opticalDepth = sample.exited ? tAndDensity.y()/sigmaTc : logXi/sigmaTc;
-        sample.weight = std::exp(-_sigmaT*opticalDepth);
+        if (sample.exited)
+            tauC = tAndDensity.y();
+        Vec3f tau = tauC*(_sigmaT/wPrime);
+        sample.weight = _transmittance->eval(tau, state.firstScatter, sample.exited);
         if (sample.exited) {
-            sample.pdf = sample.weight.avg();
+            sample.pdf = _transmittance->surfaceProbability(tau, state.firstScatter).avg();
         } else {
             float rho = tAndDensity.y();
-            sample.pdf = (rho*_sigmaT*sample.weight).avg();
-            sample.weight *= rho*_sigmaS;
+            sample.pdf = (rho*_sigmaT*_transmittance->mediumPdf(tau, state.firstScatter)).avg();
+            sample.weight *= rho*_sigmaS*_transmittance->sigmaBar();
         }
         sample.weight /= sample.pdf;
         sample.t /= wPrime;
@@ -153,7 +155,8 @@ bool VoxelMedium::sampleDistance(PathSampleGenerator &sampler, const Ray &ray,
     return true;
 }
 
-Vec3f VoxelMedium::transmittance(PathSampleGenerator &sampler, const Ray &ray) const
+Vec3f VoxelMedium::transmittance(PathSampleGenerator &sampler, const Ray &ray, bool startOnSurface,
+        bool endOnSurface) const
 {
     Vec3f p = _worldToGrid*ray.pos();
     Vec3f w = _worldToGrid.transformVector(ray.dir());
@@ -163,10 +166,11 @@ Vec3f VoxelMedium::transmittance(PathSampleGenerator &sampler, const Ray &ray) c
     if (!bboxIntersection(_gridBounds, p, w, t0, t1))
         return Vec3f(1.0f);
 
-    return _grid->transmittance(sampler, p, w, t0, t1, _sigmaT/wPrime);
+    Vec3f tau = _grid->opticalDepth(sampler, p, w, t0, t1)*(_sigmaT/wPrime);
+    return _transmittance->eval(tau, startOnSurface, endOnSurface);
 }
 
-float VoxelMedium::pdf(PathSampleGenerator &sampler, const Ray &ray, bool onSurface) const
+float VoxelMedium::pdf(PathSampleGenerator &sampler, const Ray &ray, bool startOnSurface, bool endOnSurface) const
 {
     if (_absorptionOnly) {
         return 1.0f;
@@ -179,38 +183,12 @@ float VoxelMedium::pdf(PathSampleGenerator &sampler, const Ray &ray, bool onSurf
         if (!bboxIntersection(_gridBounds, p, w, t0, t1))
             return 1.0f;
 
-        Vec3f transmittance = _grid->transmittance(sampler, p, w, t0, t1, _sigmaT/wPrime);
-        if (onSurface) {
-            return transmittance.avg();
-        } else {
-            return (_grid->density(p)*_sigmaT*transmittance).avg();
-        }
+        Vec3f tau = _grid->opticalDepth(sampler, p, w, t0, t1)*(_sigmaT/wPrime);
+        if (endOnSurface)
+            return _transmittance->surfaceProbability(tau, startOnSurface).avg();
+        else
+            return (_grid->density(p)*_sigmaT*_transmittance->mediumPdf(tau, startOnSurface)).avg();
     }
-}
-
-Vec3f VoxelMedium::transmittanceAndPdfs(PathSampleGenerator &sampler, const Ray &ray, bool startOnSurface,
-        bool endOnSurface, float &pdfForward, float &pdfBackward) const
-{
-    Vec3f p = _worldToGrid*ray.pos();
-    Vec3f w = _worldToGrid.transformVector(ray.dir());
-    float wPrime = w.length();
-    w /= wPrime;
-    float t0 = 0.0f, t1 = ray.farT()*wPrime;
-    if (!bboxIntersection(_gridBounds, p, w, t0, t1)) {
-        pdfForward = pdfBackward = 1.0f;
-        return Vec3f(1.0f);
-    }
-
-    Vec3f transmittance = _grid->transmittance(sampler, p, w, t0, t1, _sigmaT/wPrime);
-
-    if (_absorptionOnly) {
-        pdfForward = pdfBackward = 1.0f;
-    } else {
-        pdfForward  =   endOnSurface ? transmittance.avg() : (_grid->density(p)*_sigmaT*transmittance).avg();
-        pdfBackward = startOnSurface ? transmittance.avg() : (_grid->density(p)*_sigmaT*transmittance).avg();
-    }
-
-    return transmittance;
 }
 
 }

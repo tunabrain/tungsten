@@ -13,6 +13,8 @@
 #include "ImageIO.hpp"
 #include "Path.hpp"
 
+#include "transmittances/Transmittance.hpp"
+
 #include "phasefunctions/PhaseFunction.hpp"
 
 #include "integrators/Integrator.hpp"
@@ -66,6 +68,7 @@ public:
     virtual void loadResources() override;
     virtual void saveResources() override;
 
+    std::shared_ptr<Transmittance> fetchTransmittance(JsonPtr value) const;
     std::shared_ptr<PhaseFunction> fetchPhase(JsonPtr value) const;
     std::shared_ptr<Medium> fetchMedium(JsonPtr value) const;
     std::shared_ptr<Grid> fetchGrid(JsonPtr value) const;

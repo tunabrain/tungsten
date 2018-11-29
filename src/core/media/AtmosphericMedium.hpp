@@ -28,7 +28,7 @@ class AtmosphericMedium : public Medium
     inline float density(Vec3f p) const;
     inline float density(float h, float t0) const;
     inline float densityIntegral(float h, float t0, float t1) const;
-    inline float inverseOpticalDepth(double h, double t0, double sigmaT, double xi) const;
+    inline float inverseOpticalDepth(double h, double t0, double tau) const;
 
 public:
     AtmosphericMedium();
@@ -46,10 +46,9 @@ public:
 
     virtual bool sampleDistance(PathSampleGenerator &sampler, const Ray &ray,
             MediumState &state, MediumSample &sample) const override;
-    virtual Vec3f transmittance(PathSampleGenerator &sampler, const Ray &ray) const override;
-    virtual float pdf(PathSampleGenerator &sampler, const Ray &ray, bool onSurface) const override;
-    virtual Vec3f transmittanceAndPdfs(PathSampleGenerator &sampler, const Ray &ray, bool startOnSurface,
-            bool endOnSurface, float &pdfForward, float &pdfBackward) const override;
+    virtual Vec3f transmittance(PathSampleGenerator &sampler, const Ray &ray, bool startOnSurface,
+            bool endOnSurface) const override;
+    virtual float pdf(PathSampleGenerator &sampler, const Ray &ray, bool startOnSurface, bool endOnSurface) const override;
 };
 
 }

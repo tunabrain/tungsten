@@ -1,6 +1,8 @@
 #ifndef MEDIUM_HPP_
 #define MEDIUM_HPP_
 
+#include "transmittances/Transmittance.hpp"
+
 #include "phasefunctions/PhaseFunction.hpp"
 
 #include "samplerecords/MediumSample.hpp"
@@ -20,6 +22,7 @@ class Scene;
 class Medium : public JsonSerializable
 {
 protected:
+    std::shared_ptr<Transmittance> _transmittance;
     std::shared_ptr<PhaseFunction> _phaseFunction;
     int _maxBounce;
 
@@ -60,11 +63,14 @@ public:
     virtual bool sampleDistance(PathSampleGenerator &sampler, const Ray &ray,
             MediumState &state, MediumSample &sample) const = 0;
     virtual bool invertDistance(WritablePathSampleGenerator &sampler, const Ray &ray, bool onSurface) const;
-    virtual Vec3f transmittance(PathSampleGenerator &sampler, const Ray &ray) const = 0;
-    virtual float pdf(PathSampleGenerator &sampler, const Ray &ray, bool onSurface) const = 0;
+    virtual Vec3f transmittance(PathSampleGenerator &sampler, const Ray &ray, bool startOnSurface,
+            bool endOnSurface) const = 0;
+    virtual float pdf(PathSampleGenerator &sampler, const Ray &ray, bool startOnSurface, bool endOnSurface) const = 0;
     virtual Vec3f transmittanceAndPdfs(PathSampleGenerator &sampler, const Ray &ray, bool startOnSurface,
             bool endOnSurface, float &pdfForward, float &pdfBackward) const;
     virtual const PhaseFunction *phaseFunction(const Vec3f &p) const;
+
+    bool isDirac() const;
 };
 
 }

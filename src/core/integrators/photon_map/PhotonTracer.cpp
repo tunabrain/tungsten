@@ -128,7 +128,7 @@ static bool evalBeam1D(const PhotonBeam &beam, PathSampleGenerator &sampler, con
         mediumQuery.setFarT(t);
         beamEstimate += medium->sigmaT(hitPoint)*invSinTheta/(2.0f*radius)
                 *medium->phaseFunction(hitPoint)->eval(beam.dir, -ray.dir())
-                *medium->transmittance(sampler, mediumQuery)*beam.power;
+                *medium->transmittance(sampler, mediumQuery, true, false)*beam.power;
 
         return true;
     }
@@ -149,7 +149,7 @@ static bool evalPlane0D(const PhotonPlane0D &p, PathSampleGenerator &sampler, co
             mediumQuery.setFarT(t);
             beamEstimate += sqr(medium->sigmaT(hitPoint))*std::abs(invDet)
                     *medium->phaseFunction(hitPoint)->eval(p.d1, -ray.dir())
-                    *medium->transmittance(sampler, mediumQuery)*p.power;
+                    *medium->transmittance(sampler, mediumQuery, true, false)*p.power;
 
             return true;
         }
@@ -187,7 +187,7 @@ bool evalPlane1D(const PhotonPlane1D &p, PathSampleGenerator &sampler, const Ray
             Ray mediumQuery(ray);
             mediumQuery.setFarT(t);
 
-            controlVariate -= medium->transmittance(sampler, mediumQuery)*(maxT - minT);
+            controlVariate -= medium->transmittance(sampler, mediumQuery, true, false)*(maxT - minT);
         }
 
         beamEstimate += sqr(medium->sigmaT(v2))*medium->phaseFunction(v2)->eval(p.d1, -ray.dir())*p.power*controlVariate;
@@ -289,7 +289,7 @@ Vec3f PhotonTracer::traceSensorPath(Vec2u pixel, const KdTree<Photon> &surfaceTr
                     mediumQuery.setFarT(t);
                     estimate += (3.0f*INV_PI*sqr(1.0f - distSq/p.radiusSq))/p.radiusSq
                             *medium->phaseFunction(p.pos)->eval(p.dir, -ray.dir())
-                            *medium->transmittance(sampler, mediumQuery)*p.power;
+                            *medium->transmittance(sampler, mediumQuery, true, false)*p.power;
                 };
                 auto beamContribution = [&](uint32 photonIndex, const Vec3pf *bounds, float tMin, float tMax) {
                     const PhotonBeam &beam = beams[photonIndex];
@@ -343,7 +343,7 @@ Vec3f PhotonTracer::traceSensorPath(Vec2u pixel, const KdTree<Photon> &surfaceTr
 
                 result += throughput*estimate;
             }
-            throughput *= medium->transmittance(sampler, ray);
+            throughput *= medium->transmittance(sampler, ray, true, true);
         }
         if (!didHit || !includeSurfaces)
             break;

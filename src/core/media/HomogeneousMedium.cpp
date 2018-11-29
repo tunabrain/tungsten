@@ -3,7 +3,6 @@
 #include "sampling/PathSampleGenerator.hpp"
 
 #include "math/TangentFrame.hpp"
-#include "math/FastMath.hpp"
 #include "math/Ray.hpp"
 
 #include "io/JsonObject.hpp"
@@ -74,27 +73,29 @@ bool HomogeneousMedium::sampleDistance(PathSampleGenerator &sampler, const Ray &
         if (maxT == Ray::infinity())
             return false;
         sample.t = maxT;
-        sample.weight = FastMath::exp(-_sigmaT*maxT);
+        sample.weight = _transmittance->eval(sample.t*_sigmaT, state.firstScatter, true);
         sample.pdf = 1.0f;
         sample.exited = true;
     } else {
         int component = sampler.nextDiscrete(3);
         float sigmaTc = _sigmaT[component];
 
-        float t = -std::log(1.0f - sampler.next1D())/sigmaTc;
+        float t = _transmittance->sample(sampler, state.firstScatter)/sigmaTc;
         sample.t = min(t, maxT);
         sample.continuedT = t;
-        sample.weight = FastMath::exp(-sample.t*_sigmaT);
-        sample.continuedWeight = FastMath::exp(-sample.continuedT*_sigmaT);
         sample.exited = (t >= maxT);
+        Vec3f tau = sample.t*_sigmaT;
+        Vec3f continuedTau = sample.continuedT*_sigmaT;
+        sample.weight = _transmittance->eval(tau, state.firstScatter, sample.exited);
+        sample.continuedWeight = _transmittance->eval(continuedTau, state.firstScatter, sample.exited);
         if (sample.exited) {
-            sample.pdf = sample.weight.avg();
+            sample.pdf = _transmittance->surfaceProbability(tau, state.firstScatter).avg();
         } else {
-            sample.pdf = (_sigmaT*sample.weight).avg();
-            sample.weight *= _sigmaS;
+            sample.pdf = (_sigmaT*_transmittance->mediumPdf(tau, state.firstScatter)).avg();
+            sample.weight *= _sigmaS*_transmittance->sigmaBar();
         }
         sample.weight /= sample.pdf;
-        sample.continuedWeight = _sigmaS*sample.continuedWeight/(_sigmaT*sample.continuedWeight).avg();
+        sample.continuedWeight = _sigmaS*_transmittance->sigmaBar()*sample.continuedWeight/(_sigmaT*_transmittance->mediumPdf(continuedTau, state.firstScatter)).avg();
 
         state.advance();
     }
@@ -104,87 +105,26 @@ bool HomogeneousMedium::sampleDistance(PathSampleGenerator &sampler, const Ray &
     return true;
 }
 
-bool HomogeneousMedium::invertDistance(WritablePathSampleGenerator &sampler, const Ray &ray, bool onSurface) const
-{
-    float maxT = ray.farT();
-    if (_absorptionOnly) {
-        if (maxT == Ray::infinity())
-            return false;
-        return true;
-    } else {
-        Vec3f Tr = std::exp(-_sigmaT*maxT);
-        Vec3f pdfs = onSurface ? Tr : _sigmaT*Tr;
-        Vec3f cdf(pdfs.x(), pdfs.x() + pdfs.y(), pdfs.sum());
-
-        float target = sampler.untracked1D()*cdf.z();
-        int component = target < cdf.x() ? 0 : (target < cdf.y() ? 1 : 2);
-        float Trc = Tr[component];
-
-        float xi = 1.0f - Trc;
-        if (onSurface)
-            xi -= (1.0f - Trc)*sampler.next1D();
-
-        sampler.putDiscrete(3, component);
-        sampler.put1D(xi);
-    }
-    return true;
-}
-
-Vec3f HomogeneousMedium::transmittance(PathSampleGenerator &/*sampler*/, const Ray &ray) const
+Vec3f HomogeneousMedium::transmittance(PathSampleGenerator &/*sampler*/, const Ray &ray, bool startOnSurface,
+        bool endOnSurface) const
 {
     if (ray.farT() == Ray::infinity())
         return Vec3f(0.0f);
-    else {
-        return FastMath::exp(-_sigmaT*ray.farT());
-    }
+    else
+        return _transmittance->eval(_sigmaT*ray.farT(), startOnSurface, endOnSurface);
 }
 
-float HomogeneousMedium::pdf(PathSampleGenerator &/*sampler*/, const Ray &ray, bool onSurface) const
+float HomogeneousMedium::pdf(PathSampleGenerator &/*sampler*/, const Ray &ray, bool startOnSurface, bool endOnSurface) const
 {
     if (_absorptionOnly) {
         return 1.0f;
     } else {
-        if (onSurface)
-            return FastMath::exp(-ray.farT()*_sigmaT).avg();
+        Vec3f tau = ray.farT()*_sigmaT;
+        if (endOnSurface)
+            return _transmittance->surfaceProbability(tau, startOnSurface).avg();
         else
-            return (_sigmaT*FastMath::exp(-ray.farT()*_sigmaT)).avg();
+            return (_sigmaT*_transmittance->mediumPdf(tau, startOnSurface)).avg();
     }
-}
-
-Vec3f HomogeneousMedium::transmittanceAndPdfs(PathSampleGenerator &/*sampler*/, const Ray &ray, bool startOnSurface,
-        bool endOnSurface, float &pdfForward, float &pdfBackward) const
-{
-    if (ray.farT() == Ray::infinity()) {
-        pdfForward = pdfBackward = 0.0f;
-        return Vec3f(0.0f);
-    } else if (_absorptionOnly) {
-        pdfForward = pdfBackward = 1.0f;
-        return FastMath::exp(-_sigmaT*ray.farT());
-    } else {
-        Vec3f weight = FastMath::exp(-_sigmaT*ray.farT());
-        pdfForward  =   endOnSurface ? weight.avg() : (_sigmaT*weight).avg();
-        pdfBackward = startOnSurface ? weight.avg() : (_sigmaT*weight).avg();
-        return weight;
-    }
-}
-
-bool HomogeneousMedium::invert(WritablePathSampleGenerator &sampler, const Ray &ray, bool onSurface) const
-{
-    if (_absorptionOnly)
-        return true;
-
-    Vec3f transmittance = std::exp(-ray.farT()*_sigmaT);
-    Vec3f pdfs = _sigmaT*transmittance;
-    float target = sampler.untracked1D()*pdfs.sum();
-    int component = (target < pdfs.x() ? 0 : (target < pdfs.x() + pdfs.y() ? 1 : 2));
-
-    float xi = 1.0f - transmittance[component];
-    if (onSurface)
-        xi += (1.0f - xi)*sampler.untracked1D();
-    sampler.putDiscrete(3, component);
-    sampler.put1D(xi);
-
-    return true;
 }
 
 }

@@ -132,6 +132,7 @@ public:
     Vec3f eval(const Vec3f &d, bool adjoint) const;
     void evalPdfs(const PathVertex *prev, const PathEdge *prevEdge, const PathVertex &next,
             const PathEdge &nextEdge, float *forward, float *backward) const;
+    bool segmentConnectable(const PathVertex &next) const;
 
     void pointerFixup();
 

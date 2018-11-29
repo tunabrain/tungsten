@@ -68,9 +68,8 @@ public:
     virtual Box3f bounds() const override;
 
     float density(Vec3f p) const override;
-    Vec3f transmittance(PathSampleGenerator &sampler, Vec3f p, Vec3f w, float t0, float t1, Vec3f sigmaT) const override;
-    Vec2f inverseOpticalDepth(PathSampleGenerator &sampler, Vec3f p, Vec3f w, float t0, float t1,
-            float sigmaT, float xi) const override;
+    float opticalDepth(PathSampleGenerator &sampler, Vec3f p, Vec3f w, float t0, float t1) const override;
+    Vec2f inverseOpticalDepth(PathSampleGenerator &sampler, Vec3f p, Vec3f w, float t0, float t1, float tau) const override;
 };
 
 }

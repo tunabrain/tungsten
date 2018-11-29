@@ -108,7 +108,7 @@ inline Vec3f TraceBase::generalizedShadowRayImpl(PathSampleGenerator &sampler,
                 pdfForward *= forward;
                 pdfBackward *= backward;
             } else {
-                throughput *= medium->transmittance(sampler, ray);
+                throughput *= medium->transmittance(sampler, ray, startsOnSurface, endsOnSurface);
             }
         }
         if (info.primitive == nullptr || info.primitive == endCap)
@@ -125,10 +125,11 @@ inline Vec3f TraceBase::generalizedShadowRayImpl(PathSampleGenerator &sampler,
 }
 
 Vec3f TraceBase::generalizedShadowRay(PathSampleGenerator &sampler, Ray &ray, const Medium *medium,
-            const Primitive *endCap, int bounce) const
+            const Primitive *endCap, bool startsOnSurface, bool endsOnSurface, int bounce) const
 {
     float dummyA, dummyB;
-    return generalizedShadowRayImpl<false>(sampler, ray, medium, endCap, bounce, false, false, dummyA, dummyB);
+    return generalizedShadowRayImpl<false>(sampler, ray, medium, endCap, bounce,
+            startsOnSurface, endsOnSurface, dummyA, dummyB);
 }
 
 Vec3f TraceBase::generalizedShadowRayAndPdfs(PathSampleGenerator &sampler, Ray &ray, const Medium *medium,
@@ -147,6 +148,7 @@ Vec3f TraceBase::attenuatedEmission(PathSampleGenerator &sampler,
                          IntersectionTemporary &data,
                          IntersectionInfo &info,
                          int bounce,
+                         bool startsOnSurface,
                          Ray &ray,
                          Vec3f *transmittance)
 {
@@ -162,7 +164,7 @@ Vec3f TraceBase::attenuatedEmission(PathSampleGenerator &sampler,
     info.w = ray.dir();
     light.intersectionInfo(data, info);
 
-    Vec3f shadow = generalizedShadowRay(sampler, ray, medium, &light, bounce);
+    Vec3f shadow = generalizedShadowRay(sampler, ray, medium, &light, startsOnSurface, true, bounce);
     if (transmittance)
         *transmittance = shadow;
     if (shadow == 0.0f)
@@ -192,7 +194,7 @@ bool TraceBase::volumeLensSample(const Camera &camera,
     ray.setPrimaryRay(false);
     ray.setFarT(lensSample.dist);
 
-    Vec3f transmittance = generalizedShadowRay(sampler, ray, medium, nullptr, bounce);
+    Vec3f transmittance = generalizedShadowRay(sampler, ray, medium, nullptr, false, true, bounce);
     if (transmittance == 0.0f)
         return false;
 
@@ -231,7 +233,7 @@ bool TraceBase::surfaceLensSample(const Camera &camera,
     ray.setPrimaryRay(false);
     ray.setFarT(sample.dist);
 
-    Vec3f transmittance = generalizedShadowRay(*event.sampler, ray, medium, nullptr, bounce);
+    Vec3f transmittance = generalizedShadowRay(*event.sampler, ray, medium, nullptr, true, true, bounce);
     if (transmittance == 0.0f)
         return false;
 
@@ -270,7 +272,7 @@ Vec3f TraceBase::lightSample(const Primitive &light,
 
     IntersectionTemporary data;
     IntersectionInfo info;
-    Vec3f e = attenuatedEmission(*event.sampler, light, medium, sample.dist, data, info, bounce, ray, transmittance);
+    Vec3f e = attenuatedEmission(*event.sampler, light, medium, sample.dist, data, info, bounce, true, ray, transmittance);
     if (e == 0.0f)
         return Vec3f(0.0f);
 
@@ -306,7 +308,7 @@ Vec3f TraceBase::bsdfSample(const Primitive &light,
 
     IntersectionTemporary data;
     IntersectionInfo info;
-    Vec3f e = attenuatedEmission(*event.sampler, light, medium, -1.0f, data, info, bounce, ray, nullptr);
+    Vec3f e = attenuatedEmission(*event.sampler, light, medium, -1.0f, data, info, bounce, true, ray, nullptr);
 
     if (e == Vec3f(0.0f))
         return Vec3f(0.0f);
@@ -338,7 +340,7 @@ Vec3f TraceBase::volumeLightSample(PathSampleGenerator &sampler,
 
     IntersectionTemporary data;
     IntersectionInfo info;
-    Vec3f e = attenuatedEmission(sampler, light, medium, lightSample.dist, data, info, bounce, ray, nullptr);
+    Vec3f e = attenuatedEmission(sampler, light, medium, lightSample.dist, data, info, bounce, false, ray, nullptr);
     if (e == 0.0f)
         return Vec3f(0.0f);
 
@@ -366,7 +368,7 @@ Vec3f TraceBase::volumePhaseSample(const Primitive &light,
 
     IntersectionTemporary data;
     IntersectionInfo info;
-    Vec3f e = attenuatedEmission(sampler, light, medium, -1.0f, data, info, bounce, ray, nullptr);
+    Vec3f e = attenuatedEmission(sampler, light, medium, -1.0f, data, info, bounce, false, ray, nullptr);
 
     if (e == Vec3f(0.0f))
         return Vec3f(0.0f);

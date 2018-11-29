@@ -29,7 +29,7 @@ void LightTracer::traceSample(PathSampleGenerator &sampler)
         Ray shadowRay(point.p, splat.d);
         shadowRay.setFarT(splat.dist);
 
-        Vec3f transmission = generalizedShadowRay(sampler, shadowRay, medium, nullptr, 0);
+        Vec3f transmission = generalizedShadowRay(sampler, shadowRay, medium, nullptr, true, true, 0);
         if (transmission != 0.0f) {
             Vec3f value = throughput*transmission*splat.weight
                     *light->evalDirectionalEmission(point, DirectionSample(splat.d));

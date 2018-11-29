@@ -110,10 +110,10 @@ inline float AtmosphericMedium::densityIntegral(float h, float t0, float t1) con
         return (SQRT_PI*0.5f/s)*std::exp((-h*h + _radius*_radius)*s*s)*Erf::erfDifference(s*t0, s*t1);
 }
 
-inline float AtmosphericMedium::inverseOpticalDepth(double h, double t0, double sigmaT, double xi) const
+inline float AtmosphericMedium::inverseOpticalDepth(double h, double t0, double tau) const
 {
     double s = _effectiveFalloffScale;
-    double inner = std::erf(s*t0) - 2.0*double(INV_SQRT_PI)*std::exp(s*s*(h - _radius)*(h + _radius))*s*std::log(xi)/sigmaT;
+    double inner = std::erf(s*t0) + 2.0*double(INV_SQRT_PI)*std::exp(s*s*(h - _radius)*(h + _radius))*s*tau;
 
     if (inner >= 1.0)
         return Ray::infinity();
@@ -134,24 +134,26 @@ bool AtmosphericMedium::sampleDistance(PathSampleGenerator &sampler, const Ray &
     float maxT = ray.farT() + t0;
     if (_absorptionOnly) {
         sample.t = ray.farT();
-        sample.weight = std::exp(-_sigmaT*densityIntegral(h, t0, maxT));
+        Vec3f tau = densityIntegral(h, t0, maxT)*_sigmaT;
+        sample.weight = _transmittance->eval(tau, state.firstScatter, true);
         sample.pdf = 1.0f;
         sample.exited = true;
     } else {
         int component = sampler.nextDiscrete(3);
         float sigmaTc = _sigmaT[component];
-        float xi = 1.0f - sampler.next1D();
+        float tauC = _transmittance->sample(sampler, state.firstScatter)/sigmaTc;
 
-        float t = inverseOpticalDepth(h, t0, sigmaTc, xi);
+        float t = inverseOpticalDepth(h, t0, tauC);
         sample.t = min(t, maxT);
-        sample.weight = std::exp(-_sigmaT*densityIntegral(h, t0, sample.t));
+        Vec3f tau = densityIntegral(h, t0, sample.t)*_sigmaT;
+        sample.weight = _transmittance->eval(tau, state.firstScatter, sample.exited);
         sample.exited = (t >= maxT);
         if (sample.exited) {
-            sample.pdf = sample.weight.avg();
+            sample.pdf = _transmittance->surfaceProbability(tau, state.firstScatter).avg();
         } else {
             float rho = density(h, sample.t);
-            sample.pdf = (rho*_sigmaT*sample.weight).avg();
-            sample.weight *= rho*_sigmaS;
+            sample.pdf = (rho*_sigmaT*_transmittance->mediumPdf(tau, state.firstScatter)).avg();
+            sample.weight *= rho*_sigmaS*_transmittance->sigmaBar();
         }
         sample.weight /= sample.pdf;
         sample.t -= t0;
@@ -164,17 +166,19 @@ bool AtmosphericMedium::sampleDistance(PathSampleGenerator &sampler, const Ray &
     return true;
 }
 
-Vec3f AtmosphericMedium::transmittance(PathSampleGenerator &/*sampler*/, const Ray &ray) const
+Vec3f AtmosphericMedium::transmittance(PathSampleGenerator &/*sampler*/, const Ray &ray, bool startOnSurface,
+        bool endOnSurface) const
 {
     Vec3f p = (ray.pos() - _center);
     float t0 = p.dot(ray.dir());
     float t1 = ray.farT() + t0;
     float  h = (p - t0*ray.dir()).length();
 
-    return std::exp(-_sigmaT*densityIntegral(h, t0, t1));
+    Vec3f tau = _sigmaT*densityIntegral(h, t0, t1);
+    return _transmittance->eval(tau, startOnSurface, endOnSurface);
 }
 
-float AtmosphericMedium::pdf(PathSampleGenerator &/*sampler*/, const Ray &ray, bool onSurface) const
+float AtmosphericMedium::pdf(PathSampleGenerator &/*sampler*/, const Ray &ray, bool startOnSurface, bool endOnSurface) const
 {
     if (_absorptionOnly) {
         return 1.0f;
@@ -184,33 +188,13 @@ float AtmosphericMedium::pdf(PathSampleGenerator &/*sampler*/, const Ray &ray, b
         float t1 = ray.farT() + t0;
         float  h = (p - t0*ray.dir()).length();
 
-        Vec3f transmittance = std::exp(-_sigmaT*densityIntegral(h, t0, t1));
-        if (onSurface) {
-            return transmittance.avg();
-        } else {
-            return (density(h, t0)*_sigmaT*transmittance).avg();
-        }
+
+        Vec3f tau = _sigmaT*densityIntegral(h, t0, t1);
+        if (endOnSurface)
+            return _transmittance->surfaceProbability(tau, startOnSurface).avg();
+        else
+            return (density(h, t0)*_sigmaT*_transmittance->mediumPdf(tau, startOnSurface)).avg();
     }
-}
-
-Vec3f AtmosphericMedium::transmittanceAndPdfs(PathSampleGenerator &/*sampler*/, const Ray &ray, bool startOnSurface,
-        bool endOnSurface, float &pdfForward, float &pdfBackward) const
-{
-    Vec3f p = (ray.pos() - _center);
-    float t0 = p.dot(ray.dir());
-    float t1 = ray.farT() + t0;
-    float  h = (p - t0*ray.dir()).length();
-
-    Vec3f transmittance = std::exp(-_sigmaT*densityIntegral(h, t0, t1));
-
-    if (_absorptionOnly) {
-        pdfForward = pdfBackward = 1.0f;
-    } else {
-        pdfForward  =   endOnSurface ? transmittance.avg() : (density(h, t1)*_sigmaT*transmittance).avg();
-        pdfBackward = startOnSurface ? transmittance.avg() : (density(h, t0)*_sigmaT*transmittance).avg();
-    }
-
-    return transmittance;
 }
 
 }

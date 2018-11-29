@@ -237,7 +237,7 @@ float VdbGrid::density(Vec3f p) const
     return gridAt(_grid->tree(), p);
 }
 
-Vec3f VdbGrid::transmittance(PathSampleGenerator &sampler, Vec3f p, Vec3f w, float t0, float t1, Vec3f sigmaT) const
+float VdbGrid::opticalDepth(PathSampleGenerator &sampler, Vec3f p, Vec3f w, float t0, float t1) const
 {
     auto accessor = _grid->getConstAccessor();
 
@@ -249,7 +249,7 @@ Vec3f VdbGrid::transmittance(PathSampleGenerator &sampler, Vec3f p, Vec3f w, flo
             integral += accessor.getValue(voxel)*(tb - ta);
             return false;
         });
-        return std::exp(-integral*sigmaT);
+        return integral;
     } else if (_integrationMethod == IntegrationMethod::ExactLinear) {
         VdbRaymarcher<openvdb::FloatGrid::TreeType, 3> dda;
 
@@ -261,27 +261,24 @@ Vec3f VdbGrid::transmittance(PathSampleGenerator &sampler, Vec3f p, Vec3f w, flo
             fa = fb;
             return false;
         });
-        return std::exp(-integral*sigmaT);
+        return integral;
     } else if (_integrationMethod == IntegrationMethod::ResidualRatio) {
         VdbRaymarcher<Vec2fGrid::TreeType, 3> dda;
 
         float scale = _supergridSubsample;
         float invScale = 1.0f/scale;
-        sigmaT *= scale;
-
-        float sigmaTc = sigmaT.max();
 
         auto superAccessor =  _superGrid->getConstAccessor();
 
         UniformSampler &generator = sampler.uniformGenerator();
 
         float controlIntegral = 0.0f;
-        Vec3f Tr(1.0f);
+        float Tr = 1.0f;
         dda.march(DdaRay(p*invScale + 0.5f, w), t0*invScale, t1*invScale, superAccessor, [&](openvdb::Coord voxel, float ta, float tb) {
             openvdb::Vec2s v = superAccessor.getValue(voxel);
             float muC = v.x();
             float muR = v.y();
-            muR *= sigmaTc;
+            muR *= scale;
 
             controlIntegral += muC*(tb - ta);
 
@@ -289,12 +286,12 @@ Vec3f VdbGrid::transmittance(PathSampleGenerator &sampler, Vec3f p, Vec3f w, flo
                 ta -= BitManip::normalizedLog(generator.nextI())/muR;
                 if (ta >= tb)
                     break;
-                Tr *= 1.0f - sigmaT*((gridAt(accessor, p + w*ta*scale) - muC)/muR);
+                Tr *= 1.0f - scale*((gridAt(accessor, p + w*ta*scale) - muC)/muR);
             }
 
             return false;
         });
-        return std::exp(-controlIntegral*sigmaT)*Tr;
+        return controlIntegral - std::log(Tr);
     } else {
         float ta = t0;
         float fa = gridAt(accessor, p + w*t0);
@@ -308,12 +305,11 @@ Vec3f VdbGrid::transmittance(PathSampleGenerator &sampler, Vec3f p, Vec3f w, flo
             fa = fb;
             dT = _stepSize;
         } while (ta < t1);
-        return std::exp(-integral*sigmaT);
+        return integral;
     }
 }
 
-Vec2f VdbGrid::inverseOpticalDepth(PathSampleGenerator &sampler, Vec3f p, Vec3f w, float t0, float t1,
-        float sigmaT, float xi) const
+Vec2f VdbGrid::inverseOpticalDepth(PathSampleGenerator &sampler, Vec3f p, Vec3f w, float t0, float t1, float tau) const
 {
     auto accessor = _grid->getConstAccessor();
 
@@ -324,9 +320,9 @@ Vec2f VdbGrid::inverseOpticalDepth(PathSampleGenerator &sampler, Vec3f p, Vec3f 
         Vec2f result(t1, 0.0f);
         bool exited = !dda.march(DdaRay(p + 0.5f, w), t0, t1, accessor, [&](openvdb::Coord voxel, float ta, float tb) {
             float v = accessor.getValue(voxel);
-            float delta = v*sigmaT*(tb - ta);
-            if (integral + delta >= xi) {
-                result = Vec2f(ta + (tb - ta)*(xi - integral)/delta, v);
+            float delta = v*(tb - ta);
+            if (integral + delta >= tau) {
+                result = Vec2f(ta + (tb - ta)*(tau - integral)/delta, v);
                 return true;
             }
             integral += delta;
@@ -341,11 +337,11 @@ Vec2f VdbGrid::inverseOpticalDepth(PathSampleGenerator &sampler, Vec3f p, Vec3f 
         Vec2f result(t1, 0.0f);
         bool exited = !dda.march(DdaRay(p + 0.5f, w), t0, t1, accessor, [&](openvdb::Coord /*voxel*/, float ta, float tb) {
             float fb = gridAt(accessor, p + tb*w);
-            float delta = (fb + fa)*0.5f*sigmaT*(tb - ta);
-            if (integral + delta >= xi) {
-                float a = (fb - fa)*sigmaT;
-                float b = fa*sigmaT;
-                float c = (integral - xi)/(tb - ta);
+            float delta = (fb + fa)*0.5f*(tb - ta);
+            if (integral + delta >= tau) {
+                float a = (fb - fa);
+                float b = fa;
+                float c = (integral - tau)/(tb - ta);
                 float mantissa = max(b*b - 2.0f*a*c, 0.0f);
                 float x1 = (-b + std::sqrt(mantissa))/a;
                 result = Vec2f(ta + (tb - ta)*x1, fa + (fb - fa)*x1);
@@ -364,11 +360,11 @@ Vec2f VdbGrid::inverseOpticalDepth(PathSampleGenerator &sampler, Vec3f p, Vec3f 
         do {
             float tb = min(ta + dT, t1);
             float fb = gridAt(accessor, p + w*tb);
-            float delta = (fa + fb)*sigmaT*0.5f*(tb - ta);
-            if (integral + delta >= xi) {
-                float a = (fb - fa)*sigmaT;
-                float b = fa*sigmaT;
-                float c = (integral - xi)/(tb - ta);
+            float delta = (fa + fb)*0.5f*(tb - ta);
+            if (integral + delta >= tau) {
+                float a = (fb - fa);
+                float b = fa;
+                float c = (integral - tau)/(tb - ta);
                 float mantissa = max(b*b - 2.0f*a*c, 0.0f);
                 float x1 = (-b + std::sqrt(mantissa))/a;
                 return Vec2f(ta + (tb - ta)*x1, fa + (fb - fa)*x1);

@@ -21,7 +21,7 @@ class ExponentialMedium : public Medium
     inline float density(Vec3f p) const;
     inline float density(float x, float dx, float t) const;
     inline float densityIntegral(float x, float dx, float tMax) const;
-    inline float inverseOpticalDepth(float x, float dx, float sigmaT, float logXi) const;
+    inline float inverseOpticalDepth(float x, float dx, float tau) const;
 
 public:
     ExponentialMedium();
@@ -39,10 +39,9 @@ public:
 
     virtual bool sampleDistance(PathSampleGenerator &sampler, const Ray &ray,
             MediumState &state, MediumSample &sample) const override;
-    virtual Vec3f transmittance(PathSampleGenerator &sampler, const Ray &ray) const override;
-    virtual float pdf(PathSampleGenerator &sampler, const Ray &ray, bool onSurface) const override;
-    virtual Vec3f transmittanceAndPdfs(PathSampleGenerator &sampler, const Ray &ray, bool startOnSurface,
-            bool endOnSurface, float &pdfForward, float &pdfBackward) const override;
+    virtual Vec3f transmittance(PathSampleGenerator &sampler, const Ray &ray, bool startOnSurface,
+            bool endOnSurface) const override;
+    virtual float pdf(PathSampleGenerator &sampler, const Ray &ray, bool startOnSurface, bool endOnSurface) const override;
 };
 
 }

@@ -50,6 +50,7 @@ Vec3f PathTracer::traceSample(Vec2u pixel, PathSampleGenerator &sampler)
     while ((didHit || medium) && bounce < _settings.maxBounces) {
         bool hitSurface = true;
         if (medium) {
+            mediumSample.continuedWeight = throughput;
             if (!medium->sampleDistance(sampler, ray, state, mediumSample))
                 return emission;
             throughput *= mediumSample.weight;

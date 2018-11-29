@@ -36,10 +36,9 @@ public:
 
     virtual bool sampleDistance(PathSampleGenerator &sampler, const Ray &ray,
             MediumState &state, MediumSample &sample) const override;
-    virtual Vec3f transmittance(PathSampleGenerator &sampler, const Ray &ray) const override;
-    virtual float pdf(PathSampleGenerator &sampler, const Ray &ray, bool onSurface) const override;
-    virtual Vec3f transmittanceAndPdfs(PathSampleGenerator &sampler, const Ray &ray, bool startOnSurface,
-            bool endOnSurface, float &pdfForward, float &pdfBackward) const override;
+    virtual Vec3f transmittance(PathSampleGenerator &sampler, const Ray &ray, bool startOnSurface,
+            bool endOnSurface) const override;
+    virtual float pdf(PathSampleGenerator &sampler, const Ray &ray, bool startOnSurface, bool endOnSurface) const override;
 };
 
 }

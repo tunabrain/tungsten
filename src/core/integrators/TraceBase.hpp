@@ -64,6 +64,7 @@ protected:
                              IntersectionTemporary &data,
                              IntersectionInfo &info,
                              int bounce,
+                             bool startsOnSurface,
                              Ray &ray,
                              Vec3f *transmittance);
 
@@ -148,6 +149,8 @@ public:
                                Ray &ray,
                                const Medium *medium,
                                const Primitive *endCap,
+                               bool startsOnSurface,
+                               bool endsOnSurface,
                                int bounce) const;
     Vec3f generalizedShadowRayAndPdfs(PathSampleGenerator &sampler,
                                Ray &ray,

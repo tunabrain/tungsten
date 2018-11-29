@@ -160,7 +160,7 @@ bool PathVertex::sampleNextVertex(const TraceableScene &scene, TraceBase &tracer
         hitSurface = mediumRecord.mediumSample.exited;
         edgePdfForward = mediumRecord.mediumSample.pdf;
         Ray reverseRay(mediumRecord.mediumSample.p, -state.ray.dir(), 0.0f, mediumRecord.mediumSample.t);
-        edgePdfBackward = state.medium->pdf(state.sampler, reverseRay, onSurface());
+        edgePdfBackward = state.medium->pdf(state.sampler, reverseRay, hitSurface, onSurface());
         weight *= mediumRecord.mediumSample.weight;
         if (hitSurface && !didHit)
             return false;
@@ -325,6 +325,14 @@ void PathVertex::evalPdfs(const PathVertex *prev, const PathEdge *prevEdge, cons
         if (!prev->isInfiniteEmitter()) *backward *= prev->cosineFactor(prevEdge->d)/prevEdge->rSq;
         break;
     }}
+}
+
+bool PathVertex::segmentConnectable(const PathVertex &next) const
+{
+    if (onSurface() || next.onSurface())
+        return true;
+
+    return !_medium->isDirac();
 }
 
 void PathVertex::pointerFixup()

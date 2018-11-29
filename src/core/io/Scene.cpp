@@ -91,6 +91,11 @@ std::shared_ptr<T> fetchObject(const std::vector<std::shared_ptr<T>> &list, cons
     }
 }
 
+std::shared_ptr<Transmittance> Scene::fetchTransmittance(JsonPtr value) const
+{
+    return instantiate<Transmittance>(value, *this);
+}
+
 std::shared_ptr<PhaseFunction> Scene::fetchPhase(JsonPtr value) const
 {
     return instantiate<PhaseFunction>(value, *this);
