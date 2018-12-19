@@ -144,7 +144,7 @@ std::unique_ptr<float[]> rmseMap(int w, int h, std::unique_ptr<float[]> imgA, st
     for (int i = 0; i < w*h; ++i) {
         float rmse = 0.0f;
         for (int c = 0; c < 3; ++c)
-            rmse += sqr(imgA[i*3 + c] - imgB[i*3 + c])/(imgA[i*3 + c] + 1e-3f);
+            rmse += sqr(imgA[i*3 + c] - imgB[i*3 + c])/(sqr(imgA[i*3 + c]) + 1e-3f);
         result[i] = rmse/3.0f;
     }
 
