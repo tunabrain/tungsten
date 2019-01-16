@@ -302,7 +302,7 @@ std::shared_ptr<Bsdf> ObjLoader::convertObjMaterial(const ObjMaterial &mat)
             result = std::make_shared<TransparencyBsdf>(texture, result);
     }
     if (mat.hasBumpMap()) {
-        PathPtr path = std::make_shared<Path>(mat.alphaMap);
+        PathPtr path = std::make_shared<Path>(mat.bumpMap);
         path->freezeWorkingDirectory();
 
         auto texture = _textureCache->fetchTexture(path, TexelConversion::REQUEST_AVERAGE);
