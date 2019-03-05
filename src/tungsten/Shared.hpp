@@ -35,6 +35,7 @@ static const int OPT_THREADS           = 1;
 static const int OPT_VERSION           = 2;
 static const int OPT_HELP              = 3;
 static const int OPT_RESTART           = 4;
+static const int OPT_INPUT_DIRECTORY   = 11;
 static const int OPT_OUTPUT_DIRECTORY  = 5;
 static const int OPT_SPP               = 6;
 static const int OPT_SEED              = 7;
@@ -102,6 +103,7 @@ class StandaloneRenderer
     double _checkpointInterval;
     double _timeout;
     int _threadCount;
+    Path _inputDirectory;
     Path _outputDirectory;
 
     std::unique_ptr<Scene> _scene;
@@ -134,6 +136,7 @@ public:
         parser.addOption('t', "threads", "Specifies number of threads to use (default: number of cores minus one)", true, OPT_THREADS);
         parser.addOption('r', "restart", "Ignores saved render checkpoints and starts fresh from 0 spp", false, OPT_RESTART);
         parser.addOption('c', "checkpoint", "Specifies render time before saving a checkpoint. A value of 0 (default) disables checkpoints. Overrides the setting in the scene file", true, OPT_CHECKPOINTS);
+        parser.addOption('i', "input-directory", "Specifies the input directory", true, OPT_INPUT_DIRECTORY);
         parser.addOption('d', "output-directory", "Specifies the output directory. Overrides the setting in the scene file", true, OPT_OUTPUT_DIRECTORY);
         parser.addOption('\0', "spp", "Sets the number of samples per pixel to render at. Overrides the setting in the scene file", true, OPT_SPP);
         parser.addOption('\0', "timeout", "Specifies the maximum render time. A value of 0 (default) means unlimited. Overrides the setting in the scene file", true, OPT_TIMEOUT);
@@ -167,6 +170,12 @@ public:
 
         ThreadUtils::startThreads(_threadCount);
 
+        if (_parser.isPresent(OPT_INPUT_DIRECTORY)) {
+            _inputDirectory = Path(_parser.param(OPT_INPUT_DIRECTORY));
+            _inputDirectory.freezeWorkingDirectory();
+            _inputDirectory = _inputDirectory.absolute();
+        }
+
         if (_parser.isPresent(OPT_OUTPUT_DIRECTORY)) {
             _outputDirectory = Path(_parser.param(OPT_OUTPUT_DIRECTORY));
             _outputDirectory.freezeWorkingDirectory();
@@ -195,9 +204,10 @@ public:
         }
 
         writeLogLine(tfm::format("Loading scene '%s'...", currentScene));
+        Path inputDirectory = _parser.isPresent(OPT_INPUT_DIRECTORY) ? _inputDirectory : _scene->path().parent();
         try {
             std::unique_lock<std::mutex> lock(_sceneMutex);
-            _scene.reset(Scene::load(Path(currentScene)));
+            _scene.reset(Scene::load(Path(currentScene), nullptr, &inputDirectory));
             _scene->loadResources();
         } catch (const JsonLoadException &e) {
             std::cerr << e.what() << std::endl;
@@ -228,7 +238,7 @@ public:
         }
 
         try {
-            DirectoryChange context(_scene->path().parent());
+            DirectoryChange context(inputDirectory);
 
             if (_parser.isPresent(OPT_OUTPUT_DIRECTORY))
                 _scene->rendererSettings().setOutputDirectory(_outputDirectory);

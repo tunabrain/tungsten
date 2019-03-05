@@ -163,7 +163,7 @@ public:
         return _resources;
     }
 
-    static Scene *load(const Path &path, std::shared_ptr<TextureCache> cache = nullptr);
+    static Scene *load(const Path &path, std::shared_ptr<TextureCache> cache = nullptr, const Path *inputDirectory = nullptr);
     static void save(const Path &path, const Scene &scene);
 };
 

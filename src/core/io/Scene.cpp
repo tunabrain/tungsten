@@ -369,11 +369,11 @@ TraceableScene *Scene::makeTraceable(uint32 seed)
     return new TraceableScene(*_camera, *_integrator, _primitives, _bsdfs, _media, _rendererSettings, seed);
 }
 
-Scene *Scene::load(const Path &path, std::shared_ptr<TextureCache> cache)
+Scene *Scene::load(const Path &path, std::shared_ptr<TextureCache> cache, const Path *inputDirectory)
 {
     JsonDocument document(path);
 
-    DirectoryChange context(path.parent());
+    DirectoryChange context(inputDirectory ? *inputDirectory : path.parent());
     if (!cache)
         cache = std::make_shared<TextureCache>();
 
