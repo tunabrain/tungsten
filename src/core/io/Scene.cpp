@@ -11,6 +11,7 @@
 #include "integrators/IntegratorFactory.hpp"
 
 #include "primitives/PrimitiveFactory.hpp"
+#include "primitives/Primitive.hpp"
 
 #include "textures/TextureFactory.hpp"
 #include "textures/BitmapTexture.hpp"
@@ -109,6 +110,11 @@ std::shared_ptr<Medium> Scene::fetchMedium(JsonPtr value) const
 std::shared_ptr<Grid> Scene::fetchGrid(JsonPtr value) const
 {
     return instantiate<Grid>(value, *this);
+}
+
+std::shared_ptr<Primitive> Scene::fetchPrimitive(JsonPtr value) const
+{
+    return instantiate<Primitive>(value, *this);
 }
 
 std::shared_ptr<Bsdf> Scene::fetchBsdf(JsonPtr value) const

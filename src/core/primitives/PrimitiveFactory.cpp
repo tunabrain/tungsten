@@ -5,6 +5,7 @@
 #include "InfiniteSphere.hpp"
 #include "TriangleMesh.hpp"
 #include "Cylinder.hpp"
+#include "Instance.hpp"
 #include "Skydome.hpp"
 #include "Sphere.hpp"
 #include "Curves.hpp"
@@ -25,6 +26,7 @@ DEFINE_STRINGABLE_ENUM(PrimitiveFactory, "primitive", ({
     {"point", std::make_shared<Point>},
     {"skydome", std::make_shared<Skydome>},
     {"cylinder", std::make_shared<Cylinder>},
+    {"instances", std::make_shared<Instance>},
     {"infinite_sphere", std::make_shared<InfiniteSphere>},
     {"infinite_sphere_cap", std::make_shared<InfiniteSphereCap>},
     {"minecraft_map", std::make_shared<MinecraftLoader::TraceableMinecraftMap>},

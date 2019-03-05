@@ -10,6 +10,7 @@ class Primitive;
 struct IntersectionTemporary
 {
     const Primitive *primitive;
+    uint32 flags;
     uint8 data[64];
 
     IntersectionTemporary() = default;

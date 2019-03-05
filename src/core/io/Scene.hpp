@@ -72,6 +72,7 @@ public:
     std::shared_ptr<PhaseFunction> fetchPhase(JsonPtr value) const;
     std::shared_ptr<Medium> fetchMedium(JsonPtr value) const;
     std::shared_ptr<Grid> fetchGrid(JsonPtr value) const;
+    std::shared_ptr<Primitive> fetchPrimitive(JsonPtr value) const;
     std::shared_ptr<Bsdf> fetchBsdf(JsonPtr value) const;
     std::shared_ptr<Texture> fetchTexture(JsonPtr value, TexelConversion conversion) const;
     PathPtr fetchResource(const std::string &path) const;
