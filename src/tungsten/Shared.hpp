@@ -204,7 +204,7 @@ public:
         }
 
         writeLogLine(tfm::format("Loading scene '%s'...", currentScene));
-        Path inputDirectory = _parser.isPresent(OPT_INPUT_DIRECTORY) ? _inputDirectory : _scene->path().parent();
+        Path inputDirectory = _parser.isPresent(OPT_INPUT_DIRECTORY) ? _inputDirectory : Path(currentScene).parent();
         try {
             std::unique_lock<std::mutex> lock(_sceneMutex);
             _scene.reset(Scene::load(Path(currentScene), nullptr, &inputDirectory));
