@@ -40,6 +40,11 @@ void JsonPtr::get(double &dst) const
     getJsonNumber(*_value, dst, *this);
 }
 
+void JsonPtr::get(uint8 &dst) const
+{
+    getJsonNumber(*_value, dst, *this);
+}
+
 void JsonPtr::get(uint32 &dst) const
 {
     getJsonNumber(*_value, dst, *this);

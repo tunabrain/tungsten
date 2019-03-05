@@ -39,6 +39,7 @@ public:
     void get(bool &dst) const;
     void get(float &dst) const;
     void get(double &dst) const;
+    void get(uint8 &dst) const;
     void get(uint32 &dst) const;
     void get(int32 &dst) const;
     void get(uint64 &dst) const;
