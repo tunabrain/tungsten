@@ -17,6 +17,8 @@ class Quaternion : public Vec<Type, 4>
 public:
     Quaternion() = default;
 
+    inline Quaternion(const Vec<Type, 4> &a) : Vec<Type, 4>(a) {}
+
     inline explicit Quaternion(const Type &a)
     : Vec<Type, 4>(a)
     {
@@ -40,6 +42,27 @@ public:
     inline Quaternion conjugate() const
     {
         return Quaternion(_v[0], -_v[1], -_v[2], -_v[3]);
+    }
+
+    inline Quaternion slerp(Quaternion o, float t) const
+    {
+        double d = (*this).dot(o);
+        if (d < 0.0f) {
+            o = -o;
+            d = -d;
+        }
+        if (d > 0.9995)
+            return lerp(*this, o, t).normalized();
+
+        float theta0 = std::acos(d);
+        float theta = theta0*t;
+        float sinTheta = std::sin(theta);
+        float sinTheta0 = std::sin(theta0);
+
+        float  s0 = std::cos(theta) - d*sinTheta/sinTheta0;
+        float  s1 = sinTheta/sinTheta0;
+
+        return (s0*(*this)) + (s1*o);
     }
 
     inline Quaternion operator*(const Quaternion &o)
