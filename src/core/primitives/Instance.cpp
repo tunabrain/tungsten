@@ -132,9 +132,9 @@ const uint32 CompressionLZO = 2;
 
 void loadLossyInstance(InputStreamHandle &in, const Box3f &bounds, Vec3f &pos, QuaternionF &f)
 {
-    constexpr uint32 PosW = 21;
-    constexpr uint32 RotW = 8;
-    constexpr uint32 AxisW = 12;
+    CONSTEXPR uint32 PosW = 21;
+    CONSTEXPR uint32 RotW = 8;
+    CONSTEXPR uint32 AxisW = 12;
 
     uint32 a, b, c;
     FileUtils::streamRead(in, a);
@@ -171,8 +171,8 @@ void loadLosslessInstance(InputStreamHandle &in, Vec3f &pos, QuaternionF &f)
 
 void saveLossyInstance(OutputStreamHandle &out, const Box3f &bounds, Vec3f pos, QuaternionF f)
 {
-    constexpr uint32 RotW = 8;
-    constexpr uint32 AxisW = 12;
+    CONSTEXPR uint32 RotW = 8;
+    CONSTEXPR uint32 AxisW = 12;
 
     Vec3u xyz(clamp(Vec3i(((pos - bounds.min())/(bounds.max() - bounds.min()))*(1 << 21)), Vec3i(0), Vec3i((1 << 21) - 1)));
     uint32 a, b;
