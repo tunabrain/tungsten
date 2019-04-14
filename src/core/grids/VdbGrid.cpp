@@ -14,7 +14,6 @@
 #include "Debug.hpp"
 
 #include <openvdb/tools/Interpolation.h>
-#include <iostream>
 
 namespace Tungsten {
 
@@ -64,10 +63,15 @@ VdbGrid::IntegrationMethod VdbGrid::stringToIntegrationMethod(const std::string 
 }
 
 VdbGrid::VdbGrid()
-: _gridName("density"),
+: _densityName("density"),
+  _emissionName("Cd"),
   _integrationString("exact_nearest"),
   _sampleString("exact_nearest"),
   _stepSize(5.0f),
+  _densityScale(1.0f),
+  _emissionScale(1.0f),
+  _scaleEmissionByDensity(true),
+  _normalizeSize(true),
   _supergridSubsample(10)
 {
     _integrationMethod = stringToIntegrationMethod(_integrationString);
@@ -97,7 +101,7 @@ void VdbGrid::generateSuperGrid()
     Vec2fGrid::Ptr minMaxGrid = Vec2fGrid::create(openvdb::Vec2s(1e30f, 0.0f));
     auto minMaxAccessor = minMaxGrid->getAccessor();
 
-    for (openvdb::FloatGrid::ValueOnCIter iter = _grid->cbeginValueOn(); iter.test(); ++iter) {
+    for (openvdb::FloatGrid::ValueOnCIter iter = _densityGrid->cbeginValueOn(); iter.test(); ++iter) {
         openvdb::Coord coord = divideCoord(iter.getCoord());
         float d = *iter;
         accessor.setValue(coord, openvdb::Vec2s(accessor.getValue(coord).x() + d, 0.0f));
@@ -120,7 +124,7 @@ void VdbGrid::generateSuperGrid()
         iter.setValue(openvdb::Vec2s(muC, 0.0f));
     }
 
-    for (openvdb::FloatGrid::ValueOnCIter iter = _grid->cbeginValueOn(); iter.test(); ++iter) {
+    for (openvdb::FloatGrid::ValueOnCIter iter = _densityGrid->cbeginValueOn(); iter.test(); ++iter) {
         openvdb::Coord coord = divideCoord(iter.getCoord());
         openvdb::Vec2s v = accessor.getValue(coord);
         float residual = max(v.y(), std::abs(*iter - v.x()));
@@ -131,7 +135,13 @@ void VdbGrid::generateSuperGrid()
 void VdbGrid::fromJson(JsonPtr value, const Scene &scene)
 {
     if (auto path = value["file"]) _path = scene.fetchResource(path);
-    value.getField("grid_name", _gridName);
+    value.getField("grid_name", _densityName); /* Deprecated field for density grid name */
+    value.getField("density_name", _densityName);
+    value.getField("density_scale", _densityScale);
+    value.getField("emission_name", _emissionName);
+    value.getField("emission_scale", _emissionScale);
+    value.getField("scale_emission_by_density", _scaleEmissionByDensity);
+    value.getField("normalize_size", _normalizeSize);
     value.getField("integration_method", _integrationString);
     value.getField("sampling_method", _sampleString);
     value.getField("step_size", _stepSize);
@@ -147,7 +157,12 @@ rapidjson::Value VdbGrid::toJson(Allocator &allocator) const
     JsonObject result{Grid::toJson(allocator), allocator,
         "type", "vdb",
         "file", *_path,
-        "grid_name", _gridName,
+        "density_name", _densityName,
+        "density_scale", _densityScale,
+        "emission_name", _emissionName,
+        "emission_scale", _emissionScale,
+        "scale_emission_by_density", _scaleEmissionByDensity,
+        "normalize_size", _normalizeSize,
         "integration_method", _integrationString,
         "sampling_method", _sampleString,
         "transform", _configTransform
@@ -169,25 +184,53 @@ void VdbGrid::loadResources()
         FAIL("Failed to open vdb file at '%s': %s", *_path, e.what());
     }
 
-    openvdb::GridBase::Ptr ptr = file.readGrid(_gridName);
+    openvdb::GridBase::Ptr ptr = file.readGrid(_densityName);
     if (!ptr)
-        FAIL("Failed to read grid '%s' from vdb file '%s'", _gridName, *_path);
+        FAIL("Failed to read grid '%s' from vdb file '%s'", _densityName, *_path);
+    openvdb::GridBase::Ptr emissionPtr = file.readGrid(_emissionName);
 
     file.close();
 
-    _grid = openvdb::gridPtrCast<openvdb::FloatGrid>(ptr);
-    if (!_grid)
-        FAIL("Failed to read grid '%s' from vdb file '%s': Grid is not a FloatGrid", _gridName, *_path);
+    _densityGrid = openvdb::gridPtrCast<openvdb::FloatGrid>(ptr);
+    if (!_densityGrid)
+        FAIL("Failed to read grid '%s' from vdb file '%s': Grid is not a FloatGrid", _densityName, *_path);
 
-    openvdb::CoordBBox bbox = _grid->evalActiveVoxelBoundingBox();
+    auto accessor = _densityGrid->getAccessor();
+    for (openvdb::FloatGrid::ValueOnIter iter = _densityGrid->beginValueOn(); iter.test(); ++iter)
+        iter.setValue((*iter)*_densityScale);
+
+    Vec3d densityCenter (ptr->transform().indexToWorld(openvdb::Vec3d(0, 0, 0)).asPointer());
+    Vec3d densitySpacing(ptr->transform().indexToWorld(openvdb::Vec3d(1, 1, 1)).asPointer());
+    densitySpacing -= densityCenter;
+
+    Vec3d emissionCenter, emissionSpacing;
+    if (emissionPtr) {
+        emissionCenter  = Vec3d(emissionPtr->transform().indexToWorld(openvdb::Vec3d(0, 0, 0)).asPointer());
+        emissionSpacing = Vec3d(emissionPtr->transform().indexToWorld(openvdb::Vec3d(1, 1, 1)).asPointer());
+        emissionSpacing -= emissionCenter;
+        _emissionGrid = openvdb::gridPtrCast<openvdb::Vec3fGrid>(emissionPtr);
+    } else {
+        emissionCenter = densityCenter;
+        emissionSpacing = densitySpacing;
+        _emissionGrid = nullptr;
+    }
+    _emissionIndexOffset = Vec3f((densityCenter - emissionCenter)/emissionSpacing);
+
+    openvdb::CoordBBox bbox = _densityGrid->evalActiveVoxelBoundingBox();
     Vec3i minP = Vec3i(bbox.min().x(), bbox.min().y(), bbox.min().z());
     Vec3i maxP = Vec3i(bbox.max().x(), bbox.max().y(), bbox.max().z()) + 1;
     Vec3f diag = Vec3f(maxP - minP);
-    float scale = 1.0f/diag.max();
-    diag *= scale;
-    Vec3f center = Vec3f(minP)*scale + Vec3f(diag.x(), 0.0f, diag.z())*0.5f;
 
-    std::cout << minP << " -> " << maxP << std::endl;
+    float scale;
+    Vec3f center;
+    if (_normalizeSize) {
+        scale = 1.0f/diag.max();
+        diag *= scale;
+        center = Vec3f(minP)*scale + Vec3f(diag.x(), 0.0f, diag.z())*0.5f;
+    } else {
+        scale = densitySpacing.min();
+        center = -Vec3f(densityCenter);
+    }
 
     if (_integrationMethod == IntegrationMethod::ResidualRatio)
         generateSuperGrid();
@@ -197,8 +240,8 @@ void VdbGrid::loadResources()
     _bounds = Box3f(Vec3f(minP), Vec3f(maxP));
 
     if (_sampleMethod == SampleMethod::ExactLinear || _integrationMethod == IntegrationMethod::ExactLinear) {
-        auto accessor = _grid->getAccessor();
-        for (openvdb::FloatGrid::ValueOnCIter iter = _grid->cbeginValueOn(); iter.test(); ++iter) {
+        auto accessor = _densityGrid->getAccessor();
+        for (openvdb::FloatGrid::ValueOnCIter iter = _densityGrid->cbeginValueOn(); iter.test(); ++iter) {
             if (*iter != 0.0f)
                 for (int z = -1; z <= 1; ++z)
                     for (int y = -1; y <= 1; ++y)
@@ -234,12 +277,25 @@ static inline float gridAt(TreeT &acc, Vec3f p)
 
 float VdbGrid::density(Vec3f p) const
 {
-    return gridAt(_grid->tree(), p);
+    return gridAt(_densityGrid->tree(), p);
+}
+
+Vec3f VdbGrid::emission(Vec3f p) const
+{
+    if (_emissionGrid) {
+        Vec3f op = p + _emissionIndexOffset;
+        Vec3f result = _emissionScale*Vec3f(openvdb::tools::BoxSampler::sample(_emissionGrid->tree(), openvdb::Vec3R(op.x(), op.y(), op.z())).asPointer());
+        if (_scaleEmissionByDensity)
+            result *= density(p);
+        return result;
+    } else {
+        return Vec3f(0.0f);
+    }
 }
 
 float VdbGrid::opticalDepth(PathSampleGenerator &sampler, Vec3f p, Vec3f w, float t0, float t1) const
 {
-    auto accessor = _grid->getConstAccessor();
+    auto accessor = _densityGrid->getConstAccessor();
 
     if (_integrationMethod == IntegrationMethod::ExactNearest) {
         VdbRaymarcher<openvdb::FloatGrid::TreeType, 3> dda;
@@ -311,7 +367,7 @@ float VdbGrid::opticalDepth(PathSampleGenerator &sampler, Vec3f p, Vec3f w, floa
 
 Vec2f VdbGrid::inverseOpticalDepth(PathSampleGenerator &sampler, Vec3f p, Vec3f w, float t0, float t1, float tau) const
 {
-    auto accessor = _grid->getConstAccessor();
+    auto accessor = _densityGrid->getConstAccessor();
 
     if (_sampleMethod == SampleMethod::ExactNearest) {
         VdbRaymarcher<openvdb::FloatGrid::TreeType, 3> dda;
@@ -342,8 +398,14 @@ Vec2f VdbGrid::inverseOpticalDepth(PathSampleGenerator &sampler, Vec3f p, Vec3f 
                 float a = (fb - fa);
                 float b = fa;
                 float c = (integral - tau)/(tb - ta);
-                float mantissa = max(b*b - 2.0f*a*c, 0.0f);
-                float x1 = (-b + std::sqrt(mantissa))/a;
+                float x1;
+                if (std::abs(a) < 1e-6f) {
+                    x1 = -c/b;
+                } else {
+                    float mantissa = max(b*b - 2.0f*a*c, 0.0f);
+                    x1 = (-b + std::sqrt(mantissa))/a;
+                }
+                x1 = clamp(x1, 0.0f, 1.0f);
                 result = Vec2f(ta + (tb - ta)*x1, fa + (fb - fa)*x1);
                 return true;
             }

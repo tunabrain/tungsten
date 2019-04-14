@@ -51,11 +51,6 @@ void VoxelMedium::prepareForRender()
 
     _worldToGrid = _grid->invNaturalTransform();
     _gridBounds = _grid->bounds();
-
-    std::cout << _worldToGrid << std::endl;
-    std::cout << _gridBounds << std::endl;
-    std::cout << Box3f(_grid->naturalTransform()*_gridBounds.min(),
-                       _grid->naturalTransform()*_gridBounds.max()) << std::endl;
 }
 
 static inline bool bboxIntersection(const Box3f &box, const Vec3f &o, const Vec3f &d,
@@ -102,6 +97,8 @@ Vec3f VoxelMedium::sigmaT(Vec3f p) const
 bool VoxelMedium::sampleDistance(PathSampleGenerator &sampler, const Ray &ray,
         MediumState &state, MediumSample &sample) const
 {
+    sample.emission = Vec3f(0.0f);
+
     if (state.bounce > _maxBounce)
         return false;
 
@@ -142,6 +139,7 @@ bool VoxelMedium::sampleDistance(PathSampleGenerator &sampler, const Ray &ray,
         } else {
             float rho = tAndDensity.y();
             sample.pdf = (rho*_sigmaT*_transmittance->mediumPdf(tau, state.firstScatter)).avg();
+            sample.emission = _grid->emission(p + w*sample.t)*sample.weight/sample.pdf;
             sample.weight *= rho*_sigmaS*_transmittance->sigmaBar();
         }
         sample.weight /= sample.pdf;

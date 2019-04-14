@@ -124,6 +124,8 @@ inline float AtmosphericMedium::inverseOpticalDepth(double h, double t0, double 
 bool AtmosphericMedium::sampleDistance(PathSampleGenerator &sampler, const Ray &ray,
         MediumState &state, MediumSample &sample) const
 {
+    sample.emission = Vec3f(0.0f);
+
     if (state.bounce > _maxBounce)
         return false;
 

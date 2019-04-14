@@ -15,6 +15,7 @@ struct MediumSample
     Vec3f continuedWeight;
     float t;
     Vec3f weight;
+    Vec3f emission;
     float pdf;
     bool exited;
 };

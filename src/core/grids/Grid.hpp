@@ -20,6 +20,7 @@ public:
     virtual Box3f bounds() const;
 
     virtual float density(Vec3f p) const = 0;
+    virtual Vec3f emission(Vec3f p) const = 0;
     virtual float opticalDepth(PathSampleGenerator &sampler, Vec3f p, Vec3f w, float t0, float t1) const = 0;
     virtual Vec2f inverseOpticalDepth(PathSampleGenerator &sampler, Vec3f p, Vec3f w, float t0, float t1, float xi) const = 0;
 };

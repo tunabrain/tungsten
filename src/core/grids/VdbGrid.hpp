@@ -31,17 +31,25 @@ class VdbGrid : public Grid
     typedef openvdb::Grid<Vec2fTree> Vec2fGrid;
 
     PathPtr _path;
-    std::string _gridName;
+    std::string _densityName;
+    std::string _emissionName;
     std::string _integrationString;
     std::string _sampleString;
     float _stepSize;
+    float _densityScale;
+    float _emissionScale;
+    bool _scaleEmissionByDensity;
+    bool _normalizeSize;
     int _supergridSubsample;
     Mat4f _configTransform;
     Mat4f _invConfigTransform;
 
+    Vec3f _emissionIndexOffset;
+
     IntegrationMethod _integrationMethod;
     SampleMethod _sampleMethod;
-    openvdb::FloatGrid::Ptr _grid;
+    openvdb::FloatGrid::Ptr _densityGrid;
+    openvdb::Vec3fGrid::Ptr _emissionGrid;
     Vec2fGrid::Ptr _superGrid;
     Mat4f _transform;
     Mat4f _invTransform;
@@ -68,6 +76,7 @@ public:
     virtual Box3f bounds() const override;
 
     float density(Vec3f p) const override;
+    Vec3f emission(Vec3f p) const override;
     float opticalDepth(PathSampleGenerator &sampler, Vec3f p, Vec3f w, float t0, float t1) const override;
     Vec2f inverseOpticalDepth(PathSampleGenerator &sampler, Vec3f p, Vec3f w, float t0, float t1, float tau) const override;
 };

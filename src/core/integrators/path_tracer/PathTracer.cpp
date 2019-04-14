@@ -53,6 +53,7 @@ Vec3f PathTracer::traceSample(Vec2u pixel, PathSampleGenerator &sampler)
             mediumSample.continuedWeight = throughput;
             if (!medium->sampleDistance(sampler, ray, state, mediumSample))
                 return emission;
+            emission += throughput*mediumSample.emission;
             throughput *= mediumSample.weight;
             hitSurface = mediumSample.exited;
             if (hitSurface && !didHit)
