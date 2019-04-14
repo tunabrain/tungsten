@@ -1,0 +1,167 @@
+{
+    "media": [
+        {
+            "name": "explosion",
+            "phase_function": {
+                "type": "henyey_greenstein",
+                "g": 0.4
+            },
+            "transmittance": {
+                "type": "exponential"
+            },
+            "max_bounces": 128,
+            "type": "voxel",
+            "sigma_a": 4.400000095367432,
+            "sigma_s": 4.599999904632568,
+            "grid": {
+                "type": "vdb",
+                "file": "fire.vdb",
+                "density_name": "density",
+                "density_scale": 0.4,
+                "emission_name": "Cd",
+                "emission_scale": 18.0,
+                "scale_emission_by_density": true,
+                "normalize_size": false,
+                "integration_method": "exact_linear",
+                "sampling_method": "exact_linear",
+                "transform": {
+                    "position": [
+                        0.0,
+                        -0.029999999329447748,
+                        0.0
+                    ],
+                    "scale": 0.5,
+                    "rotation": [
+                        0.0,
+                        179.99998474121095,
+                        0.0
+                    ]
+                }
+            }
+        }
+    ],
+    "bsdfs": [],
+    "primitives": [
+        {
+            "name": "Floor",
+            "transform": {
+                "position": [
+                    -0.017766475677490236,
+                    0.00042366981506347656,
+                    -14.741264343261719
+                ],
+                "scale": [
+                    2000.0,
+                    1.0,
+                    2000.0
+                ]
+            },
+            "type": "quad",
+            "bsdf": {
+                "albedo": 1.0,
+                "type": "dielectric",
+                "ior": 1.5,
+                "enable_refraction": false
+            }
+        },
+        {
+            "transform": {
+                "position": [
+                    -0.20750045776367188,
+                    0.5631198883056641,
+                    -0.5787897109985352
+                ],
+                "scale": [
+                    0.9999997019767761,
+                    1.0,
+                    1.0
+                ],
+                "rotation": [
+                    -32.512420654296878,
+                    -78.93219757080078,
+                    34.01728820800781
+                ]
+            },
+            "type": "skydome",
+            "temperature": 7777.0,
+            "gamma_scale": 1.0,
+            "turbidity": 1.0,
+            "intensity": 6.0,
+            "sample": true
+        },
+        {
+            "transform": {
+                "position": [
+                    -0.20750045776367188,
+                    0.5631198883056641,
+                    -0.5787897109985352
+                ],
+                "scale": [
+                    0.9999997615814209,
+                    0.9999998807907105,
+                    1.0
+                ],
+                "rotation": [
+                    -32.512420654296878,
+                    -78.93219757080078,
+                    34.01728439331055
+                ]
+            },
+            "power": 7.5,
+            "type": "infinite_sphere_cap",
+            "sample": true,
+            "cap_angle": 0.1
+        }
+    ],
+    "camera": {
+        "tonemap": "gamma",
+        "resolution": [
+            1000,
+            563
+        ],
+        "reconstruction_filter": "tent",
+        "transform": {
+            "position": [
+                -1.0888162851333619,
+                0.8001762628555298,
+                4.573486804962158
+            ],
+            "look_at": [
+                -0.10694421082735062,
+                0.6416052579879761,
+                -0.21885137259960175
+            ],
+            "up": [
+                0.0,
+                1.0,
+                0.0
+            ]
+        },
+        "medium": "explosion",
+        "type": "pinhole",
+        "fov": 60.0
+    },
+    "integrator": {
+        "min_bounces": 0,
+        "max_bounces": 128,
+        "enable_consistency_checks": false,
+        "enable_two_sided_shading": true,
+        "type": "path_tracer",
+        "enable_light_sampling": true,
+        "enable_volume_light_sampling": true,
+        "low_order_scattering": true,
+        "include_surfaces": true
+    },
+    "renderer": {
+        "overwrite_output_files": true,
+        "adaptive_sampling": true,
+        "enable_resume_render": false,
+        "stratified_sampler": true,
+        "scene_bvh": true,
+        "spp": 16,
+        "spp_step": 8,
+        "timeout": "0",
+        "output_file": "TungstenRender.png",
+        "resume_render_file": "RenderState.dat"
+    }
+}
