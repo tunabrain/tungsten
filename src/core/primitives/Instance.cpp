@@ -99,7 +99,7 @@ rapidjson::Value Instance::toJson(Allocator &allocator) const
     for (const auto &m : _master)
         masters.PushBack(m->toJson(allocator), allocator);
 
-    auto result = JsonObject{Primitive::toJson(allocator), allocator,
+    JsonObject result{Primitive::toJson(allocator), allocator,
         "type", "instances",
         "masters", std::move(masters),
         "ratio", _ratio
@@ -115,11 +115,11 @@ rapidjson::Value Instance::toJson(Allocator &allocator) const
         rapidjson::Value instances;
         instances.SetArray();
         for (uint32 i = 0; i < _instanceCount; ++i) {
-            auto instance = JsonObject{allocator,
+            JsonObject instance{allocator,
                 "id", _instanceId[i],
                 "transform", Mat4f::translate(_instancePos[i])*_instanceRot[i].toMatrix()
             };
-            instances.PushBack(std::move(instance), allocator);
+            instances.PushBack(rapidjson::Value(instance), allocator);
         }
         result.add("instances", std::move(instances));
     }

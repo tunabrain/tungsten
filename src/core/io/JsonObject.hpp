@@ -16,6 +16,8 @@ class JsonObject
     void add() {}
 
 public:
+    JsonObject(const JsonObject &o) = delete;
+
     template<typename... Ts>
     JsonObject(Allocator &allocator, Ts &&... ts)
     : JsonObject(rapidjson::Value(rapidjson::kObjectType), allocator, std::forward<Ts>(ts)...)
