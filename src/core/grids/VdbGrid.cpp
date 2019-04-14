@@ -184,10 +184,21 @@ void VdbGrid::loadResources()
         FAIL("Failed to open vdb file at '%s': %s", *_path, e.what());
     }
 
-    openvdb::GridBase::Ptr ptr = file.readGrid(_densityName);
+    openvdb::GridBase::Ptr ptr;
+    try {
+        ptr = file.readGrid(_densityName);
+    } catch(const std::exception &) {
+        ptr = nullptr;
+    };
     if (!ptr)
-        FAIL("Failed to read grid '%s' from vdb file '%s'", _densityName, *_path);
-    openvdb::GridBase::Ptr emissionPtr = file.readGrid(_emissionName);
+        FAIL("Failed to read density grid '%s' from vdb file '%s'", _densityName, *_path);
+
+    openvdb::GridBase::Ptr emissionPtr;
+    try {
+        emissionPtr = file.readGrid(_emissionName);
+    } catch(const std::exception &) {
+        emissionPtr = nullptr;
+    };
 
     file.close();
 
