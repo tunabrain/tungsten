@@ -209,7 +209,7 @@ public:
 
     inline float evalApproximate(float x) const
     {
-        return _filter[min(int(std::abs(x*_invBinSize)), RFILTER_RESOLUTION)];
+        return _filter[min(int(std::abs(x*_invBinSize) + 0.5f), RFILTER_RESOLUTION)];
     }
 
     float width() const
